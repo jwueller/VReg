@@ -1,5 +1,7 @@
 #include <VReg/regfile.h>
 
+#include <VReg/overlay_hive.h>
+
 #include "text.h"
 #include "writer.h"
 
@@ -135,6 +137,91 @@ LSTATUS ExportSnapshot(
             return status;
         file = std::move(bytes);
         return ERROR_SUCCESS;
+    }
+    catch (const std::bad_alloc&)
+    {
+        return ERROR_OUTOFMEMORY;
+    }
+}
+
+LSTATUS ExportDelta(
+    OverlayHive& hive,
+    const HKEY hRoot,
+    const std::wstring_view path,
+    const Format format,
+    std::vector<std::byte>& file
+) noexcept
+{
+    const wchar_t* const pszRoot = RootName(hRoot);
+    if (!pszRoot)
+        return ERROR_INVALID_HANDLE;
+
+    try
+    {
+        std::vector<UpperRecord> upper;
+        if (const auto status = hive.SnapshotUpper(upper); status != ERROR_SUCCESS)
+            return status;
+
+        std::wstring prefix = pszRoot;
+        if (!path.empty())
+            prefix.append(L"\\").append(path);
+
+        const auto keyName = [&](const std::wstring& relative)
+        { return relative.empty() ? prefix : prefix + L'\\' + relative; };
+
+        std::vector<Record> records;
+        for (std::size_t i = 0; i < upper.size();)
+        {
+            const auto& key = upper[i++];
+            if (key.isTombstone || key.isOpaque)
+                records.push_back({Record::Kind::DeleteKey, keyName(key.path), {}, 0, {}});
+            if (key.isTombstone)
+                continue;
+
+            records.push_back({Record::Kind::Key, keyName(key.path), {}, 0, {}});
+            std::vector<Record> values;
+            for (; i < upper.size() && upper[i].kind == UpperRecord::Kind::Value; ++i)
+            {
+                auto& value = upper[i];
+                values.push_back(
+                    {value.isTombstone ? Record::Kind::DeleteValue : Record::Kind::Value,
+                     {},
+                     std::move(value.name),
+                     value.dwType,
+                     std::move(value.data)}
+                );
+            }
+            std::ranges::sort(values, NameLess, &Record::name);
+            for (auto& value : values)
+                records.push_back(std::move(value));
+        }
+
+        std::vector<std::byte> bytes;
+        if (const auto status = WriteRecords(records, format, bytes); status != ERROR_SUCCESS)
+            return status;
+        file = std::move(bytes);
+        return ERROR_SUCCESS;
+    }
+    catch (const std::bad_alloc&)
+    {
+        return ERROR_OUTOFMEMORY;
+    }
+}
+
+LSTATUS ExportDeltaToFile(
+    OverlayHive& hive,
+    const HKEY hRoot,
+    const std::wstring_view path,
+    const Format format,
+    const std::filesystem::path& fileName
+) noexcept
+{
+    try
+    {
+        std::vector<std::byte> file;
+        if (const auto status = ExportDelta(hive, hRoot, path, format, file); status != ERROR_SUCCESS)
+            return status;
+        return WriteWholeFile(fileName, file);
     }
     catch (const std::bad_alloc&)
     {

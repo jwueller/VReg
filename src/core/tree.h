@@ -22,6 +22,15 @@ struct Value
     bool isTombstone = false;
 };
 
+/// A pending change notification: fires once, then is gone.
+struct ChangeWatch
+{
+    /// Our own duplicate of the caller's event; closed when the watch fires or the tree goes.
+    HANDLE hEvent = nullptr;
+    bool isSubtree = false;
+    DWORD dwFilter = 0;
+};
+
 struct Node
 {
     Hive* pHive = nullptr;
@@ -50,6 +59,8 @@ struct Node
     std::vector<Node*> children;
     /// In creation order, as the native registry enumerates values.
     std::vector<Value> values;
+    /// Guarded by the tree's write lock.
+    std::vector<ChangeWatch> watches;
 };
 
 /// Ordinal comparison of uppercased names, the registry's own collation:
@@ -113,9 +124,23 @@ public:
     /// answers null when the handle namespace is exhausted.
     [[nodiscard]] Node* AddChild(Node& parent, std::wstring_view name, std::wstring_view className, bool isVolatile);
 
-    /// Marks @p node and everything below it deleted and unlinks it from its
-    /// parent.
+    /// Marks @p node and everything below it deleted, unlinks it from its
+    /// parent and fires the watches on it and below it, and the name watches
+    /// on its parent. The write lock must be held.
     static void Remove(Node& node) noexcept;
+
+    /// Fires and drops the watches a change of kind @p dwFilter (a
+    /// `REG_NOTIFY_CHANGE_*` bit) on @p node reaches: its own, and those of its
+    /// ancestors that watch their subtree. Neither `SetEvent` nor `CloseHandle`
+    /// can wait on the loader lock or on anything a caller of the hive could
+    /// hold, so they run under the write lock, which the caller must hold;
+    /// deferring them would need an allocation after the change is made.
+    static void Notify(Node& node, DWORD dwFilter) noexcept;
+
+    /// Registers @p hEvent (duplicated here) for the next change of @p node
+    /// that @p dwFilter selects, or its descendants' when @p isSubtree. A
+    /// frozen tree registers nothing, since it never changes.
+    LSTATUS Watch(Node& node, bool isSubtree, DWORD dwFilter, HANDLE hEvent) noexcept;
 
     /// Stamps @p node as written now.
     static void Touch(Node& node) noexcept;
@@ -124,6 +149,8 @@ private:
     Hive& m_owner;
     SRWLOCK m_lock = SRWLOCK_INIT;
     std::atomic<bool> m_isFrozen = false;
+    /// Fixed for the life of the tree. Not read from @ref m_nodes, whose storage moves while writers add to it.
+    Node* m_pRoot = nullptr;
     std::vector<std::unique_ptr<Node>> m_nodes;
 };
 } // namespace VReg

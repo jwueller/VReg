@@ -1157,7 +1157,24 @@ try
     if ((dwNotifyFilter & ~kKnownFilters) || (fAsynchronous && !hEvent))
         return ERROR_INVALID_PARAMETER;
 
-    return Hive::HiveOf(target.pNode)->CheckKey(target.pNode);
+    auto& hive = *Hive::HiveOf(target.pNode);
+    if (fAsynchronous)
+        return hive.Watch(target.pNode, bWatchSubtree != FALSE, dwNotifyFilter, hEvent);
+
+    // Agent's choice: a synchronous call waits for the change like the native one, on a private event, so a
+    // watcher thread written for the native registry behaves the same (and, as there, never returns on a key
+    // nothing changes). Passed over: answering at once, which would spin such a loop, and
+    // ERROR_NOT_SUPPORTED, which would end it.
+    const HANDLE hOwn = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+    if (!hOwn)
+        return GetLastError();
+
+    const auto status = hive.Watch(target.pNode, bWatchSubtree != FALSE, dwNotifyFilter, hOwn);
+    if (status == ERROR_SUCCESS)
+        WaitForSingleObject(hOwn, INFINITE);
+
+    CloseHandle(hOwn);
+    return status;
 }
 catch (const std::bad_alloc&)
 {

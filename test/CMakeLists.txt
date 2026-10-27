@@ -7,7 +7,9 @@ add_executable(
     oracle.cpp
     test_handle.cpp
     test_handle_probe.cpp
+    test_concurrency.cpp
     test_native_registry.cpp
+    test_notify.cpp
     test_oracle.cpp
     test_oracle_enum.cpp
     test_oracle_get.cpp
@@ -15,6 +17,7 @@ add_executable(
     test_overlay_hive.cpp
     test_registry.cpp
     test_regfile_apply.cpp
+    test_regfile_delta.cpp
     test_regfile_export.cpp
     test_regfile_parse.cpp
     test_regfile_roundtrip.cpp

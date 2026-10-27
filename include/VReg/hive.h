@@ -110,9 +110,26 @@ public:
         std::vector<std::byte>& data
     ) noexcept = 0;
     virtual LSTATUS QueryInfo(Node* pNode, KeyInfo& info) noexcept = 0;
-    /// What `FlushKey` and a change notification on @p pNode need from the
-    /// hive: success, or `ERROR_KEY_DELETED`.
+    /// What `FlushKey` on @p pNode needs from the hive: success, or
+    /// `ERROR_KEY_DELETED`.
     virtual LSTATUS CheckKey(Node* pNode) noexcept = 0;
+
+    /**
+     * @brief Registers a one-shot change notification on @p pNode.
+     *
+     *  @p hEvent is signaled once, by the first write that @p dwFilter selects
+     *  (`REG_NOTIFY_CHANGE_NAME` for a subkey added or deleted,
+     *  `REG_NOTIFY_CHANGE_LAST_SET` for a value set or deleted; the other
+     *  bits never fire) on the key, or below it when @p isSubtree. Deleting a
+     *  watched key fires its watches too. The hive duplicates @p hEvent, so
+     *  the caller may close its own handle. A frozen hive accepts the
+     *  registration and never signals. Answers `ERROR_KEY_DELETED` for a
+     *  deleted key, or the error of duplicating @p hEvent.
+     *
+     * @note Only writes made through the hive are seen; a change in the
+     *  registry below an `OverlayHive` is not.
+     */
+    virtual LSTATUS Watch(Node* pNode, bool isSubtree, DWORD dwFilter, HANDLE hEvent) noexcept = 0;
 
     /// The registry below this hive, which answers the handles in
     /// @ref OpenResult::hLower; null for a hive with nothing below it.

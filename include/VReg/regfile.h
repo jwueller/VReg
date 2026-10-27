@@ -11,6 +11,11 @@
 #include <string_view>
 #include <vector>
 
+namespace VReg
+{
+class OverlayHive;
+}
+
 namespace VReg::RegFile
 {
 /// The encodings and headers a `.reg` file is written in.
@@ -108,6 +113,35 @@ LSTATUS ExportSnapshot(
 /// @ref ExportSnapshot into a file. An existing file is replaced only once the export has succeeded.
 LSTATUS ExportSnapshotToFile(
     Registry& registry,
+    HKEY hRoot,
+    std::wstring_view path,
+    Format format,
+    const std::filesystem::path& fileName
+) noexcept;
+
+/**
+ * @brief Writes what the upper layer of @p hive holds, as a file that reproduces the hive's merged view when it
+ *  is applied over the same lower registry.
+ *
+ *  @p hRoot and @p path name where the hive is mounted: key names in the file are that prefix plus the key's path
+ *  in the hive. Upper keys are written as `[key]` with their upper values, a deleted lower value as `"name"=-`,
+ *  a deleted lower key as `[-key]`, and a key that hides its lower counterpart as `[-key]` followed by `[key]` and
+ *  its contents. A key that only shows a lower key through is left out. Order and layout are those of
+ *  @ref ExportSnapshot. A tombstone with no lower counterpart is kept, and does nothing when applied.
+ *
+ * @return As @ref ExportSnapshot, except that the hive is read instead of a registry.
+ */
+LSTATUS ExportDelta(
+    OverlayHive& hive,
+    HKEY hRoot,
+    std::wstring_view path,
+    Format format,
+    std::vector<std::byte>& file
+) noexcept;
+
+/// @ref ExportDelta into a file. An existing file is replaced only once the export has succeeded.
+LSTATUS ExportDeltaToFile(
+    OverlayHive& hive,
     HKEY hRoot,
     std::wstring_view path,
     Format format,

@@ -60,18 +60,51 @@ Tree::Tree(Hive& owner)
         throw std::bad_alloc();
 
     Touch(*pRoot);
+    m_pRoot = pRoot.get();
     m_nodes.push_back(std::move(pRoot));
 }
+
+namespace
+{
+void DropWatches(Node& node) noexcept
+{
+    for (const auto& watch : node.watches)
+        CloseHandle(watch.hEvent);
+
+    node.watches.clear();
+}
+
+/// Signals and drops the watches of @p node that @p dwFilter selects; @p isInherited limits them to those
+/// watching their subtree.
+void Fire(Node& node, const DWORD dwFilter, const bool isInherited) noexcept
+{
+    std::erase_if(
+        node.watches,
+        [&](const ChangeWatch& watch)
+        {
+            if (!(watch.dwFilter & dwFilter) || (isInherited && !watch.isSubtree))
+                return false;
+
+            SetEvent(watch.hEvent);
+            CloseHandle(watch.hEvent);
+            return true;
+        }
+    );
+}
+} // namespace
 
 Tree::~Tree()
 {
     for (const auto& pNode : m_nodes)
+    {
+        DropWatches(*pNode);
         HandleSpace::Process().Release(pNode->hKey);
+    }
 }
 
 Node* Tree::Root() const noexcept
 {
-    return m_nodes.front().get();
+    return m_pRoot;
 }
 
 void Tree::Freeze() noexcept
@@ -80,6 +113,9 @@ void Tree::Freeze() noexcept
     // that see the flag afterwards skip the lock and see all their writes.
     AcquireSRWLockExclusive(&m_lock);
     m_isFrozen.store(true, std::memory_order_release);
+    for (const auto& pNode : m_nodes)
+        DropWatches(*pNode);
+
     ReleaseSRWLockExclusive(&m_lock);
 }
 
@@ -180,10 +216,50 @@ void Tree::Remove(Node& node) noexcept
     auto mark = [](auto& self, Node& current) -> void
     {
         current.isDeleted = true;
+        Fire(current, ~DWORD{0}, false);
         for (auto* const pChild : current.children)
             self(self, *pChild);
     };
     mark(mark, node);
+    if (node.pParent)
+        Notify(*node.pParent, REG_NOTIFY_CHANGE_NAME);
+}
+
+void Tree::Notify(Node& node, const DWORD dwFilter) noexcept
+{
+    Fire(node, dwFilter, false);
+    for (auto* pAncestor = node.pParent; pAncestor; pAncestor = pAncestor->pParent)
+        Fire(*pAncestor, dwFilter, true);
+}
+
+LSTATUS Tree::Watch(Node& node, const bool isSubtree, const DWORD dwFilter, const HANDLE hEvent) noexcept
+{
+    if (!(dwFilter & (REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_LAST_SET)))
+        return ERROR_SUCCESS;
+
+    HANDLE hOwn{};
+    if (!DuplicateHandle(GetCurrentProcess(), hEvent, GetCurrentProcess(), &hOwn, 0, FALSE, DUPLICATE_SAME_ACCESS))
+        return GetLastError();
+
+    WriteLock lock(*this);
+    LSTATUS status = ERROR_SUCCESS;
+    if (node.isDeleted)
+        status = ERROR_KEY_DELETED;
+    else if (!IsFrozen())
+    {
+        try
+        {
+            node.watches.push_back({.hEvent = hOwn, .isSubtree = isSubtree, .dwFilter = dwFilter});
+            return ERROR_SUCCESS;
+        }
+        catch (const std::bad_alloc&)
+        {
+            status = ERROR_OUTOFMEMORY;
+        }
+    }
+
+    CloseHandle(hOwn);
+    return status;
 }
 
 void Tree::Touch(Node& node) noexcept

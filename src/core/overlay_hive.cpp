@@ -47,6 +47,43 @@ void SortNames(std::vector<std::wstring>& names)
     std::ranges::sort(names, [](const std::wstring& left, const std::wstring& right) { return CompareNames(left, right) < 0; });
 }
 
+/// Appends @p node and everything below it to @p records, leaving out a transparent node without values (the
+/// way to a lower key, which only the root can be while it has upper keys below it).
+void ListUpper(const Node& node, std::wstring& path, std::vector<UpperRecord>& records)
+{
+    const auto iFirst = records.size();
+    records.push_back({.kind = UpperRecord::Kind::Key, .path = path, .isOpaque = node.isOpaque});
+    for (const auto& value : node.values)
+    {
+        records.push_back(
+            {.kind = UpperRecord::Kind::Value,
+             .path = path,
+             .name = value.name,
+             .dwType = value.dwType,
+             .data = value.data,
+             .isTombstone = value.isTombstone}
+        );
+    }
+
+    const bool isBare = node.isTransparent && node.values.empty();
+    const auto cchPath = path.size();
+    for (const auto* const pChild : node.children)
+    {
+        if (!path.empty())
+            path += L'\\';
+        path += pChild->name;
+        if (pChild->isTombstone)
+            records.push_back({.kind = UpperRecord::Kind::Key, .path = path, .isTombstone = true});
+        else
+            ListUpper(*pChild, path, records);
+
+        path.resize(cchPath);
+    }
+
+    if (isBare)
+        records.erase(records.begin() + static_cast<std::ptrdiff_t>(iFirst));
+}
+
 /// A lower key, closed through its registry.
 class LowerKey
 {
@@ -375,6 +412,7 @@ try
             pChild->className = isLast ? className : std::wstring_view();
             Tree::Touch(*pChild);
             Materialize(*pCurrent);
+            Tree::Notify(*pCurrent, REG_NOTIFY_CHANGE_NAME);
             pCurrent = pChild;
             if (isLast)
                 dwDisposition = REG_CREATED_NEW_KEY;
@@ -402,6 +440,7 @@ try
         else
         {
             Materialize(*pCurrent);
+            Tree::Notify(*pCurrent, REG_NOTIFY_CHANGE_NAME);
             if (isLast)
                 dwDisposition = REG_CREATED_NEW_KEY;
         }
@@ -522,6 +561,7 @@ LSTATUS OverlayHive::DeleteTree(Node* const pNode) noexcept
     pNode->isLowerBacked = false;
     Materialize(*pNode);
     Tree::Touch(*pNode);
+    Tree::Notify(*pNode, REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_LAST_SET);
     return ERROR_SUCCESS;
 }
 
@@ -590,6 +630,7 @@ try
 
     Materialize(*pNode);
     Tree::Touch(*pNode);
+    Tree::Notify(*pNode, REG_NOTIFY_CHANGE_LAST_SET);
     return ERROR_SUCCESS;
 }
 catch (const std::bad_alloc&)
@@ -663,6 +704,7 @@ try
 
     Materialize(*pNode);
     Tree::Touch(*pNode);
+    Tree::Notify(*pNode, REG_NOTIFY_CHANGE_LAST_SET);
     return ERROR_SUCCESS;
 }
 catch (const std::bad_alloc&)
@@ -976,10 +1018,33 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
+LSTATUS OverlayHive::SnapshotUpper(std::vector<UpperRecord>& records) const noexcept
+try
+{
+    std::vector<UpperRecord> result;
+    std::wstring path;
+    {
+        Tree::ReadLock lock(*m_pTree);
+        ListUpper(*m_pTree->Root(), path, result);
+    }
+
+    records = std::move(result);
+    return ERROR_SUCCESS;
+}
+catch (const std::bad_alloc&)
+{
+    return ERROR_OUTOFMEMORY;
+}
+
 LSTATUS OverlayHive::CheckKey(Node* const pNode) noexcept
 {
     Tree::ReadLock lock(*m_pTree);
     return pNode->isDeleted ? ERROR_KEY_DELETED : ERROR_SUCCESS;
+}
+
+LSTATUS OverlayHive::Watch(Node* const pNode, const bool isSubtree, const DWORD dwFilter, const HANDLE hEvent) noexcept
+{
+    return m_pTree->Watch(*pNode, isSubtree, dwFilter, hEvent);
 }
 
 LSTATUS OverlayHive::OpenLowerValueKey(Node* const pNode, const std::wstring_view name, HKEY& hLower) noexcept

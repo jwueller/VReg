@@ -107,6 +107,7 @@ try
             return ERROR_OUTOFMEMORY;
 
         dwDisposition = REG_CREATED_NEW_KEY;
+        Tree::Notify(*pCurrent->pParent, REG_NOTIFY_CHANGE_NAME);
     }
 
     result = {.pNode = pCurrent, .hLower = nullptr};
@@ -151,6 +152,7 @@ LSTATUS MemoryHive::DeleteTree(Node* const pNode) noexcept
 
     pNode->values.clear();
     Tree::Touch(*pNode);
+    Tree::Notify(*pNode, REG_NOTIFY_CHANGE_LAST_SET);
     return ERROR_SUCCESS;
 }
 
@@ -206,6 +208,7 @@ try
     }
 
     Tree::Touch(*pNode);
+    Tree::Notify(*pNode, REG_NOTIFY_CHANGE_LAST_SET);
     return ERROR_SUCCESS;
 }
 catch (const std::bad_alloc&)
@@ -228,6 +231,7 @@ LSTATUS MemoryHive::DeleteValue(Node* const pNode, const std::wstring_view name)
 
     pNode->values.erase(pNode->values.begin() + (pValue - pNode->values.data()));
     Tree::Touch(*pNode);
+    Tree::Notify(*pNode, REG_NOTIFY_CHANGE_LAST_SET);
     return ERROR_SUCCESS;
 }
 
@@ -320,5 +324,10 @@ LSTATUS MemoryHive::CheckKey(Node* const pNode) noexcept
 {
     Tree::ReadLock lock(*m_pTree);
     return pNode->isDeleted ? ERROR_KEY_DELETED : ERROR_SUCCESS;
+}
+
+LSTATUS MemoryHive::Watch(Node* const pNode, const bool isSubtree, const DWORD dwFilter, const HANDLE hEvent) noexcept
+{
+    return m_pTree->Watch(*pNode, isSubtree, dwFilter, hEvent);
 }
 } // namespace VReg

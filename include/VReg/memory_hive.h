@@ -49,6 +49,7 @@ public:
         override;
     LSTATUS QueryInfo(Node* pNode, KeyInfo& info) noexcept override;
     LSTATUS CheckKey(Node* pNode) noexcept override;
+    LSTATUS Watch(Node* pNode, bool isSubtree, DWORD dwFilter, HANDLE hEvent) noexcept override;
 
 private:
     std::unique_ptr<Tree> m_pTree;

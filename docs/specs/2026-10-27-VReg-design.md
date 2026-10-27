@@ -198,6 +198,38 @@ Chosen per mount:
   lock, so taking it inside a detour body under a foreign loader lock is
   safe.
 
+### Change notification
+
+`RegNotifyChangeKeyValue` on a virtual key registers a one-shot watch on the
+key's node, kept in the hive's tree (so every hive kind has it).
+
+- A frozen hive accepts the call and never signals; it has no writes to
+  watch. Freezing drops the watches already registered without signaling.
+- A writable hive signals the event of every watch that a write matches, and
+  drops it (a registration fires once). `REG_NOTIFY_CHANGE_NAME` matches a
+  subkey added or deleted on the watched key, `REG_NOTIFY_CHANGE_LAST_SET`
+  a value set or deleted on it; `ATTRIBUTES` and `SECURITY` never match. A
+  watch with `bWatchSubtree` also matches the same changes on any descendant.
+  Deleting a watched key (or an ancestor) signals its watches whatever their
+  filter. Emptying a key with `RegDeleteTree` counts as both changes.
+- The hive duplicates the event handle at registration, so the caller may
+  close its own. The event is signaled with `SetEvent` while the hive's write
+  lock is held: neither it nor `CloseHandle` can wait on the loader lock or
+  on a lock a hive caller could hold, and deferring them would need an
+  allocation after the write was made.
+- Through an overlay only writes made through the hive are seen. A change in
+  the lower registry never signals, and opening a lower key (which creates a
+  transparent node) is not a change.
+- Agent's choice: a synchronous call (`fAsynchronous` false) waits for the
+  change on a private event, like the native call, so a watcher thread written
+  for the native registry keeps working; it never returns on a key nothing
+  writes to, as natively. Passed over: answering at once, which would spin
+  such a loop, and `ERROR_NOT_SUPPORTED`, which would end it. The wait is on
+  an event that only a writer sets, never on a lock.
+- A registration that never fires keeps its duplicate handle until the hive
+  is destroyed or frozen; registering again on the same key and event without
+  waiting adds another.
+
 The mount table is published copy-on-write through one atomic pointer and
 old tables are never freed, so a module loaded later can mount a fully built
 hive while hooks are live, without readers taking a lock.
@@ -322,7 +354,13 @@ In namespace `VReg::RegFile` (`include/VReg/regfile.h`):
 - `ExportDelta(OverlayHive&, root, path, format)`: the upper layer, with
   tombstones as `[-K]` and `"Name"=-` and opaque keys as `[-K]` followed by
   `[K]`; the persistence format for overlays. Re-importing over the same
-  lower registry reproduces the view.
+  lower registry reproduces the view. `root` and `path` name where the hive
+  is mounted; key names are that prefix plus the key's path in the hive. The
+  walk is `OverlayHive::SnapshotUpper`, which reads the upper tree under the
+  hive's read lock and never calls the lower registry. A key that only shows
+  a lower key through and holds no value of its own is omitted, so opening
+  keys does not change the delta; one with upper values or value tombstones
+  appears as `[K]` (it exists below, so creating it is harmless).
 - File helpers on top. Hooks never perform file I/O.
 
 ### Import
@@ -426,6 +464,12 @@ Catch2.
 - **Ported unit tests**: overlay shadowing, enumeration index shifting,
   `QueryInfoKey` counts and failure cases, ancestor handles, native-path
   resolution, `WOW6432Node`.
+- **Concurrency**: reader and writer threads (opens, creates, value writes
+  and deletes, key deletes, enumerations, `QueryInfoKey`, watches, snapshot
+  exports) on a writable `MemoryHive`, one frozen halfway through, and a
+  writable `OverlayHive` over an app hive, each for about two seconds. They
+  require only plausible status codes, no hang, and a final state that
+  agrees with itself.
 - **`.reg`**: byte-exact round trips, deltas with tombstones and opaque keys,
   parse errors with line and column; an opt-in regedit compatibility check
   on HKCU.
