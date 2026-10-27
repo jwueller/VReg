@@ -439,7 +439,8 @@ Catch2.
 
 - Windows: {x86, x64} x {MSVC, clang-cl}, all tests.
 - Wine on Ubuntu: the Windows-built x86 and x64 test binaries, all tests
-  except the native oracle, which is skipped there. Agent's choice: native
+  except those on a private app hive (the native oracle and every test
+  against the real registry), which skip themselves there. Agent's choice: native
   Windows behavior is the spec and Wine may deviate on edge-case statuses; a
   per-platform expectation list was passed over because it would make our
   behavior follow whichever Wine version CI installed.

@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  windows:
+    name: Windows ${{ matrix.compiler }} ${{ matrix.arch }}
+    runs-on: windows-2025
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [msvc, clang-cl]
+        arch: [x86, x64]
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-cache
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.vcpkg-cache
+          key: vcpkg-${{ matrix.compiler }}-${{ matrix.arch }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          restore-keys: vcpkg-${{ matrix.compiler }}-${{ matrix.arch }}-
+
+      - name: Enter the developer environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch == 'x86' && 'amd64_x86' || 'amd64' }}
+
+      - name: Configure
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
+          $env:VCPKG_ROOT = $env:VCPKG_INSTALLATION_ROOT
+          cmake --preset ${{ matrix.compiler }}-${{ matrix.arch }}
+
+      - name: Build
+        run: |
+          cmake --build --preset ${{ matrix.compiler }}-${{ matrix.arch }}-debug
+          cmake --build --preset ${{ matrix.compiler }}-${{ matrix.arch }}-release
+
+      - name: Test
+        run: |
+          ctest --preset ${{ matrix.compiler }}-${{ matrix.arch }}-debug
+          ctest --preset ${{ matrix.compiler }}-${{ matrix.arch }}-release
+
+      # The Wine job runs these binaries; only one compiler's are needed.
+      - name: Upload the test binaries
+        if: matrix.compiler == 'msvc'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-${{ matrix.arch }}
+          path: |
+            out/build/${{ matrix.compiler }}-${{ matrix.arch }}/test/Release/*.exe
+            out/build/${{ matrix.compiler }}-${{ matrix.arch }}/test/Release/*.dll
+            out/build/${{ matrix.compiler }}-${{ matrix.arch }}/test/hooks/Release/*.exe
+            out/build/${{ matrix.compiler }}-${{ matrix.arch }}/test/hooks/Release/*.dll
+
+  wine:
+    name: Wine ${{ matrix.arch }}
+    needs: windows
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86, x64]
+    steps:
+      - name: Install Wine
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends wine wine64 wine32:i386
+          wineboot --init
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tests-${{ matrix.arch }}
+          path: tests
+
+      # Tests that need a private app hive skip themselves under Wine: native
+      # Windows behavior is the spec, and Wine may deviate in edge cases.
+      - name: Test
+        working-directory: tests
+        run: |
+          set -e
+          for test in $(find . -name 'VReg_*Tests.exe'); do
+            (cd "$(dirname "$test")" && wine "$(basename "$test")")
+          done

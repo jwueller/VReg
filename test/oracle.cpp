@@ -12,6 +12,11 @@ namespace VReg::Test
 {
 AppHive::AppHive()
 {
+    // Native Windows behavior is the spec; Wine may answer edge cases
+    // differently, and a test following it would follow whichever Wine ran.
+    if (GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "wine_get_version"))
+        SKIP("needs the native registry, not Wine's");
+
     static std::atomic<unsigned> s_counter;
 
     m_directory = std::filesystem::temp_directory_path()
