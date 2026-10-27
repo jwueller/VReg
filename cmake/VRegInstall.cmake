@@ -21,10 +21,6 @@ if(TARGET VReg_Detours)
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     )
 endif()
-install(
-    FILES ${PROJECT_BINARY_DIR}/include/VReg/version.h
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/VReg
-)
 
 set(vreg_cmake_dir ${CMAKE_INSTALL_LIBDIR}/cmake/VReg)
 install(

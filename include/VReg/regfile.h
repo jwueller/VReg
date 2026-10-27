@@ -1,6 +1,6 @@
 #pragma once
 
-#include <VReg/registry.h>
+#include "registry.h"
 
 #include <Windows.h>
 

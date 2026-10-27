@@ -1,7 +1,7 @@
 #pragma once
 
-#include <VReg/hive.h>
-#include <VReg/registry.h>
+#include "hive.h"
+#include "registry.h"
 
 #include <atomic>
 #include <memory>
