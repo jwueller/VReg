@@ -1,0 +1,13 @@
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/VRegTargets.cmake")
+
+foreach(component IN LISTS VReg_FIND_COMPONENTS)
+    if(TARGET VReg::${component})
+        set(VReg_${component}_FOUND TRUE)
+    else()
+        set(VReg_${component}_FOUND FALSE)
+    endif()
+endforeach()
+
+check_required_components(VReg)

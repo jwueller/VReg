@@ -45,6 +45,22 @@ CMake targets:
 Consume it through `add_subdirectory`/`FetchContent`, or install it and use
 `find_package(VReg CONFIG COMPONENTS Core RegFile Detours)`.
 
+## Building
+
+Needs Visual Studio 2022 or later (MSVC or clang-cl), CMake 3.25+, Ninja and
+vcpkg (`VCPKG_ROOT` set; the copy bundled with Visual Studio works). From a
+developer prompt for the target architecture:
+
+```
+cmake --preset msvc-x64
+cmake --build --preset msvc-x64-debug
+ctest --preset msvc-x64-debug
+```
+
+Presets: `{msvc,clang-cl}-{x86,x64}` to configure; append `-debug` or
+`-release` to build and test. They enable the tests and `VReg::Detours`, with
+Catch2 and Detours from vcpkg.
+
 ## License
 
 MIT.

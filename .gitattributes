@@ -1,0 +1,4 @@
+* text=auto
+
+# UTF-16 .reg fixtures must reach the tests byte for byte.
+*.reg binary

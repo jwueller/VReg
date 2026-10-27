@@ -1,0 +1,48 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {"major": 3, "minor": 25, "patch": 0},
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja Multi-Config",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+      "cacheVariables": {
+        "VCPKG_MANIFEST_FEATURES": "tests;detours",
+        "VREG_WITH_DETOURS": "ON",
+        "VREG_BUILD_TESTS": "ON",
+        "CMAKE_CONFIGURATION_TYPES": "Debug;Release"
+      }
+    },
+    {"name": "x86", "hidden": true, "architecture": {"value": "x86", "strategy": "external"}, "cacheVariables": {"VCPKG_TARGET_TRIPLET": "x86-windows"}},
+    {"name": "x64", "hidden": true, "architecture": {"value": "x64", "strategy": "external"}, "cacheVariables": {"VCPKG_TARGET_TRIPLET": "x64-windows"}},
+    {"name": "msvc", "hidden": true, "cacheVariables": {"CMAKE_CXX_COMPILER": "cl"}},
+    {"name": "clang-cl", "hidden": true, "cacheVariables": {"CMAKE_CXX_COMPILER": "clang-cl"}},
+    {"name": "msvc-x86", "inherits": ["base", "x86", "msvc"]},
+    {"name": "msvc-x64", "inherits": ["base", "x64", "msvc"]},
+    {"name": "clang-cl-x86", "inherits": ["base", "x86", "clang-cl"]},
+    {"name": "clang-cl-x64", "inherits": ["base", "x64", "clang-cl"]}
+  ],
+  "buildPresets": [
+    {"name": "msvc-x86-debug", "configurePreset": "msvc-x86", "configuration": "Debug"},
+    {"name": "msvc-x86-release", "configurePreset": "msvc-x86", "configuration": "Release"},
+    {"name": "msvc-x64-debug", "configurePreset": "msvc-x64", "configuration": "Debug"},
+    {"name": "msvc-x64-release", "configurePreset": "msvc-x64", "configuration": "Release"},
+    {"name": "clang-cl-x86-debug", "configurePreset": "clang-cl-x86", "configuration": "Debug"},
+    {"name": "clang-cl-x86-release", "configurePreset": "clang-cl-x86", "configuration": "Release"},
+    {"name": "clang-cl-x64-debug", "configurePreset": "clang-cl-x64", "configuration": "Debug"},
+    {"name": "clang-cl-x64-release", "configurePreset": "clang-cl-x64", "configuration": "Release"}
+  ],
+  "testPresets": [
+    {"name": "base", "hidden": true, "output": {"outputOnFailure": true}},
+    {"name": "msvc-x86-debug", "inherits": "base", "configurePreset": "msvc-x86", "configuration": "Debug"},
+    {"name": "msvc-x86-release", "inherits": "base", "configurePreset": "msvc-x86", "configuration": "Release"},
+    {"name": "msvc-x64-debug", "inherits": "base", "configurePreset": "msvc-x64", "configuration": "Debug"},
+    {"name": "msvc-x64-release", "inherits": "base", "configurePreset": "msvc-x64", "configuration": "Release"},
+    {"name": "clang-cl-x86-debug", "inherits": "base", "configurePreset": "clang-cl-x86", "configuration": "Debug"},
+    {"name": "clang-cl-x86-release", "inherits": "base", "configurePreset": "clang-cl-x86", "configuration": "Release"},
+    {"name": "clang-cl-x64-debug", "inherits": "base", "configurePreset": "clang-cl-x64", "configuration": "Debug"},
+    {"name": "clang-cl-x64-release", "inherits": "base", "configurePreset": "clang-cl-x64", "configuration": "Release"}
+  ]
+}

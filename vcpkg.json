@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "vreg",
+  "version-semver": "0.1.0",
+  "description": "A virtualized Windows registry",
+  "homepage": "https://github.com/jwueller/VReg",
+  "license": "MIT",
+  "supports": "windows & (x86 | x64)",
+  "features": {
+    "detours": {
+      "description": "Build VReg::Detours",
+      "dependencies": ["detours"]
+    },
+    "tests": {
+      "description": "Build the tests",
+      "dependencies": ["catch2"]
+    }
+  }
+}

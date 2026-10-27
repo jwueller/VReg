@@ -1,0 +1,20 @@
+#pragma once
+
+namespace VReg
+{
+inline constexpr unsigned kVersionMajor = @PROJECT_VERSION_MAJOR@;
+inline constexpr unsigned kVersionMinor = @PROJECT_VERSION_MINOR@;
+inline constexpr unsigned kVersionPatch = @PROJECT_VERSION_PATCH@;
+
+struct Version
+{
+    unsigned major;
+    unsigned minor;
+    unsigned patch;
+};
+
+/// The version of the copy of VReg linked into the calling module, which can
+/// differ from the headers a caller compiled against, and from the copies
+/// other modules in the same process link.
+[[nodiscard]] Version GetVersion() noexcept;
+} // namespace VReg
