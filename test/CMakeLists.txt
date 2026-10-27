@@ -13,10 +13,14 @@ add_executable(
     test_oracle_get.cpp
     test_oracle_values.cpp
     test_registry.cpp
+    test_regfile_apply.cpp
+    test_regfile_export.cpp
+    test_regfile_parse.cpp
+    test_regfile_roundtrip.cpp
     test_virtual_registry.cpp
     test_version.cpp
 )
-target_link_libraries(VReg_Tests PRIVATE VReg::Core VReg_BuildSettings Catch2::Catch2WithMain)
+target_link_libraries(VReg_Tests PRIVATE VReg::RegFile VReg::Core VReg_BuildSettings Catch2::Catch2WithMain)
 # The tests reach internal headers as well as the public ones.
 target_include_directories(VReg_Tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # A hung test fails instead of stalling an unattended run.

@@ -274,11 +274,15 @@ which would re-enter the hooks and bypass test stubs.
 
 ### API
 
-- `Parse(text) -> RegScript`: an ordered list of key and value operations.
-- `Apply(const RegScript&, Registry&)`.
-- `ExportSnapshot(Registry&, key, options)`: the merged view, no deletion
-  lines; for fixtures and inspection.
-- `ExportDelta(OverlayHive&, mountPath, options)`: the upper layer, with
+In namespace `VReg::RegFile` (`include/VReg/regfile.h`):
+
+- `Parse(file bytes) -> Script`: an ordered list of key and value
+  operations; a syntax error reports line and column.
+- `Apply(const Script&, Registry&)`: reports the index of the failing
+  operation.
+- `ExportSnapshot(Registry&, root, path, format)`: the merged view, no
+  deletion lines; for fixtures and inspection.
+- `ExportDelta(OverlayHive&, root, path, format)`: the upper layer, with
   tombstones as `[-K]` and `"Name"=-` and opaque keys as `[-K]` followed by
   `[K]`; the persistence format for overlays. Re-importing over the same
   lower registry reproduces the view.
