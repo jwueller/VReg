@@ -66,13 +66,21 @@ LSTATUS MemoryHive::CreateKey(
     const KeyPath path,
     const std::wstring_view className,
     const DWORD dwOptions,
-    Node*& pNode,
+    const REGSAM samDesired,
+    OpenResult& result,
     DWORD& dwDisposition
 ) noexcept
 try
 {
     if (IsFrozen())
-        return ERROR_ACCESS_DENIED;
+    {
+        const auto status = OpenKey(pParent, path, samDesired, result);
+        if (status == ERROR_FILE_NOT_FOUND)
+            return ERROR_ACCESS_DENIED;
+
+        dwDisposition = REG_OPENED_EXISTING_KEY;
+        return status;
+    }
 
     Tree::WriteLock lock(*m_pTree);
     if (pParent->isDeleted)
@@ -101,7 +109,7 @@ try
         dwDisposition = REG_CREATED_NEW_KEY;
     }
 
-    pNode = pCurrent;
+    result = {.pNode = pCurrent, .hLower = nullptr};
     return ERROR_SUCCESS;
 }
 catch (const std::bad_alloc&)

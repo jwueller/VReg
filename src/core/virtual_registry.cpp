@@ -1,5 +1,8 @@
 #include <VReg/virtual_registry.h>
 
+#include <VReg/handle.h>
+
+#include "export_table.h"
 #include "handle_space.h"
 #include "tree.h"
 
@@ -8,6 +11,8 @@
 #include <new>
 #include <iterator>
 #include <span>
+
+#include <sddl.h>
 
 namespace VReg
 {
@@ -82,15 +87,126 @@ std::span<const std::byte> AsBytes(const BYTE* const pb, const DWORD cb) noexcep
 {
     return {reinterpret_cast<const std::byte*>(pb), pb ? cb : 0};
 }
-} // namespace
 
-VirtualRegistry::VirtualRegistry(Registry* const pBase) noexcept
-    : m_pBase(pBase)
-    , m_pMounts(nullptr)
+bool IsWow6432Node(const std::wstring_view name) noexcept
 {
+    return CompareNames(name, L"WOW6432Node") == 0;
 }
 
-LSTATUS VirtualRegistry::Mount(const HKEY hRoot, const std::wstring_view path, Hive& hive) noexcept
+constexpr MountView kProcessView = sizeof(void*) == 8 ? MountView::Only64 : MountView::Only32;
+
+MountView ViewFromSam(const REGSAM samDesired) noexcept
+{
+    if (samDesired & KEY_WOW64_64KEY)
+        return MountView::Only64;
+    if (samDesired & KEY_WOW64_32KEY)
+        return MountView::Only32;
+
+    return kProcessView;
+}
+
+bool Admits(const MountView mountView, const MountView callView) noexcept
+{
+    return mountView == MountView::Both || mountView == callView;
+}
+
+/// The string form of the current user's SID; empty when it cannot be read.
+std::wstring CurrentUserSid()
+{
+    HANDLE hToken{};
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
+        return {};
+
+    std::wstring sid;
+    DWORD cbUser = 0;
+    GetTokenInformation(hToken, TokenUser, nullptr, 0, &cbUser);
+    std::vector<std::byte> user(cbUser);
+    if (cbUser && GetTokenInformation(hToken, TokenUser, user.data(), cbUser, &cbUser))
+    {
+        LPWSTR pszSid = nullptr;
+        if (ConvertSidToStringSidW(reinterpret_cast<const TOKEN_USER*>(user.data())->User.Sid, &pszSid))
+        {
+            sid = pszSid;
+            LocalFree(pszSid);
+        }
+    }
+
+    CloseHandle(hToken);
+    return sid;
+}
+
+/// The native path of a predefined root as components; empty for a root with
+/// none.
+std::vector<std::wstring> NativeRootPath(const HKEY hRoot)
+{
+    if (hRoot == HKEY_LOCAL_MACHINE)
+        return {L"REGISTRY", L"MACHINE"};
+    if (hRoot == HKEY_USERS)
+        return {L"REGISTRY", L"USER"};
+    if (hRoot == HKEY_CURRENT_USER)
+    {
+        auto sid = CurrentUserSid();
+        if (!sid.empty())
+            return {L"REGISTRY", L"USER", std::move(sid)};
+    }
+
+    return {};
+}
+
+constexpr ULONG kKeyNameInformation = 3;
+constexpr LONG kStatusBufferOverflow = static_cast<LONG>(0x80000005);
+constexpr LONG kStatusBufferTooSmall = static_cast<LONG>(0xC0000023);
+
+/// Whether @p full, with `WOW6432Node` components skipped, starts with
+/// @p mountPath; @p iRest then indexes the first component past the match and
+/// @p isWow says a `WOW6432Node` was skipped.
+bool MatchesNative(
+    const std::vector<std::wstring>& mountPath,
+    const std::vector<std::wstring_view>& full,
+    bool& isWow,
+    std::size_t& iRest
+) noexcept
+{
+    std::size_t iMount = 0;
+    std::size_t i = 0;
+    isWow = false;
+    for (; i < full.size() && iMount < mountPath.size(); ++i)
+    {
+        if (IsWow6432Node(full[i]))
+        {
+            isWow = true;
+            continue;
+        }
+        if (CompareNames(full[i], mountPath[iMount]) != 0)
+            return false;
+
+        ++iMount;
+    }
+
+    iRest = i;
+    return iMount == mountPath.size();
+}
+} // namespace
+
+VirtualRegistry::VirtualRegistry(Registry* const pBase, const NtQueryKeyFunction pfnNtQueryKey) noexcept
+    : m_pBase(pBase)
+    , m_pfnNtQueryKey(pfnNtQueryKey)
+    , m_pMounts(nullptr)
+{
+    if (!m_pfnNtQueryKey)
+    {
+        m_pfnNtQueryKey = reinterpret_cast<NtQueryKeyFunction>(
+            FindExport(GetModuleHandleW(L"ntdll.dll"), "NtQueryKey")
+        );
+    }
+}
+
+LSTATUS VirtualRegistry::Mount(
+    const HKEY hRoot,
+    const std::wstring_view path,
+    Hive& hive,
+    const MountView view
+) noexcept
 try
 {
     if (!IsPredefinedHKey(hRoot))
@@ -100,7 +216,21 @@ try
     if (SplitPath(path, components) != ERROR_SUCCESS)
         return ERROR_BAD_PATHNAME;
 
-    MountPoint mount{.hRoot = hRoot, .path = {components.begin(), components.end()}, .pHive = &hive};
+    MountPoint mount{
+        .hRoot = hRoot,
+        .path = {components.begin(), components.end()},
+        .pHive = &hive,
+        .view = view,
+        .nativePath = NativeRootPath(hRoot),
+    };
+    if (!mount.nativePath.empty())
+    {
+        for (const auto& component : mount.path)
+        {
+            if (!IsWow6432Node(component))
+                mount.nativePath.push_back(component);
+        }
+    }
 
     std::scoped_lock lock(m_mountMutex);
     const auto* const pOld = m_pMounts.load(std::memory_order_acquire);
@@ -139,7 +269,98 @@ bool VirtualRegistry::IsMounted(const Hive* const pHive) const noexcept
     return std::ranges::any_of(Mounts().mounts, [&](const MountPoint& mount) { return mount.pHive == pHive; });
 }
 
-VirtualRegistry::Target VirtualRegistry::Resolve(const HKEY hKey, const std::wstring_view subKey) const
+bool VirtualRegistry::ResolveNative(
+    const HKEY hKey,
+    const std::vector<std::wstring_view>& subComponents,
+    const REGSAM samDesired,
+    Target& target
+) const
+{
+    const auto& mounts = Mounts().mounts;
+    const bool isGated = std::ranges::any_of(
+        mounts,
+        [&](const MountPoint& mount)
+        {
+            return !mount.path.empty()
+                   && std::ranges::any_of(
+                       subComponents,
+                       [&](const std::wstring_view component)
+                       { return CompareNames(component, mount.path.back()) == 0; }
+                   );
+        }
+    );
+    if (!isGated || !m_pfnNtQueryKey || IsVirtualHKey(hKey))
+        return false;
+
+    // The name is a KEY_NAME_INFORMATION: a byte count, then the characters.
+    std::vector<std::byte> buffer(1024);
+    for (;;)
+    {
+        ULONG cbResult = 0;
+        const auto ntStatus
+            = m_pfnNtQueryKey(hKey, kKeyNameInformation, buffer.data(), static_cast<ULONG>(buffer.size()), &cbResult);
+        if (ntStatus >= 0)
+            break;
+        if ((ntStatus != kStatusBufferOverflow && ntStatus != kStatusBufferTooSmall) || cbResult <= buffer.size())
+            return false;
+
+        buffer.resize(cbResult);
+    }
+
+    ULONG cbName{};
+    std::memcpy(&cbName, buffer.data(), sizeof(cbName));
+    if (cbName > buffer.size() - sizeof(ULONG))
+        return false;
+
+    auto pText = std::make_unique<const std::wstring>(
+        reinterpret_cast<const wchar_t*>(buffer.data() + sizeof(ULONG)),
+        cbName / sizeof(wchar_t)
+    );
+
+    std::vector<std::wstring_view> full;
+    for (std::size_t start = 0; start < pText->size();)
+    {
+        const auto end = std::min(pText->find(L'\\', start), pText->size());
+        if (end > start)
+            full.emplace_back(pText->data() + start, end - start);
+
+        start = end + 1;
+    }
+
+    full.insert(full.end(), subComponents.begin(), subComponents.end());
+
+    const auto callView = ViewFromSam(samDesired);
+    const MountPoint* pBest = nullptr;
+    std::size_t iBestRest = 0;
+    for (const auto& mount : mounts)
+    {
+        bool isWow = false;
+        std::size_t iRest = 0;
+        if (mount.nativePath.empty() || !MatchesNative(mount.nativePath, full, isWow, iRest)
+            || !Admits(mount.view, isWow ? MountView::Only32 : callView))
+            continue;
+
+        if (!pBest || mount.nativePath.size() > pBest->nativePath.size())
+        {
+            pBest = &mount;
+            iBestRest = iRest;
+        }
+    }
+
+    if (!pBest)
+        return false;
+
+    target.pNode = pBest->pHive->Root();
+    target.rest.assign(full.begin() + static_cast<std::ptrdiff_t>(iBestRest), full.end());
+    target.pNativeText = std::move(pText);
+    return true;
+}
+
+VirtualRegistry::Target VirtualRegistry::Resolve(
+    const HKEY hKey,
+    const std::wstring_view subKey,
+    const REGSAM samDesired
+) const
 {
     Target target;
     std::vector<std::wstring_view> components;
@@ -170,10 +391,12 @@ VirtualRegistry::Target VirtualRegistry::Resolve(const HKEY hKey, const std::wst
 
     if (IsPredefinedHKey(hKey))
     {
+        const auto callView = ViewFromSam(samDesired);
         const MountPoint* pBest = nullptr;
         for (const auto& mount : Mounts().mounts)
         {
-            if (!isSplit || mount.hRoot != hKey || mount.path.size() > components.size())
+            if (!isSplit || mount.hRoot != hKey || mount.path.size() > components.size()
+                || !Admits(mount.view, callView))
                 continue;
 
             if (!std::equal(mount.path.begin(), mount.path.end(), components.begin(), [](const auto& a, const auto& b) {
@@ -193,17 +416,21 @@ VirtualRegistry::Target VirtualRegistry::Resolve(const HKEY hKey, const std::wst
         }
 
         if (m_pBase)
-            target.hBase = hKey;
+            target.isBase = true;
         else
             target.status = isSplit ? ERROR_FILE_NOT_FOUND : splitStatus;
 
         return target;
     }
 
-    if (m_pBase)
-        target.hBase = hKey;
-    else
+    if (!m_pBase)
+    {
         target.status = ERROR_INVALID_HANDLE;
+        return target;
+    }
+
+    if (!isSplit || !ResolveNative(hKey, components, samDesired, target))
+        target.isBase = true;
 
     return target;
 }
@@ -217,9 +444,9 @@ LSTATUS VirtualRegistry::OpenKeyExW(
 ) noexcept
 try
 {
-    const auto target = Resolve(hKey, View(lpSubKey));
-    if (target.hBase)
-        return m_pBase->OpenKeyExW(target.hBase, lpSubKey, ulOptions, samDesired, phkResult);
+    const auto target = Resolve(hKey, View(lpSubKey), samDesired);
+    if (target.isBase)
+        return m_pBase->OpenKeyExW(hKey, lpSubKey, ulOptions, samDesired, phkResult);
 
     if (!phkResult)
         return ERROR_INVALID_PARAMETER;
@@ -257,11 +484,11 @@ LSTATUS VirtualRegistry::CreateKeyExW(
 ) noexcept
 try
 {
-    const auto target = Resolve(hKey, View(lpSubKey));
-    if (target.hBase)
+    const auto target = Resolve(hKey, View(lpSubKey), samDesired);
+    if (target.isBase)
     {
         return m_pBase->CreateKeyExW(
-            target.hBase,
+            hKey,
             lpSubKey,
             Reserved,
             lpClass,
@@ -290,14 +517,21 @@ try
     if (dwOptions & ~kKnownOptions)
         return ERROR_INVALID_PARAMETER;
 
-    Node* pNode = nullptr;
+    OpenResult result;
     DWORD dwDisposition = 0;
-    if (const auto status = Hive::HiveOf(target.pNode)
-                                ->CreateKey(target.pNode, target.rest, View(lpClass), dwOptions, pNode, dwDisposition);
+    if (const auto status = Hive::HiveOf(target.pNode)->CreateKey(
+            target.pNode,
+            target.rest,
+            View(lpClass),
+            dwOptions,
+            samDesired,
+            result,
+            dwDisposition
+        );
         status != ERROR_SUCCESS)
         return status;
 
-    *phkResult = Hive::HandleOf(pNode);
+    *phkResult = result.hLower ? result.hLower : Hive::HandleOf(result.pNode);
     if (lpdwDisposition)
         *lpdwDisposition = dwDisposition;
     return ERROR_SUCCESS;
@@ -329,8 +563,8 @@ LSTATUS VirtualRegistry::QueryValueExW(
 try
 {
     const auto target = Resolve(hKey, {});
-    if (target.hBase)
-        return m_pBase->QueryValueExW(target.hBase, lpValueName, lpReserved, lpType, lpData, lpcbData);
+    if (target.isBase)
+        return m_pBase->QueryValueExW(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
 
     if ((lpData && !lpcbData) || lpReserved)
         return ERROR_INVALID_PARAMETER;
@@ -383,8 +617,8 @@ LSTATUS VirtualRegistry::SetValueExW(
 try
 {
     const auto target = Resolve(hKey, {});
-    if (target.hBase)
-        return m_pBase->SetValueExW(target.hBase, lpValueName, Reserved, dwType, lpData, cbData);
+    if (target.isBase)
+        return m_pBase->SetValueExW(hKey, lpValueName, Reserved, dwType, lpData, cbData);
 
     if (Reserved)
         return ERROR_INVALID_PARAMETER;
@@ -405,8 +639,8 @@ LSTATUS VirtualRegistry::DeleteValueW(const HKEY hKey, const LPCWSTR lpValueName
 try
 {
     const auto target = Resolve(hKey, {});
-    if (target.hBase)
-        return m_pBase->DeleteValueW(target.hBase, lpValueName);
+    if (target.isBase)
+        return m_pBase->DeleteValueW(hKey, lpValueName);
 
     if (!target.pNode)
         return target.status;
@@ -426,9 +660,9 @@ LSTATUS VirtualRegistry::DeleteKeyExW(
 ) noexcept
 try
 {
-    const auto target = Resolve(hKey, View(lpSubKey));
-    if (target.hBase)
-        return m_pBase->DeleteKeyExW(target.hBase, lpSubKey, samDesired, Reserved);
+    const auto target = Resolve(hKey, View(lpSubKey), samDesired);
+    if (target.isBase)
+        return m_pBase->DeleteKeyExW(hKey, lpSubKey, samDesired, Reserved);
 
     if (Reserved)
         return ERROR_INVALID_PARAMETER;
@@ -446,8 +680,8 @@ LSTATUS VirtualRegistry::DeleteTreeW(const HKEY hKey, const LPCWSTR lpSubKey) no
 try
 {
     const auto target = Resolve(hKey, View(lpSubKey));
-    if (target.hBase)
-        return m_pBase->DeleteTreeW(target.hBase, lpSubKey);
+    if (target.isBase)
+        return m_pBase->DeleteTreeW(hKey, lpSubKey);
 
     if (!target.pNode)
         return target.status;
@@ -456,6 +690,13 @@ try
     OpenResult result;
     if (const auto status = pHive->OpenKey(target.pNode, target.rest, KEY_ALL_ACCESS, result); status != ERROR_SUCCESS)
         return status;
+
+    // Only a frozen hive hands out lower keys, and it refuses every write.
+    if (result.hLower)
+    {
+        pHive->Lower()->CloseKey(result.hLower);
+        return ERROR_ACCESS_DENIED;
+    }
 
     if (const auto status = pHive->DeleteTree(result.pNode); status != ERROR_SUCCESS || target.rest.empty())
         return status;
@@ -480,10 +721,10 @@ LSTATUS VirtualRegistry::EnumKeyExW(
 try
 {
     const auto target = Resolve(hKey, {});
-    if (target.hBase)
+    if (target.isBase)
     {
         return m_pBase
-            ->EnumKeyExW(target.hBase, dwIndex, lpName, lpcchName, lpReserved, lpClass, lpcchClass, lpftLastWriteTime);
+            ->EnumKeyExW(hKey, dwIndex, lpName, lpcchName, lpReserved, lpClass, lpcchClass, lpftLastWriteTime);
     }
 
     if (lpReserved || !lpcchName || (lpClass && !lpcchClass))
@@ -538,10 +779,10 @@ LSTATUS VirtualRegistry::EnumValueW(
 try
 {
     const auto target = Resolve(hKey, {});
-    if (target.hBase)
+    if (target.isBase)
     {
         return m_pBase
-            ->EnumValueW(target.hBase, dwIndex, lpValueName, lpcchValueName, lpReserved, lpType, lpData, lpcbData);
+            ->EnumValueW(hKey, dwIndex, lpValueName, lpcchValueName, lpReserved, lpType, lpData, lpcbData);
     }
 
     if (lpReserved || !lpValueName || !lpcchValueName || (lpData && !lpcbData))
@@ -610,10 +851,10 @@ LSTATUS VirtualRegistry::QueryInfoKeyW(
 try
 {
     const auto target = Resolve(hKey, {});
-    if (target.hBase)
+    if (target.isBase)
     {
         return m_pBase->QueryInfoKeyW(
-            target.hBase,
+            hKey,
             lpClass,
             lpcchClass,
             lpReserved,
@@ -693,8 +934,8 @@ LSTATUS VirtualRegistry::LoadMUIStringW(
 try
 {
     const auto target = Resolve(hKey, {});
-    if (target.hBase)
-        return m_pBase->LoadMUIStringW(target.hBase, pszValue, pszOutBuf, cbOutBuf, pcbData, Flags, pszDirectory);
+    if (target.isBase)
+        return m_pBase->LoadMUIStringW(hKey, pszValue, pszOutBuf, cbOutBuf, pcbData, Flags, pszDirectory);
 
     if (!hKey)
         return ERROR_INVALID_PARAMETER;
@@ -705,10 +946,24 @@ try
         || (cbOutBuf % sizeof(wchar_t)) != 0)
         return ERROR_INVALID_PARAMETER;
 
+    auto* const pHive = Hive::HiveOf(target.pNode);
+    HKEY hLower{};
+    if (const auto status = pHive->OpenLowerValueKey(target.pNode, View(pszValue), hLower); status != ERROR_SUCCESS)
+        return status;
+
+    // A value from below is resolved there, as the system would; one the hive
+    // holds is a literal, which would need a resource module to resolve.
+    if (hLower)
+    {
+        auto* const pLower = pHive->Lower();
+        const auto status = pLower->LoadMUIStringW(hLower, pszValue, pszOutBuf, cbOutBuf, pcbData, Flags, pszDirectory);
+        pLower->CloseKey(hLower);
+        return status;
+    }
+
     DWORD dwType{};
     std::vector<std::byte> value;
-    if (const auto status = Hive::HiveOf(target.pNode)->QueryValue(target.pNode, View(pszValue), dwType, value);
-        status != ERROR_SUCCESS)
+    if (const auto status = pHive->QueryValue(target.pNode, View(pszValue), dwType, value); status != ERROR_SUCCESS)
         return status;
 
     return ERROR_INVALID_DATA;
@@ -729,9 +984,13 @@ LSTATUS VirtualRegistry::GetValueW(
 ) noexcept
 try
 {
-    const auto target = Resolve(hkey, View(lpSubKey));
-    if (target.hBase)
-        return m_pBase->GetValueW(target.hBase, lpSubKey, lpValue, dwFlags, pdwType, pvData, pcbData);
+    const auto target = Resolve(
+        hkey,
+        View(lpSubKey),
+        ((dwFlags & RRF_SUBKEY_WOW6464KEY) ? KEY_WOW64_64KEY : 0) | ((dwFlags & RRF_SUBKEY_WOW6432KEY) ? KEY_WOW64_32KEY : 0)
+    );
+    if (target.isBase)
+        return m_pBase->GetValueW(hkey, lpSubKey, lpValue, dwFlags, pdwType, pvData, pcbData);
 
     constexpr DWORD kBothViews = RRF_SUBKEY_WOW6464KEY | RRF_SUBKEY_WOW6432KEY;
     if (!hkey || (pvData && !pcbData) || !(dwFlags & RRF_RT_ANY) || (dwFlags & kBothViews) == kBothViews)
@@ -756,6 +1015,14 @@ try
         if (const auto status = pHive->OpenKey(target.pNode, target.rest, KEY_QUERY_VALUE, result);
             status != ERROR_SUCCESS)
             return fail(status);
+
+        if (result.hLower)
+        {
+            auto* const pLower = pHive->Lower();
+            const auto status = pLower->GetValueW(result.hLower, nullptr, lpValue, dwFlags, pdwType, pvData, pcbData);
+            pLower->CloseKey(result.hLower);
+            return status;
+        }
 
         pNode = result.pNode;
     }
@@ -879,8 +1146,8 @@ LSTATUS VirtualRegistry::NotifyChangeKeyValue(
 try
 {
     const auto target = Resolve(hKey, {});
-    if (target.hBase)
-        return m_pBase->NotifyChangeKeyValue(target.hBase, bWatchSubtree, dwNotifyFilter, hEvent, fAsynchronous);
+    if (target.isBase)
+        return m_pBase->NotifyChangeKeyValue(hKey, bWatchSubtree, dwNotifyFilter, hEvent, fAsynchronous);
 
     if (!target.pNode)
         return target.status;
@@ -901,8 +1168,8 @@ LSTATUS VirtualRegistry::FlushKey(const HKEY hKey) noexcept
 try
 {
     const auto target = Resolve(hKey, {});
-    if (target.hBase)
-        return m_pBase->FlushKey(target.hBase);
+    if (target.isBase)
+        return m_pBase->FlushKey(hKey);
 
     if (!target.pNode)
         return target.status;

@@ -18,6 +18,8 @@ struct Value
     std::wstring name;
     DWORD dwType = REG_NONE;
     std::vector<std::byte> data;
+    /// Overlay only: hides the lower value of this name.
+    bool isTombstone = false;
 };
 
 struct Node
@@ -30,6 +32,18 @@ struct Node
     FILETIME lastWrite{};
     bool isVolatile = false;
     bool isDeleted = false;
+
+    /// Overlay only: the key exists because the lower key at its path does;
+    /// the node is just the way to it. Writing to it makes it an upper key.
+    bool isTransparent = false;
+    /// Overlay only: hides the lower key of this name; never handed out.
+    bool isTombstone = false;
+    /// Overlay only: hides every lower subkey and value (a key deleted and
+    /// created again, or emptied by `RegDeleteTree`).
+    bool isOpaque = false;
+    /// Overlay only: the lower key at this path exists and its class shows
+    /// through (the node was made from it, not created over it).
+    bool isLowerBacked = false;
 
     /// Sorted by @ref CompareNames, the order the native registry enumerates
     /// subkeys in.

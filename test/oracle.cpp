@@ -54,6 +54,47 @@ HKEY VirtualHive::Root() noexcept
     return Hive::HandleOf(m_hive.Root());
 }
 
+OverlayMount::OverlayMount()
+    : m_hive(m_native, m_appHive.Root(), L"Lower")
+    , m_registry(&m_native)
+{
+    REQUIRE(
+        m_native.CreateKeyExW(m_appHive.Root(), L"Lower", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &m_hLower, nullptr)
+        == ERROR_SUCCESS
+    );
+    REQUIRE(m_registry.Mount(HKEY_CURRENT_USER, L"VRegOracle", m_hive) == ERROR_SUCCESS);
+}
+
+OverlayMount::~OverlayMount()
+{
+    m_native.CloseKey(m_hLower);
+}
+
+VirtualRegistry& OverlayMount::Registry() noexcept
+{
+    return m_registry;
+}
+
+NativeRegistry& OverlayMount::Native() noexcept
+{
+    return m_native;
+}
+
+OverlayHive& OverlayMount::Overlay() noexcept
+{
+    return m_hive;
+}
+
+HKEY OverlayMount::LowerRoot() const noexcept
+{
+    return m_hLower;
+}
+
+HKEY OverlayMount::Root() noexcept
+{
+    return Hive::HandleOf(m_hive.Root());
+}
+
 void Recorder::operator()(
     std::string label,
     const LSTATUS status,

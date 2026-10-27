@@ -94,16 +94,22 @@ once, as with `RegLoadKey`. The interface is node-level with owned values;
 buffer and A/W rules stay in `VirtualRegistry`.
 
 - `MemoryHive`: starts empty.
-- `OverlayHive(upper: MemoryHive, lower: Registry + key path)`: reads the
-  upper layer first and falls through to the lower one. The lower layer can
-  be native or another `VirtualRegistry`.
+- `OverlayHive(lower: Registry&, lower root: HKEY, lower path)`: reads its
+  own upper tree first and falls through to the lower key. The upper tree is
+  the overlay's own node storage (not a separate `MemoryHive` object), and
+  the lower layer can be native or another `VirtualRegistry`. A frozen
+  overlay answers an untouched key with a handle of its lower registry, and
+  the `VirtualRegistry` it is mounted in sends later calls on that handle to
+  its base, so the lower registry must be that base or answer the same
+  handles.
   - Value and key **tombstones** hide lower entries.
   - An **opaque** key hides all lower children and values (a key deleted
     and recreated).
   - Enumeration and `QueryInfoKey` merge both layers, stepping over shadowed
     names and shifting lower indices by the upper count; counts include
     both sides. A failed lower query never becomes a smaller successful
-    view, and the class comes from the lower call of the caller's width.
+    view, and the class of a key the upper layer did not create comes from
+    the lower key, also after the key was written to.
   - Only direct children enumerate: a key registered as a whole path is not
     a subkey of its root.
   - An upper-only key ends its enumerations with `ERROR_NO_MORE_ITEMS`,
@@ -198,12 +204,37 @@ hive while hooks are live, without readers taking a lock.
 
 ### Path resolution
 
-A call arriving on a real parent handle is resolved by native path
-(`NtQueryKey(KeyNameInformation)`, with `WOW6432Node` stripped ordinal
-case-insensitively); a set of mounted leaf names gates the syscall. Each
-mount has a `view` option: `Both` (default; the stripped path matches either
-view), `Only64` or `Only32`, decided from `KEY_WOW64_*` in `samDesired` and
-the process bitness.
+A call lands in a mount through a virtual handle of its hive, through a
+predefined root plus a path at or below the mount point, or, when the
+registry has a base, through a real parent handle whose subkey path leads
+into a mount. The last case is resolved by the parent's native path:
+
+- The gate: a call is looked at only when it has a subkey path and some
+  component of it equals (ordinal, case-insensitive) the last component of
+  some mount point. Any other call goes to the base without a syscall, so
+  real keys the mounts do not touch cost nothing. A mount at a root itself
+  has no such component and is not reachable this way.
+- The path comes from `NtQueryKey(KeyNameInformation)` through a function
+  pointer resolved from `ntdll`'s export table when the registry is built
+  (never `GetProcAddress`, and no module load in a call); a constructor
+  parameter replaces it for tests. A failing query sends the call to the
+  base. A virtual handle of another copy of the library is never queried.
+- Native root names: `HKEY_LOCAL_MACHINE` is `\REGISTRY\MACHINE`,
+  `HKEY_USERS` is `\REGISTRY\USER`, `HKEY_CURRENT_USER` is
+  `\REGISTRY\USER\<SID string of the process token>`, computed when the
+  mount is added. A mount below any other predefined root has no native path
+  and is reached only through that root.
+- `WOW6432Node` components are skipped, whole and ordinal
+  case-insensitively, while the path is matched against the mount point.
+  Agent's choice: below the mount point the name is an ordinary key, since a
+  hive's own tree is not a registry view; stripping the whole path was passed
+  over. The longest matching mount wins.
+- Each mount has a `view`: `Both` (default), `Only64` or `Only32`. A call is
+  of the view `KEY_WOW64_64KEY` or `KEY_WOW64_32KEY` in its `samDesired`
+  names (`RRF_SUBKEY_WOW64*KEY` for `RegGetValue`), else of the process
+  bitness; a native path that contained `WOW6432Node` is always the 32-bit
+  view. A mount answers only calls of its view, through predefined roots as
+  well.
 
 Known gap, documented: a real handle opened before the hooks committed that
 points at or inside a mount keeps reaching the lower registry for calls made
@@ -370,6 +401,12 @@ Measured by running the oracle catalogue against `VirtualRegistry` over a
 - `RegLoadMUIString` answers `ERROR_INVALID_DATA` for a hive value whether
   or not it is an `@` indirect string; resolving one would load a resource
   module, which detour bodies may not do.
+- Through an overlay, an entry the upper layer shadows or tombstones carries
+  the letter case of the first call that named it, not the lower key's case
+  (a name is found without regard to case, but enumerated as stored).
+- Only calls on a real handle that name a mount point's last component are
+  resolved by native path; a mount below `HKEY_CLASSES_ROOT` and the other
+  roots without a native path is not reachable through a real parent handle.
 
 ## Testing
 

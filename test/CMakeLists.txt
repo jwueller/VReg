@@ -12,6 +12,7 @@ add_executable(
     test_oracle_enum.cpp
     test_oracle_get.cpp
     test_oracle_values.cpp
+    test_overlay_hive.cpp
     test_registry.cpp
     test_regfile_apply.cpp
     test_regfile_export.cpp

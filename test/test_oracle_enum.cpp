@@ -699,3 +699,13 @@ TEMPLATE_LIST_TEST_CASE(
     Reduced<Win32Api> win32;
     CheckSameRecording(Record<TestType>(win32), RecordVirtual<TestType>());
 }
+
+TEMPLATE_LIST_TEST_CASE(
+    "Enumeration scenarios answer as the Win32 API does on an overlay",
+    "[oracle][overlay][enum]",
+    Scenarios
+)
+{
+    Reduced<Win32Api> win32;
+    CheckSameRecording(Record<TestType>(win32), RecordOverlay<TestType>());
+}

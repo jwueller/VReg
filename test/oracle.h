@@ -6,6 +6,8 @@
 // API's exactly.
 
 #include <VReg/memory_hive.h>
+#include <VReg/native_registry.h>
+#include <VReg/overlay_hive.h>
 #include <VReg/virtual_registry.h>
 
 #include <Windows.h>
@@ -119,6 +121,45 @@ template <class Scenario> Recording RecordVirtual()
     VirtualHive hive;
     Recorder recorder;
     Scenario{}(hive.Registry(), hive.Root(), recorder);
+    return recorder.Take();
+}
+
+/// A writable `OverlayHive` over an empty key of an @ref AppHive, mounted below
+/// `HKEY_CURRENT_USER` in a `VirtualRegistry` whose base is the native
+/// registry: the overlay counterpart of an @ref AppHive.
+class OverlayMount
+{
+public:
+    OverlayMount();
+    ~OverlayMount();
+
+    OverlayMount(const OverlayMount&) = delete;
+    OverlayMount& operator=(const OverlayMount&) = delete;
+
+    [[nodiscard]] VirtualRegistry& Registry() noexcept;
+    [[nodiscard]] NativeRegistry& Native() noexcept;
+    [[nodiscard]] OverlayHive& Overlay() noexcept;
+
+    /// The key of the app hive the overlay sits on.
+    [[nodiscard]] HKEY LowerRoot() const noexcept;
+
+    /// The virtual handle of the overlay's root.
+    [[nodiscard]] HKEY Root() noexcept;
+
+private:
+    AppHive m_appHive;
+    NativeRegistry m_native;
+    HKEY m_hLower{};
+    OverlayHive m_hive;
+    VirtualRegistry m_registry;
+};
+
+/// Runs @p Scenario against a writable `OverlayHive` over an empty lower key.
+template <class Scenario> Recording RecordOverlay()
+{
+    OverlayMount mount;
+    Recorder recorder;
+    Scenario{}(mount.Registry(), mount.Root(), recorder);
     return recorder.Take();
 }
 

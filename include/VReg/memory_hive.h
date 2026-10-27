@@ -31,7 +31,8 @@ public:
         KeyPath path,
         std::wstring_view className,
         DWORD dwOptions,
-        Node*& pNode,
+        REGSAM samDesired,
+        OpenResult& result,
         DWORD& dwDisposition
     ) noexcept override;
     LSTATUS DeleteKey(Node* pParent, KeyPath path) noexcept override;

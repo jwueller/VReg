@@ -10,6 +10,8 @@
 
 namespace VReg
 {
+class Registry;
+
 /// A key in a hive. Opaque outside the hive that owns it; never freed, so a
 /// pointer to one stays valid for the life of the process.
 struct Node;
@@ -32,7 +34,7 @@ struct KeyInfo
 };
 
 /// Where an open landed: a node of the hive, or (for a key a frozen overlay
-/// leaves untouched) a handle the lower registry opened, which the caller now
+/// leaves untouched) a handle @ref Hive::Lower opened, which the caller now
 /// owns.
 struct OpenResult
 {
@@ -73,12 +75,15 @@ public:
     [[nodiscard]] static Hive* HiveOf(const Node* pNode) noexcept;
 
     virtual LSTATUS OpenKey(Node* pParent, KeyPath path, REGSAM samDesired, OpenResult& result) noexcept = 0;
+    /// On a frozen hive an existing key opens as with @ref OpenKey, and a
+    /// missing one answers `ERROR_ACCESS_DENIED`.
     virtual LSTATUS CreateKey(
         Node* pParent,
         KeyPath path,
         std::wstring_view className,
         DWORD dwOptions,
-        Node*& pNode,
+        REGSAM samDesired,
+        OpenResult& result,
         DWORD& dwDisposition
     ) noexcept = 0;
     /// Deletes the last component of @p path, which must have no subkeys.
@@ -108,5 +113,14 @@ public:
     /// What `FlushKey` and a change notification on @p pNode need from the
     /// hive: success, or `ERROR_KEY_DELETED`.
     virtual LSTATUS CheckKey(Node* pNode) noexcept = 0;
+
+    /// The registry below this hive, which answers the handles in
+    /// @ref OpenResult::hLower; null for a hive with nothing below it.
+    [[nodiscard]] virtual Registry* Lower() noexcept;
+
+    /// A key of @ref Lower holding value @p name of @p pNode, when that value
+    /// shows through from below; null (and success) when the hive holds it
+    /// or nothing does. The caller closes it through @ref Lower.
+    virtual LSTATUS OpenLowerValueKey(Node* pNode, std::wstring_view name, HKEY& hLower) noexcept;
 };
 } // namespace VReg

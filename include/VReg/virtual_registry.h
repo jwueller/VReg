@@ -4,6 +4,7 @@
 #include <VReg/registry.h>
 
 #include <atomic>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <string_view>
@@ -11,6 +12,27 @@
 
 namespace VReg
 {
+/// Which registry view of the native path a mount answers to.
+enum class MountView
+{
+    /// Calls of either view.
+    Both,
+    /// Only calls of the 64-bit view.
+    Only64,
+    /// Only calls of the 32-bit view (`WOW6432Node`).
+    Only32,
+};
+
+/// `NtQueryKey`, the one `ntdll` function a `VirtualRegistry` uses to find the
+/// native path of a real key.
+using NtQueryKeyFunction = LONG(NTAPI*)(
+    HANDLE hKey,
+    ULONG keyInformationClass,
+    PVOID pKeyInformation,
+    ULONG cbKeyInformation,
+    PULONG pcbResult
+);
+
 /**
  * @brief A namespace of hives mounted at registry paths over an optional base
  *  registry.
@@ -20,6 +42,12 @@ namespace VReg
  *  else goes to the base registry; with no base it answers
  *  `ERROR_FILE_NOT_FOUND` (or `ERROR_INVALID_HANDLE` for a handle that was
  *  never valid).
+ *
+ *  With a base, a call on a real key handle whose subkey path names a mount
+ *  point's last component is resolved by the key's native path
+ *  (`NtQueryKey`), so a handle opened above a mount reaches it. Only mounts
+ *  below `HKEY_LOCAL_MACHINE`, `HKEY_USERS` and `HKEY_CURRENT_USER` have a
+ *  native path.
  *
  *  This class owns the caller-buffer rules (sizes in characters or bytes,
  *  terminators, `ERROR_MORE_DATA`) for every hive; the A forms come from
@@ -32,8 +60,10 @@ class VirtualRegistry final : public Registry
 {
 public:
     /// @p pBase answers everything outside the mounts; null for a registry
-    /// held entirely in memory.
-    explicit VirtualRegistry(Registry* pBase = nullptr) noexcept;
+    /// held entirely in memory. @p pfnNtQueryKey replaces the `ntdll` export
+    /// for native path resolution (a test seam); resolution happens here, so
+    /// no call ever loads a module.
+    explicit VirtualRegistry(Registry* pBase = nullptr, NtQueryKeyFunction pfnNtQueryKey = nullptr) noexcept;
 
     VirtualRegistry(const VirtualRegistry&) = delete;
     VirtualRegistry& operator=(const VirtualRegistry&) = delete;
@@ -42,8 +72,9 @@ public:
     /// path mounts the root itself). @p hive must outlive this registry.
     /// Answers `ERROR_INVALID_HANDLE` for a root that is not predefined,
     /// `ERROR_BAD_PATHNAME` for a malformed path and `ERROR_ALREADY_EXISTS`
-    /// for a path already mounted.
-    LSTATUS Mount(HKEY hRoot, std::wstring_view path, Hive& hive) noexcept;
+    /// for a path already mounted. @p view limits the calls the mount answers
+    /// to those of one registry view.
+    LSTATUS Mount(HKEY hRoot, std::wstring_view path, Hive& hive, MountView view = MountView::Both) noexcept;
 
     LSTATUS OpenKeyExW(HKEY hKey, LPCWSTR lpSubKey, DWORD ulOptions, REGSAM samDesired, PHKEY phkResult) noexcept
         override;
@@ -145,6 +176,10 @@ private:
         HKEY hRoot;
         std::vector<std::wstring> path;
         Hive* pHive;
+        MountView view;
+        /// The native key path as components without `WOW6432Node`; empty
+        /// when the mount has none.
+        std::vector<std::wstring> nativePath;
     };
 
     struct MountTable
@@ -159,18 +194,32 @@ private:
         Node* pNode = nullptr;
         /// The components below @ref pNode still to walk.
         std::vector<std::wstring_view> rest;
-        /// The handle to pass to the base, when the key is outside every mount.
-        HKEY hBase = nullptr;
+        /// Whether the call goes to the base registry, because the key is
+        /// outside every mount.
+        bool isBase = false;
         LSTATUS status = ERROR_SUCCESS;
+        /// Holds the native path text @ref rest may point into.
+        std::unique_ptr<const std::wstring> pNativeText;
     };
 
     [[nodiscard]] const MountTable& Mounts() const noexcept;
     [[nodiscard]] bool IsMounted(const Hive* pHive) const noexcept;
 
     /// Resolves @p hKey and @p subKey (null or empty for the key itself).
-    [[nodiscard]] Target Resolve(HKEY hKey, std::wstring_view subKey) const;
+    /// @p samDesired supplies the registry view of the call.
+    [[nodiscard]] Target Resolve(HKEY hKey, std::wstring_view subKey, REGSAM samDesired = 0) const;
+
+    /// Looks for a mount a real key plus @p subComponents lands in, by native
+    /// path; fills @p target and answers true when it does.
+    [[nodiscard]] bool ResolveNative(
+        HKEY hKey,
+        const std::vector<std::wstring_view>& subComponents,
+        REGSAM samDesired,
+        Target& target
+    ) const;
 
     Registry* m_pBase;
+    NtQueryKeyFunction m_pfnNtQueryKey;
     std::atomic<const MountTable*> m_pMounts;
     std::mutex m_mountMutex;
 };
