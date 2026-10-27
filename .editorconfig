@@ -1,0 +1,96 @@
+﻿root = true
+
+[*]
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+insert_final_newline = true
+rulers = 80, 120
+guidelines = 80, 120
+max_line_length = 120
+
+[*.{c,h,cpp,hpp,inl}]
+# ReSharper properties
+#align_multiline_expression_braces = false
+#continuous_line_indent = single
+#use_continuous_line_indent_in_expression_braces = true
+#use_continuous_line_indent_in_method_pars = false
+align_first_arg_by_paren = false
+align_multiline_argument = false
+align_multiline_binary_expressions_chain = false
+align_multiline_ctor_init = false
+align_multiline_extends_list = false
+align_multiline_parameter = false
+align_multiline_type_argument = false
+align_multiline_type_parameter = false
+align_ternary = align_not_nested
+brace_style = next_line
+indent_access_specifiers_from_class = false
+indent_class_members_from_access_specifiers = true
+indent_export_declaration_members = false
+indent_member_initializer_list = true
+indent_method_decl_pars = inside
+indent_preprocessor_directives = none
+indent_statement_pars = inside
+indent_switch_labels = false
+keep_user_linebreaks = true
+linkage_specification_indentation = none
+namespace_indentation = none
+new_line_before_catch = true
+new_line_before_else = true
+new_line_before_while = true
+simple_case_statement_style = do_not_change
+simple_embedded_statement_style = line_break
+toplevel_function_definition_return_type_style = on_single_line
+wrap_after_declaration_lpar = true
+wrap_after_expression_lbrace = true
+wrap_after_invocation_lpar = true
+wrap_arguments_style = chop_if_long
+wrap_base_clause_style = chop_if_long
+wrap_before_colon = false
+wrap_before_declaration_rpar = true
+wrap_before_expression_rbrace = true
+wrap_before_invocation_rpar = true
+wrap_before_ternary_opsigns = true
+wrap_braced_init_list_style = chop_if_long
+wrap_ctor_initializer_style = chop_if_long
+wrap_enumeration_style = chop_always
+wrap_parameters_style = chop_if_long
+wrap_ternary_expr_style = chop_if_long
+
+# ReSharper inspection severities
+resharper_cpp_clang_tidy_clang_diagnostic_unused_function_highlighting = suggestion
+resharper_cpp_inconsistent_naming_highlighting = none
+# `HRESULT result = E_UNEXPECTED` before `goto out`, and zero-initialized Win32 structures.
+resharper_cpp_initialized_value_is_always_rewritten_highlighting = none
+# A doc comment describes the parameters that need it, not all of them.
+resharper_cpp_doxygen_undocumented_parameter_highlighting = none
+# The frontends' tear-off templates use their owner class before it is complete.
+resharper_cpp_class_is_incomplete_highlighting = none
+# True of every method that only reaches a handle, a socket or a platform SDK: const would misdescribe it.
+resharper_cpp_member_function_may_be_const_highlighting = none
+# Clang warnings that argue with Win32 code: a `default:` over a platform SDK's enum, `__try`,
+# `GetProcAddress` casts, resource-script macros. The missing-designated-field-initializer
+# warning stays on: naming every field is how a forgotten one gets reported.
+resharper_cpp_clang_tidy_clang_diagnostic_switch_enum_highlighting = none
+resharper_cpp_clang_tidy_clang_diagnostic_language_extension_token_highlighting = none
+resharper_cpp_clang_tidy_clang_diagnostic_microsoft_cast_highlighting = none
+resharper_cpp_clang_tidy_clang_diagnostic_cast_function_type_strict_highlighting = none
+resharper_cpp_clang_tidy_clang_diagnostic_cpp20_extensions_highlighting = none
+resharper_cpp_clang_tidy_clang_diagnostic_unused_macros_highlighting = none
+resharper_cpp_clang_tidy_clang_diagnostic_padded_highlighting = none
+# Every DLL links its own copy of the toolkit and its `inline` globals, by design.
+resharper_cpp_clang_tidy_clang_diagnostic_unique_object_duplication_highlighting = none
+
+[*.md]
+max_line_length = off
+
+[*.ini]
+max_line_length = 80
+
+[*.{json,jsonl,yml,yaml}]
+indent_size = 2
+max_line_length = off
+
+[*.{DotSettings,DotSettings.user}]
+indent_style = tab
