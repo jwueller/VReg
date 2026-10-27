@@ -30,7 +30,7 @@ Windows only (x86 and x64), and runs under Wine and Proton.
 
 ## Status
 
-Design stage: no code yet.
+In development, not yet usable; work follows the implementation plan.
 - Design: `docs/specs/2026-10-27-VReg-design.md`
 - Implementation plan: `docs/plans/2026-10-27-VReg-plan.md`
 

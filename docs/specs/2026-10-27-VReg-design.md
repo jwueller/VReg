@@ -62,6 +62,9 @@ it.
   non-virtual and implemented once over the W virtuals, widening and
   narrowing through `CP_ACP` in both directions (ANSI callers use the system
   code page; UTF-8 there corrupts non-ASCII names and data).
+- `RegSetKeyValue`, `RegDeleteKeyValue` and `RegQueryMultipleValues`
+  (A and W) are non-virtual as well, built from the virtuals as Win32 builds
+  them; they are hooked, so every `Registry` must answer them.
 - Modern overloads returning owned values (`std::wstring`,
   `std::vector<std::byte>`) are non-virtual helpers on top. The original
   Win32 signatures stay the primary surface.
@@ -321,6 +324,23 @@ which would re-enter the hooks and bypass test stubs.
 - Agent's choice: no logging dependency; an optional diagnostic sink (a
   function pointer, off by default) bound by the detour-body rules. A
   logging library dependency was passed over.
+
+### Known divergences of the A adapters
+
+Measured by the oracle; each is an input no sane caller relies on.
+
+- Strings set through `RegSetValueExA` without a terminator: native peeks
+  one byte past the data and may store the string unterminated; ours goes
+  through the W form, which terminates it.
+- `RegGetValueA` on a string with an odd byte count: native keeps the stray
+  byte in the buffer tail.
+- `RegQueryMultipleValuesA` with a buffer that holds some narrowed values
+  but not all: native answers `ERROR_INVALID_DATA` after a partial fill; ours
+  answers `ERROR_MORE_DATA`.
+- `RegEnumValueA` with a too-small name buffer: native may write a
+  terminator past `cbData`; ours stays in bounds.
+- Null pointers on which native faults (`RegEnumKeyExA` and `RegEnumValueA`
+  names, `RegQueryMultipleValues` lists and buffers) answer an error code.
 
 ## Testing
 

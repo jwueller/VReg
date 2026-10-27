@@ -3,8 +3,15 @@ include(Catch)
 
 add_executable(
     VReg_Tests
+    oracle.cpp
     test_handle.cpp
     test_handle_probe.cpp
+    test_native_registry.cpp
+    test_oracle.cpp
+    test_oracle_enum.cpp
+    test_oracle_get.cpp
+    test_oracle_values.cpp
+    test_registry.cpp
     test_version.cpp
 )
 target_link_libraries(VReg_Tests PRIVATE VReg::Core VReg_BuildSettings Catch2::Catch2WithMain)
