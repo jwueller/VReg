@@ -79,10 +79,18 @@ struct ParseError
  * @return `ERROR_SUCCESS`, `ERROR_INVALID_DATA` on a syntax or encoding error (described by @p pError, which may
  *  be null), or `ERROR_OUTOFMEMORY`.
  */
-LSTATUS Parse(std::span<const std::byte> file, Script& script, ParseError* pError) noexcept;
+LSTATUS Parse(
+    std::span<const std::byte> file,
+    Script& script,
+    ParseError* pError
+) noexcept;
 
 /// Reads @p path, then @ref Parse. Failures to read answer the Win32 error.
-LSTATUS ParseFile(const std::filesystem::path& path, Script& script, ParseError* pError) noexcept;
+LSTATUS ParseFile(
+    const std::filesystem::path& path,
+    Script& script,
+    ParseError* pError
+) noexcept;
 
 /**
  * @brief Performs @p script through @p registry, in order.
@@ -90,7 +98,11 @@ LSTATUS ParseFile(const std::filesystem::path& path, Script& script, ParseError*
  *  Stops at the first operation that fails, stores its index in @p pFailed (may be null) and returns its status;
  *  earlier operations stay applied. Deleting a key or value that does not exist is not a failure.
  */
-LSTATUS Apply(const Script& script, Registry& registry, std::size_t* pFailed) noexcept;
+LSTATUS Apply(
+    const Script& script,
+    Registry& registry,
+    std::size_t* pFailed
+) noexcept;
 
 /**
  * @brief Writes the key @p path below the predefined root @p hRoot and everything below it.

@@ -59,7 +59,11 @@ TEST_CASE("Apply creates keys and sets every value form")
     get(L"dw", REG_DWORD, DwordBytes(0x2a));
     get(L"bin", REG_BINARY, {std::byte{1}, std::byte{2}, std::byte{3}});
     get(L"exp", REG_EXPAND_SZ, StringBytes(L"%P"));
-    get(L"qw", REG_QWORD, std::vector<std::byte>{std::byte{1}, {}, {}, {}, {}, {}, {}, {}});
+    get(
+        L"qw",
+        REG_QWORD,
+        std::vector<std::byte>{std::byte{1}, {}, {}, {}, {}, {}, {}, {}}
+    );
     get(L"none", REG_NONE, {});
     get(L"odd", REG_SZ, {std::byte{0x61}});
 }
@@ -71,7 +75,13 @@ TEST_CASE("Apply overwrites values and keeps unrelated ones")
     MustSet(registry, L"T", L"keep", REG_DWORD, DwordBytes(1));
     MustSet(registry, L"T", L"change", REG_DWORD, DwordBytes(1));
 
-    REQUIRE(Apply(MustParse(kHeader + L"[HKCU\\T]\r\n\"change\"=\"now text\"\r\n"), registry, nullptr) == ERROR_SUCCESS);
+    REQUIRE(
+        Apply(
+            MustParse(kHeader + L"[HKCU\\T]\r\n\"change\"=\"now text\"\r\n"),
+            registry,
+            nullptr
+        ) == ERROR_SUCCESS
+    );
     CheckValue(registry, L"T", L"keep", REG_DWORD, DwordBytes(1));
     CheckValue(registry, L"T", L"change", REG_SZ, StringBytes(L"now text"));
 }
@@ -88,7 +98,13 @@ TEST_CASE("Apply deletes values and keys")
 
     SECTION("values, including the default one")
     {
-        REQUIRE(Apply(MustParse(kHeader + L"[HKCU\\T]\r\n\"a\"=-\r\n@=-\r\n"), registry, nullptr) == ERROR_SUCCESS);
+        REQUIRE(
+            Apply(
+                MustParse(kHeader + L"[HKCU\\T]\r\n\"a\"=-\r\n@=-\r\n"),
+                registry,
+                nullptr
+            ) == ERROR_SUCCESS
+        );
         const HKEY hKey = MustOpen(registry, L"T");
         DWORD dwType{};
         CHECK(
@@ -127,7 +143,13 @@ TEST_CASE("Apply deletes values and keys")
     }
     SECTION("a key with its whole subtree")
     {
-        REQUIRE(Apply(MustParse(kHeader + L"[-HKCU\\Gone]\r\n"), registry, nullptr) == ERROR_SUCCESS);
+        REQUIRE(
+            Apply(
+                MustParse(kHeader + L"[-HKCU\\Gone]\r\n"),
+                registry,
+                nullptr
+            ) == ERROR_SUCCESS
+        );
         CHECK_FALSE(KeyExists(registry, L"Gone"));
         CHECK(KeyExists(registry, L"T"));
     }
@@ -167,7 +189,11 @@ TEST_CASE("Delete then create replaces a key")
     MustSet(registry, L"T", L"y", REG_DWORD, DwordBytes(1));
 
     REQUIRE(
-        Apply(MustParse(kHeader + L"[-HKCU\\T]\r\n[HKCU\\T]\r\n\"z\"=dword:2\r\n"), registry, nullptr) == ERROR_SUCCESS
+        Apply(
+            MustParse(kHeader + L"[-HKCU\\T]\r\n[HKCU\\T]\r\n\"z\"=dword:2\r\n"),
+            registry,
+            nullptr
+        ) == ERROR_SUCCESS
     );
     CHECK_FALSE(KeyExists(registry, L"T\\Old"));
     CheckValue(registry, L"T", L"z", REG_DWORD, DwordBytes(2));
@@ -238,7 +264,13 @@ TEST_CASE("Apply refuses operations that would cut a path short or delete a root
     for (const auto& operation : {deleteRoot, nulInPath, nulInName})
     {
         std::size_t failed = 99;
-        CHECK(Apply(Script{.operations = {operation}}, registry, &failed) == ERROR_INVALID_PARAMETER);
+        CHECK(
+            Apply(
+                Script{.operations = {operation}},
+                registry,
+                &failed
+            ) == ERROR_INVALID_PARAMETER
+        );
         CHECK(failed == 0);
     }
 

@@ -49,7 +49,12 @@ LSTATUS SetString(
     );
 }
 
-LSTATUS SetDword(Registry& registry, const HKEY hKey, const wchar_t* const pszName, const DWORD dwValue)
+LSTATUS SetDword(
+    Registry& registry,
+    const HKEY hKey,
+    const wchar_t* const pszName,
+    const DWORD dwValue
+)
 {
     return registry.SetValueExW(
         hKey,
@@ -156,8 +161,18 @@ TEST_CASE("QueryValue returns the type and the bytes")
     AppHive hive;
     NativeRegistry registry;
 
-    REQUIRE(SetDword(registry, hive.Root(), L"Dword", 0x12345678) == ERROR_SUCCESS);
-    REQUIRE(SetString(registry, hive.Root(), L"Text", REG_SZ, L"hello") == ERROR_SUCCESS);
+    REQUIRE(
+        SetDword(registry, hive.Root(), L"Dword", 0x12345678) == ERROR_SUCCESS
+    );
+    REQUIRE(
+        SetString(
+            registry,
+            hive.Root(),
+            L"Text",
+            REG_SZ,
+            L"hello"
+        ) == ERROR_SUCCESS
+    );
     REQUIRE(
         registry.SetValueExW(
             hive.Root(),
@@ -171,21 +186,49 @@ TEST_CASE("QueryValue returns the type and the bytes")
 
     DWORD dwType = 0;
     std::vector<std::byte> data;
-    CHECK(registry.QueryValue(hive.Root(), L"Dword", &dwType, data) == ERROR_SUCCESS);
+    CHECK(
+        registry.QueryValue(
+            hive.Root(),
+            L"Dword",
+            &dwType,
+            data
+        ) == ERROR_SUCCESS
+    );
     CHECK(dwType == REG_DWORD);
     REQUIRE(data.size() == 4);
     CHECK(data[0] == std::byte{0x78});
     CHECK(data[3] == std::byte{0x12});
 
-    CHECK(registry.QueryValue(hive.Root(), L"Text", nullptr, data) == ERROR_SUCCESS);
+    CHECK(
+        registry.QueryValue(
+            hive.Root(),
+            L"Text",
+            nullptr,
+            data
+        ) == ERROR_SUCCESS
+    );
     CHECK(WideFromBytes(data) == std::wstring(L"hello\0", 6));
 
     dwType = 0;
-    CHECK(registry.QueryValue(hive.Root(), L"Empty", &dwType, data) == ERROR_SUCCESS);
+    CHECK(
+        registry.QueryValue(
+            hive.Root(),
+            L"Empty",
+            &dwType,
+            data
+        ) == ERROR_SUCCESS
+    );
     CHECK(dwType == REG_BINARY);
     CHECK(data.empty());
 
-    CHECK(registry.QueryValue(hive.Root(), L"Missing", &dwType, data) == ERROR_FILE_NOT_FOUND);
+    CHECK(
+        registry.QueryValue(
+            hive.Root(),
+            L"Missing",
+            &dwType,
+            data
+        ) == ERROR_FILE_NOT_FOUND
+    );
 }
 
 TEST_CASE("QueryValue reads a value that grew after it was sized")
@@ -193,11 +236,26 @@ TEST_CASE("QueryValue reads a value that grew after it was sized")
     AppHive hive;
     auto registry = GrowingRegistry();
 
-    REQUIRE(SetString(registry, hive.Root(), L"Text", REG_SZ, L"hello") == ERROR_SUCCESS);
+    REQUIRE(
+        SetString(
+            registry,
+            hive.Root(),
+            L"Text",
+            REG_SZ,
+            L"hello"
+        ) == ERROR_SUCCESS
+    );
 
     g_nGrowthsLeft = 2;
     std::vector<std::byte> data;
-    CHECK(registry.QueryValue(hive.Root(), L"Text", nullptr, data) == ERROR_SUCCESS);
+    CHECK(
+        registry.QueryValue(
+            hive.Root(),
+            L"Text",
+            nullptr,
+            data
+        ) == ERROR_SUCCESS
+    );
     CHECK(g_nGrowthsLeft == 0);
     CHECK(WideFromBytes(data) == std::wstring(L"hello\0", 6));
 }
@@ -219,23 +277,74 @@ TEST_CASE("GetValue applies the flags")
         )
         == ERROR_SUCCESS
     );
-    REQUIRE(SetString(registry, hive.Root(), L"Expand", REG_EXPAND_SZ, L"%OS%") == ERROR_SUCCESS);
+    REQUIRE(
+        SetString(
+            registry,
+            hive.Root(),
+            L"Expand",
+            REG_EXPAND_SZ,
+            L"%OS%"
+        ) == ERROR_SUCCESS
+    );
 
     DWORD dwType = 0;
     std::vector<std::byte> data;
-    CHECK(registry.GetValue(hive.Root(), L"Sub", L"Dword", RRF_RT_REG_DWORD, &dwType, data) == ERROR_SUCCESS);
+    CHECK(
+        registry.GetValue(
+            hive.Root(),
+            L"Sub",
+            L"Dword",
+            RRF_RT_REG_DWORD,
+            &dwType,
+            data
+        ) == ERROR_SUCCESS
+    );
     CHECK(dwType == REG_DWORD);
     CHECK(data.size() == 4);
 
-    CHECK(registry.GetValue(hive.Root(), L"Sub", L"Dword", RRF_RT_REG_SZ, &dwType, data) == ERROR_UNSUPPORTED_TYPE);
-    CHECK(registry.GetValue(hive.Root(), L"Sub", L"Missing", RRF_RT_ANY, &dwType, data) == ERROR_FILE_NOT_FOUND);
+    CHECK(
+        registry.GetValue(
+            hive.Root(),
+            L"Sub",
+            L"Dword",
+            RRF_RT_REG_SZ,
+            &dwType,
+            data
+        ) == ERROR_UNSUPPORTED_TYPE
+    );
+    CHECK(
+        registry.GetValue(
+            hive.Root(),
+            L"Sub",
+            L"Missing",
+            RRF_RT_ANY,
+            &dwType,
+            data
+        ) == ERROR_FILE_NOT_FOUND
+    );
 
-    CHECK(registry.GetValue(hive.Root(), nullptr, L"Expand", RRF_RT_ANY, &dwType, data) == ERROR_SUCCESS);
+    CHECK(
+        registry.GetValue(
+            hive.Root(),
+            nullptr,
+            L"Expand",
+            RRF_RT_ANY,
+            &dwType,
+            data
+        ) == ERROR_SUCCESS
+    );
     CHECK(dwType == REG_SZ);
     CHECK(WideFromBytes(data) == std::wstring(L"Windows_NT\0", 11));
 
     CHECK(
-        registry.GetValue(hive.Root(), nullptr, L"Expand", RRF_RT_ANY | RRF_NOEXPAND, &dwType, data) == ERROR_SUCCESS
+        registry.GetValue(
+            hive.Root(),
+            nullptr,
+            L"Expand",
+            RRF_RT_ANY | RRF_NOEXPAND,
+            &dwType,
+            data
+        ) == ERROR_SUCCESS
     );
     CHECK(dwType == REG_EXPAND_SZ);
     CHECK(WideFromBytes(data) == std::wstring(L"%OS%\0", 5));
@@ -246,11 +355,28 @@ TEST_CASE("GetValue reads a value that grew after it was sized")
     AppHive hive;
     auto registry = GrowingRegistry();
 
-    REQUIRE(SetString(registry, hive.Root(), L"Text", REG_SZ, L"hello") == ERROR_SUCCESS);
+    REQUIRE(
+        SetString(
+            registry,
+            hive.Root(),
+            L"Text",
+            REG_SZ,
+            L"hello"
+        ) == ERROR_SUCCESS
+    );
 
     g_nGrowthsLeft = 2;
     std::vector<std::byte> data;
-    CHECK(registry.GetValue(hive.Root(), nullptr, L"Text", RRF_RT_ANY, nullptr, data) == ERROR_SUCCESS);
+    CHECK(
+        registry.GetValue(
+            hive.Root(),
+            nullptr,
+            L"Text",
+            RRF_RT_ANY,
+            nullptr,
+            data
+        ) == ERROR_SUCCESS
+    );
     CHECK(g_nGrowthsLeft == 0);
     CHECK(WideFromBytes(data) == std::wstring(L"hello\0", 6));
 }
@@ -260,33 +386,115 @@ TEST_CASE("GetString returns the text without its terminator")
     AppHive hive;
     NativeRegistry registry;
 
-    REQUIRE(SetString(registry, hive.Root(), L"Text", REG_SZ, L"hello") == ERROR_SUCCESS);
-    REQUIRE(SetString(registry, hive.Root(), L"Empty", REG_SZ, L"") == ERROR_SUCCESS);
-    REQUIRE(SetString(registry, hive.Root(), L"Expand", REG_EXPAND_SZ, L"%OS%") == ERROR_SUCCESS);
+    REQUIRE(
+        SetString(
+            registry,
+            hive.Root(),
+            L"Text",
+            REG_SZ,
+            L"hello"
+        ) == ERROR_SUCCESS
+    );
+    REQUIRE(
+        SetString(registry, hive.Root(), L"Empty", REG_SZ, L"") == ERROR_SUCCESS
+    );
+    REQUIRE(
+        SetString(
+            registry,
+            hive.Root(),
+            L"Expand",
+            REG_EXPAND_SZ,
+            L"%OS%"
+        ) == ERROR_SUCCESS
+    );
     REQUIRE(SetDword(registry, hive.Root(), L"Dword", 1) == ERROR_SUCCESS);
     const std::wstring embedded(L"a\0b", 3);
-    REQUIRE(SetString(registry, hive.Root(), L"Embedded", REG_SZ, embedded) == ERROR_SUCCESS);
+    REQUIRE(
+        SetString(
+            registry,
+            hive.Root(),
+            L"Embedded",
+            REG_SZ,
+            embedded
+        ) == ERROR_SUCCESS
+    );
 
     std::wstring text = L"unchanged";
-    CHECK(registry.GetString(hive.Root(), nullptr, L"Text", RRF_RT_ANY, text) == ERROR_SUCCESS);
+    CHECK(
+        registry.GetString(
+            hive.Root(),
+            nullptr,
+            L"Text",
+            RRF_RT_ANY,
+            text
+        ) == ERROR_SUCCESS
+    );
     CHECK(text == L"hello");
 
-    CHECK(registry.GetString(hive.Root(), nullptr, L"Empty", 0, text) == ERROR_SUCCESS);
+    CHECK(
+        registry.GetString(
+            hive.Root(),
+            nullptr,
+            L"Empty",
+            0,
+            text
+        ) == ERROR_SUCCESS
+    );
     CHECK(text.empty());
 
-    CHECK(registry.GetString(hive.Root(), nullptr, L"Embedded", 0, text) == ERROR_SUCCESS);
+    CHECK(
+        registry.GetString(
+            hive.Root(),
+            nullptr,
+            L"Embedded",
+            0,
+            text
+        ) == ERROR_SUCCESS
+    );
     CHECK(text == embedded);
 
-    CHECK(registry.GetString(hive.Root(), nullptr, L"Expand", 0, text) == ERROR_SUCCESS);
+    CHECK(
+        registry.GetString(
+            hive.Root(),
+            nullptr,
+            L"Expand",
+            0,
+            text
+        ) == ERROR_SUCCESS
+    );
     CHECK(text == L"Windows_NT");
 
-    CHECK(registry.GetString(hive.Root(), nullptr, L"Expand", RRF_NOEXPAND, text) == ERROR_SUCCESS);
+    CHECK(
+        registry.GetString(
+            hive.Root(),
+            nullptr,
+            L"Expand",
+            RRF_NOEXPAND,
+            text
+        ) == ERROR_SUCCESS
+    );
     CHECK(text == L"%OS%");
 
     text = L"unchanged";
-    CHECK(registry.GetString(hive.Root(), nullptr, L"Dword", 0, text) == ERROR_UNSUPPORTED_TYPE);
+    CHECK(
+        registry.GetString(
+            hive.Root(),
+            nullptr,
+            L"Dword",
+            0,
+            text
+        ) == ERROR_UNSUPPORTED_TYPE
+    );
     CHECK(text == L"unchanged");
-    CHECK(registry.GetString(hive.Root(), nullptr, L"Missing", 0, text) == ERROR_FILE_NOT_FOUND);
+    CHECK(
+        registry.GetString(
+            hive.Root(),
+            nullptr,
+            L"Missing",
+            0,
+            text
+        ) == ERROR_FILE_NOT_FOUND
+    );
 }
 
 TEST_CASE("EnumKey walks the subkeys to the end")
@@ -336,23 +544,57 @@ TEST_CASE("EnumValue returns the name, type and data")
     NativeRegistry registry;
 
     const std::wstring longName(1000, L'v');
-    REQUIRE(SetString(registry, hive.Root(), longName.c_str(), REG_SZ, std::wstring(500, L'x')) == ERROR_SUCCESS);
+    REQUIRE(
+        SetString(
+            registry,
+            hive.Root(),
+            longName.c_str(),
+            REG_SZ,
+            std::wstring(500, L'x')
+        ) == ERROR_SUCCESS
+    );
 
     std::wstring name;
     DWORD dwType = 0;
     std::vector<std::byte> data;
-    CHECK(registry.EnumValue(hive.Root(), 0, name, &dwType, &data) == ERROR_SUCCESS);
+    CHECK(
+        registry.EnumValue(
+            hive.Root(),
+            0,
+            name,
+            &dwType,
+            &data
+        ) == ERROR_SUCCESS
+    );
     CHECK(name == longName);
     CHECK(dwType == REG_SZ);
-    CHECK(WideFromBytes(data) == std::wstring(500, L'x') + std::wstring(1, L'\0'));
+    CHECK(
+        WideFromBytes(data) == std::wstring(500, L'x') + std::wstring(1, L'\0')
+    );
 
     name.clear();
     dwType = 0;
-    CHECK(registry.EnumValue(hive.Root(), 0, name, &dwType, nullptr) == ERROR_SUCCESS);
+    CHECK(
+        registry.EnumValue(
+            hive.Root(),
+            0,
+            name,
+            &dwType,
+            nullptr
+        ) == ERROR_SUCCESS
+    );
     CHECK(name == longName);
     CHECK(dwType == REG_SZ);
 
-    CHECK(registry.EnumValue(hive.Root(), 1, name, nullptr, &data) == ERROR_NO_MORE_ITEMS);
+    CHECK(
+        registry.EnumValue(
+            hive.Root(),
+            1,
+            name,
+            nullptr,
+            &data
+        ) == ERROR_NO_MORE_ITEMS
+    );
 }
 
 TEST_CASE("EnumValue returns the default value under an empty name")
@@ -365,7 +607,15 @@ TEST_CASE("EnumValue returns the default value under an empty name")
     std::wstring name = L"unchanged";
     std::vector<std::byte> data;
     DWORD dwType = 0;
-    CHECK(registry.EnumValue(hive.Root(), 0, name, &dwType, &data) == ERROR_SUCCESS);
+    CHECK(
+        registry.EnumValue(
+            hive.Root(),
+            0,
+            name,
+            &dwType,
+            &data
+        ) == ERROR_SUCCESS
+    );
     CHECK(name.empty());
     CHECK(dwType == REG_DWORD);
     CHECK(data.size() == 4);
@@ -406,7 +656,15 @@ TEST_CASE("LoadMUIString grows its buffer to the size it is told")
     NativeRegistry registry(functions);
 
     std::wstring text;
-    CHECK(registry.LoadMUIString(nullptr, L"Value", 0, nullptr, text) == ERROR_SUCCESS);
+    CHECK(
+        registry.LoadMUIString(
+            nullptr,
+            L"Value",
+            0,
+            nullptr,
+            text
+        ) == ERROR_SUCCESS
+    );
     CHECK(text == g_muiText);
 }
 
@@ -416,14 +674,36 @@ TEST_CASE("LoadMUIString resolves a resource reference")
     NativeRegistry registry;
 
     REQUIRE(
-        SetString(registry, hive.Root(), L"Indirect", REG_SZ, L"@%SystemRoot%\\System32\\shell32.dll,-21770")
+        SetString(
+            registry,
+            hive.Root(),
+            L"Indirect",
+            REG_SZ,
+            L"@%SystemRoot%\\System32\\shell32.dll,-21770"
+        )
         == ERROR_SUCCESS
     );
 
     std::wstring text;
-    CHECK(registry.LoadMUIString(hive.Root(), L"Indirect", 0, nullptr, text) == ERROR_SUCCESS);
+    CHECK(
+        registry.LoadMUIString(
+            hive.Root(),
+            L"Indirect",
+            0,
+            nullptr,
+            text
+        ) == ERROR_SUCCESS
+    );
     CHECK_FALSE(text.empty());
     CHECK(text.find(L'\0') == std::wstring::npos);
 
-    CHECK(registry.LoadMUIString(hive.Root(), L"Missing", 0, nullptr, text) == ERROR_FILE_NOT_FOUND);
+    CHECK(
+        registry.LoadMUIString(
+            hive.Root(),
+            L"Missing",
+            0,
+            nullptr,
+            text
+        ) == ERROR_FILE_NOT_FOUND
+    );
 }

@@ -7,18 +7,21 @@
 
 namespace VReg
 {
-int CompareNames(const std::wstring_view left, const std::wstring_view right) noexcept
+int CompareNames(
+    const std::wstring_view left,
+    const std::wstring_view right
+) noexcept
 {
     if (left.empty() || right.empty())
         return left.empty() == right.empty() ? 0 : (left.empty() ? -1 : 1);
 
     return CompareStringOrdinal(
-               left.data(),
-               static_cast<int>(left.size()),
-               right.data(),
-               static_cast<int>(right.size()),
-               TRUE
-           ) - CSTR_EQUAL;
+        left.data(),
+        static_cast<int>(left.size()),
+        right.data(),
+        static_cast<int>(right.size()),
+        TRUE
+    ) - CSTR_EQUAL;
 }
 
 HKEY Hive::HandleOf(const Node* const pNode) noexcept
@@ -41,7 +44,11 @@ Registry* Hive::Lower() noexcept
     return nullptr;
 }
 
-LSTATUS Hive::OpenLowerValueKey(Node* const pNode, const std::wstring_view name, HKEY& hLower) noexcept
+LSTATUS Hive::OpenLowerValueKey(
+    Node* const pNode,
+    const std::wstring_view name,
+    HKEY& hLower
+) noexcept
 {
     (void)pNode;
     (void)name;
@@ -49,8 +56,8 @@ LSTATUS Hive::OpenLowerValueKey(Node* const pNode, const std::wstring_view name,
     return ERROR_SUCCESS;
 }
 
-Tree::Tree(Hive& owner)
-    : m_owner(owner)
+Tree::Tree(Hive& owner) :
+    m_owner(owner)
 {
     auto pRoot = std::make_unique<Node>();
     pRoot->pHive = &owner;
@@ -123,8 +130,8 @@ bool Tree::IsFrozen() const noexcept
     return m_isFrozen.load(std::memory_order_acquire);
 }
 
-Tree::ReadLock::ReadLock(Tree& tree) noexcept
-    : m_pLock(tree.IsFrozen() ? nullptr : &tree.m_lock)
+Tree::ReadLock::ReadLock(Tree& tree) noexcept :
+    m_pLock(tree.IsFrozen() ? nullptr : &tree.m_lock)
 {
     if (m_pLock)
         AcquireSRWLockShared(m_pLock);
@@ -136,8 +143,8 @@ Tree::ReadLock::~ReadLock()
         ReleaseSRWLockShared(m_pLock);
 }
 
-Tree::WriteLock::WriteLock(Tree& tree) noexcept
-    : m_lock(tree.m_lock)
+Tree::WriteLock::WriteLock(Tree& tree) noexcept :
+    m_lock(tree.m_lock)
 {
     AcquireSRWLockExclusive(&m_lock);
 }
@@ -152,7 +159,10 @@ Node* Tree::FindChild(const Node& parent, const std::wstring_view name) noexcept
     const auto it = std::ranges::lower_bound(
         parent.children,
         name,
-        [](const std::wstring_view left, const std::wstring_view right) { return CompareNames(left, right) < 0; },
+        [](const std::wstring_view left, const std::wstring_view right)
+        {
+            return CompareNames(left, right) < 0;
+        },
         [](const Node* const pChild) { return std::wstring_view(pChild->name); }
     );
     if (it == parent.children.end() || CompareNames((*it)->name, name) != 0)
@@ -163,11 +173,19 @@ Node* Tree::FindChild(const Node& parent, const std::wstring_view name) noexcept
 
 Value* Tree::FindValue(Node& node, const std::wstring_view name) noexcept
 {
-    const auto it = std::ranges::find_if(node.values, [&](const Value& value) { return CompareNames(value.name, name) == 0; });
+    const auto it = std::ranges::find_if(
+        node.values,
+        [&](const Value& value) { return CompareNames(value.name, name) == 0; }
+    );
     return it == node.values.end() ? nullptr : &*it;
 }
 
-Node* Tree::AddChild(Node& parent, const std::wstring_view name, const std::wstring_view className, const bool isVolatile)
+Node* Tree::AddChild(
+    Node& parent,
+    const std::wstring_view name,
+    const std::wstring_view className,
+    const bool isVolatile
+)
 {
     auto pNode = std::make_unique<Node>();
     pNode->pHive = &m_owner;
@@ -178,13 +196,18 @@ Node* Tree::AddChild(Node& parent, const std::wstring_view name, const std::wstr
     Touch(*pNode);
 
     const auto position = std::ranges::lower_bound(
-                              parent.children,
-                              name,
-                              [](const std::wstring_view left, const std::wstring_view right)
-                              { return CompareNames(left, right) < 0; },
-                              [](const Node* const pChild) { return std::wstring_view(pChild->name); }
-                          )
-                          - parent.children.begin();
+            parent.children,
+            name,
+            [](const std::wstring_view left, const std::wstring_view right)
+            {
+                return CompareNames(left, right) < 0;
+            },
+            [](const Node* const pChild)
+            {
+                return std::wstring_view(pChild->name);
+            }
+        )
+        - parent.children.begin();
 
     // Every allocation happens before the handle is bound, so a throw leaves
     // no handle pointing at a freed node.
@@ -231,7 +254,12 @@ void Tree::Notify(Node& node, const DWORD dwFilter) noexcept
         Fire(*pAncestor, dwFilter, true);
 }
 
-LSTATUS Tree::Watch(Node& node, const bool isSubtree, const DWORD dwFilter, const HANDLE hEvent) noexcept
+LSTATUS Tree::Watch(
+    Node& node,
+    const bool isSubtree,
+    const DWORD dwFilter,
+    const HANDLE hEvent
+) noexcept
 {
     if (!(dwFilter & (REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_LAST_SET)))
         return ERROR_SUCCESS;

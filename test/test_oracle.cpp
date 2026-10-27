@@ -1085,9 +1085,19 @@ struct PreExOpenAndCreate
                 pszSub,
                 &hKey
             );
-            RECORD("create W " + label, status, {KeyState(hKey), hKey == hRoot});
+            RECORD(
+                "create W " + label,
+                status,
+                {KeyState(hKey), hKey == hRoot}
+            );
             if (status == ERROR_SUCCESS)
-                CloseUnlessParent(api, record, "create W " + label, hKey, hRoot);
+                CloseUnlessParent(
+                    api,
+                    record,
+                    "create W " + label,
+                    hKey,
+                    hRoot
+                );
 
             const auto narrow = pszSub ? Narrow(pszSub) : std::string();
             const char* const pszNarrow = pszSub ? narrow.c_str() : nullptr;
@@ -1107,9 +1117,19 @@ struct PreExOpenAndCreate
                 pszNarrow,
                 &hKey
             );
-            RECORD("create A " + label, status, {KeyState(hKey), hKey == hRoot});
+            RECORD(
+                "create A " + label,
+                status,
+                {KeyState(hKey), hKey == hRoot}
+            );
             if (status == ERROR_SUCCESS)
-                CloseUnlessParent(api, record, "create A " + label, hKey, hRoot);
+                CloseUnlessParent(
+                    api,
+                    record,
+                    "create A " + label,
+                    hKey,
+                    hRoot
+                );
         }
 
         RECORD(
@@ -2091,7 +2111,11 @@ using Scenarios = std::tuple<
     FlushAndNotify>;
 } // namespace
 
-TEMPLATE_LIST_TEST_CASE("Key scenarios answer as the Win32 API does", "[oracle][keys]", Scenarios)
+TEMPLATE_LIST_TEST_CASE(
+    "Key scenarios answer as the Win32 API does",
+    "[oracle][keys]",
+    Scenarios
+)
 {
     Win32Api win32;
     NativeRegistry native;

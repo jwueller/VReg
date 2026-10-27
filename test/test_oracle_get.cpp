@@ -41,7 +41,16 @@ LSTATUS GetEx(
 
 template <class Api>
 LSTATUS
-GetEx(Api& api, HKEY hKey, LPCSTR pszSub, LPCSTR pszValue, DWORD dwFlags, LPDWORD pdwType, PVOID pData, LPDWORD pcbData)
+GetEx(
+    Api& api,
+    HKEY hKey,
+    LPCSTR pszSub,
+    LPCSTR pszValue,
+    DWORD dwFlags,
+    LPDWORD pdwType,
+    PVOID pData,
+    LPDWORD pcbData
+)
 {
     return api.GetValueA(
         hKey,
@@ -124,7 +133,16 @@ void GetMatrix(
         DWORD dwType = kFillSize;
         RECORD(
             flagLabel + " type only",
-            GetEx(api, hKey, pszSub, pszValue, dwFlags, &dwType, nullptr, nullptr),
+            GetEx(
+                api,
+                hKey,
+                pszSub,
+                pszValue,
+                dwFlags,
+                &dwType,
+                nullptr,
+                nullptr
+            ),
             {dwType}
         );
 
@@ -132,7 +150,16 @@ void GetMatrix(
         DWORD cbData = kFillSize;
         RECORD(
             flagLabel + " size",
-            GetEx(api, hKey, pszSub, pszValue, dwFlags, &dwType, nullptr, &cbData),
+            GetEx(
+                api,
+                hKey,
+                pszSub,
+                pszValue,
+                dwFlags,
+                &dwType,
+                nullptr,
+                &cbData
+            ),
             {dwType, cbData}
         );
 
@@ -144,7 +171,16 @@ void GetMatrix(
             cbData = cbBuffer;
             RECORD(
                 flagLabel + std::format(" buffer {}", cbBuffer),
-                GetEx(api, hKey, pszSub, pszValue, dwFlags, &dwType, data.data(), &cbData),
+                GetEx(
+                    api,
+                    hKey,
+                    pszSub,
+                    pszValue,
+                    dwFlags,
+                    &dwType,
+                    data.data(),
+                    &cbData
+                ),
                 {dwType, cbData},
                 {Bytes(data)}
             );
@@ -155,7 +191,16 @@ void GetMatrix(
         cbData = 128;
         RECORD(
             flagLabel + " no type",
-            GetEx(api, hKey, pszSub, pszValue, dwFlags, nullptr, data.data(), &cbData),
+            GetEx(
+                api,
+                hKey,
+                pszSub,
+                pszValue,
+                dwFlags,
+                nullptr,
+                data.data(),
+                &cbData
+            ),
             {cbData},
             {Bytes(data)}
         );
@@ -163,7 +208,16 @@ void GetMatrix(
         dwType = kFillSize;
         RECORD(
             flagLabel + " data without size",
-            GetEx(api, hKey, pszSub, pszValue, dwFlags, &dwType, data.data(), nullptr),
+            GetEx(
+                api,
+                hKey,
+                pszSub,
+                pszValue,
+                dwFlags,
+                &dwType,
+                data.data(),
+                nullptr
+            ),
             {dwType},
             {Bytes(data)}
         );
@@ -178,11 +232,39 @@ struct GetValueEveryType
         {
             const auto label = Narrow(value.name);
             RECORD(label + " set", SetStored(api, hRoot, value));
-            GetMatrix(api, record, hRoot, static_cast<LPCWSTR>(nullptr), value.name.c_str(), label + " W");
-            GetMatrix(api, record, hRoot, static_cast<LPCSTR>(nullptr), label.c_str(), label + " A");
+            GetMatrix(
+                api,
+                record,
+                hRoot,
+                static_cast<LPCWSTR>(nullptr),
+                value.name.c_str(),
+                label + " W"
+            );
+            GetMatrix(
+                api,
+                record,
+                hRoot,
+                static_cast<LPCSTR>(nullptr),
+                label.c_str(),
+                label + " A"
+            );
         }
-        GetMatrix(api, record, hRoot, static_cast<LPCWSTR>(nullptr), L"Missing", "missing W");
-        GetMatrix(api, record, hRoot, static_cast<LPCSTR>(nullptr), "Missing", "missing A");
+        GetMatrix(
+            api,
+            record,
+            hRoot,
+            static_cast<LPCWSTR>(nullptr),
+            L"Missing",
+            "missing W"
+        );
+        GetMatrix(
+            api,
+            record,
+            hRoot,
+            static_cast<LPCSTR>(nullptr),
+            "Missing",
+            "missing A"
+        );
     }
 };
 
@@ -613,7 +695,14 @@ struct LoadMUIStringForms
 };
 
 template <class Api>
-LSTATUS QueryMultiple(Api& api, HKEY hKey, PVALENTW pEntries, DWORD cEntries, LPWSTR pBuffer, LPDWORD pcbTotal)
+LSTATUS QueryMultiple(
+    Api& api,
+    HKEY hKey,
+    PVALENTW pEntries,
+    DWORD cEntries,
+    LPWSTR pBuffer,
+    LPDWORD pcbTotal
+)
 {
     return api.QueryMultipleValuesW(
         hKey,
@@ -625,7 +714,14 @@ LSTATUS QueryMultiple(Api& api, HKEY hKey, PVALENTW pEntries, DWORD cEntries, LP
 }
 
 template <class Api>
-LSTATUS QueryMultiple(Api& api, HKEY hKey, PVALENTA pEntries, DWORD cEntries, LPSTR pBuffer, LPDWORD pcbTotal)
+LSTATUS QueryMultiple(
+    Api& api,
+    HKEY hKey,
+    PVALENTA pEntries,
+    DWORD cEntries,
+    LPSTR pBuffer,
+    LPDWORD pcbTotal
+)
 {
     return api.QueryMultipleValuesA(
         hKey,
@@ -684,7 +780,10 @@ void MultipleMatrix(
             sizes.push_back(
                 entry.ve_valueptr == static_cast<DWORD_PTR>(kFillSize)
                     ? ~std::uint64_t{}
-                    : Offset(reinterpret_cast<const void*>(entry.ve_valueptr), buffer.data())
+                    : Offset(
+                        reinterpret_cast<const void*>(entry.ve_valueptr),
+                        buffer.data()
+                    )
             );
         }
 
@@ -692,7 +791,12 @@ void MultipleMatrix(
         switch (names.size())
         {
         case 1:
-            RECORD(label + " detail", status, {flat[0], flat[1], flat[2], flat[3]}, {Bytes(buffer)});
+            RECORD(
+                label + " detail",
+                status,
+                {flat[0], flat[1], flat[2], flat[3]},
+                {Bytes(buffer)}
+            );
             break;
         case 2:
             RECORD(
@@ -865,7 +969,11 @@ struct QueryMultipleValuesForms
 using Scenarios = std::tuple<GetValueEveryType, GetValueSubKeyAndName, LoadMUIStringForms, QueryMultipleValuesForms>;
 } // namespace
 
-TEMPLATE_LIST_TEST_CASE("Lookup scenarios answer as the Win32 API does", "[oracle][get]", Scenarios)
+TEMPLATE_LIST_TEST_CASE(
+    "Lookup scenarios answer as the Win32 API does",
+    "[oracle][get]",
+    Scenarios
+)
 {
     Win32Api win32;
     NativeRegistry native;

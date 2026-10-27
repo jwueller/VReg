@@ -33,23 +33,39 @@ void Materialize(Node& node) noexcept
 }
 
 /// Whether @p names, sorted by @ref CompareNames, holds @p name.
-bool ContainsName(const std::vector<std::wstring>& names, const std::wstring_view name) noexcept
+bool ContainsName(
+    const std::vector<std::wstring>& names,
+    const std::wstring_view name
+) noexcept
 {
     return std::ranges::binary_search(
         names,
         name,
-        [](const std::wstring_view left, const std::wstring_view right) { return CompareNames(left, right) < 0; }
+        [](const std::wstring_view left, const std::wstring_view right)
+        {
+            return CompareNames(left, right) < 0;
+        }
     );
 }
 
 void SortNames(std::vector<std::wstring>& names)
 {
-    std::ranges::sort(names, [](const std::wstring& left, const std::wstring& right) { return CompareNames(left, right) < 0; });
+    std::ranges::sort(
+        names,
+        [](const std::wstring& left, const std::wstring& right)
+        {
+            return CompareNames(left, right) < 0;
+        }
+    );
 }
 
 /// Appends @p node and everything below it to @p records, leaving out a transparent node without values (the
 /// way to a lower key, which only the root can be while it has upper keys below it).
-void ListUpper(const Node& node, std::wstring& path, std::vector<UpperRecord>& records)
+void ListUpper(
+    const Node& node,
+    std::wstring& path,
+    std::vector<UpperRecord>& records
+)
 {
     const auto iFirst = records.size();
     records.push_back({.kind = UpperRecord::Kind::Key, .path = path, .isOpaque = node.isOpaque});
@@ -90,8 +106,8 @@ void ListUpper(const Node& node, std::wstring& path, std::vector<UpperRecord>& r
 class LowerKey
 {
 public:
-    explicit LowerKey(Registry& registry) noexcept
-        : m_registry(registry)
+    explicit LowerKey(Registry& registry) noexcept :
+        m_registry(registry)
     {
     }
 
@@ -139,12 +155,12 @@ OverlayHive::OverlayHive(
     const HKEY hLowerRoot,
     const std::wstring_view lowerPath,
     const REGSAM samLowerView
-)
-    : m_lower(lower)
-    , m_hLowerRoot(hLowerRoot)
-    , m_lowerPath(lowerPath)
-    , m_samLowerView(samLowerView)
-    , m_pTree(std::make_unique<Tree>(*this))
+) :
+    m_lower(lower),
+    m_hLowerRoot(hLowerRoot),
+    m_lowerPath(lowerPath),
+    m_samLowerView(samLowerView),
+    m_pTree(std::make_unique<Tree>(*this))
 {
     m_pTree->Root()->isTransparent = true;
     m_pTree->Root()->isLowerBacked = true;
@@ -197,7 +213,11 @@ OverlayHive::LowerView OverlayHive::ViewOf(const Node& node) const
     return view;
 }
 
-LSTATUS OverlayHive::OpenLower(const std::wstring& path, const REGSAM samDesired, HKEY& hKey) noexcept
+LSTATUS OverlayHive::OpenLower(
+    const std::wstring& path,
+    const REGSAM samDesired,
+    HKEY& hKey
+) noexcept
 {
     return m_lower.OpenKeyExW(
         m_hLowerRoot,
@@ -208,7 +228,10 @@ LSTATUS OverlayHive::OpenLower(const std::wstring& path, const REGSAM samDesired
     );
 }
 
-LSTATUS OverlayHive::QueryLowerClass(const std::wstring& path, std::wstring& className) noexcept
+LSTATUS OverlayHive::QueryLowerClass(
+    const std::wstring& path,
+    std::wstring& className
+) noexcept
 try
 {
     className.clear();
@@ -252,7 +275,12 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS OverlayHive::OpenKey(Node* const pParent, const KeyPath path, const REGSAM samDesired, OpenResult& result) noexcept
+LSTATUS OverlayHive::OpenKey(
+    Node* const pParent,
+    const KeyPath path,
+    const REGSAM samDesired,
+    OpenResult& result
+) noexcept
 try
 {
     Node* pCurrent = pParent;
@@ -391,7 +419,11 @@ try
         for (; cLower < path.size(); ++cLower)
         {
             LowerKey lowerKey(m_lower);
-            const auto status = OpenLower(JoinPath(view.path, path.subspan(cUpper, cLower + 1 - cUpper)), KEY_QUERY_VALUE, lowerKey.Receive());
+            const auto status = OpenLower(
+                JoinPath(view.path, path.subspan(cUpper, cLower + 1 - cUpper)),
+                KEY_QUERY_VALUE,
+                lowerKey.Receive()
+            );
             if (status == ERROR_FILE_NOT_FOUND)
                 break;
             if (!Exists(status))
@@ -511,8 +543,15 @@ try
     if (parentView.isVisible)
     {
         LowerKey lowerKey(m_lower);
-        const auto lowerPath = JoinPath(parentView.path, std::array<std::wstring_view, 1>{keyName});
-        const auto status = OpenLower(lowerPath, KEY_ENUMERATE_SUB_KEYS, lowerKey.Receive());
+        const auto lowerPath = JoinPath(
+            parentView.path,
+            std::array<std::wstring_view, 1>{keyName}
+        );
+        const auto status = OpenLower(
+            lowerPath,
+            KEY_ENUMERATE_SUB_KEYS,
+            lowerKey.Receive()
+        );
         if (status != ERROR_SUCCESS && status != ERROR_FILE_NOT_FOUND)
             return status;
 
@@ -609,7 +648,11 @@ try
         return ERROR_FILE_NOT_FOUND;
 
     LowerKey lowerKey(m_lower);
-    const auto status = OpenLower(view.path, KEY_QUERY_VALUE, lowerKey.Receive());
+    const auto status = OpenLower(
+        view.path,
+        KEY_QUERY_VALUE,
+        lowerKey.Receive()
+    );
     if (status != ERROR_SUCCESS)
         return status;
 
@@ -652,7 +695,10 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS OverlayHive::DeleteValue(Node* const pNode, const std::wstring_view name) noexcept
+LSTATUS OverlayHive::DeleteValue(
+    Node* const pNode,
+    const std::wstring_view name
+) noexcept
 try
 {
     if (IsFrozen())
@@ -680,7 +726,11 @@ try
     if (view.isVisible)
     {
         LowerKey lowerKey(m_lower);
-        const auto status = OpenLower(view.path, KEY_QUERY_VALUE, lowerKey.Receive());
+        const auto status = OpenLower(
+            view.path,
+            KEY_QUERY_VALUE,
+            lowerKey.Receive()
+        );
         if (status == ERROR_SUCCESS)
         {
             const std::wstring valueName(name);
@@ -788,7 +838,11 @@ try
         return ERROR_NO_MORE_ITEMS;
 
     LowerKey lowerKey(m_lower);
-    const auto opened = OpenLower(view.path, KEY_ENUMERATE_SUB_KEYS | KEY_QUERY_VALUE, lowerKey.Receive());
+    const auto opened = OpenLower(
+        view.path,
+        KEY_ENUMERATE_SUB_KEYS | KEY_QUERY_VALUE,
+        lowerKey.Receive()
+    );
     if (opened != ERROR_SUCCESS)
         return opened == ERROR_FILE_NOT_FOUND ? ERROR_NO_MORE_ITEMS : opened;
 
@@ -884,7 +938,11 @@ try
         return ERROR_NO_MORE_ITEMS;
 
     LowerKey lowerKey(m_lower);
-    const auto opened = OpenLower(view.path, KEY_QUERY_VALUE, lowerKey.Receive());
+    const auto opened = OpenLower(
+        view.path,
+        KEY_QUERY_VALUE,
+        lowerKey.Receive()
+    );
     if (opened != ERROR_SUCCESS)
         return opened == ERROR_FILE_NOT_FOUND ? ERROR_NO_MORE_ITEMS : opened;
 
@@ -895,7 +953,13 @@ try
         std::wstring lowerName;
         DWORD dwLowerType{};
         std::vector<std::byte> lowerData;
-        const auto status = m_lower.EnumValue(lowerKey.Get(), i, lowerName, &dwLowerType, &lowerData);
+        const auto status = m_lower.EnumValue(
+            lowerKey.Get(),
+            i,
+            lowerName,
+            &dwLowerType,
+            &lowerData
+        );
         if (status != ERROR_SUCCESS)
             return status;
 
@@ -937,8 +1001,14 @@ try
                 continue;
 
             ++result.cSubKeys;
-            result.cchMaxSubKey = std::max(result.cchMaxSubKey, static_cast<DWORD>(pChild->name.size()));
-            result.cchMaxClass = std::max(result.cchMaxClass, static_cast<DWORD>(pChild->className.size()));
+            result.cchMaxSubKey = std::max(
+                result.cchMaxSubKey,
+                static_cast<DWORD>(pChild->name.size())
+            );
+            result.cchMaxClass = std::max(
+                result.cchMaxClass,
+                static_cast<DWORD>(pChild->className.size())
+            );
         }
 
         for (const auto& value : pNode->values)
@@ -948,8 +1018,14 @@ try
                 continue;
 
             ++result.cValues;
-            result.cchMaxValueName = std::max(result.cchMaxValueName, static_cast<DWORD>(value.name.size()));
-            result.cbMaxValue = std::max(result.cbMaxValue, static_cast<DWORD>(value.data.size()));
+            result.cchMaxValueName = std::max(
+                result.cchMaxValueName,
+                static_cast<DWORD>(value.name.size())
+            );
+            result.cbMaxValue = std::max(
+                result.cbMaxValue,
+                static_cast<DWORD>(value.data.size())
+            );
         }
 
         isTransparent = pNode->isTransparent;
@@ -962,7 +1038,11 @@ try
     if (view.isVisible)
     {
         LowerKey lowerKey(m_lower);
-        const auto status = OpenLower(view.path, KEY_QUERY_VALUE | KEY_ENUMERATE_SUB_KEYS, lowerKey.Receive());
+        const auto status = OpenLower(
+            view.path,
+            KEY_QUERY_VALUE | KEY_ENUMERATE_SUB_KEYS,
+            lowerKey.Receive()
+        );
         if (status != ERROR_SUCCESS && status != ERROR_FILE_NOT_FOUND)
             return status;
 
@@ -1034,9 +1114,18 @@ try
 
             result.cSubKeys += lower.cSubKeys;
             result.cValues += lower.cValues;
-            result.cchMaxSubKey = std::max(result.cchMaxSubKey, lower.cchMaxSubKey);
-            result.cchMaxClass = std::max(result.cchMaxClass, lower.cchMaxClass);
-            result.cchMaxValueName = std::max(result.cchMaxValueName, lower.cchMaxValueName);
+            result.cchMaxSubKey = std::max(
+                result.cchMaxSubKey,
+                lower.cchMaxSubKey
+            );
+            result.cchMaxClass = std::max(
+                result.cchMaxClass,
+                lower.cchMaxClass
+            );
+            result.cchMaxValueName = std::max(
+                result.cchMaxValueName,
+                lower.cchMaxValueName
+            );
             result.cbMaxValue = std::max(result.cbMaxValue, lower.cbMaxValue);
             if (isLowerBacked)
                 result.className = std::move(lower.className);
@@ -1077,12 +1166,21 @@ LSTATUS OverlayHive::CheckKey(Node* const pNode) noexcept
     return pNode->isDeleted ? ERROR_KEY_DELETED : ERROR_SUCCESS;
 }
 
-LSTATUS OverlayHive::Watch(Node* const pNode, const bool isSubtree, const DWORD dwFilter, const HANDLE hEvent) noexcept
+LSTATUS OverlayHive::Watch(
+    Node* const pNode,
+    const bool isSubtree,
+    const DWORD dwFilter,
+    const HANDLE hEvent
+) noexcept
 {
     return m_pTree->Watch(*pNode, isSubtree, dwFilter, hEvent);
 }
 
-LSTATUS OverlayHive::OpenLowerValueKey(Node* const pNode, const std::wstring_view name, HKEY& hLower) noexcept
+LSTATUS OverlayHive::OpenLowerValueKey(
+    Node* const pNode,
+    const std::wstring_view name,
+    HKEY& hLower
+) noexcept
 try
 {
     hLower = nullptr;
@@ -1101,7 +1199,11 @@ try
         return ERROR_SUCCESS;
 
     LowerKey lowerKey(m_lower);
-    const auto opened = OpenLower(view.path, KEY_QUERY_VALUE, lowerKey.Receive());
+    const auto opened = OpenLower(
+        view.path,
+        KEY_QUERY_VALUE,
+        lowerKey.Receive()
+    );
     if (opened != ERROR_SUCCESS)
         return opened == ERROR_FILE_NOT_FOUND ? ERROR_SUCCESS : opened;
 

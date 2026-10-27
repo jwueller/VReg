@@ -249,7 +249,11 @@ private:
 
     /// Resolves @p hKey and @p subKey (null or empty for the key itself).
     /// @p samDesired supplies the registry view of the call.
-    [[nodiscard]] Target Resolve(HKEY hKey, std::wstring_view subKey, REGSAM samDesired = 0) const;
+    [[nodiscard]] Target Resolve(
+        HKEY hKey,
+        std::wstring_view subKey,
+        REGSAM samDesired = 0
+    ) const;
 
     /// Looks for a mount a real key plus @p subComponents lands in, by native
     /// path; fills @p target and answers true when it does.

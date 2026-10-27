@@ -34,7 +34,12 @@ void CheckRoute(const char* route, const LSTATUS error, const HKEY hKey)
     RegCloseKey(hKey);
 }
 
-HKEY Open(const HKEY hkParent, const wchar_t* lpszName, const REGSAM sam, LSTATUS& error)
+HKEY Open(
+    const HKEY hkParent,
+    const wchar_t* lpszName,
+    const REGSAM sam,
+    LSTATUS& error
+)
 {
     HKEY hKey{};
     error = RegOpenKeyExW(hkParent, lpszName, 0, sam, &hKey);
@@ -78,10 +83,26 @@ TEST_CASE("No route to a real key handle sets bit 0")
     e = RegConnectRegistryW(nullptr, HKEY_LOCAL_MACHINE, &h);
     CheckRoute("RegConnectRegistry (local)", e, h);
 
-    const auto hTransaction = CreateTransaction(nullptr, nullptr, 0, 0, 0, 0, nullptr);
+    const auto hTransaction = CreateTransaction(
+        nullptr,
+        nullptr,
+        0,
+        0,
+        0,
+        0,
+        nullptr
+    );
     if (hTransaction != INVALID_HANDLE_VALUE)
     {
-        e = RegOpenKeyTransactedW(HKEY_CURRENT_USER, L"Software", 0, KEY_READ, &h, hTransaction, nullptr);
+        e = RegOpenKeyTransactedW(
+            HKEY_CURRENT_USER,
+            L"Software",
+            0,
+            KEY_READ,
+            &h,
+            hTransaction,
+            nullptr
+        );
         CheckRoute("RegOpenKeyTransacted", e, h);
         RollbackTransaction(hTransaction);
         CloseHandle(hTransaction);
@@ -93,7 +114,17 @@ TEST_CASE("No route to a real key handle sets bit 0")
     e = RegLoadAppKeyW(hivePath.c_str(), &hHive, KEY_ALL_ACCESS, 0, 0);
     if (e == ERROR_SUCCESS)
     {
-        e = RegCreateKeyExW(hHive, L"Child", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &h, nullptr);
+        e = RegCreateKeyExW(
+            hHive,
+            L"Child",
+            0,
+            nullptr,
+            0,
+            KEY_ALL_ACCESS,
+            nullptr,
+            &h,
+            nullptr
+        );
         CheckRoute("app hive child", e, h);
         CheckRoute("RegLoadAppKey", ERROR_SUCCESS, hHive);
     }

@@ -58,7 +58,10 @@ template <class Api> inline constexpr bool kVirtualKeys<Reduced<Api>> = true;
 /// Whether an `Ex` open or create handed back @p hParent. Native always
 /// returns a new handle, even for an empty subkey; a virtual key has one
 /// handle per node, so the reduced form reports a new handle for both.
-template <class Api> bool HandedBack(const HKEY hKey, const HKEY hParent) noexcept
+template <class Api> bool HandedBack(
+    const HKEY hKey,
+    const HKEY hParent
+) noexcept
 {
     if constexpr (kVirtualKeys<Api>)
         return false;
@@ -90,7 +93,10 @@ inline FILETIME FillTime() noexcept
 }
 
 /// Offset of @p p in @p base, or all ones for a null pointer.
-inline std::uint64_t Offset(const void* const p, const void* const base) noexcept
+inline std::uint64_t Offset(
+    const void* const p,
+    const void* const base
+) noexcept
 {
     if (p == nullptr)
         return ~std::uint64_t{};
@@ -113,7 +119,13 @@ template <class T> const BYTE* Raw(const T* p) noexcept
 /// Closes @p hKey unless it is @p hParent (the pre-`Ex` open forms hand the
 /// parent back for an empty subkey), recording which it was.
 template <class Api>
-void CloseUnlessParent(Api& api, Recorder& record, const std::string& label, const HKEY hKey, const HKEY hParent)
+void CloseUnlessParent(
+    Api& api,
+    Recorder& record,
+    const std::string& label,
+    const HKEY hKey,
+    const HKEY hParent
+)
 {
     if (hKey == hParent)
         return;
@@ -137,7 +149,11 @@ struct StoredValue
 /// nonzero guard: the native W function reads one wide character past the
 /// data to decide whether the string is terminated, so what follows the
 /// buffer would otherwise decide what is stored.
-template <class Api> LSTATUS SetStored(Api& api, const HKEY hKey, const StoredValue& value)
+template <class Api> LSTATUS SetStored(
+    Api& api,
+    const HKEY hKey,
+    const StoredValue& value
+)
 {
     auto guarded = value.data;
     guarded.insert(guarded.end(), 4, BYTE{0x58});
@@ -152,14 +168,24 @@ template <class Api> LSTATUS SetStored(Api& api, const HKEY hKey, const StoredVa
         );
 }
 
-template <class T> std::vector<BYTE> BytesOf(const T* const p, const std::size_t count)
+template <class T> std::vector<BYTE> BytesOf(
+    const T* const p,
+    const std::size_t count
+)
 {
     const auto* const pb = reinterpret_cast<const BYTE*>(p);
     return std::vector<BYTE>(pb, pb + count * sizeof(T));
 }
 
 template <class Api>
-LSTATUS QueryEx(Api& api, HKEY hKey, LPCWSTR pszName, LPDWORD pdwType, LPBYTE pData, LPDWORD pcbData)
+LSTATUS QueryEx(
+    Api& api,
+    HKEY hKey,
+    LPCWSTR pszName,
+    LPDWORD pdwType,
+    LPBYTE pData,
+    LPDWORD pcbData
+)
 {
     return api.QueryValueExW(
         hKey,
@@ -172,7 +198,14 @@ LSTATUS QueryEx(Api& api, HKEY hKey, LPCWSTR pszName, LPDWORD pdwType, LPBYTE pD
 }
 
 template <class Api>
-LSTATUS QueryEx(Api& api, HKEY hKey, LPCSTR pszName, LPDWORD pdwType, LPBYTE pData, LPDWORD pcbData)
+LSTATUS QueryEx(
+    Api& api,
+    HKEY hKey,
+    LPCSTR pszName,
+    LPDWORD pdwType,
+    LPBYTE pData,
+    LPDWORD pcbData
+)
 {
     return api.QueryValueExA(
         hKey,
@@ -188,19 +221,40 @@ LSTATUS QueryEx(Api& api, HKEY hKey, LPCSTR pszName, LPDWORD pdwType, LPBYTE pDa
 /// only, size only, existence only, a range of buffer sizes, no type
 /// pointer, data without a size pointer.
 template <class Api, class Char>
-void QueryMatrix(Api& api, Recorder& record, const HKEY hKey, const Char* const pszName, const std::string& label)
+void QueryMatrix(
+    Api& api,
+    Recorder& record,
+    const HKEY hKey,
+    const Char* const pszName,
+    const std::string& label
+)
 {
     DWORD dwType = kFillSize;
-    RECORD(label + " type only", QueryEx(api, hKey, pszName, &dwType, nullptr, nullptr), {dwType});
+    RECORD(
+        label + " type only",
+        QueryEx(api, hKey, pszName, &dwType, nullptr, nullptr),
+        {dwType}
+    );
 
     dwType = kFillSize;
     DWORD cbData = kFillSize;
-    RECORD(label + " size", QueryEx(api, hKey, pszName, &dwType, nullptr, &cbData), {dwType, cbData});
+    RECORD(
+        label + " size",
+        QueryEx(api, hKey, pszName, &dwType, nullptr, &cbData),
+        {dwType, cbData}
+    );
 
     cbData = kFillSize;
-    RECORD(label + " size only", QueryEx(api, hKey, pszName, nullptr, nullptr, &cbData), {cbData});
+    RECORD(
+        label + " size only",
+        QueryEx(api, hKey, pszName, nullptr, nullptr, &cbData),
+        {cbData}
+    );
 
-    RECORD(label + " existence", QueryEx(api, hKey, pszName, nullptr, nullptr, nullptr));
+    RECORD(
+        label + " existence",
+        QueryEx(api, hKey, pszName, nullptr, nullptr, nullptr)
+    );
 
     for (const DWORD cbBuffer : {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 9u, 12u, 24u, 64u})
     {
@@ -220,7 +274,12 @@ void QueryMatrix(Api& api, Recorder& record, const HKEY hKey, const Char* const 
         std::array<BYTE, 64> data;
         data.fill(kFill);
         cbData = 64;
-        RECORD(label + " no type", QueryEx(api, hKey, pszName, nullptr, data.data(), &cbData), {cbData}, {Bytes(data)});
+        RECORD(
+            label + " no type",
+            QueryEx(api, hKey, pszName, nullptr, data.data(), &cbData),
+            {cbData},
+            {Bytes(data)}
+        );
 
         dwType = kFillSize;
         data.fill(kFill);

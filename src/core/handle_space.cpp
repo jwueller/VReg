@@ -23,7 +23,13 @@ HandleSpace::HandleSpace(const std::wstring_view wsName) noexcept
     if (!hSection)
         return;
 
-    auto* const pShared = static_cast<Shared*>(MapViewOfFile(hSection, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(Shared)));
+    auto* const pShared = static_cast<Shared*>(MapViewOfFile(
+        hSection,
+        FILE_MAP_ALL_ACCESS,
+        0,
+        0,
+        sizeof(Shared)
+    ));
     if (!pShared)
     {
         CloseHandle(hSection);
@@ -36,7 +42,11 @@ HandleSpace::HandleSpace(const std::wstring_view wsName) noexcept
 
     // Whoever moves magic from zero has claimed it; the layout version is part
     // of the magic value, so there is nothing else to publish.
-    const auto previous = InterlockedCompareExchange(&pShared->magic, kMagic, 0);
+    const auto previous = InterlockedCompareExchange(
+        &pShared->magic,
+        kMagic,
+        0
+    );
     if (previous != 0 && previous != kMagic)
         return;
 
@@ -51,7 +61,7 @@ HandleSpace& HandleSpace::Process() noexcept
         swprintf_s(wszName, L"Local\\VReg-handles-%lu", GetCurrentProcessId());
 
         // Leaked: handles issued from it outlive static destruction.
-        return new (std::nothrow) HandleSpace(wszName);
+        return new(std::nothrow) HandleSpace(wszName);
     }();
 
     // Allocation of a few hundred bytes failing at first use leaves nothing to
@@ -104,7 +114,10 @@ void HandleSpace::Release(const HKEY hKey) noexcept
 
     const auto index = IndexFromVirtualHKey(hKey);
     if (auto* const pTargets = const_cast<Targets*>(FindBlock(index / kBlockSize)))
-        (*pTargets)[index % kBlockSize].store(nullptr, std::memory_order_release);
+        (*pTargets)[index % kBlockSize].store(
+            nullptr,
+            std::memory_order_release
+        );
 }
 
 void* HandleSpace::Find(const HKEY hKey) const noexcept
@@ -135,18 +148,21 @@ bool HandleSpace::AddBlock(const std::uintptr_t block) noexcept
     auto* pDirectory = directorySlot.load(std::memory_order_relaxed);
     if (!pDirectory)
     {
-        pDirectory = new (std::nothrow) Directory{};
+        pDirectory = new(std::nothrow) Directory{};
         if (!pDirectory)
             return false;
 
         directorySlot.store(pDirectory, std::memory_order_release);
     }
 
-    auto* const pTargets = new (std::nothrow) Targets{};
+    auto* const pTargets = new(std::nothrow) Targets{};
     if (!pTargets)
         return false;
 
-    (*pDirectory)[block % kDirectorySize].store(pTargets, std::memory_order_release);
+    (*pDirectory)[block % kDirectorySize].store(
+        pTargets,
+        std::memory_order_release
+    );
     return true;
 }
 } // namespace VReg

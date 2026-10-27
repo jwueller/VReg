@@ -16,11 +16,11 @@ constexpr const wchar_t* kMount = L"VRegDelta";
 class DeltaFixture
 {
 public:
-    DeltaFixture()
-        : m_modified(m_native, m_appHive.Root(), L"Lower")
-        , m_fresh(m_native, m_appHive.Root(), L"Lower")
-        , m_modifiedRegistry(&m_native)
-        , m_freshRegistry(&m_native)
+    DeltaFixture() :
+        m_modified(m_native, m_appHive.Root(), L"Lower"),
+        m_fresh(m_native, m_appHive.Root(), L"Lower"),
+        m_modifiedRegistry(&m_native),
+        m_freshRegistry(&m_native)
     {
         REQUIRE(
             m_native.CreateKeyExW(
@@ -36,8 +36,20 @@ public:
             )
             == ERROR_SUCCESS
         );
-        REQUIRE(m_modifiedRegistry.Mount(HKEY_CURRENT_USER, kMount, m_modified) == ERROR_SUCCESS);
-        REQUIRE(m_freshRegistry.Mount(HKEY_CURRENT_USER, kMount, m_fresh) == ERROR_SUCCESS);
+        REQUIRE(
+            m_modifiedRegistry.Mount(
+                HKEY_CURRENT_USER,
+                kMount,
+                m_modified
+            ) == ERROR_SUCCESS
+        );
+        REQUIRE(
+            m_freshRegistry.Mount(
+                HKEY_CURRENT_USER,
+                kMount,
+                m_fresh
+            ) == ERROR_SUCCESS
+        );
     }
 
     ~DeltaFixture()
@@ -51,7 +63,12 @@ public:
     DeltaFixture& operator=(const DeltaFixture&) = delete;
 
     /// Sets a value of the lower registry, creating the key.
-    void LowerSet(const wchar_t* const pszPath, const wchar_t* const pszName, const DWORD dwType, const std::vector<std::byte>& data)
+    void LowerSet(
+        const wchar_t* const pszPath,
+        const wchar_t* const pszName,
+        const DWORD dwType,
+        const std::vector<std::byte>& data
+    )
     {
         HKEY hKey{};
         REQUIRE(
@@ -105,7 +122,12 @@ public:
     }
 
     /// Changes to the modified overlay take paths relative to its root.
-    void Set(const std::wstring& path, const wchar_t* const pszName, const DWORD dwType, const std::vector<std::byte>& data)
+    void Set(
+        const std::wstring& path,
+        const wchar_t* const pszName,
+        const DWORD dwType,
+        const std::vector<std::byte>& data
+    )
     {
         MustSet(m_modifiedRegistry, Full(path).c_str(), pszName, dwType, data);
     }
@@ -142,7 +164,11 @@ public:
 
     void DeleteValue(const std::wstring& path, const wchar_t* const pszName)
     {
-        const HKEY hKey = MustOpen(m_modifiedRegistry, Full(path).c_str(), KEY_SET_VALUE);
+        const HKEY hKey = MustOpen(
+            m_modifiedRegistry,
+            Full(path).c_str(),
+            KEY_SET_VALUE
+        );
         CHECK(
             m_modifiedRegistry.DeleteValueW(
                 hKey,
@@ -169,7 +195,11 @@ public:
     /// `RegDeleteTree` on an open key: empties it but keeps the key.
     void EmptyKey(const std::wstring& path)
     {
-        const HKEY hKey = MustOpen(m_modifiedRegistry, Full(path).c_str(), KEY_ALL_ACCESS);
+        const HKEY hKey = MustOpen(
+            m_modifiedRegistry,
+            Full(path).c_str(),
+            KEY_ALL_ACCESS
+        );
         CHECK(
             m_modifiedRegistry.DeleteTreeW(
                 hKey,
@@ -194,7 +224,15 @@ public:
     [[nodiscard]] std::vector<std::byte> Delta(const Format format = Format::Unicode)
     {
         std::vector<std::byte> file;
-        REQUIRE(ExportDelta(m_modified, HKEY_CURRENT_USER, kMount, format, file) == ERROR_SUCCESS);
+        REQUIRE(
+            ExportDelta(
+                m_modified,
+                HKEY_CURRENT_USER,
+                kMount,
+                format,
+                file
+            ) == ERROR_SUCCESS
+        );
         return file;
     }
 
@@ -210,13 +248,37 @@ public:
 
         std::vector<std::byte> expected;
         std::vector<std::byte> actual;
-        REQUIRE(ExportSnapshot(m_modifiedRegistry, HKEY_CURRENT_USER, kMount, Format::Unicode, expected) == ERROR_SUCCESS);
-        REQUIRE(ExportSnapshot(m_freshRegistry, HKEY_CURRENT_USER, kMount, Format::Unicode, actual) == ERROR_SUCCESS);
+        REQUIRE(
+            ExportSnapshot(
+                m_modifiedRegistry,
+                HKEY_CURRENT_USER,
+                kMount,
+                Format::Unicode,
+                expected
+            ) == ERROR_SUCCESS
+        );
+        REQUIRE(
+            ExportSnapshot(
+                m_freshRegistry,
+                HKEY_CURRENT_USER,
+                kMount,
+                Format::Unicode,
+                actual
+            ) == ERROR_SUCCESS
+        );
         CHECK(AsString(actual) == AsString(expected));
 
         // Applying the delta leaves the same upper layer behind.
         std::vector<std::byte> again;
-        REQUIRE(ExportDelta(m_fresh, HKEY_CURRENT_USER, kMount, format, again) == ERROR_SUCCESS);
+        REQUIRE(
+            ExportDelta(
+                m_fresh,
+                HKEY_CURRENT_USER,
+                kMount,
+                format,
+                again
+            ) == ERROR_SUCCESS
+        );
         CHECK(AsString(again) == AsString(file));
     }
 
@@ -260,7 +322,15 @@ TEST_CASE("Delta names its keys after the mount point")
     f.CreateKey(L"New");
 
     std::vector<std::byte> file;
-    REQUIRE(ExportDelta(f.Modified(), HKEY_LOCAL_MACHINE, L"Software\\Mount", Format::Unicode, file) == ERROR_SUCCESS);
+    REQUIRE(
+        ExportDelta(
+            f.Modified(),
+            HKEY_LOCAL_MACHINE,
+            L"Software\\Mount",
+            Format::Unicode,
+            file
+        ) == ERROR_SUCCESS
+    );
     CHECK(
         file
         == Text(
@@ -268,10 +338,26 @@ TEST_CASE("Delta names its keys after the mount point")
         )
     );
 
-    REQUIRE(ExportDelta(f.Modified(), HKEY_USERS, L"", Format::Unicode, file) == ERROR_SUCCESS);
+    REQUIRE(
+        ExportDelta(
+            f.Modified(),
+            HKEY_USERS,
+            L"",
+            Format::Unicode,
+            file
+        ) == ERROR_SUCCESS
+    );
     CHECK(file == Text(L"[HKEY_USERS\\New]\r\n\r\n"));
 
-    CHECK(ExportDelta(f.Modified(), reinterpret_cast<HKEY>(0x1234), L"", Format::Unicode, file) == ERROR_INVALID_HANDLE);
+    CHECK(
+        ExportDelta(
+            f.Modified(),
+            reinterpret_cast<HKEY>(0x1234),
+            L"",
+            Format::Unicode,
+            file
+        ) == ERROR_INVALID_HANDLE
+    );
 }
 
 TEST_CASE("Delta writes value and key tombstones")
@@ -414,10 +500,20 @@ TEST_CASE("A delta reproduces a mix of changes over a lower registry")
     f.LowerSet(L"A", L"v1", REG_SZ, StringBytes(L"one"));
     f.LowerSet(L"A", L"v2", REG_DWORD, DwordBytes(2));
     f.LowerSet(L"A\\B", L"w", REG_BINARY, {std::byte{1}, std::byte{2}});
-    f.LowerSet(L"A\\B\\C", L"z", REG_MULTI_SZ, BytesOf(std::wstring(L"p\0q\0\0", 5)));
+    f.LowerSet(
+        L"A\\B\\C",
+        L"z",
+        REG_MULTI_SZ,
+        BytesOf(std::wstring(L"p\0q\0\0", 5))
+    );
     f.LowerSet(L"D", L"d", REG_DWORD, DwordBytes(4));
     f.LowerSet(L"D\\E", L"e", REG_DWORD, DwordBytes(5));
-    f.LowerSet(L"D\\E\\Deep", L"f", REG_QWORD, std::vector<std::byte>(8, std::byte{9}));
+    f.LowerSet(
+        L"D\\E\\Deep",
+        L"f",
+        REG_QWORD,
+        std::vector<std::byte>(8, std::byte{9})
+    );
     f.LowerKey(L"Untouched\\Child");
 
     f.Set(L"A", L"v1", REG_EXPAND_SZ, StringBytes(L"%TEMP%"));

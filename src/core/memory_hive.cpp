@@ -23,8 +23,8 @@ Node* Walk(Node* pNode, const KeyPath path) noexcept
 }
 } // namespace
 
-MemoryHive::MemoryHive()
-    : m_pTree(std::make_unique<Tree>(*this))
+MemoryHive::MemoryHive() :
+    m_pTree(std::make_unique<Tree>(*this))
 {
 }
 
@@ -45,7 +45,12 @@ Node* MemoryHive::Root() noexcept
     return m_pTree->Root();
 }
 
-LSTATUS MemoryHive::OpenKey(Node* const pParent, const KeyPath path, const REGSAM samDesired, OpenResult& result) noexcept
+LSTATUS MemoryHive::OpenKey(
+    Node* const pParent,
+    const KeyPath path,
+    const REGSAM samDesired,
+    OpenResult& result
+) noexcept
 {
     (void)samDesired;
 
@@ -102,7 +107,12 @@ try
             return ERROR_CHILD_MUST_BE_VOLATILE;
 
         const bool isLast = i + 1 == path.size();
-        pCurrent = m_pTree->AddChild(*pCurrent, name, isLast ? className : std::wstring_view(), isVolatile);
+        pCurrent = m_pTree->AddChild(
+            *pCurrent,
+            name,
+            isLast ? className : std::wstring_view(),
+            isVolatile
+        );
         if (!pCurrent)
             return ERROR_OUTOFMEMORY;
 
@@ -216,7 +226,10 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS MemoryHive::DeleteValue(Node* const pNode, const std::wstring_view name) noexcept
+LSTATUS MemoryHive::DeleteValue(
+    Node* const pNode,
+    const std::wstring_view name
+) noexcept
 {
     if (IsFrozen())
         return ERROR_ACCESS_DENIED;
@@ -301,15 +314,27 @@ try
     info.cSubKeys = static_cast<DWORD>(pNode->children.size());
     for (const auto* const pChild : pNode->children)
     {
-        info.cchMaxSubKey = std::max(info.cchMaxSubKey, static_cast<DWORD>(pChild->name.size()));
-        info.cchMaxClass = std::max(info.cchMaxClass, static_cast<DWORD>(pChild->className.size()));
+        info.cchMaxSubKey = std::max(
+            info.cchMaxSubKey,
+            static_cast<DWORD>(pChild->name.size())
+        );
+        info.cchMaxClass = std::max(
+            info.cchMaxClass,
+            static_cast<DWORD>(pChild->className.size())
+        );
     }
 
     info.cValues = static_cast<DWORD>(pNode->values.size());
     for (const auto& value : pNode->values)
     {
-        info.cchMaxValueName = std::max(info.cchMaxValueName, static_cast<DWORD>(value.name.size()));
-        info.cbMaxValue = std::max(info.cbMaxValue, static_cast<DWORD>(value.data.size()));
+        info.cchMaxValueName = std::max(
+            info.cchMaxValueName,
+            static_cast<DWORD>(value.name.size())
+        );
+        info.cbMaxValue = std::max(
+            info.cbMaxValue,
+            static_cast<DWORD>(value.data.size())
+        );
     }
 
     info.lastWrite = pNode->lastWrite;
@@ -326,7 +351,12 @@ LSTATUS MemoryHive::CheckKey(Node* const pNode) noexcept
     return pNode->isDeleted ? ERROR_KEY_DELETED : ERROR_SUCCESS;
 }
 
-LSTATUS MemoryHive::Watch(Node* const pNode, const bool isSubtree, const DWORD dwFilter, const HANDLE hEvent) noexcept
+LSTATUS MemoryHive::Watch(
+    Node* const pNode,
+    const bool isSubtree,
+    const DWORD dwFilter,
+    const HANDLE hEvent
+) noexcept
 {
     return m_pTree->Watch(*pNode, isSubtree, dwFilter, hEvent);
 }

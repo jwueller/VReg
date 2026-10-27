@@ -30,8 +30,8 @@ namespace
 class InterceptRegistry final : public Registry
 {
 public:
-    explicit InterceptRegistry(Registry& inner) noexcept
-        : m_inner(inner)
+    explicit InterceptRegistry(Registry& inner) noexcept :
+        m_inner(inner)
     {
     }
 
@@ -39,7 +39,13 @@ public:
     std::map<std::string, LSTATUS> failures;
     std::function<void(const std::string&)> onCall;
 
-    LSTATUS OpenKeyExW(HKEY hKey, LPCWSTR lpSubKey, DWORD ulOptions, REGSAM samDesired, PHKEY phkResult) noexcept override
+    LSTATUS OpenKeyExW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        DWORD ulOptions,
+        REGSAM samDesired,
+        PHKEY phkResult
+    ) noexcept override
     {
         if (const auto status = Enter("OpenKeyExW"))
             return *status;
@@ -138,7 +144,12 @@ public:
         );
     }
 
-    LSTATUS DeleteKeyExW(HKEY hKey, LPCWSTR lpSubKey, REGSAM samDesired, DWORD Reserved) noexcept override
+    LSTATUS DeleteKeyExW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        REGSAM samDesired,
+        DWORD Reserved
+    ) noexcept override
     {
         if (const auto status = Enter("DeleteKeyExW"))
             return *status;
@@ -339,10 +350,10 @@ private:
 class Fixture
 {
 public:
-    explicit Fixture(const std::wstring& mountPath = L"VRegOverlayTest")
-        : m_lowerRegistry(m_native)
-        , m_overlay(m_lowerRegistry, m_appHive.Root(), L"Lower")
-        , m_registry(&m_lowerRegistry)
+    explicit Fixture(const std::wstring& mountPath = L"VRegOverlayTest") :
+        m_lowerRegistry(m_native),
+        m_overlay(m_lowerRegistry, m_appHive.Root(), L"Lower"),
+        m_registry(&m_lowerRegistry)
     {
         REQUIRE(
             m_native.CreateKeyExW(
@@ -358,7 +369,13 @@ public:
             )
             == ERROR_SUCCESS
         );
-        REQUIRE(m_registry.Mount(HKEY_CURRENT_USER, mountPath, m_overlay) == ERROR_SUCCESS);
+        REQUIRE(
+            m_registry.Mount(
+                HKEY_CURRENT_USER,
+                mountPath,
+                m_overlay
+            ) == ERROR_SUCCESS
+        );
     }
 
     ~Fixture()
@@ -411,7 +428,12 @@ private:
     VirtualRegistry m_registry;
 };
 
-HKEY Create(Registry& registry, const HKEY hParent, const wchar_t* const pszPath, const wchar_t* const pszClass = nullptr)
+HKEY Create(
+    Registry& registry,
+    const HKEY hParent,
+    const wchar_t* const pszPath,
+    const wchar_t* const pszClass = nullptr
+)
 {
     std::wstring className = pszClass ? pszClass : L"";
     HKEY hKey{};
@@ -432,7 +454,12 @@ HKEY Create(Registry& registry, const HKEY hParent, const wchar_t* const pszPath
     return hKey;
 }
 
-LSTATUS Open(Registry& registry, const HKEY hParent, const wchar_t* const pszPath, HKEY& hKey)
+LSTATUS Open(
+    Registry& registry,
+    const HKEY hParent,
+    const wchar_t* const pszPath,
+    HKEY& hKey
+)
 {
     hKey = nullptr;
     return registry.OpenKeyExW(
@@ -444,14 +471,23 @@ LSTATUS Open(Registry& registry, const HKEY hParent, const wchar_t* const pszPat
     );
 }
 
-HKEY MustOpen(Registry& registry, const HKEY hParent, const wchar_t* const pszPath)
+HKEY MustOpen(
+    Registry& registry,
+    const HKEY hParent,
+    const wchar_t* const pszPath
+)
 {
     HKEY hKey{};
     REQUIRE(Open(registry, hParent, pszPath, hKey) == ERROR_SUCCESS);
     return hKey;
 }
 
-LSTATUS SetDword(Registry& registry, const HKEY hKey, const wchar_t* const pszName, const DWORD dwValue)
+LSTATUS SetDword(
+    Registry& registry,
+    const HKEY hKey,
+    const wchar_t* const pszName,
+    const DWORD dwValue
+)
 {
     return registry.SetValueExW(
         hKey,
@@ -463,7 +499,12 @@ LSTATUS SetDword(Registry& registry, const HKEY hKey, const wchar_t* const pszNa
     );
 }
 
-LSTATUS SetString(Registry& registry, const HKEY hKey, const wchar_t* const pszName, const std::wstring& text)
+LSTATUS SetString(
+    Registry& registry,
+    const HKEY hKey,
+    const wchar_t* const pszName,
+    const std::wstring& text
+)
 {
     return registry.SetValueExW(
         hKey,
@@ -475,7 +516,12 @@ LSTATUS SetString(Registry& registry, const HKEY hKey, const wchar_t* const pszN
     );
 }
 
-LSTATUS SetSized(Registry& registry, const HKEY hKey, const wchar_t* const pszName, const DWORD cbData)
+LSTATUS SetSized(
+    Registry& registry,
+    const HKEY hKey,
+    const wchar_t* const pszName,
+    const DWORD cbData
+)
 {
     const std::vector<BYTE> data(cbData, 0x5A);
     return registry.SetValueExW(
@@ -488,7 +534,12 @@ LSTATUS SetSized(Registry& registry, const HKEY hKey, const wchar_t* const pszNa
     );
 }
 
-LSTATUS QueryDword(Registry& registry, const HKEY hKey, const wchar_t* const pszName, DWORD& dwValue)
+LSTATUS QueryDword(
+    Registry& registry,
+    const HKEY hKey,
+    const wchar_t* const pszName,
+    DWORD& dwValue
+)
 {
     dwValue = 0;
     DWORD cbValue = sizeof(dwValue);
@@ -506,7 +557,12 @@ LSTATUS QueryDword(Registry& registry, const HKEY hKey, const wchar_t* const psz
 DWORD DwordOr(Registry& registry, const HKEY hKey, const wchar_t* const pszName)
 {
     DWORD dwValue{};
-    return QueryDword(registry, hKey, pszName, dwValue) == ERROR_SUCCESS ? dwValue : 0xFFFFFFFF;
+    return QueryDword(
+        registry,
+        hKey,
+        pszName,
+        dwValue
+    ) == ERROR_SUCCESS ? dwValue : 0xFFFFFFFF;
 }
 
 /// Everything an enumeration returns, and the status that ended it.
@@ -616,7 +672,12 @@ Info QueryInfo(Registry& registry, const HKEY hKey)
 }
 
 /// Every key and value below @p hKey as text lines, in enumeration order.
-void Snapshot(Registry& registry, const HKEY hKey, const std::wstring& path, std::vector<std::wstring>& lines)
+void Snapshot(
+    Registry& registry,
+    const HKEY hKey,
+    const std::wstring& path,
+    std::vector<std::wstring>& lines
+)
 {
     for (DWORD i = 0;; ++i)
     {
@@ -843,7 +904,9 @@ TEST_CASE("Key tombstones hide lower keys")
         );
         CHECK(dwDisposition == REG_CREATED_NEW_KEY);
         CHECK(ListKeys(reg, hKey).names.empty());
-        CHECK(Open(reg, fx.Root(), L"Full\\Child", hKey) == ERROR_FILE_NOT_FOUND);
+        CHECK(
+            Open(reg, fx.Root(), L"Full\\Child", hKey) == ERROR_FILE_NOT_FOUND
+        );
     }
 }
 
@@ -965,7 +1028,14 @@ TEST_CASE("Enumeration merges both layers")
     reg.CloseKey(
         Create(reg, fx.Root(), L"d")
     );
-    REQUIRE(SetDword(reg, MustOpen(reg, fx.Root(), L"c"), L"touch", 1) == ERROR_SUCCESS);
+    REQUIRE(
+        SetDword(
+            reg,
+            MustOpen(reg, fx.Root(), L"c"),
+            L"touch",
+            1
+        ) == ERROR_SUCCESS
+    );
     REQUIRE(SetDword(reg, fx.Root(), L"u1", 1) == ERROR_SUCCESS);
     REQUIRE(SetDword(reg, fx.Root(), L"l2", 2) == ERROR_SUCCESS);
 
@@ -974,8 +1044,15 @@ TEST_CASE("Enumeration merges both layers")
         const auto keys = ListKeys(reg, fx.Root());
         CHECK(keys.end == ERROR_NO_MORE_ITEMS);
         REQUIRE(keys.names.size() == 5);
-        CHECK(Names(keys.names.begin(), keys.names.begin() + 3) == Names{L"b", L"c", L"d"});
-        CHECK(Names(keys.names.begin() + 3, keys.names.end()) == Names{L"a", L"e"});
+        CHECK(
+            Names(
+                keys.names.begin(),
+                keys.names.begin() + 3
+            ) == Names{L"b", L"c", L"d"}
+        );
+        CHECK(
+            Names(keys.names.begin() + 3, keys.names.end()) == Names{L"a", L"e"}
+        );
 
         const auto values = ListValues(reg, fx.Root());
         CHECK(values.end == ERROR_NO_MORE_ITEMS);
@@ -1069,7 +1146,14 @@ TEST_CASE("QueryInfoKey covers both layers")
     reg.CloseKey(
         Create(reg, fx.Root(), L"ccccccc", L"upperclass")
     );
-    REQUIRE(SetDword(reg, MustOpen(reg, fx.Root(), L"bbbb"), L"x", 1) == ERROR_SUCCESS);
+    REQUIRE(
+        SetDword(
+            reg,
+            MustOpen(reg, fx.Root(), L"bbbb"),
+            L"x",
+            1
+        ) == ERROR_SUCCESS
+    );
     REQUIRE(SetSized(reg, fx.Root(), L"x", 20) == ERROR_SUCCESS);
     REQUIRE(SetSized(reg, fx.Root(), L"v1", 2) == ERROR_SUCCESS);
 
@@ -1230,8 +1314,18 @@ TEST_CASE("Classes come from the lower key for keys the upper layer does not def
 
     CHECK(classOf(L"K") == L"LowerClass");
     CHECK(classOf(L"U") == L"UpperClass");
-    CHECK(QueryInfo(reg, MustOpen(reg, fx.Root(), L"K")).className == L"LowerClass");
-    CHECK(QueryInfo(reg, MustOpen(reg, fx.Root(), L"U")).className == L"UpperClass");
+    CHECK(
+        QueryInfo(
+            reg,
+            MustOpen(reg, fx.Root(), L"K")
+        ).className == L"LowerClass"
+    );
+    CHECK(
+        QueryInfo(
+            reg,
+            MustOpen(reg, fx.Root(), L"U")
+        ).className == L"UpperClass"
+    );
 
     SECTION("Creating an existing key keeps its class")
     {
@@ -1243,9 +1337,21 @@ TEST_CASE("Classes come from the lower key for keys the upper layer does not def
 
     SECTION("Copy-up keeps the class")
     {
-        REQUIRE(SetDword(reg, MustOpen(reg, fx.Root(), L"K"), L"written", 1) == ERROR_SUCCESS);
+        REQUIRE(
+            SetDword(
+                reg,
+                MustOpen(reg, fx.Root(), L"K"),
+                L"written",
+                1
+            ) == ERROR_SUCCESS
+        );
         CHECK(classOf(L"K") == L"LowerClass");
-        CHECK(QueryInfo(reg, MustOpen(reg, fx.Root(), L"K")).className == L"LowerClass");
+        CHECK(
+            QueryInfo(
+                reg,
+                MustOpen(reg, fx.Root(), L"K")
+            ).className == L"LowerClass"
+        );
     }
 
     SECTION("A key created again takes the new class")
@@ -1262,7 +1368,9 @@ TEST_CASE("Classes come from the lower key for keys the upper layer does not def
             Create(reg, fx.Root(), L"K", L"Fresh")
         );
         CHECK(classOf(L"K") == L"Fresh");
-        CHECK(QueryInfo(reg, MustOpen(reg, fx.Root(), L"K")).className == L"Fresh");
+        CHECK(
+            QueryInfo(reg, MustOpen(reg, fx.Root(), L"K")).className == L"Fresh"
+        );
     }
 }
 
@@ -1326,7 +1434,9 @@ TEST_CASE("A key created as a whole path is not a direct child of the root")
     CHECK(ListKeys(reg, fx.Root()).names == Names{L"A", L"Other"});
     CHECK(QueryInfo(reg, fx.Root()).cSubKeys == 2);
     CHECK(ListKeys(reg, MustOpen(reg, fx.Root(), L"A")).names == Names{L"B"});
-    CHECK(ListKeys(reg, MustOpen(reg, fx.Root(), L"A\\B")).names == Names{L"C"});
+    CHECK(
+        ListKeys(reg, MustOpen(reg, fx.Root(), L"A\\B")).names == Names{L"C"}
+    );
     CHECK(ListKeys(reg, MustOpen(reg, fx.Root(), L"A\\B\\C")).names.empty());
 
     SECTION("Also below a lower key")
@@ -1335,13 +1445,21 @@ TEST_CASE("A key created as a whole path is not a direct child of the root")
             Create(reg, fx.Root(), L"Other\\X\\Y")
         );
         CHECK(ListKeys(reg, fx.Root()).names == Names{L"A", L"Other"});
-        CHECK(ListKeys(reg, MustOpen(reg, fx.Root(), L"Other")).names == Names{L"X"});
+        CHECK(
+            ListKeys(
+                reg,
+                MustOpen(reg, fx.Root(), L"Other")
+            ).names == Names{L"X"}
+        );
     }
 }
 
 TEST_CASE("A handle to an ancestor of the mount point opens down into the mount")
 {
-    const auto name = std::format(L"VRegOverlayAncestor-{}", GetCurrentProcessId());
+    const auto name = std::format(
+        L"VRegOverlayAncestor-{}",
+        GetCurrentProcessId()
+    );
     Fixture fx(L"Software\\" + name);
     auto& native = fx.Native();
     auto& reg = fx.Registry();
@@ -1364,12 +1482,21 @@ TEST_CASE("A handle to an ancestor of the mount point opens down into the mount"
     REQUIRE_FALSE(IsVirtualHKey(hSoftware));
 
     HKEY hKey{};
-    REQUIRE(Open(reg, hSoftware, (name + L"\\L").c_str(), hKey) == ERROR_SUCCESS);
+    REQUIRE(
+        Open(reg, hSoftware, (name + L"\\L").c_str(), hKey) == ERROR_SUCCESS
+    );
     CHECK(IsVirtualHKey(hKey));
     CHECK(DwordOr(reg, hKey, L"v") == 11);
     CHECK(Open(reg, hSoftware, name.c_str(), hKey) == ERROR_SUCCESS);
     CHECK(hKey == fx.Root());
-    CHECK(Open(reg, hSoftware, (name + L"\\Missing").c_str(), hKey) == ERROR_FILE_NOT_FOUND);
+    CHECK(
+        Open(
+            reg,
+            hSoftware,
+            (name + L"\\Missing").c_str(),
+            hKey
+        ) == ERROR_FILE_NOT_FOUND
+    );
 
     DWORD dwDisposition = 0;
     REQUIRE(
@@ -1390,7 +1517,14 @@ TEST_CASE("A handle to an ancestor of the mount point opens down into the mount"
 
     HKEY hCurrentUser{};
     REQUIRE(RegOpenCurrentUser(KEY_READ, &hCurrentUser) == ERROR_SUCCESS);
-    CHECK(Open(reg, hCurrentUser, (L"Software\\" + name + L"\\L").c_str(), hKey) == ERROR_SUCCESS);
+    CHECK(
+        Open(
+            reg,
+            hCurrentUser,
+            (L"Software\\" + name + L"\\L").c_str(),
+            hKey
+        ) == ERROR_SUCCESS
+    );
     CHECK(IsVirtualHKey(hKey));
     RegCloseKey(hCurrentUser);
 
@@ -1404,7 +1538,14 @@ TEST_CASE("RegLoadMUIStringW forwards a lower value to the lower key")
     Fixture fx;
     auto& native = fx.Native();
     auto& reg = fx.Registry();
-    REQUIRE(SetString(native, fx.LowerRoot(), L"Indirect", kMuiString) == ERROR_SUCCESS);
+    REQUIRE(
+        SetString(
+            native,
+            fx.LowerRoot(),
+            L"Indirect",
+            kMuiString
+        ) == ERROR_SUCCESS
+    );
 
     std::wstring expected(256, L'\0');
     DWORD cbExpected = 0;
@@ -1438,7 +1579,9 @@ TEST_CASE("RegLoadMUIStringW forwards a lower value to the lower key")
     SECTION("Through a handle below the root")
     {
         const HKEY hSub = Create(native, fx.LowerRoot(), L"Sub");
-        REQUIRE(SetString(native, hSub, L"Indirect", kMuiString) == ERROR_SUCCESS);
+        REQUIRE(
+            SetString(native, hSub, L"Indirect", kMuiString) == ERROR_SUCCESS
+        );
         const HKEY hVirtualSub = MustOpen(reg, fx.Root(), L"Sub");
         DWORD cb = 0;
         std::wstring text(256, L'\0');
@@ -1461,7 +1604,9 @@ TEST_CASE("RegLoadMUIStringW forwards a lower value to the lower key")
 
     SECTION("A value the upper layer holds is a literal")
     {
-        REQUIRE(SetString(reg, fx.Root(), L"Indirect", kMuiString) == ERROR_SUCCESS);
+        REQUIRE(
+            SetString(reg, fx.Root(), L"Indirect", kMuiString) == ERROR_SUCCESS
+        );
         DWORD cb = 0;
         std::wstring text(256, L'\0');
         CHECK(
@@ -1476,7 +1621,9 @@ TEST_CASE("RegLoadMUIStringW forwards a lower value to the lower key")
             ) == ERROR_INVALID_DATA
         );
 
-        REQUIRE(SetString(reg, fx.Root(), L"Plain", L"plain text") == ERROR_SUCCESS);
+        REQUIRE(
+            SetString(reg, fx.Root(), L"Plain", L"plain text") == ERROR_SUCCESS
+        );
         CHECK(
             reg.LoadMUIStringW(
                 fx.Root(),
@@ -1528,7 +1675,9 @@ TEST_CASE("A frozen overlay refuses writes and hands out lower keys")
     reg.CloseKey(
         Create(reg, fx.Root(), L"U")
     );
-    REQUIRE(SetDword(reg, MustOpen(reg, fx.Root(), L"K"), L"b", 4) == ERROR_SUCCESS);
+    REQUIRE(
+        SetDword(reg, MustOpen(reg, fx.Root(), L"K"), L"b", 4) == ERROR_SUCCESS
+    );
     const auto before = Snapshot(native, fx.LowerRoot());
 
     fx.Overlay().Freeze();
@@ -1745,7 +1894,12 @@ bool IsLockFree(OverlayHive& overlay, Node* const pProbe)
         [&]
         {
             const DWORD dwValue = 1;
-            overlay.SetValue(pProbe, L"probe", REG_DWORD, std::as_bytes(std::span(&dwValue, 1)));
+            overlay.SetValue(
+                pProbe,
+                L"probe",
+                REG_DWORD,
+                std::as_bytes(std::span(&dwValue, 1))
+            );
             done.set_value();
         }
     );

@@ -50,8 +50,12 @@ bool RealKeyExists(const std::wstring& name)
     using PfnNtOpenKey = LONG(NTAPI*)(PHANDLE, ACCESS_MASK, ObjectAttributes*);
     using PfnNtClose = LONG(NTAPI*)(HANDLE);
     const auto hNtdll = GetModuleHandleW(L"ntdll.dll");
-    const auto pfnNtOpenKey = reinterpret_cast<PfnNtOpenKey>(GetProcAddress(hNtdll, "NtOpenKey"));
-    const auto pfnNtClose = reinterpret_cast<PfnNtClose>(GetProcAddress(hNtdll, "NtClose"));
+    const auto pfnNtOpenKey = reinterpret_cast<PfnNtOpenKey>(
+        GetProcAddress(hNtdll, "NtOpenKey")
+    );
+    const auto pfnNtClose = reinterpret_cast<PfnNtClose>(
+        GetProcAddress(hNtdll, "NtClose")
+    );
     REQUIRE(pfnNtOpenKey);
     REQUIRE(pfnNtClose);
 
@@ -136,7 +140,13 @@ HKEY OpenMount(const std::wstring& name)
 std::filesystem::path ExeDirectory()
 {
     std::array<wchar_t, MAX_PATH> path{};
-    REQUIRE(::GetModuleFileNameW(nullptr, path.data(), static_cast<DWORD>(path.size())) < path.size());
+    REQUIRE(
+        ::GetModuleFileNameW(
+            nullptr,
+            path.data(),
+            static_cast<DWORD>(path.size())
+        ) < path.size()
+    );
     return std::filesystem::path(path.data()).parent_path();
 }
 
@@ -159,7 +169,9 @@ Module LoadModule(const wchar_t* const pszTag)
     REQUIRE(module.hModule != nullptr);
 
     using InstallFunction = LONG(__cdecl*)(const wchar_t*);
-    const auto pfnInstall = reinterpret_cast<InstallFunction>(::GetProcAddress(module.hModule, "HookModuleInstall"));
+    const auto pfnInstall = reinterpret_cast<InstallFunction>(
+        ::GetProcAddress(module.hModule, "HookModuleInstall")
+    );
     REQUIRE(pfnInstall != nullptr);
     REQUIRE(pfnInstall(module.name.c_str()) == NO_ERROR);
     return module;
@@ -205,7 +217,12 @@ void CheckRealKeysWork()
 }
 
 /// What two installed modules must satisfy while both are loaded.
-void CheckBothMounts(const Module& lower, const Module& upper, const wchar_t* const pszLower, const wchar_t* const pszUpper)
+void CheckBothMounts(
+    const Module& lower,
+    const Module& upper,
+    const wchar_t* const pszLower,
+    const wchar_t* const pszUpper
+)
 {
     CHECK(ReadMountModule(lower.name) == pszLower);
     CHECK(ReadMountModule(upper.name) == pszUpper);

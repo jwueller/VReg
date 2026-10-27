@@ -25,7 +25,12 @@ public:
     [[nodiscard]] bool IsFrozen() const noexcept override;
     [[nodiscard]] Node* Root() noexcept override;
 
-    LSTATUS OpenKey(Node* pParent, KeyPath path, REGSAM samDesired, OpenResult& result) noexcept override;
+    LSTATUS OpenKey(
+        Node* pParent,
+        KeyPath path,
+        REGSAM samDesired,
+        OpenResult& result
+    ) noexcept override;
 
     LSTATUS CreateKey(
         Node* pParent,
@@ -40,18 +45,48 @@ public:
     LSTATUS DeleteKey(Node* pParent, KeyPath path) noexcept override;
     LSTATUS DeleteTree(Node* pNode) noexcept override;
 
-    LSTATUS QueryValue(Node* pNode, std::wstring_view name, DWORD& dwType, std::vector<std::byte>& data) noexcept override;
-    LSTATUS SetValue(Node* pNode, std::wstring_view name, DWORD dwType, std::span<const std::byte> data) noexcept
+    LSTATUS QueryValue(
+        Node* pNode,
+        std::wstring_view name,
+        DWORD& dwType,
+        std::vector<std::byte>& data
+    ) noexcept override;
+
+    LSTATUS SetValue(
+        Node* pNode,
+        std::wstring_view name,
+        DWORD dwType,
+        std::span<const std::byte> data
+    ) noexcept
         override;
     LSTATUS DeleteValue(Node* pNode, std::wstring_view name) noexcept override;
 
-    LSTATUS EnumKey(Node* pNode, DWORD dwIndex, std::wstring& name, std::wstring& className, FILETIME& lastWrite) noexcept
+    LSTATUS EnumKey(
+        Node* pNode,
+        DWORD dwIndex,
+        std::wstring& name,
+        std::wstring& className,
+        FILETIME& lastWrite
+    ) noexcept
         override;
-    LSTATUS EnumValue(Node* pNode, DWORD dwIndex, std::wstring& name, DWORD& dwType, std::vector<std::byte>& data) noexcept
+
+    LSTATUS EnumValue(
+        Node* pNode,
+        DWORD dwIndex,
+        std::wstring& name,
+        DWORD& dwType,
+        std::vector<std::byte>& data
+    ) noexcept
         override;
     LSTATUS QueryInfo(Node* pNode, KeyInfo& info) noexcept override;
     LSTATUS CheckKey(Node* pNode) noexcept override;
-    LSTATUS Watch(Node* pNode, bool isSubtree, DWORD dwFilter, HANDLE hEvent) noexcept override;
+
+    LSTATUS Watch(
+        Node* pNode,
+        bool isSubtree,
+        DWORD dwFilter,
+        HANDLE hEvent
+    ) noexcept override;
 
 private:
     std::unique_ptr<Tree> m_pTree;

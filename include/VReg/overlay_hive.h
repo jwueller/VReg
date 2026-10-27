@@ -64,14 +64,25 @@ public:
     /// outlive the hive. @p samLowerView (`KEY_WOW64_64KEY`,
     /// `KEY_WOW64_32KEY` or 0) is added to every lower open. Throws
     /// `std::bad_alloc`.
-    OverlayHive(Registry& lower, HKEY hLowerRoot, std::wstring_view lowerPath, REGSAM samLowerView = 0);
+    OverlayHive(
+        Registry& lower,
+        HKEY hLowerRoot,
+        std::wstring_view lowerPath,
+        REGSAM samLowerView = 0
+    );
+
     ~OverlayHive() override;
 
     void Freeze() noexcept override;
     [[nodiscard]] bool IsFrozen() const noexcept override;
     [[nodiscard]] Node* Root() noexcept override;
 
-    LSTATUS OpenKey(Node* pParent, KeyPath path, REGSAM samDesired, OpenResult& result) noexcept override;
+    LSTATUS OpenKey(
+        Node* pParent,
+        KeyPath path,
+        REGSAM samDesired,
+        OpenResult& result
+    ) noexcept override;
 
     LSTATUS CreateKey(
         Node* pParent,
@@ -86,19 +97,49 @@ public:
     LSTATUS DeleteKey(Node* pParent, KeyPath path) noexcept override;
     LSTATUS DeleteTree(Node* pNode) noexcept override;
 
-    LSTATUS QueryValue(Node* pNode, std::wstring_view name, DWORD& dwType, std::vector<std::byte>& data) noexcept
+    LSTATUS QueryValue(
+        Node* pNode,
+        std::wstring_view name,
+        DWORD& dwType,
+        std::vector<std::byte>& data
+    ) noexcept
         override;
-    LSTATUS SetValue(Node* pNode, std::wstring_view name, DWORD dwType, std::span<const std::byte> data) noexcept
+
+    LSTATUS SetValue(
+        Node* pNode,
+        std::wstring_view name,
+        DWORD dwType,
+        std::span<const std::byte> data
+    ) noexcept
         override;
     LSTATUS DeleteValue(Node* pNode, std::wstring_view name) noexcept override;
 
-    LSTATUS EnumKey(Node* pNode, DWORD dwIndex, std::wstring& name, std::wstring& className, FILETIME& lastWrite) noexcept
+    LSTATUS EnumKey(
+        Node* pNode,
+        DWORD dwIndex,
+        std::wstring& name,
+        std::wstring& className,
+        FILETIME& lastWrite
+    ) noexcept
         override;
-    LSTATUS EnumValue(Node* pNode, DWORD dwIndex, std::wstring& name, DWORD& dwType, std::vector<std::byte>& data) noexcept
+
+    LSTATUS EnumValue(
+        Node* pNode,
+        DWORD dwIndex,
+        std::wstring& name,
+        DWORD& dwType,
+        std::vector<std::byte>& data
+    ) noexcept
         override;
     LSTATUS QueryInfo(Node* pNode, KeyInfo& info) noexcept override;
     LSTATUS CheckKey(Node* pNode) noexcept override;
-    LSTATUS Watch(Node* pNode, bool isSubtree, DWORD dwFilter, HANDLE hEvent) noexcept override;
+
+    LSTATUS Watch(
+        Node* pNode,
+        bool isSubtree,
+        DWORD dwFilter,
+        HANDLE hEvent
+    ) noexcept override;
 
     /**
      * @brief Lists the upper layer: what the hive holds itself, as opposed to what shows through from below.
@@ -110,7 +151,12 @@ public:
     LSTATUS SnapshotUpper(std::vector<UpperRecord>& records) const noexcept;
 
     [[nodiscard]] Registry* Lower() noexcept override;
-    LSTATUS OpenLowerValueKey(Node* pNode, std::wstring_view name, HKEY& hLower) noexcept override;
+
+    LSTATUS OpenLowerValueKey(
+        Node* pNode,
+        std::wstring_view name,
+        HKEY& hLower
+    ) noexcept override;
 
 private:
     /// Whether a node's lower key shows through, and its path; read under
@@ -122,9 +168,18 @@ private:
     };
 
     [[nodiscard]] LowerView ViewOf(const Node& node) const;
-    LSTATUS OpenLower(const std::wstring& path, REGSAM samDesired, HKEY& hKey) noexcept;
+
+    LSTATUS OpenLower(
+        const std::wstring& path,
+        REGSAM samDesired,
+        HKEY& hKey
+    ) noexcept;
+
     /// The class of the lower key at @p path; empty when there is none.
-    LSTATUS QueryLowerClass(const std::wstring& path, std::wstring& className) noexcept;
+    LSTATUS QueryLowerClass(
+        const std::wstring& path,
+        std::wstring& className
+    ) noexcept;
 
     Registry& m_lower;
     HKEY m_hLowerRoot;

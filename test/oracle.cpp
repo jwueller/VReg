@@ -25,7 +25,13 @@ AppHive::AppHive()
     std::filesystem::create_directories(m_directory);
 
     const auto file = m_directory / L"hive.dat";
-    const auto error = RegLoadAppKeyW(file.c_str(), &m_hRoot, KEY_ALL_ACCESS, 0, 0);
+    const auto error = RegLoadAppKeyW(
+        file.c_str(),
+        &m_hRoot,
+        KEY_ALL_ACCESS,
+        0,
+        0
+    );
     REQUIRE(error == ERROR_SUCCESS);
 }
 
@@ -46,7 +52,13 @@ HKEY AppHive::Root() const noexcept
 
 VirtualHive::VirtualHive()
 {
-    REQUIRE(m_registry.Mount(HKEY_CURRENT_USER, L"VRegOracle", m_hive) == ERROR_SUCCESS);
+    REQUIRE(
+        m_registry.Mount(
+            HKEY_CURRENT_USER,
+            L"VRegOracle",
+            m_hive
+        ) == ERROR_SUCCESS
+    );
 }
 
 VirtualRegistry& VirtualHive::Registry() noexcept
@@ -59,9 +71,9 @@ HKEY VirtualHive::Root() noexcept
     return Hive::HandleOf(m_hive.Root());
 }
 
-OverlayMount::OverlayMount()
-    : m_hive(m_native, m_appHive.Root(), L"Lower")
-    , m_registry(&m_native)
+OverlayMount::OverlayMount() :
+    m_hive(m_native, m_appHive.Root(), L"Lower"),
+    m_registry(&m_native)
 {
     REQUIRE(
         m_native.CreateKeyExW(
@@ -77,7 +89,13 @@ OverlayMount::OverlayMount()
         )
         == ERROR_SUCCESS
     );
-    REQUIRE(m_registry.Mount(HKEY_CURRENT_USER, L"VRegOracle", m_hive) == ERROR_SUCCESS);
+    REQUIRE(
+        m_registry.Mount(
+            HKEY_CURRENT_USER,
+            L"VRegOracle",
+            m_hive
+        ) == ERROR_SUCCESS
+    );
 }
 
 OverlayMount::~OverlayMount()

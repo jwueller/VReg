@@ -28,7 +28,10 @@ void* FindExport(const HMODULE hModule, const char* const pszName) noexcept
     while (low < high)
     {
         const auto middle = low + (high - low) / 2;
-        const auto order = std::strcmp(pszName, reinterpret_cast<const char*>(pBase + pNames[middle]));
+        const auto order = std::strcmp(
+            pszName,
+            reinterpret_cast<const char*>(pBase + pNames[middle])
+        );
         if (order == 0)
         {
             const auto rva = pFunctions[pOrdinals[middle]];

@@ -65,7 +65,10 @@ struct Node
 
 /// Ordinal comparison of uppercased names, the registry's own collation:
 /// negative, zero or positive.
-[[nodiscard]] int CompareNames(std::wstring_view left, std::wstring_view right) noexcept;
+[[nodiscard]] int CompareNames(
+    std::wstring_view left,
+    std::wstring_view right
+) noexcept;
 
 /**
  * @brief The node storage of a hive: the nodes, their handles and the lock.
@@ -117,12 +120,23 @@ public:
         SRWLOCK& m_lock;
     };
 
-    [[nodiscard]] static Node* FindChild(const Node& parent, std::wstring_view name) noexcept;
-    [[nodiscard]] static Value* FindValue(Node& node, std::wstring_view name) noexcept;
+    [[nodiscard]] static Node* FindChild(
+        const Node& parent,
+        std::wstring_view name
+    ) noexcept;
+    [[nodiscard]] static Value* FindValue(
+        Node& node,
+        std::wstring_view name
+    ) noexcept;
 
     /// A new child of @p parent, with its handle. Throws `std::bad_alloc`, and
     /// answers null when the handle namespace is exhausted.
-    [[nodiscard]] Node* AddChild(Node& parent, std::wstring_view name, std::wstring_view className, bool isVolatile);
+    [[nodiscard]] Node* AddChild(
+        Node& parent,
+        std::wstring_view name,
+        std::wstring_view className,
+        bool isVolatile
+    );
 
     /// Marks @p node and everything below it deleted, unlinks it from its
     /// parent and fires the watches on it and below it, and the name watches
@@ -140,7 +154,12 @@ public:
     /// Registers @p hEvent (duplicated here) for the next change of @p node
     /// that @p dwFilter selects, or its descendants' when @p isSubtree. A
     /// frozen tree registers nothing, since it never changes.
-    LSTATUS Watch(Node& node, bool isSubtree, DWORD dwFilter, HANDLE hEvent) noexcept;
+    LSTATUS Watch(
+        Node& node,
+        bool isSubtree,
+        DWORD dwFilter,
+        HANDLE hEvent
+    ) noexcept;
 
     /// Stamps @p node as written now.
     static void Touch(Node& node) noexcept;

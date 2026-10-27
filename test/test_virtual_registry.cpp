@@ -18,7 +18,11 @@ using namespace VReg::Test;
 
 namespace
 {
-HKEY CreateKey(Registry& registry, const HKEY hParent, const wchar_t* const pszPath)
+HKEY CreateKey(
+    Registry& registry,
+    const HKEY hParent,
+    const wchar_t* const pszPath
+)
 {
     HKEY hKey{};
     REQUIRE(
@@ -37,7 +41,11 @@ HKEY CreateKey(Registry& registry, const HKEY hParent, const wchar_t* const pszP
     return hKey;
 }
 
-HKEY OpenKey(Registry& registry, const HKEY hParent, const wchar_t* const pszPath)
+HKEY OpenKey(
+    Registry& registry,
+    const HKEY hParent,
+    const wchar_t* const pszPath
+)
 {
     HKEY hKey{};
     REQUIRE(
@@ -52,7 +60,12 @@ HKEY OpenKey(Registry& registry, const HKEY hParent, const wchar_t* const pszPat
     return hKey;
 }
 
-LSTATUS SetDword(Registry& registry, const HKEY hKey, const wchar_t* const pszName, const DWORD dwValue)
+LSTATUS SetDword(
+    Registry& registry,
+    const HKEY hKey,
+    const wchar_t* const pszName,
+    const DWORD dwValue
+)
 {
     return registry.SetValueExW(
         hKey,
@@ -64,7 +77,12 @@ LSTATUS SetDword(Registry& registry, const HKEY hKey, const wchar_t* const pszNa
     );
 }
 
-DWORD QueryDword(Registry& registry, const HKEY hKey, const wchar_t* const pszName, LSTATUS& status)
+DWORD QueryDword(
+    Registry& registry,
+    const HKEY hKey,
+    const wchar_t* const pszName,
+    LSTATUS& status
+)
 {
     DWORD dwValue = 0;
     DWORD cbValue = sizeof(dwValue);
@@ -91,7 +109,11 @@ TEST_CASE("A node has one handle however it is reached")
 
     const HKEY hCreated = CreateKey(registry, hRoot, L"A\\B");
     const HKEY hOpened = OpenKey(registry, hRoot, L"a\\b");
-    const HKEY hViaParent = OpenKey(registry, OpenKey(registry, hRoot, L"A"), L"B");
+    const HKEY hViaParent = OpenKey(
+        registry,
+        OpenKey(registry, hRoot, L"A"),
+        L"B"
+    );
     const HKEY hViaPath = OpenKey(registry, HKEY_CURRENT_USER, L"Test\\A\\B");
 
     CHECK(IsVirtualHKey(hCreated));
@@ -244,13 +266,49 @@ TEST_CASE("Mount rejects what cannot be mounted")
     VirtualRegistry registry;
 
     CHECK(registry.Mount(nullptr, L"A", hive) == ERROR_INVALID_HANDLE);
-    CHECK(registry.Mount(Hive::HandleOf(hive.Root()), L"A", hive) == ERROR_INVALID_HANDLE);
-    CHECK(registry.Mount(HKEY_CURRENT_USER, L"\\Leading", hive) == ERROR_BAD_PATHNAME);
-    CHECK(registry.Mount(HKEY_CURRENT_USER, std::wstring(300, L'k'), hive) == ERROR_BAD_PATHNAME);
+    CHECK(
+        registry.Mount(
+            Hive::HandleOf(hive.Root()),
+            L"A",
+            hive
+        ) == ERROR_INVALID_HANDLE
+    );
+    CHECK(
+        registry.Mount(
+            HKEY_CURRENT_USER,
+            L"\\Leading",
+            hive
+        ) == ERROR_BAD_PATHNAME
+    );
+    CHECK(
+        registry.Mount(
+            HKEY_CURRENT_USER,
+            std::wstring(300, L'k'),
+            hive
+        ) == ERROR_BAD_PATHNAME
+    );
 
-    CHECK(registry.Mount(HKEY_CURRENT_USER, L"Software\\Test", hive) == ERROR_SUCCESS);
-    CHECK(registry.Mount(HKEY_CURRENT_USER, L"software\\TEST\\", other) == ERROR_ALREADY_EXISTS);
-    CHECK(registry.Mount(HKEY_LOCAL_MACHINE, L"Software\\Test", other) == ERROR_SUCCESS);
+    CHECK(
+        registry.Mount(
+            HKEY_CURRENT_USER,
+            L"Software\\Test",
+            hive
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        registry.Mount(
+            HKEY_CURRENT_USER,
+            L"software\\TEST\\",
+            other
+        ) == ERROR_ALREADY_EXISTS
+    );
+    CHECK(
+        registry.Mount(
+            HKEY_LOCAL_MACHINE,
+            L"Software\\Test",
+            other
+        ) == ERROR_SUCCESS
+    );
 }
 
 TEST_CASE("Pure in-memory configuration")
@@ -261,16 +319,35 @@ TEST_CASE("Pure in-memory configuration")
     REQUIRE(registry.Mount(HKEY_LOCAL_MACHINE, L"", machine) == ERROR_SUCCESS);
     REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"", user) == ERROR_SUCCESS);
 
-    const HKEY hMachine = CreateKey(registry, HKEY_LOCAL_MACHINE, L"Software\\Vendor");
-    const HKEY hUser = CreateKey(registry, HKEY_CURRENT_USER, L"Software\\Vendor");
+    const HKEY hMachine = CreateKey(
+        registry,
+        HKEY_LOCAL_MACHINE,
+        L"Software\\Vendor"
+    );
+    const HKEY hUser = CreateKey(
+        registry,
+        HKEY_CURRENT_USER,
+        L"Software\\Vendor"
+    );
     CHECK(hMachine != hUser);
     REQUIRE(SetDword(registry, hMachine, L"v", 1) == ERROR_SUCCESS);
     REQUIRE(SetDword(registry, hUser, L"v", 2) == ERROR_SUCCESS);
 
     LSTATUS status = ERROR_SUCCESS;
-    const HKEY hMachineAgain = OpenKey(registry, HKEY_LOCAL_MACHINE, L"software\\vendor");
+    const HKEY hMachineAgain = OpenKey(
+        registry,
+        HKEY_LOCAL_MACHINE,
+        L"software\\vendor"
+    );
     CHECK(QueryDword(registry, hMachineAgain, L"v", status) == 1);
-    CHECK(QueryDword(registry, OpenKey(registry, HKEY_CURRENT_USER, L"Software\\Vendor"), L"v", status) == 2);
+    CHECK(
+        QueryDword(
+            registry,
+            OpenKey(registry, HKEY_CURRENT_USER, L"Software\\Vendor"),
+            L"v",
+            status
+        ) == 2
+    );
 
     HKEY hKey = nullptr;
     CHECK(
@@ -334,16 +411,34 @@ TEST_CASE("The longest mount prefix wins")
     MemoryHive outer;
     MemoryHive inner;
     VirtualRegistry registry;
-    REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"Software", outer) == ERROR_SUCCESS);
-    REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"Software\\Vendor\\App", inner) == ERROR_SUCCESS);
+    REQUIRE(
+        registry.Mount(HKEY_CURRENT_USER, L"Software", outer) == ERROR_SUCCESS
+    );
+    REQUIRE(
+        registry.Mount(
+            HKEY_CURRENT_USER,
+            L"Software\\Vendor\\App",
+            inner
+        ) == ERROR_SUCCESS
+    );
 
     const HKEY hInnerRoot = Hive::HandleOf(inner.Root());
     const HKEY hOuterRoot = Hive::HandleOf(outer.Root());
 
-    CHECK(OpenKey(registry, HKEY_CURRENT_USER, L"Software\\Vendor\\App") == hInnerRoot);
+    CHECK(
+        OpenKey(
+            registry,
+            HKEY_CURRENT_USER,
+            L"Software\\Vendor\\App"
+        ) == hInnerRoot
+    );
     CHECK(OpenKey(registry, HKEY_CURRENT_USER, L"software") == hOuterRoot);
 
-    const HKEY hDeep = CreateKey(registry, HKEY_CURRENT_USER, L"Software\\Vendor\\App\\Deep");
+    const HKEY hDeep = CreateKey(
+        registry,
+        HKEY_CURRENT_USER,
+        L"Software\\Vendor\\App\\Deep"
+    );
     CHECK(OpenKey(registry, hInnerRoot, L"Deep") == hDeep);
 
     HKEY hMissing = nullptr;
@@ -357,7 +452,11 @@ TEST_CASE("The longest mount prefix wins")
         ) == ERROR_FILE_NOT_FOUND
     );
 
-    const HKEY hSibling = CreateKey(registry, HKEY_CURRENT_USER, L"Software\\Vendor\\Other");
+    const HKEY hSibling = CreateKey(
+        registry,
+        HKEY_CURRENT_USER,
+        L"Software\\Vendor\\Other"
+    );
     CHECK(OpenKey(registry, hOuterRoot, L"Vendor\\Other") == hSibling);
 
     HKEY hKey = nullptr;
@@ -377,7 +476,13 @@ TEST_CASE("Calls outside the mounts reach the base registry")
     NativeRegistry native;
     VirtualRegistry registry(&native);
     MemoryHive hive;
-    REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"VRegTestMount", hive) == ERROR_SUCCESS);
+    REQUIRE(
+        registry.Mount(
+            HKEY_CURRENT_USER,
+            L"VRegTestMount",
+            hive
+        ) == ERROR_SUCCESS
+    );
 
     AppHive appHive;
     const HKEY hApp = appHive.Root();
@@ -531,7 +636,9 @@ TEST_CASE("A handle released with its hive is invalid")
     {
         MemoryHive hive;
         VirtualRegistry mounted;
-        REQUIRE(mounted.Mount(HKEY_CURRENT_USER, L"Test", hive) == ERROR_SUCCESS);
+        REQUIRE(
+            mounted.Mount(HKEY_CURRENT_USER, L"Test", hive) == ERROR_SUCCESS
+        );
         hRoot = Hive::HandleOf(hive.Root());
         hChild = CreateKey(mounted, hRoot, L"Child");
         CHECK(Hive::NodeOf(hChild) != nullptr);
@@ -583,7 +690,11 @@ struct FakeNtQueryKey
             return static_cast<LONG>(0x80000005);
 
         std::memcpy(pKeyInformation, &cbName, sizeof(cbName));
-        std::memcpy(static_cast<BYTE*>(pKeyInformation) + sizeof(cbName), it->second.data(), cbName);
+        std::memcpy(
+            static_cast<BYTE*>(pKeyInformation) + sizeof(cbName),
+            it->second.data(),
+            cbName
+        );
         return 0;
     }
 
@@ -602,7 +713,13 @@ HKEY FakeKey(const std::uintptr_t id, const std::wstring& nativePath)
     return hKey;
 }
 
-LSTATUS OpenVia(Registry& registry, const HKEY hParent, const wchar_t* const pszPath, const REGSAM sam, HKEY& hKey)
+LSTATUS OpenVia(
+    Registry& registry,
+    const HKEY hParent,
+    const wchar_t* const pszPath,
+    const REGSAM sam,
+    HKEY& hKey
+)
 {
     hKey = nullptr;
     return registry.OpenKeyExW(
@@ -621,23 +738,62 @@ TEST_CASE("A real parent handle is resolved by its native path")
     NativeRegistry native;
     VirtualRegistry registry(&native, &FakeNtQueryKey::Query);
     MemoryHive hive;
-    REQUIRE(registry.Mount(HKEY_LOCAL_MACHINE, L"Software\\VRegNative\\App", hive) == ERROR_SUCCESS);
-    const HKEY hSub = CreateKey(registry, HKEY_LOCAL_MACHINE, L"Software\\VRegNative\\App\\Sub");
+    REQUIRE(
+        registry.Mount(
+            HKEY_LOCAL_MACHINE,
+            L"Software\\VRegNative\\App",
+            hive
+        ) == ERROR_SUCCESS
+    );
+    const HKEY hSub = CreateKey(
+        registry,
+        HKEY_LOCAL_MACHINE,
+        L"Software\\VRegNative\\App\\Sub"
+    );
     const HKEY hRoot = Hive::HandleOf(hive.Root());
 
     HKEY hKey = nullptr;
 
     SECTION("Opens land in the mount")
     {
-        const HKEY hParent = FakeKey(1, L"\\REGISTRY\\MACHINE\\SOFTWARE\\VRegNative");
-        CHECK(OpenVia(registry, hParent, L"app", KEY_READ, hKey) == ERROR_SUCCESS);
+        const HKEY hParent = FakeKey(
+            1,
+            L"\\REGISTRY\\MACHINE\\SOFTWARE\\VRegNative"
+        );
+        CHECK(
+            OpenVia(registry, hParent, L"app", KEY_READ, hKey) == ERROR_SUCCESS
+        );
         CHECK(hKey == hRoot);
-        CHECK(OpenVia(registry, hParent, L"App\\SUB", KEY_READ, hKey) == ERROR_SUCCESS);
+        CHECK(
+            OpenVia(
+                registry,
+                hParent,
+                L"App\\SUB",
+                KEY_READ,
+                hKey
+            ) == ERROR_SUCCESS
+        );
         CHECK(hKey == hSub);
-        CHECK(OpenVia(registry, hParent, L"App\\Missing", KEY_READ, hKey) == ERROR_FILE_NOT_FOUND);
+        CHECK(
+            OpenVia(
+                registry,
+                hParent,
+                L"App\\Missing",
+                KEY_READ,
+                hKey
+            ) == ERROR_FILE_NOT_FOUND
+        );
 
         const HKEY hMachine = FakeKey(2, L"\\REGISTRY\\MACHINE");
-        CHECK(OpenVia(registry, hMachine, L"Software\\VRegNative\\App\\Sub", KEY_READ, hKey) == ERROR_SUCCESS);
+        CHECK(
+            OpenVia(
+                registry,
+                hMachine,
+                L"Software\\VRegNative\\App\\Sub",
+                KEY_READ,
+                hKey
+            ) == ERROR_SUCCESS
+        );
         CHECK(hKey == hSub);
 
         HKEY hCreated = nullptr;
@@ -670,43 +826,149 @@ TEST_CASE("A real parent handle is resolved by its native path")
 
     SECTION("The gate skips the query unless a component names a mount point")
     {
-        const HKEY hParent = FakeKey(1, L"\\REGISTRY\\MACHINE\\SOFTWARE\\VRegNative");
+        const HKEY hParent = FakeKey(
+            1,
+            L"\\REGISTRY\\MACHINE\\SOFTWARE\\VRegNative"
+        );
         FakeNtQueryKey::s_cCalls = 0;
-        CHECK(OpenVia(registry, hParent, L"Other\\Deeper", KEY_READ, hKey) == ERROR_INVALID_HANDLE);
-        CHECK(OpenVia(registry, hParent, nullptr, KEY_READ, hKey) == ERROR_INVALID_HANDLE);
+        CHECK(
+            OpenVia(
+                registry,
+                hParent,
+                L"Other\\Deeper",
+                KEY_READ,
+                hKey
+            ) == ERROR_INVALID_HANDLE
+        );
+        CHECK(
+            OpenVia(
+                registry,
+                hParent,
+                nullptr,
+                KEY_READ,
+                hKey
+            ) == ERROR_INVALID_HANDLE
+        );
         CHECK(FakeNtQueryKey::s_cCalls == 0);
 
-        CHECK(OpenVia(registry, hParent, L"Other\\APP", KEY_READ, hKey) == ERROR_INVALID_HANDLE);
+        CHECK(
+            OpenVia(
+                registry,
+                hParent,
+                L"Other\\APP",
+                KEY_READ,
+                hKey
+            ) == ERROR_INVALID_HANDLE
+        );
         CHECK(FakeNtQueryKey::s_cCalls == 1);
     }
 
     SECTION("A failing query, or a path outside every mount, reaches the base")
     {
-        CHECK(OpenVia(registry, reinterpret_cast<HKEY>(0x70009900), L"App", KEY_READ, hKey) == ERROR_INVALID_HANDLE);
-        const HKEY hOther = FakeKey(3, L"\\REGISTRY\\MACHINE\\SOFTWARE\\Elsewhere");
-        CHECK(OpenVia(registry, hOther, L"App", KEY_READ, hKey) == ERROR_INVALID_HANDLE);
-        const HKEY hUser = FakeKey(4, L"\\REGISTRY\\USER\\S-1-5-18\\SOFTWARE\\VRegNative");
-        CHECK(OpenVia(registry, hUser, L"App", KEY_READ, hKey) == ERROR_INVALID_HANDLE);
+        CHECK(
+            OpenVia(
+                registry,
+                reinterpret_cast<HKEY>(0x70009900),
+                L"App",
+                KEY_READ,
+                hKey
+            ) == ERROR_INVALID_HANDLE
+        );
+        const HKEY hOther = FakeKey(
+            3,
+            L"\\REGISTRY\\MACHINE\\SOFTWARE\\Elsewhere"
+        );
+        CHECK(
+            OpenVia(
+                registry,
+                hOther,
+                L"App",
+                KEY_READ,
+                hKey
+            ) == ERROR_INVALID_HANDLE
+        );
+        const HKEY hUser = FakeKey(
+            4,
+            L"\\REGISTRY\\USER\\S-1-5-18\\SOFTWARE\\VRegNative"
+        );
+        CHECK(
+            OpenVia(
+                registry,
+                hUser,
+                L"App",
+                KEY_READ,
+                hKey
+            ) == ERROR_INVALID_HANDLE
+        );
     }
 
     SECTION("A native path longer than the first buffer is read in full")
     {
         const std::wstring prefix = L"\\REGISTRY\\MACHINE\\SOFTWARE\\VRegNative\\App\\";
         const HKEY hLong = FakeKey(5, prefix + std::wstring(200, L'x'));
-        CHECK(OpenVia(registry, hLong, L"App", KEY_READ, hKey) == ERROR_FILE_NOT_FOUND);
-        CHECK(OpenVia(registry, hLong, L"Sub", KEY_READ, hKey) == ERROR_INVALID_HANDLE);
+        CHECK(
+            OpenVia(
+                registry,
+                hLong,
+                L"App",
+                KEY_READ,
+                hKey
+            ) == ERROR_FILE_NOT_FOUND
+        );
+        CHECK(
+            OpenVia(
+                registry,
+                hLong,
+                L"Sub",
+                KEY_READ,
+                hKey
+            ) == ERROR_INVALID_HANDLE
+        );
 
         FakeNtQueryKey::s_paths[hLong] = prefix + std::wstring(1000, L'x');
-        CHECK(OpenVia(registry, hLong, L"App", KEY_READ, hKey) == ERROR_FILE_NOT_FOUND);
+        CHECK(
+            OpenVia(
+                registry,
+                hLong,
+                L"App",
+                KEY_READ,
+                hKey
+            ) == ERROR_FILE_NOT_FOUND
+        );
     }
 
     SECTION("Roots without a native path are not reachable")
     {
         MemoryHive classes;
-        REQUIRE(registry.Mount(HKEY_CLASSES_ROOT, L"VRegNativeClass", classes) == ERROR_SUCCESS);
-        const HKEY hParent = FakeKey(7, L"\\REGISTRY\\MACHINE\\SOFTWARE\\Classes");
-        CHECK(OpenVia(registry, hParent, L"VRegNativeClass", KEY_READ, hKey) == ERROR_INVALID_HANDLE);
-        CHECK(OpenVia(registry, HKEY_CLASSES_ROOT, L"VRegNativeClass", KEY_READ, hKey) == ERROR_SUCCESS);
+        REQUIRE(
+            registry.Mount(
+                HKEY_CLASSES_ROOT,
+                L"VRegNativeClass",
+                classes
+            ) == ERROR_SUCCESS
+        );
+        const HKEY hParent = FakeKey(
+            7,
+            L"\\REGISTRY\\MACHINE\\SOFTWARE\\Classes"
+        );
+        CHECK(
+            OpenVia(
+                registry,
+                hParent,
+                L"VRegNativeClass",
+                KEY_READ,
+                hKey
+            ) == ERROR_INVALID_HANDLE
+        );
+        CHECK(
+            OpenVia(
+                registry,
+                HKEY_CLASSES_ROOT,
+                L"VRegNativeClass",
+                KEY_READ,
+                hKey
+            ) == ERROR_SUCCESS
+        );
     }
 }
 
@@ -716,24 +978,71 @@ TEST_CASE("WOW6432Node components are stripped whole and ordinal case-insensitiv
     NativeRegistry native;
     VirtualRegistry registry(&native, &FakeNtQueryKey::Query);
     MemoryHive hive;
-    REQUIRE(registry.Mount(HKEY_LOCAL_MACHINE, L"Software\\VRegNative\\App", hive) == ERROR_SUCCESS);
-    CreateKey(registry, HKEY_LOCAL_MACHINE, L"Software\\VRegNative\\App\\Wow6432Node");
+    REQUIRE(
+        registry.Mount(
+            HKEY_LOCAL_MACHINE,
+            L"Software\\VRegNative\\App",
+            hive
+        ) == ERROR_SUCCESS
+    );
+    CreateKey(
+        registry,
+        HKEY_LOCAL_MACHINE,
+        L"Software\\VRegNative\\App\\Wow6432Node"
+    );
 
     HKEY hKey = nullptr;
-    const HKEY hNode = FakeKey(1, L"\\REGISTRY\\MACHINE\\SOFTWARE\\WOW6432NODE\\VRegNative");
+    const HKEY hNode = FakeKey(
+        1,
+        L"\\REGISTRY\\MACHINE\\SOFTWARE\\WOW6432NODE\\VRegNative"
+    );
     CHECK(OpenVia(registry, hNode, L"App", KEY_READ, hKey) == ERROR_SUCCESS);
     CHECK(hKey == Hive::HandleOf(hive.Root()));
 
     const HKEY hSoftware = FakeKey(2, L"\\REGISTRY\\MACHINE\\SOFTWARE");
-    CHECK(OpenVia(registry, hSoftware, L"wow6432node\\VRegNative\\App", KEY_READ, hKey) == ERROR_SUCCESS);
+    CHECK(
+        OpenVia(
+            registry,
+            hSoftware,
+            L"wow6432node\\VRegNative\\App",
+            KEY_READ,
+            hKey
+        ) == ERROR_SUCCESS
+    );
 
-    const HKEY hSimilar = FakeKey(3, L"\\REGISTRY\\MACHINE\\SOFTWARE\\XWOW6432NODE\\VRegNative");
-    CHECK(OpenVia(registry, hSimilar, L"App", KEY_READ, hKey) == ERROR_INVALID_HANDLE);
+    const HKEY hSimilar = FakeKey(
+        3,
+        L"\\REGISTRY\\MACHINE\\SOFTWARE\\XWOW6432NODE\\VRegNative"
+    );
+    CHECK(
+        OpenVia(
+            registry,
+            hSimilar,
+            L"App",
+            KEY_READ,
+            hKey
+        ) == ERROR_INVALID_HANDLE
+    );
 
     // Below the mount point the name is an ordinary key.
-    CHECK(OpenVia(registry, hSoftware, L"VRegNative\\App\\Wow6432Node", KEY_READ, hKey) == ERROR_SUCCESS);
-    CHECK(OpenVia(registry, hSoftware, L"VRegNative\\App\\Missing\\Wow6432Node", KEY_READ, hKey)
-          == ERROR_FILE_NOT_FOUND);
+    CHECK(
+        OpenVia(
+            registry,
+            hSoftware,
+            L"VRegNative\\App\\Wow6432Node",
+            KEY_READ,
+            hKey
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        OpenVia(
+            registry,
+            hSoftware,
+            L"VRegNative\\App\\Missing\\Wow6432Node",
+            KEY_READ,
+            hKey
+        ) == ERROR_FILE_NOT_FOUND
+    );
 }
 
 TEST_CASE("A mount answers only the calls of its view")
@@ -744,14 +1053,37 @@ TEST_CASE("A mount answers only the calls of its view")
     MemoryHive hive64;
     MemoryHive hive32;
     MemoryHive hiveBoth;
-    REQUIRE(registry.Mount(HKEY_LOCAL_MACHINE, L"Software\\VRegViewTest64", hive64, MountView::Only64) == ERROR_SUCCESS);
-    REQUIRE(registry.Mount(HKEY_LOCAL_MACHINE, L"Software\\VRegViewTest32", hive32, MountView::Only32) == ERROR_SUCCESS);
-    REQUIRE(registry.Mount(HKEY_LOCAL_MACHINE, L"Software\\VRegViewTestBoth", hiveBoth) == ERROR_SUCCESS);
+    REQUIRE(
+        registry.Mount(
+            HKEY_LOCAL_MACHINE,
+            L"Software\\VRegViewTest64",
+            hive64,
+            MountView::Only64
+        ) == ERROR_SUCCESS
+    );
+    REQUIRE(
+        registry.Mount(
+            HKEY_LOCAL_MACHINE,
+            L"Software\\VRegViewTest32",
+            hive32,
+            MountView::Only32
+        ) == ERROR_SUCCESS
+    );
+    REQUIRE(
+        registry.Mount(
+            HKEY_LOCAL_MACHINE,
+            L"Software\\VRegViewTestBoth",
+            hiveBoth
+        ) == ERROR_SUCCESS
+    );
 
     const REGSAM sam64 = KEY_READ | KEY_WOW64_64KEY;
     const REGSAM sam32 = KEY_READ | KEY_WOW64_32KEY;
     const HKEY hSoftware = FakeKey(1, L"\\REGISTRY\\MACHINE\\SOFTWARE");
-    const HKEY hSoftware32 = FakeKey(2, L"\\REGISTRY\\MACHINE\\SOFTWARE\\Wow6432Node");
+    const HKEY hSoftware32 = FakeKey(
+        2,
+        L"\\REGISTRY\\MACHINE\\SOFTWARE\\Wow6432Node"
+    );
 
     HKEY hKey = nullptr;
     const auto isVirtual = [&](const HKEY hParent, const wchar_t* const pszPath, const REGSAM sam)
@@ -769,8 +1101,16 @@ TEST_CASE("A mount answers only the calls of its view")
         CHECK(isVirtual(hSoftware, L"VRegViewTestBoth", sam32));
         CHECK(isVirtual(hSoftware, L"VRegViewTestBoth", sam64));
 
-        CHECK(isVirtual(hSoftware, L"VRegViewTest64", KEY_READ) == kIs64BitProcess);
-        CHECK(isVirtual(hSoftware, L"VRegViewTest32", KEY_READ) == !kIs64BitProcess);
+        CHECK(
+            isVirtual(hSoftware, L"VRegViewTest64", KEY_READ) == kIs64BitProcess
+        );
+        CHECK(
+            isVirtual(
+                hSoftware,
+                L"VRegViewTest32",
+                KEY_READ
+            ) == !kIs64BitProcess
+        );
     }
 
     SECTION("A path that contained WOW6432Node is the 32-bit view")
@@ -784,12 +1124,36 @@ TEST_CASE("A mount answers only the calls of its view")
 
     SECTION("Through a predefined root")
     {
-        CHECK(isVirtual(HKEY_LOCAL_MACHINE, L"Software\\VRegViewTest64", sam64));
-        CHECK(OpenVia(registry, HKEY_LOCAL_MACHINE, L"Software\\VRegViewTest64", sam32, hKey) == ERROR_FILE_NOT_FOUND);
-        CHECK(isVirtual(HKEY_LOCAL_MACHINE, L"Software\\VRegViewTest32", sam32));
-        CHECK(OpenVia(registry, HKEY_LOCAL_MACHINE, L"Software\\VRegViewTest32", sam64, hKey) == ERROR_FILE_NOT_FOUND);
-        CHECK(isVirtual(HKEY_LOCAL_MACHINE, L"Software\\VRegViewTestBoth", sam32));
-        CHECK(isVirtual(HKEY_LOCAL_MACHINE, L"Software\\VRegViewTestBoth", sam64));
+        CHECK(
+            isVirtual(HKEY_LOCAL_MACHINE, L"Software\\VRegViewTest64", sam64)
+        );
+        CHECK(
+            OpenVia(
+                registry,
+                HKEY_LOCAL_MACHINE,
+                L"Software\\VRegViewTest64",
+                sam32,
+                hKey
+            ) == ERROR_FILE_NOT_FOUND
+        );
+        CHECK(
+            isVirtual(HKEY_LOCAL_MACHINE, L"Software\\VRegViewTest32", sam32)
+        );
+        CHECK(
+            OpenVia(
+                registry,
+                HKEY_LOCAL_MACHINE,
+                L"Software\\VRegViewTest32",
+                sam64,
+                hKey
+            ) == ERROR_FILE_NOT_FOUND
+        );
+        CHECK(
+            isVirtual(HKEY_LOCAL_MACHINE, L"Software\\VRegViewTestBoth", sam32)
+        );
+        CHECK(
+            isVirtual(HKEY_LOCAL_MACHINE, L"Software\\VRegViewTestBoth", sam64)
+        );
     }
 }
 
@@ -798,9 +1162,16 @@ TEST_CASE("A real key above a mount reaches it through the real NtQueryKey")
     NativeRegistry native;
     VirtualRegistry registry(&native);
     MemoryHive hive;
-    const auto name = std::format(L"VRegNativePathTest-{}", GetCurrentProcessId());
+    const auto name = std::format(
+        L"VRegNativePathTest-{}",
+        GetCurrentProcessId()
+    );
     REQUIRE(registry.Mount(HKEY_CURRENT_USER, name, hive) == ERROR_SUCCESS);
-    const HKEY hSub = CreateKey(registry, HKEY_CURRENT_USER, (name + L"\\x").c_str());
+    const HKEY hSub = CreateKey(
+        registry,
+        HKEY_CURRENT_USER,
+        (name + L"\\x").c_str()
+    );
     REQUIRE(IsVirtualHKey(hSub));
 
     HKEY hCurrentUser = nullptr;

@@ -77,13 +77,13 @@ NativeRegistry::Functions NativeRegistry::ResolveFunctions() noexcept
     return functions;
 }
 
-NativeRegistry::NativeRegistry() noexcept
-    : m_functions(ResolveFunctions())
+NativeRegistry::NativeRegistry() noexcept :
+    m_functions(ResolveFunctions())
 {
 }
 
-NativeRegistry::NativeRegistry(const Functions& functions) noexcept
-    : m_functions(functions)
+NativeRegistry::NativeRegistry(const Functions& functions) noexcept :
+    m_functions(functions)
 {
 }
 

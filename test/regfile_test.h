@@ -73,12 +73,18 @@ inline RegFile::Script MustParse(const std::wstring_view text)
 class AppHiveRegistry final : public Registry
 {
 public:
-    explicit AppHiveRegistry(const HKEY hRoot) noexcept
-        : m_hRoot(hRoot)
+    explicit AppHiveRegistry(const HKEY hRoot) noexcept :
+        m_hRoot(hRoot)
     {
     }
 
-    LSTATUS OpenKeyExW(HKEY hKey, LPCWSTR lpSubKey, DWORD ulOptions, REGSAM samDesired, PHKEY phkResult) noexcept override
+    LSTATUS OpenKeyExW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        DWORD ulOptions,
+        REGSAM samDesired,
+        PHKEY phkResult
+    ) noexcept override
     {
         return m_native.OpenKeyExW(
             Map(hKey),
@@ -167,7 +173,12 @@ public:
         );
     }
 
-    LSTATUS DeleteKeyExW(HKEY hKey, LPCWSTR lpSubKey, REGSAM samDesired, DWORD Reserved) noexcept override
+    LSTATUS DeleteKeyExW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        REGSAM samDesired,
+        DWORD Reserved
+    ) noexcept override
     {
         return m_native.DeleteKeyExW(
             Map(hKey),
@@ -348,7 +359,11 @@ struct RegValue
 };
 
 /// Opens @p path below HKEY_CURRENT_USER, which the registry maps to its hive.
-inline HKEY MustOpen(Registry& registry, const wchar_t* const pszPath, const REGSAM samDesired = KEY_READ)
+inline HKEY MustOpen(
+    Registry& registry,
+    const wchar_t* const pszPath,
+    const REGSAM samDesired = KEY_READ
+)
 {
     HKEY hKey{};
     REQUIRE(
@@ -408,11 +423,22 @@ inline void MustSet(
 }
 
 /// Reads a value back; fails the test when it is missing.
-inline RegValue MustGet(Registry& registry, const wchar_t* const pszPath, const wchar_t* const pszName)
+inline RegValue MustGet(
+    Registry& registry,
+    const wchar_t* const pszPath,
+    const wchar_t* const pszName
+)
 {
     const HKEY hKey = MustOpen(registry, pszPath);
     RegValue value;
-    REQUIRE(registry.QueryValue(hKey, pszName, &value.dwType, value.data) == ERROR_SUCCESS);
+    REQUIRE(
+        registry.QueryValue(
+            hKey,
+            pszName,
+            &value.dwType,
+            value.data
+        ) == ERROR_SUCCESS
+    );
     registry.CloseKey(
         hKey
     );

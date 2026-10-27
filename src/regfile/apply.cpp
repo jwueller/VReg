@@ -11,8 +11,8 @@ namespace
 class KeyHandle
 {
 public:
-    KeyHandle(Registry& registry) noexcept
-        : m_registry(registry)
+    KeyHandle(Registry& registry) noexcept :
+        m_registry(registry)
     {
     }
 
@@ -44,10 +44,15 @@ private:
 
 LSTATUS NotFoundIsFine(const LSTATUS status) noexcept
 {
-    return status == ERROR_FILE_NOT_FOUND || status == ERROR_PATH_NOT_FOUND ? ERROR_SUCCESS : status;
+    return status == ERROR_FILE_NOT_FOUND || status == ERROR_PATH_NOT_FOUND
+               ? ERROR_SUCCESS
+               : status;
 }
 
-LSTATUS Perform(const Operation& operation, Registry& registry) noexcept
+LSTATUS Perform(
+    const Operation& operation,
+    Registry& registry
+) noexcept
 {
     // A script can be built by hand, so the parser's guarantees are checked again: a NUL would cut a path or name
     // short, and an empty path would delete a whole root.
@@ -111,10 +116,12 @@ LSTATUS Perform(const Operation& operation, Registry& registry) noexcept
         // finds a zero there, so such data goes in with nonzero bytes after it to store exactly what the
         // file says.
         const auto& data = operation.data;
-        const bool isString = operation.dwType == REG_SZ || operation.dwType == REG_EXPAND_SZ ||
-                              operation.dwType == REG_MULTI_SZ;
-        const bool isTerminated =
-            data.size() >= sizeof(wchar_t) && data[data.size() - 1] == std::byte{0} && data[data.size() - 2] == std::byte{0};
+        const bool isString = operation.dwType == REG_SZ
+            || operation.dwType == REG_EXPAND_SZ
+            || operation.dwType == REG_MULTI_SZ;
+        const bool isTerminated = data.size() >= sizeof(wchar_t)
+            && data[data.size() - 1] == std::byte{0}
+            && data[data.size() - 2] == std::byte{0};
         if (isString && !isTerminated)
         {
             std::vector<std::byte> padded;
@@ -169,7 +176,11 @@ LSTATUS Perform(const Operation& operation, Registry& registry) noexcept
 }
 } // namespace
 
-LSTATUS Apply(const Script& script, Registry& registry, std::size_t* const pFailed) noexcept
+LSTATUS Apply(
+    const Script& script,
+    Registry& registry,
+    std::size_t* const pFailed
+) noexcept
 {
     for (std::size_t i = 0; i < script.operations.size(); ++i)
     {

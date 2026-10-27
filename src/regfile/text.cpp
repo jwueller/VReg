@@ -10,35 +10,65 @@ namespace
 {
 constexpr std::string_view kRegedit4 = "REGEDIT4";
 
-LSTATUS Fail(ParseError* const pError, const char* const pszMessage)
+LSTATUS Fail(
+    ParseError* const pError,
+    const char* const pszMessage
+)
 {
     if (pError)
         *pError = {1, 1, pszMessage};
     return ERROR_INVALID_DATA;
 }
 
-bool StartsWith(const std::span<const std::byte> bytes, const std::string_view prefix)
+bool StartsWith(
+    const std::span<const std::byte> bytes,
+    const std::string_view prefix
+)
 {
-    return bytes.size() >= prefix.size() && std::memcmp(bytes.data(), prefix.data(), prefix.size()) == 0;
+    return bytes.size() >= prefix.size()
+        && std::memcmp(bytes.data(), prefix.data(), prefix.size()) == 0;
 }
 
-LSTATUS Widen(const UINT codePage, const std::span<const std::byte> bytes, std::wstring& text, ParseError* const pError)
+LSTATUS Widen(
+    const UINT codePage,
+    const std::span<const std::byte> bytes,
+    std::wstring& text,
+    ParseError* const pError
+)
 {
     text.clear();
     if (bytes.empty())
         return ERROR_SUCCESS;
     const DWORD dwFlags = codePage == CP_UTF8 ? MB_ERR_INVALID_CHARS : 0;
     const auto pchBytes = reinterpret_cast<const char*>(bytes.data());
-    const int cchText = MultiByteToWideChar(codePage, dwFlags, pchBytes, static_cast<int>(bytes.size()), nullptr, 0);
+    const int cchText = MultiByteToWideChar(
+        codePage,
+        dwFlags,
+        pchBytes,
+        static_cast<int>(bytes.size()),
+        nullptr,
+        0
+    );
     if (cchText <= 0)
         return Fail(pError, "the text is not valid in its encoding");
     text.resize(static_cast<std::size_t>(cchText));
-    MultiByteToWideChar(codePage, dwFlags, pchBytes, static_cast<int>(bytes.size()), text.data(), cchText);
+    MultiByteToWideChar(
+        codePage,
+        dwFlags,
+        pchBytes,
+        static_cast<int>(bytes.size()),
+        text.data(),
+        cchText
+    );
     return ERROR_SUCCESS;
 }
 } // namespace
 
-LSTATUS DecodeFile(const std::span<const std::byte> file, std::wstring& text, ParseError* const pError)
+LSTATUS DecodeFile(
+    const std::span<const std::byte> file,
+    std::wstring& text,
+    ParseError* const pError
+)
 {
     if (file.size() > static_cast<std::size_t>(INT_MAX))
         return Fail(pError, "the file is too large");
@@ -57,10 +87,19 @@ LSTATUS DecodeFile(const std::span<const std::byte> file, std::wstring& text, Pa
     if (file.size() >= 3 && file[0] == std::byte{0xEF} && file[1] == std::byte{0xBB} && file[2] == std::byte{0xBF})
         return Widen(CP_UTF8, file.subspan(3), text, pError);
 
-    return Widen(StartsWith(file, kRegedit4) ? CP_ACP : CP_UTF8, file, text, pError);
+    return Widen(
+        StartsWith(file, kRegedit4) ? CP_ACP : CP_UTF8,
+        file,
+        text,
+        pError
+    );
 }
 
-LSTATUS EncodeFile(const std::wstring& text, const Format format, std::vector<std::byte>& file)
+LSTATUS EncodeFile(
+    const std::wstring& text,
+    const Format format,
+    std::vector<std::byte>& file
+)
 {
     file.clear();
     if (format == Format::Unicode)
@@ -68,7 +107,11 @@ LSTATUS EncodeFile(const std::wstring& text, const Format format, std::vector<st
         file.resize(sizeof(wchar_t) + text.size() * sizeof(wchar_t));
         file[0] = std::byte{0xFF};
         file[1] = std::byte{0xFE};
-        std::memcpy(file.data() + sizeof(wchar_t), text.data(), text.size() * sizeof(wchar_t));
+        std::memcpy(
+            file.data() + sizeof(wchar_t),
+            text.data(),
+            text.size() * sizeof(wchar_t)
+        );
         return ERROR_SUCCESS;
     }
     if (text.size() > static_cast<std::size_t>(INT_MAX))
@@ -83,7 +126,16 @@ LSTATUS EncodeFile(const std::wstring& text, const Format format, std::vector<st
     const auto pfUsedDefault = isUtf8 ? nullptr : &fUsedDefault;
     if (cchText == 0)
         return ERROR_SUCCESS;
-    const int cbFile = WideCharToMultiByte(codePage, dwFlags, text.data(), cchText, nullptr, 0, nullptr, pfUsedDefault);
+    const int cbFile = WideCharToMultiByte(
+        codePage,
+        dwFlags,
+        text.data(),
+        cchText,
+        nullptr,
+        0,
+        nullptr,
+        pfUsedDefault
+    );
     if (cbFile <= 0 || fUsedDefault)
         return ERROR_NO_UNICODE_TRANSLATION;
     file.resize(static_cast<std::size_t>(cbFile));
@@ -105,7 +157,10 @@ LSTATUS EncodeFile(const std::wstring& text, const Format format, std::vector<st
     return ERROR_SUCCESS;
 }
 
-LSTATUS ReadWholeFile(const std::filesystem::path& path, std::vector<std::byte>& file)
+LSTATUS ReadWholeFile(
+    const std::filesystem::path& path,
+    std::vector<std::byte>& file
+)
 {
     const HANDLE hFile = CreateFileW(
         path.c_str(),
@@ -138,9 +193,20 @@ LSTATUS ReadWholeFile(const std::filesystem::path& path, std::vector<std::byte>&
     return status;
 }
 
-LSTATUS WriteWholeFile(const std::filesystem::path& path, const std::span<const std::byte> file)
+LSTATUS WriteWholeFile(
+    const std::filesystem::path& path,
+    const std::span<const std::byte> file
+)
 {
-    const HANDLE hFile = CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    const HANDLE hFile = CreateFileW(
+        path.c_str(),
+        GENERIC_WRITE,
+        0,
+        nullptr,
+        CREATE_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr
+    );
     if (hFile == INVALID_HANDLE_VALUE)
         return static_cast<LSTATUS>(GetLastError());
 

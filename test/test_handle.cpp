@@ -35,7 +35,13 @@ HandleSpace::Shared* MapRaw(const std::wstring& wsName)
     );
     REQUIRE(hSection);
     auto* const pShared = static_cast<HandleSpace::Shared*>(
-        MapViewOfFile(hSection, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(HandleSpace::Shared))
+        MapViewOfFile(
+            hSection,
+            FILE_MAP_ALL_ACCESS,
+            0,
+            0,
+            sizeof(HandleSpace::Shared)
+        )
     );
     REQUIRE(pShared);
     return pShared;

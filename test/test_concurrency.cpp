@@ -59,8 +59,8 @@ DWORD ValueData(const unsigned index)
 class Random
 {
 public:
-    explicit Random(const std::uint32_t seed) noexcept
-        : m_state(seed * 2654435761u + 1)
+    explicit Random(const std::uint32_t seed) noexcept :
+        m_state(seed * 2654435761u + 1)
     {
     }
 
@@ -114,7 +114,12 @@ std::wstring RandomPath(Random& random)
     return path;
 }
 
-void WriterLoop(Registry& registry, const HKEY hRoot, Shared& shared, const std::uint32_t seed)
+void WriterLoop(
+    Registry& registry,
+    const HKEY hRoot,
+    Shared& shared,
+    const std::uint32_t seed
+)
 {
     Random random(seed);
     while (!shared.isStopped.load(std::memory_order_relaxed))
@@ -231,7 +236,12 @@ void WriterLoop(Registry& registry, const HKEY hRoot, Shared& shared, const std:
     }
 }
 
-void ReadKey(Registry& registry, const HKEY hKey, Shared& shared, Random& random)
+void ReadKey(
+    Registry& registry,
+    const HKEY hKey,
+    Shared& shared,
+    Random& random
+)
 {
     switch (random.Next(4))
     {
@@ -328,7 +338,12 @@ void ReadKey(Registry& registry, const HKEY hKey, Shared& shared, Random& random
     }
 }
 
-void ReaderLoop(Registry& registry, const HKEY hRoot, Shared& shared, const std::uint32_t seed)
+void ReaderLoop(
+    Registry& registry,
+    const HKEY hRoot,
+    Shared& shared,
+    const std::uint32_t seed
+)
 {
     Random random(seed);
     while (!shared.isStopped.load(std::memory_order_relaxed))
@@ -380,12 +395,22 @@ void WatcherLoop(Registry& registry, const HKEY hRoot, Shared& shared)
 }
 
 /// Exports the whole hive while the writers run.
-void ExporterLoop(Registry& registry, const wchar_t* const pszMount, Shared& shared)
+void ExporterLoop(
+    Registry& registry,
+    const wchar_t* const pszMount,
+    Shared& shared
+)
 {
     while (!shared.isStopped.load(std::memory_order_relaxed))
     {
         std::vector<std::byte> file;
-        const auto status = RegFile::ExportSnapshot(registry, HKEY_CURRENT_USER, pszMount, RegFile::Format::Unicode, file);
+        const auto status = RegFile::ExportSnapshot(
+            registry,
+            HKEY_CURRENT_USER,
+            pszMount,
+            RegFile::Format::Unicode,
+            file
+        );
         // A key may be deleted between listing and opening it.
         if (status == ERROR_SUCCESS)
             shared.cSnapshots.fetch_add(1, std::memory_order_relaxed);
@@ -496,7 +521,9 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
             REQUIRE(enumStatus == ERROR_SUCCESS);
             CHECK(values.insert(std::wstring(szName, cchName)).second);
             CHECK(dwType == REG_DWORD);
-            const auto index = std::stoul(std::wstring(szName + 1, cchName - 1));
+            const auto index = std::stoul(
+                std::wstring(szName + 1, cchName - 1)
+            );
             CHECK(dwValue == ValueData(static_cast<unsigned>(index)));
         }
 
@@ -564,7 +591,13 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
 
 /// Runs the workload against the hive mounted at @p pszMount for a bounded time. @p pfnFreezeMidway, when given, is
 /// called once halfway.
-void RunStress(Registry& registry, const wchar_t* const pszMount, const HKEY hRoot, void (*pfnFreezeMidway)(void*), void* pFreezeContext)
+void RunStress(
+    Registry& registry,
+    const wchar_t* const pszMount,
+    const HKEY hRoot,
+    void (*pfnFreezeMidway)(void*),
+    void* pFreezeContext
+)
 {
     Shared shared;
     std::vector<std::thread> threads;
@@ -605,7 +638,10 @@ void RunStress(Registry& registry, const wchar_t* const pszMount, const HKEY hRo
         if (Clock::now() - stopped > kHangLimit)
         {
             // A thread that cannot be joined would hang the process; report and leave.
-            std::fputs("concurrency test: worker threads did not finish (deadlock)\n", stderr);
+            std::fputs(
+                "concurrency test: worker threads did not finish (deadlock)\n",
+                stderr
+            );
             std::_Exit(3);
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -630,16 +666,32 @@ TEST_CASE("Readers and writers on a writable MemoryHive")
 {
     MemoryHive hive;
     VirtualRegistry registry;
-    REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"VRegStress", hive) == ERROR_SUCCESS);
-    RunStress(registry, L"VRegStress", Hive::HandleOf(hive.Root()), nullptr, nullptr);
+    REQUIRE(
+        registry.Mount(HKEY_CURRENT_USER, L"VRegStress", hive) == ERROR_SUCCESS
+    );
+    RunStress(
+        registry,
+        L"VRegStress",
+        Hive::HandleOf(hive.Root()),
+        nullptr,
+        nullptr
+    );
 }
 
 TEST_CASE("Readers and writers on a MemoryHive frozen halfway")
 {
     MemoryHive hive;
     VirtualRegistry registry;
-    REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"VRegStress", hive) == ERROR_SUCCESS);
-    RunStress(registry, L"VRegStress", Hive::HandleOf(hive.Root()), [](void* const pHive) { static_cast<MemoryHive*>(pHive)->Freeze(); }, &hive);
+    REQUIRE(
+        registry.Mount(HKEY_CURRENT_USER, L"VRegStress", hive) == ERROR_SUCCESS
+    );
+    RunStress(
+        registry,
+        L"VRegStress",
+        Hive::HandleOf(hive.Root()),
+        [](void* const pHive) { static_cast<MemoryHive*>(pHive)->Freeze(); },
+        &hive
+    );
 }
 
 TEST_CASE("Readers and writers on a writable OverlayHive over an app hive")

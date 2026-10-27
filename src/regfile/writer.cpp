@@ -42,14 +42,18 @@ bool FriendlyString(const std::vector<std::byte>& data, std::wstring& text)
     if (text.back() != L'\0')
         return false;
     text.pop_back();
-    return text.find_first_of(std::wstring_view(L"\0\r\n", 3)) == std::wstring::npos;
+    return text.find_first_of(
+        std::wstring_view(L"\0\r\n", 3)
+    ) == std::wstring::npos;
 }
 
 void AppendHex(std::wstring& out, const Record& record, std::size_t column)
 {
     wchar_t szHeader[16];
-    const int cchHeader = record.dwType == REG_BINARY ? swprintf_s(szHeader, L"hex:")
-                                                      : swprintf_s(szHeader, L"hex(%lx):", record.dwType);
+    const int cchHeader =
+        record.dwType == REG_BINARY
+            ? swprintf_s(szHeader, L"hex:")
+            : swprintf_s(szHeader, L"hex(%lx):", record.dwType);
     out.append(szHeader, static_cast<std::size_t>(cchHeader));
     column += static_cast<std::size_t>(cchHeader);
 
@@ -98,11 +102,19 @@ void AppendValue(std::wstring& out, const Record& record)
 }
 } // namespace
 
-LSTATUS WriteRecords(const std::span<const Record> records, const Format format, std::vector<std::byte>& file)
+LSTATUS WriteRecords(
+    const std::span<const Record> records,
+    const Format format,
+    std::vector<std::byte>& file
+)
 {
     try
     {
-        std::wstring out = format == Format::Regedit4 ? L"REGEDIT4" : L"Windows Registry Editor Version 5.00";
+        std::wstring out =
+            format == Format::Regedit4
+                ? L"REGEDIT4"
+                : L"Windows Registry Editor Version 5.00";
+
         out.append(kNewline);
         out.append(kNewline);
 
@@ -110,6 +122,7 @@ LSTATUS WriteRecords(const std::span<const Record> records, const Format format,
         {
             if (HasLineBreak(record.key) || HasLineBreak(record.name))
                 return ERROR_INVALID_NAME;
+
             switch (record.kind)
             {
             case Record::Kind::Key:
@@ -121,14 +134,17 @@ LSTATUS WriteRecords(const std::span<const Record> records, const Format format,
                 out.append(L"]");
                 out.append(kNewline);
                 break;
+
             case Record::Kind::Value:
             case Record::Kind::DeleteValue:
                 AppendValue(out, record);
                 break;
             }
         }
+
         if (!records.empty())
             out.append(kNewline);
+
         return EncodeFile(out, format, file);
     }
     catch (const std::bad_alloc&)

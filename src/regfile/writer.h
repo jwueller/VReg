@@ -37,5 +37,9 @@ struct Record
 
 /// Lays out @p records as a regedit-style file in @p format.
 /// Answers `ERROR_NO_UNICODE_TRANSLATION` or `ERROR_INVALID_NAME` as @ref ExportSnapshot documents.
-LSTATUS WriteRecords(std::span<const Record> records, Format format, std::vector<std::byte>& file);
+LSTATUS WriteRecords(
+    std::span<const Record> records,
+    Format format,
+    std::vector<std::byte>& file
+);
 } // namespace VReg::RegFile

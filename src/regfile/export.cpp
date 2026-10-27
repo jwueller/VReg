@@ -29,20 +29,29 @@ const wchar_t* RootName(const HKEY hRoot) noexcept
 
 bool NameLess(const std::wstring& a, const std::wstring& b) noexcept
 {
-    return CompareStringOrdinal(a.data(), static_cast<int>(a.size()), b.data(), static_cast<int>(b.size()), TRUE) ==
-           CSTR_LESS_THAN;
+    return CompareStringOrdinal(
+        a.data(),
+        static_cast<int>(a.size()),
+        b.data(),
+        static_cast<int>(b.size()),
+        TRUE
+    ) == CSTR_LESS_THAN;
 }
 
 class SnapshotWalker
 {
 public:
-    explicit SnapshotWalker(Registry& registry) noexcept
-        : m_registry(registry)
+    explicit SnapshotWalker(Registry& registry) noexcept :
+        m_registry(registry)
     {
     }
 
     /// Appends the key @p hKey, named @p fullName, then its values, then its subkeys in order.
-    LSTATUS Walk(const HKEY hKey, const std::wstring& fullName, const unsigned depth = 0)
+    LSTATUS Walk(
+        const HKEY hKey,
+        const std::wstring& fullName,
+        const unsigned depth = 0
+    )
     {
         // The registry nests at most 512 levels; anything deeper is a cycle through some other registry.
         constexpr unsigned kMaxDepth = 512;
@@ -90,7 +99,11 @@ public:
         for (DWORD dwIndex = 0;; ++dwIndex)
         {
             std::wstring name;
-            const auto status = m_registry.EnumKey(hKey, dwIndex, name);
+            const auto status = m_registry.EnumKey(
+                hKey,
+                dwIndex,
+                name
+            );
             if (status == ERROR_NO_MORE_ITEMS)
                 break;
             if (status != ERROR_SUCCESS)
@@ -112,7 +125,11 @@ public:
             );
             if (opened != ERROR_SUCCESS)
                 return opened;
-            const auto status = Walk(hSubkey, fullName + L'\\' + subkey, depth + 1);
+            const auto status = Walk(
+                hSubkey,
+                fullName + L'\\' + subkey,
+                depth + 1
+            );
             m_registry.CloseKey(
                 hSubkey
             );
@@ -170,7 +187,11 @@ LSTATUS ExportSnapshot(
         if (walked != ERROR_SUCCESS)
             return walked;
         std::vector<std::byte> bytes;
-        const auto status = WriteRecords(walker.Records(), format, bytes);
+        const auto status = WriteRecords(
+            walker.Records(),
+            format,
+            bytes
+        );
         if (status != ERROR_SUCCESS)
             return status;
         file = std::move(bytes);
@@ -206,7 +227,9 @@ LSTATUS ExportDelta(
             prefix.append(L"\\").append(path);
 
         const auto keyName = [&](const std::wstring& relative)
-        { return relative.empty() ? prefix : prefix + L'\\' + relative; };
+        {
+            return relative.empty() ? prefix : prefix + L'\\' + relative;
+        };
 
         std::vector<Record> records;
         for (std::size_t i = 0; i < upper.size();)
@@ -277,7 +300,13 @@ LSTATUS ExportDeltaToFile(
     try
     {
         std::vector<std::byte> file;
-        const auto status = ExportDelta(hive, hRoot, path, format, file);
+        const auto status = ExportDelta(
+            hive,
+            hRoot,
+            path,
+            format,
+            file
+        );
         if (status != ERROR_SUCCESS)
             return status;
         return WriteWholeFile(fileName, file);
@@ -299,7 +328,13 @@ LSTATUS ExportSnapshotToFile(
     try
     {
         std::vector<std::byte> file;
-        const auto status = ExportSnapshot(registry, hRoot, path, format, file);
+        const auto status = ExportSnapshot(
+            registry,
+            hRoot,
+            path,
+            format,
+            file
+        );
         if (status != ERROR_SUCCESS)
             return status;
         return WriteWholeFile(fileName, file);

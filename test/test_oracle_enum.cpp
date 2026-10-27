@@ -211,7 +211,11 @@ HKEY CreateWithClass(
 
 /// Four subkeys with classes, wide and narrowable names, and one with a name
 /// the ANSI code page cannot represent. Returns nothing: the keys are closed.
-template <class Api> void PopulateKeys(Api& api, Recorder& record, const HKEY hRoot)
+template <class Api> void PopulateKeys(
+    Api& api,
+    Recorder& record,
+    const HKEY hRoot
+)
 {
     for (const auto& [pszName, pszClass] : std::initializer_list<std::pair<const wchar_t*, const wchar_t*>>{
              {L"Alpha", L"ClassA"},
@@ -220,7 +224,13 @@ template <class Api> void PopulateKeys(Api& api, Recorder& record, const HKEY hR
              {L"D\u0101lta", L"\u4e2d\u0101"},
          })
     {
-        const auto hKey = CreateWithClass(api, record, hRoot, pszName, pszClass);
+        const auto hKey = CreateWithClass(
+            api,
+            record,
+            hRoot,
+            pszName,
+            pszClass
+        );
         RECORD(
             "close",
             api.CloseKey(
@@ -231,7 +241,12 @@ template <class Api> void PopulateKeys(Api& api, Recorder& record, const HKEY hR
 }
 
 template <class Api, class Char>
-void EnumKeyMatrix(Api& api, Recorder& record, const HKEY hKey, const std::string& label)
+void EnumKeyMatrix(
+    Api& api,
+    Recorder& record,
+    const HKEY hKey,
+    const std::string& label
+)
 {
     for (const DWORD dwIndex : {0u, 1u, 2u, 3u, 4u, 5u})
     {
@@ -276,7 +291,17 @@ void EnumKeyMatrix(Api& api, Recorder& record, const HKEY hKey, const std::strin
     const DWORD reserved = 1;
     RECORD(
         label + " no name length",
-        EnumKeyEx(api, hKey, 0, name.data(), nullptr, nullptr, nullptr, nullptr, nullptr),
+        EnumKeyEx(
+            api,
+            hKey,
+            0,
+            name.data(),
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        ),
         {},
         {Bytes(name)}
     );
@@ -285,35 +310,85 @@ void EnumKeyMatrix(Api& api, Recorder& record, const HKEY hKey, const std::strin
     {
         RECORD(
             label + " no name",
-            EnumKeyEx(api, hKey, 0, static_cast<Char*>(nullptr), &cchName, nullptr, nullptr, nullptr, nullptr),
+            EnumKeyEx(
+                api,
+                hKey,
+                0,
+                static_cast<Char*>(nullptr),
+                &cchName,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr
+            ),
             {cchName}
         );
     }
     cchName = 64;
     RECORD(
         label + " class without length",
-        EnumKeyEx(api, hKey, 0, name.data(), &cchName, nullptr, cls.data(), nullptr, nullptr),
+        EnumKeyEx(
+            api,
+            hKey,
+            0,
+            name.data(),
+            &cchName,
+            nullptr,
+            cls.data(),
+            nullptr,
+            nullptr
+        ),
         {cchName},
         {Bytes(name), Bytes(cls)}
     );
     cchName = 64;
     RECORD(
         label + " class length without class",
-        EnumKeyEx(api, hKey, 0, name.data(), &cchName, nullptr, nullptr, &cchClass, nullptr),
+        EnumKeyEx(
+            api,
+            hKey,
+            0,
+            name.data(),
+            &cchName,
+            nullptr,
+            nullptr,
+            &cchClass,
+            nullptr
+        ),
         {cchName, cchClass},
         {Bytes(name)}
     );
     cchName = 64;
     RECORD(
         label + " reserved",
-        EnumKeyEx(api, hKey, 0, name.data(), &cchName, const_cast<LPDWORD>(&reserved), nullptr, nullptr, nullptr),
+        EnumKeyEx(
+            api,
+            hKey,
+            0,
+            name.data(),
+            &cchName,
+            const_cast<LPDWORD>(&reserved),
+            nullptr,
+            nullptr,
+            nullptr
+        ),
         {cchName},
         {Bytes(name)}
     );
     cchName = 64;
     RECORD(
         label + " invalid handle",
-        EnumKeyEx(api, nullptr, 0, name.data(), &cchName, nullptr, nullptr, nullptr, nullptr),
+        EnumKeyEx(
+            api,
+            nullptr,
+            0,
+            name.data(),
+            &cchName,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        ),
         {cchName}
     );
 }
@@ -408,7 +483,11 @@ struct EnumerateKeysPreEx
     }
 };
 
-template <class Api> void PopulateValues(Api& api, Recorder& record, const HKEY hKey)
+template <class Api> void PopulateValues(
+    Api& api,
+    Recorder& record,
+    const HKEY hKey
+)
 {
     for (const auto& value : std::vector<StoredValue>{
              {L"v1", REG_SZ, BytesOf(L"text", 5)},
@@ -429,7 +508,12 @@ template <class Api> void PopulateValues(Api& api, Recorder& record, const HKEY 
 }
 
 template <class Api, class Char>
-void EnumValueMatrix(Api& api, Recorder& record, const HKEY hKey, const std::string& label)
+void EnumValueMatrix(
+    Api& api,
+    Recorder& record,
+    const HKEY hKey,
+    const std::string& label
+)
 {
     constexpr int kNoData = -2;
     constexpr int kSizeOnly = -1;
@@ -479,7 +563,17 @@ void EnumValueMatrix(Api& api, Recorder& record, const HKEY hKey, const std::str
     const DWORD reserved = 1;
     RECORD(
         label + " no types",
-        EnumValueEx(api, hKey, 0, name.data(), &cchName, nullptr, nullptr, data.data(), &cbData),
+        EnumValueEx(
+            api,
+            hKey,
+            0,
+            name.data(),
+            &cchName,
+            nullptr,
+            nullptr,
+            data.data(),
+            &cbData
+        ),
         {cchName, cbData},
         {Bytes(name), Bytes(data)}
     );
@@ -487,39 +581,99 @@ void EnumValueMatrix(Api& api, Recorder& record, const HKEY hKey, const std::str
     cbData = 64;
     RECORD(
         label + " nothing optional",
-        EnumValueEx(api, hKey, 1, name.data(), &cchName, nullptr, nullptr, nullptr, nullptr),
+        EnumValueEx(
+            api,
+            hKey,
+            1,
+            name.data(),
+            &cchName,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        ),
         {cchName},
         {Bytes(name)}
     );
     RECORD(
         label + " no name length",
-        EnumValueEx(api, hKey, 1, name.data(), nullptr, nullptr, nullptr, nullptr, nullptr)
+        EnumValueEx(
+            api,
+            hKey,
+            1,
+            name.data(),
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        )
     );
     cchName = 64;
     if constexpr (std::is_same_v<Char, wchar_t>)
     {
         RECORD(
             label + " no name",
-            EnumValueEx(api, hKey, 1, static_cast<Char*>(nullptr), &cchName, nullptr, nullptr, nullptr, nullptr),
+            EnumValueEx(
+                api,
+                hKey,
+                1,
+                static_cast<Char*>(nullptr),
+                &cchName,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr
+            ),
             {cchName}
         );
     }
     cchName = 64;
     RECORD(
         label + " data without size",
-        EnumValueEx(api, hKey, 1, name.data(), &cchName, nullptr, &dwType, data.data(), nullptr),
+        EnumValueEx(
+            api,
+            hKey,
+            1,
+            name.data(),
+            &cchName,
+            nullptr,
+            &dwType,
+            data.data(),
+            nullptr
+        ),
         {cchName}
     );
     cchName = 64;
     RECORD(
         label + " reserved",
-        EnumValueEx(api, hKey, 1, name.data(), &cchName, const_cast<LPDWORD>(&reserved), nullptr, nullptr, nullptr),
+        EnumValueEx(
+            api,
+            hKey,
+            1,
+            name.data(),
+            &cchName,
+            const_cast<LPDWORD>(&reserved),
+            nullptr,
+            nullptr,
+            nullptr
+        ),
         {cchName}
     );
     cchName = 64;
     RECORD(
         label + " invalid handle",
-        EnumValueEx(api, nullptr, 1, name.data(), &cchName, nullptr, nullptr, nullptr, nullptr),
+        EnumValueEx(
+            api,
+            nullptr,
+            1,
+            name.data(),
+            &cchName,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        ),
         {cchName}
     );
 }
@@ -537,7 +691,12 @@ struct EnumerateValues
 };
 
 template <class Api, class Char>
-void QueryInfoMatrix(Api& api, Recorder& record, const HKEY hKey, const std::string& label)
+void QueryInfoMatrix(
+    Api& api,
+    Recorder& record,
+    const HKEY hKey,
+    const std::string& label
+)
 {
     constexpr int kOutputs = 8;
     for (int skip = -1; skip < kOutputs; ++skip)
@@ -833,7 +992,11 @@ using Scenarios
     = std::tuple<EnumerateKeys, EnumerateKeysPreEx, EnumerateValues, QueryInfoKeyForms, EnumerateWhileChanging>;
 } // namespace
 
-TEMPLATE_LIST_TEST_CASE("Enumeration scenarios answer as the Win32 API does", "[oracle][enum]", Scenarios)
+TEMPLATE_LIST_TEST_CASE(
+    "Enumeration scenarios answer as the Win32 API does",
+    "[oracle][enum]",
+    Scenarios
+)
 {
     Win32Api win32;
     NativeRegistry native;

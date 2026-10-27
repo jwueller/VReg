@@ -22,7 +22,7 @@ bool IsPredefinedHKey(const HKEY hKey) noexcept
 {
     const auto value = reinterpret_cast<ULONG_PTR>(hKey);
     return value >= reinterpret_cast<ULONG_PTR>(HKEY_CLASSES_ROOT)
-           && value <= reinterpret_cast<ULONG_PTR>(HKEY_CURRENT_USER_LOCAL_SETTINGS);
+        && value <= reinterpret_cast<ULONG_PTR>(HKEY_CURRENT_USER_LOCAL_SETTINGS);
 }
 
 /// The longest key name component the registry accepts, in characters.
@@ -31,7 +31,10 @@ constexpr std::size_t kMaxKeyNameChars = 255;
 /// Splits @p path at backslashes as the native registry does: empty
 /// components are skipped, a trailing backslash is ignored, and a leading one
 /// is a bad path name.
-LSTATUS SplitPath(const std::wstring_view path, std::vector<std::wstring_view>& components)
+LSTATUS SplitPath(
+    const std::wstring_view path,
+    std::vector<std::wstring_view>& components
+)
 {
     components.clear();
     if (!path.empty() && path.front() == L'\\')
@@ -84,7 +87,10 @@ void CopyValue(
         std::memset(pbBuffer + cbWhole, 0, sizeof(wchar_t));
 }
 
-std::span<const std::byte> AsBytes(const BYTE* const pb, const DWORD cb) noexcept
+std::span<const std::byte> AsBytes(
+    const BYTE* const pb,
+    const DWORD cb
+) noexcept
 {
     return {reinterpret_cast<const std::byte*>(pb), pb ? cb : 0};
 }
@@ -189,10 +195,13 @@ bool MatchesNative(
 }
 } // namespace
 
-VirtualRegistry::VirtualRegistry(Registry* const pBase, const NtQueryKeyFunction pfnNtQueryKey) noexcept
-    : m_pBase(pBase)
-    , m_pfnNtQueryKey(pfnNtQueryKey)
-    , m_pMounts(nullptr)
+VirtualRegistry::VirtualRegistry(
+    Registry* const pBase,
+    const NtQueryKeyFunction pfnNtQueryKey
+) noexcept :
+    m_pBase(pBase),
+    m_pfnNtQueryKey(pfnNtQueryKey),
+    m_pMounts(nullptr)
 {
     if (!m_pfnNtQueryKey)
     {
@@ -238,9 +247,14 @@ try
     auto* const pNew = new MountTable(pOld ? *pOld : MountTable{});
     for (const auto& existing : pNew->mounts)
     {
-        if (existing.hRoot == hRoot && std::ranges::equal(existing.path, mount.path, [](const auto& a, const auto& b) {
+        if (existing.hRoot == hRoot && std::ranges::equal(
+            existing.path,
+            mount.path,
+            [](const auto& a, const auto& b)
+            {
                 return CompareNames(a, b) == 0;
-            }))
+            }
+        ))
         {
             delete pNew;
             return ERROR_ALREADY_EXISTS;
@@ -267,7 +281,10 @@ const VirtualRegistry::MountTable& VirtualRegistry::Mounts() const noexcept
 
 bool VirtualRegistry::IsMounted(const Hive* const pHive) const noexcept
 {
-    return std::ranges::any_of(Mounts().mounts, [&](const MountPoint& mount) { return mount.pHive == pHive; });
+    return std::ranges::any_of(
+        Mounts().mounts,
+        [&](const MountPoint& mount) { return mount.pHive == pHive; }
+    );
 }
 
 bool VirtualRegistry::ResolveNative(
@@ -283,11 +300,13 @@ bool VirtualRegistry::ResolveNative(
         [&](const MountPoint& mount)
         {
             return !mount.path.empty()
-                   && std::ranges::any_of(
-                       subComponents,
-                       [&](const std::wstring_view component)
-                       { return CompareNames(component, mount.path.back()) == 0; }
-                   );
+                && std::ranges::any_of(
+                    subComponents,
+                    [&](const std::wstring_view component)
+                    {
+                        return CompareNames(component, mount.path.back()) == 0;
+                    }
+                );
         }
     );
     if (!isGated || !m_pfnNtQueryKey || IsVirtualHKey(hKey))
@@ -299,7 +318,13 @@ bool VirtualRegistry::ResolveNative(
     {
         ULONG cbResult = 0;
         const auto ntStatus
-            = m_pfnNtQueryKey(hKey, kKeyNameInformation, buffer.data(), static_cast<ULONG>(buffer.size()), &cbResult);
+            = m_pfnNtQueryKey(
+                hKey,
+                kKeyNameInformation,
+                buffer.data(),
+                static_cast<ULONG>(buffer.size()),
+                &cbResult
+            );
         if (ntStatus >= 0)
             break;
         if ((ntStatus != kStatusBufferOverflow && ntStatus != kStatusBufferTooSmall) || cbResult <= buffer.size())
@@ -352,7 +377,10 @@ bool VirtualRegistry::ResolveNative(
         return false;
 
     target.pNode = pBest->pHive->Root();
-    target.rest.assign(full.begin() + static_cast<std::ptrdiff_t>(iBestRest), full.end());
+    target.rest.assign(
+        full.begin() + static_cast<std::ptrdiff_t>(iBestRest),
+        full.end()
+    );
     target.pNativeText = std::move(pText);
     return true;
 }
@@ -400,9 +428,15 @@ VirtualRegistry::Target VirtualRegistry::Resolve(
                 || !Admits(mount.view, callView))
                 continue;
 
-            if (!std::equal(mount.path.begin(), mount.path.end(), components.begin(), [](const auto& a, const auto& b) {
+            if (!std::equal(
+                mount.path.begin(),
+                mount.path.end(),
+                components.begin(),
+                [](const auto& a, const auto& b)
+                {
                     return CompareNames(a, b) == 0;
-                }))
+                }
+            ))
                 continue;
 
             if (!pBest || mount.path.size() > pBest->path.size())
@@ -412,7 +446,10 @@ VirtualRegistry::Target VirtualRegistry::Resolve(
         if (pBest)
         {
             target.pNode = pBest->pHive->Root();
-            target.rest.assign(components.begin() + pBest->path.size(), components.end());
+            target.rest.assign(
+                components.begin() + pBest->path.size(),
+                components.end()
+            );
             return target;
         }
 
@@ -466,7 +503,12 @@ try
         return ERROR_ACCESS_DENIED;
 
     OpenResult result;
-    const auto status = Hive::HiveOf(target.pNode)->OpenKey(target.pNode, target.rest, samDesired, result);
+    const auto status = Hive::HiveOf(target.pNode)->OpenKey(
+        target.pNode,
+        target.rest,
+        samDesired,
+        result
+    );
     if (status != ERROR_SUCCESS)
         return status;
 
@@ -596,7 +638,12 @@ try
 
     DWORD dwType{};
     std::vector<std::byte> value;
-    const auto status = Hive::HiveOf(target.pNode)->QueryValue(target.pNode, View(lpValueName), dwType, value);
+    const auto status = Hive::HiveOf(target.pNode)->QueryValue(
+        target.pNode,
+        View(lpValueName),
+        dwType,
+        value
+    );
     if (status != ERROR_SUCCESS)
         return status;
 
@@ -653,7 +700,12 @@ try
     if (!lpData && cbData)
         return ERROR_NOACCESS;
 
-    return Hive::HiveOf(target.pNode)->SetValue(target.pNode, View(lpValueName), dwType, AsBytes(lpData, cbData));
+    return Hive::HiveOf(target.pNode)->SetValue(
+        target.pNode,
+        View(lpValueName),
+        dwType,
+        AsBytes(lpData, cbData)
+    );
 }
 catch (const std::bad_alloc&)
 {
@@ -676,7 +728,10 @@ try
     if (!target.pNode)
         return target.status;
 
-    return Hive::HiveOf(target.pNode)->DeleteValue(target.pNode, View(lpValueName));
+    return Hive::HiveOf(target.pNode)->DeleteValue(
+        target.pNode,
+        View(lpValueName)
+    );
 }
 catch (const std::bad_alloc&)
 {
@@ -730,7 +785,12 @@ try
 
     auto* const pHive = Hive::HiveOf(target.pNode);
     OpenResult result;
-    const auto opened = pHive->OpenKey(target.pNode, target.rest, KEY_ALL_ACCESS, result);
+    const auto opened = pHive->OpenKey(
+        target.pNode,
+        target.rest,
+        KEY_ALL_ACCESS,
+        result
+    );
     if (opened != ERROR_SUCCESS)
         return opened;
 
@@ -794,7 +854,13 @@ try
     std::wstring name;
     std::wstring className;
     FILETIME lastWrite{};
-    const auto status = Hive::HiveOf(target.pNode)->EnumKey(target.pNode, dwIndex, name, className, lastWrite);
+    const auto status = Hive::HiveOf(target.pNode)->EnumKey(
+        target.pNode,
+        dwIndex,
+        name,
+        className,
+        lastWrite
+    );
     if (status != ERROR_SUCCESS)
         return status;
 
@@ -810,7 +876,11 @@ try
     *lpcchName = static_cast<DWORD>(name.size());
     if (lpClass)
     {
-        std::memcpy(lpClass, className.c_str(), (className.size() + 1) * sizeof(wchar_t));
+        std::memcpy(
+            lpClass,
+            className.c_str(),
+            (className.size() + 1) * sizeof(wchar_t)
+        );
         *lpcchClass = static_cast<DWORD>(className.size());
     }
 
@@ -862,7 +932,13 @@ try
     std::wstring name;
     DWORD dwType{};
     std::vector<std::byte> value;
-    const auto status = Hive::HiveOf(target.pNode)->EnumValue(target.pNode, dwIndex, name, dwType, value);
+    const auto status = Hive::HiveOf(target.pNode)->EnumValue(
+        target.pNode,
+        dwIndex,
+        name,
+        dwType,
+        value
+    );
     if (status != ERROR_SUCCESS)
         return status;
 
@@ -882,7 +958,11 @@ try
     const bool isNameFit = name.size() < *lpcchValueName;
     if (isNameFit)
     {
-        std::memcpy(lpValueName, name.c_str(), (name.size() + 1) * sizeof(wchar_t));
+        std::memcpy(
+            lpValueName,
+            name.c_str(),
+            (name.size() + 1) * sizeof(wchar_t)
+        );
         *lpcchValueName = static_cast<DWORD>(name.size());
     }
 
@@ -939,7 +1019,10 @@ try
         return target.status;
 
     KeyInfo info;
-    const auto status = Hive::HiveOf(target.pNode)->QueryInfo(target.pNode, info);
+    const auto status = Hive::HiveOf(target.pNode)->QueryInfo(
+        target.pNode,
+        info
+    );
     if (status != ERROR_SUCCESS)
         return status;
 
@@ -973,7 +1056,11 @@ try
             *lpcchClass = cchClass - 1;
             return ERROR_INSUFFICIENT_BUFFER;
         }
-        std::memcpy(lpClass, info.className.c_str(), (info.className.size() + 1) * sizeof(wchar_t));
+        std::memcpy(
+            lpClass,
+            info.className.c_str(),
+            (info.className.size() + 1) * sizeof(wchar_t)
+        );
     }
 
     if (lpClass && lpcchClass && (*lpcchClass != 0 || lpcbMaxClassLen))
@@ -1021,7 +1108,11 @@ try
 
     auto* const pHive = Hive::HiveOf(target.pNode);
     HKEY hLower{};
-    const auto opened = pHive->OpenLowerValueKey(target.pNode, View(pszValue), hLower);
+    const auto opened = pHive->OpenLowerValueKey(
+        target.pNode,
+        View(pszValue),
+        hLower
+    );
     if (opened != ERROR_SUCCESS)
         return opened;
 
@@ -1047,7 +1138,12 @@ try
 
     DWORD dwType{};
     std::vector<std::byte> value;
-    const auto status = pHive->QueryValue(target.pNode, View(pszValue), dwType, value);
+    const auto status = pHive->QueryValue(
+        target.pNode,
+        View(pszValue),
+        dwType,
+        value
+    );
     if (status != ERROR_SUCCESS)
         return status;
 
@@ -1072,7 +1168,9 @@ try
     const auto target = Resolve(
         hkey,
         View(lpSubKey),
-        ((dwFlags & RRF_SUBKEY_WOW6464KEY) ? KEY_WOW64_64KEY : 0) | ((dwFlags & RRF_SUBKEY_WOW6432KEY) ? KEY_WOW64_32KEY : 0)
+        ((dwFlags & RRF_SUBKEY_WOW6464KEY) ? KEY_WOW64_64KEY : 0) | ((dwFlags & RRF_SUBKEY_WOW6432KEY)
+                                                                         ? KEY_WOW64_32KEY
+                                                                         : 0)
     );
     if (target.isBase)
         return m_pBase->GetValueW(
@@ -1105,7 +1203,12 @@ try
     if (!target.rest.empty())
     {
         OpenResult result;
-        const auto opened = pHive->OpenKey(target.pNode, target.rest, KEY_QUERY_VALUE, result);
+        const auto opened = pHive->OpenKey(
+            target.pNode,
+            target.rest,
+            KEY_QUERY_VALUE,
+            result
+        );
         if (opened != ERROR_SUCCESS)
             return fail(opened);
 
@@ -1170,9 +1273,17 @@ try
         if (dwType == REG_EXPAND_SZ && !(dwFlags & RRF_NOEXPAND))
         {
             const auto* const pszRaw = reinterpret_cast<const wchar_t*>(value.data());
-            const DWORD cwchExpanded = ExpandEnvironmentStringsW(pszRaw, nullptr, 0);
+            const DWORD cwchExpanded = ExpandEnvironmentStringsW(
+                pszRaw,
+                nullptr,
+                0
+            );
             stages[2].resize(static_cast<std::size_t>(cwchExpanded) * sizeof(wchar_t));
-            ExpandEnvironmentStringsW(pszRaw, reinterpret_cast<wchar_t*>(stages[2].data()), cwchExpanded);
+            ExpandEnvironmentStringsW(
+                pszRaw,
+                reinterpret_cast<wchar_t*>(stages[2].data()),
+                cwchExpanded
+            );
             const auto cbExpanded = static_cast<DWORD>(stages[2].size());
             cbReported = std::max(cbReported, cbExpanded);
             dwType = REG_SZ;
@@ -1224,7 +1335,7 @@ try
     // Binary data passes as a DWORD only when it is empty or has that size. Agent's choice: native was measured
     // with sizes 0 and 5 only; rejecting every other size is a guess for 1 to 3 and 6 or more.
     const bool isSizeMismatch = dwType == REG_BINARY && (dwFlags & RRF_RT_ANY) == RRF_RT_DWORD
-                                && !stages[0].empty() && stages[0].size() != sizeof(DWORD);
+        && !stages[0].empty() && stages[0].size() != sizeof(DWORD);
 
     LSTATUS status = ERROR_SUCCESS;
     if (!isAllowed)
@@ -1263,13 +1374,18 @@ try
         return target.status;
 
     constexpr DWORD kKnownFilters = REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_ATTRIBUTES | REG_NOTIFY_CHANGE_LAST_SET
-                                    | REG_NOTIFY_CHANGE_SECURITY | REG_NOTIFY_THREAD_AGNOSTIC;
+        | REG_NOTIFY_CHANGE_SECURITY | REG_NOTIFY_THREAD_AGNOSTIC;
     if ((dwNotifyFilter & ~kKnownFilters) || (fAsynchronous && !hEvent))
         return ERROR_INVALID_PARAMETER;
 
     auto& hive = *Hive::HiveOf(target.pNode);
     if (fAsynchronous)
-        return hive.Watch(target.pNode, bWatchSubtree != FALSE, dwNotifyFilter, hEvent);
+        return hive.Watch(
+            target.pNode,
+            bWatchSubtree != FALSE,
+            dwNotifyFilter,
+            hEvent
+        );
 
     // Agent's choice: a synchronous call waits for the change like the native one, on a private event, so a
     // watcher thread written for the native registry behaves the same (and, as there, never returns on a key
@@ -1279,7 +1395,12 @@ try
     if (!hOwn)
         return GetLastError();
 
-    const auto status = hive.Watch(target.pNode, bWatchSubtree != FALSE, dwNotifyFilter, hOwn);
+    const auto status = hive.Watch(
+        target.pNode,
+        bWatchSubtree != FALSE,
+        dwNotifyFilter,
+        hOwn
+    );
     if (status == ERROR_SUCCESS)
         WaitForSingleObject(hOwn, INFINITE);
 

@@ -40,7 +40,9 @@ std::vector<Entry> AsciiEntries()
         {L"RT", L"odd", {REG_SZ, {std::byte{0x61}, std::byte{0}, std::byte{0x62}}}},
         {L"RT", L"zero bytes", {REG_SZ, {}}},
         {L"RT", L"expand", {REG_EXPAND_SZ, StringBytes(L"%SystemRoot%\\x")}},
-        {L"RT", L"multi", {REG_MULTI_SZ, BytesOf(std::wstring(L"one\0two\0\0", 9))}},
+        {L"RT", L"multi", {REG_MULTI_SZ, BytesOf(
+            std::wstring(L"one\0two\0\0", 9)
+        )}},
         {L"RT", L"dword", {REG_DWORD, DwordBytes(0xDEADBEEF)}},
         {L"RT", L"dword zero", {REG_DWORD, DwordBytes(0)}},
         {L"RT", L"dword short", {REG_DWORD, Counting(3)}},
@@ -70,7 +72,13 @@ std::vector<Entry> AsciiEntries()
 void Populate(Registry& registry, const std::vector<Entry>& entries)
 {
     for (const auto& entry : entries)
-        MustSet(registry, entry.pszKey, entry.name.c_str(), entry.value.dwType, entry.value.data);
+        MustSet(
+            registry,
+            entry.pszKey,
+            entry.name.c_str(),
+            entry.value.dwType,
+            entry.value.data
+        );
 }
 
 void CheckSame(Registry& registry, const std::vector<Entry>& entries)
@@ -79,7 +87,13 @@ void CheckSame(Registry& registry, const std::vector<Entry>& entries)
     {
         const auto& entry = entries[i];
         INFO("entry " << i);
-        CheckValue(registry, entry.pszKey, entry.name.c_str(), entry.value.dwType, entry.value.data);
+        CheckValue(
+            registry,
+            entry.pszKey,
+            entry.name.c_str(),
+            entry.value.dwType,
+            entry.value.data
+        );
     }
 }
 
@@ -91,7 +105,15 @@ void RoundTrip(const std::vector<Entry>& entries, const Format format)
     Populate(sourceRegistry, entries);
 
     std::vector<std::byte> file;
-    REQUIRE(ExportSnapshot(sourceRegistry, HKEY_CURRENT_USER, L"RT", format, file) == ERROR_SUCCESS);
+    REQUIRE(
+        ExportSnapshot(
+            sourceRegistry,
+            HKEY_CURRENT_USER,
+            L"RT",
+            format,
+            file
+        ) == ERROR_SUCCESS
+    );
 
     Script script;
     ParseError error;
@@ -105,14 +127,26 @@ void RoundTrip(const std::vector<Entry>& entries, const Format format)
     CheckSame(targetRegistry, entries);
 
     std::vector<std::byte> again;
-    REQUIRE(ExportSnapshot(targetRegistry, HKEY_CURRENT_USER, L"RT", format, again) == ERROR_SUCCESS);
+    REQUIRE(
+        ExportSnapshot(
+            targetRegistry,
+            HKEY_CURRENT_USER,
+            L"RT",
+            format,
+            again
+        ) == ERROR_SUCCESS
+    );
     CHECK(again == file);
 }
 } // namespace
 
 TEST_CASE("Every value type survives a round trip in every format")
 {
-    const auto format = GENERATE(Format::Unicode, Format::Utf8, Format::Regedit4);
+    const auto format = GENERATE(
+        Format::Unicode,
+        Format::Utf8,
+        Format::Regedit4
+    );
     INFO("format " << static_cast<int>(format));
     RoundTrip(AsciiEntries(), format);
 }
@@ -149,13 +183,29 @@ TEST_CASE("Applying an export over the same data changes nothing")
     Populate(registry, entries);
 
     std::vector<std::byte> file;
-    REQUIRE(ExportSnapshot(registry, HKEY_CURRENT_USER, L"RT", Format::Unicode, file) == ERROR_SUCCESS);
+    REQUIRE(
+        ExportSnapshot(
+            registry,
+            HKEY_CURRENT_USER,
+            L"RT",
+            Format::Unicode,
+            file
+        ) == ERROR_SUCCESS
+    );
     Script script;
     REQUIRE(Parse(file, script, nullptr) == ERROR_SUCCESS);
     REQUIRE(Apply(script, registry, nullptr) == ERROR_SUCCESS);
 
     std::vector<std::byte> again;
-    REQUIRE(ExportSnapshot(registry, HKEY_CURRENT_USER, L"RT", Format::Unicode, again) == ERROR_SUCCESS);
+    REQUIRE(
+        ExportSnapshot(
+            registry,
+            HKEY_CURRENT_USER,
+            L"RT",
+            Format::Unicode,
+            again
+        ) == ERROR_SUCCESS
+    );
     CHECK(again == file);
 }
 
@@ -165,7 +215,15 @@ TEST_CASE("The exported file ends where regedit's does")
     AppHiveRegistry registry(hive.Root());
     Populate(registry, AsciiEntries());
     std::vector<std::byte> file;
-    REQUIRE(ExportSnapshot(registry, HKEY_CURRENT_USER, L"RT", Format::Utf8, file) == ERROR_SUCCESS);
+    REQUIRE(
+        ExportSnapshot(
+            registry,
+            HKEY_CURRENT_USER,
+            L"RT",
+            Format::Utf8,
+            file
+        ) == ERROR_SUCCESS
+    );
     const auto text = AsString(file);
     CHECK(text.starts_with("Windows Registry Editor Version 5.00\r\n\r\n[HKEY_CURRENT_USER\\RT]\r\n"));
     CHECK(text.ends_with("\r\n\r\n"));

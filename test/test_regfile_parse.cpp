@@ -110,16 +110,30 @@ TEST_CASE("Unusable files are rejected whole")
     }
     SECTION("a wrong header")
     {
-        CHECK(Parse(RawFile("Windows Registry Editor Version 4.00\r\n"), script, &error) == ERROR_INVALID_DATA);
+        CHECK(
+            Parse(
+                RawFile("Windows Registry Editor Version 4.00\r\n"),
+                script,
+                &error
+            ) == ERROR_INVALID_DATA
+        );
         CHECK(error.line == 1);
     }
     SECTION("a header after a comment")
     {
-        CHECK(Parse(RawFile("; hi\r\nREGEDIT4\r\n"), script, &error) == ERROR_INVALID_DATA);
+        CHECK(
+            Parse(
+                RawFile("; hi\r\nREGEDIT4\r\n"),
+                script,
+                &error
+            ) == ERROR_INVALID_DATA
+        );
     }
     SECTION("big-endian UTF-16")
     {
-        CHECK(Parse(RawFile("\xFE\xFF\0W"), script, &error) == ERROR_INVALID_DATA);
+        CHECK(
+            Parse(RawFile("\xFE\xFF\0W"), script, &error) == ERROR_INVALID_DATA
+        );
     }
     SECTION("UTF-16 with a stray byte")
     {
@@ -130,7 +144,11 @@ TEST_CASE("Unusable files are rejected whole")
     SECTION("invalid UTF-8")
     {
         CHECK(
-            Parse(RawFile("Windows Registry Editor Version 5.00\n[HKEY_CURRENT_USER\\T]\n\"a\"=\"\xFF\"\n"), script, &error) ==
+            Parse(
+                RawFile("Windows Registry Editor Version 5.00\n[HKEY_CURRENT_USER\\T]\n\"a\"=\"\xFF\"\n"),
+                script,
+                &error
+            ) ==
             ERROR_INVALID_DATA
         );
     }
@@ -142,7 +160,13 @@ TEST_CASE("A header alone is an empty script")
 {
     Script script;
     script.operations.emplace_back();
-    REQUIRE(Parse(Utf16File(L"REGEDIT4\r\n\r\n; nothing\r\n"), script, nullptr) == ERROR_SUCCESS);
+    REQUIRE(
+        Parse(
+            Utf16File(L"REGEDIT4\r\n\r\n; nothing\r\n"),
+            script,
+            nullptr
+        ) == ERROR_SUCCESS
+    );
     CHECK(script.operations.empty());
 }
 
@@ -392,7 +416,13 @@ TEST_CASE("ParseFile reads a file and reports a missing one")
     Script script;
     CHECK(ParseFile(path, script, nullptr) == ERROR_SUCCESS);
     CHECK(script.operations.size() == 2);
-    CHECK(ParseFile(directory / L"missing.reg", script, nullptr) == ERROR_FILE_NOT_FOUND);
+    CHECK(
+        ParseFile(
+            directory / L"missing.reg",
+            script,
+            nullptr
+        ) == ERROR_FILE_NOT_FOUND
+    );
 
     std::filesystem::remove_all(directory);
 }

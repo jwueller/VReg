@@ -496,9 +496,21 @@ struct DefaultValue
     template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
     {
         const BYTE kText[] = "text";
-        QueryMatrix(api, record, hRoot, static_cast<LPCWSTR>(nullptr), "unset null W");
+        QueryMatrix(
+            api,
+            record,
+            hRoot,
+            static_cast<LPCWSTR>(nullptr),
+            "unset null W"
+        );
         QueryMatrix(api, record, hRoot, L"", "unset empty W");
-        QueryMatrix(api, record, hRoot, static_cast<LPCSTR>(nullptr), "unset null A");
+        QueryMatrix(
+            api,
+            record,
+            hRoot,
+            static_cast<LPCSTR>(nullptr),
+            "unset null A"
+        );
         QueryMatrix(api, record, hRoot, "", "unset empty A");
 
         RECORD(
@@ -512,7 +524,13 @@ struct DefaultValue
                 8
             )
         );
-        QueryMatrix(api, record, hRoot, static_cast<LPCWSTR>(nullptr), "null W");
+        QueryMatrix(
+            api,
+            record,
+            hRoot,
+            static_cast<LPCWSTR>(nullptr),
+            "null W"
+        );
         QueryMatrix(api, record, hRoot, L"", "empty W");
         QueryMatrix(api, record, hRoot, static_cast<LPCSTR>(nullptr), "null A");
         QueryMatrix(api, record, hRoot, "", "empty A");
@@ -528,7 +546,13 @@ struct DefaultValue
                 5
             )
         );
-        QueryMatrix(api, record, hRoot, static_cast<LPCWSTR>(nullptr), "after A null W");
+        QueryMatrix(
+            api,
+            record,
+            hRoot,
+            static_cast<LPCWSTR>(nullptr),
+            "after A null W"
+        );
 
         RECORD(
             "set null A",
@@ -1477,7 +1501,13 @@ struct SetKeyValueForms
                 continue;
             }
             for (const auto* const pszName : {L"v", L"v\u4e2d", L""})
-                QueryMatrix(api, record, hKey, pszName, "check " + label + " " + Narrow(pszName));
+                QueryMatrix(
+                    api,
+                    record,
+                    hKey,
+                    pszName,
+                    "check " + label + " " + Narrow(pszName)
+                );
             RECORD(
                 "close " + label,
                 api.CloseKey(
@@ -1703,7 +1733,11 @@ using Scenarios = std::tuple<
     DeleteKeyValueForms>;
 } // namespace
 
-TEMPLATE_LIST_TEST_CASE("Value scenarios answer as the Win32 API does", "[oracle][values]", Scenarios)
+TEMPLATE_LIST_TEST_CASE(
+    "Value scenarios answer as the Win32 API does",
+    "[oracle][values]",
+    Scenarios
+)
 {
     Win32Api win32;
     NativeRegistry native;

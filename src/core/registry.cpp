@@ -19,7 +19,8 @@ constexpr DWORD kInitialNameChars = 256;
 constexpr DWORD kMaxClassChars = 32768;
 constexpr DWORD kMaxValueNameChars = 16384;
 
-template <class Function> LSTATUS Guard(Function&& function) noexcept
+template <class Function>
+LSTATUS Guard(Function&& function) noexcept
 {
     try
     {
@@ -53,7 +54,11 @@ bool IsStringType(const DWORD dwType) noexcept
 /// False if it does not fit: native then writes nothing unless the buffer is
 /// exactly the text's length, in which case it writes the text with its last
 /// character replaced by the terminator.
-bool CopyAnsiName(const std::string& text, LPSTR const pszBuffer, const DWORD cchBuffer) noexcept
+bool CopyAnsiName(
+    const std::string& text,
+    LPSTR const pszBuffer,
+    const DWORD cchBuffer
+) noexcept
 {
     if (!pszBuffer)
         return false;
@@ -75,7 +80,11 @@ bool CopyAnsiName(const std::string& text, LPSTR const pszBuffer, const DWORD cc
 
 /// Like @ref CopyAnsiName for a class buffer, which native fills with as much
 /// of the text as fits (and a terminator) whenever it has room for one.
-bool CopyAnsiClass(const std::string& text, LPSTR const pszBuffer, const DWORD cchBuffer) noexcept
+bool CopyAnsiClass(
+    const std::string& text,
+    LPSTR const pszBuffer,
+    const DWORD cchBuffer
+) noexcept
 {
     if (cchBuffer == 0)
         return false;
@@ -214,12 +223,19 @@ LSTATUS Registry::QueryValueExA(
                 );
 
             std::vector<std::byte> value;
-            const auto read = QueryValue(hKey, valueName.Get(), &dwType, value);
+            const auto read = QueryValue(
+                hKey,
+                valueName.Get(),
+                &dwType,
+                value
+            );
             if (read != ERROR_SUCCESS)
                 return read;
 
-            const auto text
-                = AnsiFromWide(reinterpret_cast<const wchar_t*>(value.data()), value.size() / sizeof(wchar_t));
+            const auto text = AnsiFromWide(
+                reinterpret_cast<const wchar_t*>(value.data()),
+                value.size() / sizeof(wchar_t)
+            );
             const auto cbText = static_cast<DWORD>(text.size());
             LSTATUS status = ERROR_SUCCESS;
             if (lpData)
@@ -276,7 +292,10 @@ LSTATUS Registry::SetValueExA(
                     cbData
                 );
 
-            auto text = WideFromAnsi(reinterpret_cast<const char*>(lpData), cbData);
+            auto text = WideFromAnsi(
+                reinterpret_cast<const char*>(lpData),
+                cbData
+            );
             // Native reads the byte after unterminated data and keeps it as the terminator when it is zero, which it
             // nearly always is. Agent's choice: always terminate, so no byte past cbData is ever read; reading it,
             // as native does, can fault at the end of a page.
@@ -417,7 +436,10 @@ LSTATUS Registry::EnumKeyExA(
             }
             else if (lpcchClass)
             {
-                const auto classA = AnsiFromWide(className.data(), className.size());
+                const auto classA = AnsiFromWide(
+                    className.data(),
+                    className.size()
+                );
                 if (!CopyAnsiClass(classA, lpClass, *lpcchClass))
                     return ERROR_MORE_DATA;
                 *lpcchClass = static_cast<DWORD>(classA.size());
@@ -448,7 +470,13 @@ LSTATUS Registry::EnumValueA(
             std::wstring name;
             DWORD dwType{};
             std::vector<std::byte> value;
-            const auto status = EnumValue(hKey, dwIndex, name, &dwType, lpcbData ? &value : nullptr);
+            const auto status = EnumValue(
+                hKey,
+                dwIndex,
+                name,
+                &dwType,
+                lpcbData ? &value : nullptr
+            );
             if (status != ERROR_SUCCESS)
                 return status;
 
@@ -458,7 +486,10 @@ LSTATUS Registry::EnumValueA(
             DWORD cbValue = static_cast<DWORD>(value.size());
             if (lpcbData && isString)
             {
-                text = AnsiFromWide(reinterpret_cast<const wchar_t*>(value.data()), value.size() / sizeof(wchar_t));
+                text = AnsiFromWide(
+                    reinterpret_cast<const wchar_t*>(value.data()),
+                    value.size() / sizeof(wchar_t)
+                );
                 cbValue = static_cast<DWORD>(text.size());
             }
 
@@ -479,7 +510,11 @@ LSTATUS Registry::EnumValueA(
                 return ERROR_MORE_DATA;
             }
 
-            const bool nameFits = CopyAnsiName(nameA, lpValueName, *lpcchValueName);
+            const bool nameFits = CopyAnsiName(
+                nameA,
+                lpValueName,
+                *lpcchValueName
+            );
             if (lpData)
             {
                 if (isString)
@@ -586,7 +621,10 @@ LSTATUS Registry::QueryInfoKeyA(
                 return status;
             }
 
-            const auto classA = AnsiFromWide(className.data(), className.size());
+            const auto classA = AnsiFromWide(
+                className.data(),
+                className.size()
+            );
             if (wantClassLength)
             {
                 *lpcchClass = static_cast<DWORD>(classA.size());
@@ -701,7 +739,14 @@ LSTATUS Registry::GetValueA(
                 );
 
             std::vector<std::byte> data;
-            const auto statusRead = GetValue(hkey, subKey.Get(), value.Get(), dwFlagsRead, &dwType, data);
+            const auto statusRead = GetValue(
+                hkey,
+                subKey.Get(),
+                value.Get(),
+                dwFlagsRead,
+                &dwType,
+                data
+            );
             if (statusRead != ERROR_SUCCESS)
                 return statusRead;
 
@@ -712,7 +757,14 @@ LSTATUS Registry::GetValueA(
             {
                 DWORD dwReadType{};
                 DWORD cbStoredQuery = 0;
-                const auto statusStored = GetValue(hkey, subKey.Get(), value.Get(), dwFlagsStored, &dwReadType, stored);
+                const auto statusStored = GetValue(
+                    hkey,
+                    subKey.Get(),
+                    value.Get(),
+                    dwFlagsStored,
+                    &dwReadType,
+                    stored
+                );
                 if (statusStored != ERROR_SUCCESS)
                     return statusStored;
                 GetValueW(
@@ -728,7 +780,10 @@ LSTATUS Registry::GetValueA(
             }
 
             const auto text
-                = AnsiFromWide(reinterpret_cast<const wchar_t*>(data.data()), data.size() / sizeof(wchar_t));
+                = AnsiFromWide(
+                    reinterpret_cast<const wchar_t*>(data.data()),
+                    data.size() / sizeof(wchar_t)
+                );
             const auto cbText = static_cast<DWORD>(text.size());
             // What a call that cannot return the text reports as its size: room for the terminator the wide
             // form reserves; for an expanded value, the larger of the unexpanded text and the expansion, and
@@ -739,10 +794,18 @@ LSTATUS Registry::GetValueA(
             {
                 const auto storedChars = reinterpret_cast<const wchar_t*>(stored.data());
                 const auto cbRawText
-                    = static_cast<DWORD>(AnsiFromWide(storedChars, cbStoredRaw / sizeof(wchar_t)).size());
+                    = static_cast<DWORD>(
+                        AnsiFromWide(
+                            storedChars,
+                            cbStoredRaw / sizeof(wchar_t)
+                        ).size()
+                    );
                 const auto ibNul = text.find('\0');
                 const DWORD cbExpanded = ibNul == std::string::npos ? cbText : static_cast<DWORD>(ibNul + 1);
-                cbReported = std::max(cbRawText, cbExpanded) + (cbExpanded > cbRawText ? 1 : 0);
+                cbReported = std::max(
+                    cbRawText,
+                    cbExpanded
+                ) + (cbExpanded > cbRawText ? 1 : 0);
             }
             const DWORD cbBuffer = pcbData ? *pcbData : 0;
             const DWORD cbNeeded = isExpanded ? cbText + 1 : cbText;
@@ -771,8 +834,19 @@ LSTATUS Registry::GetValueA(
                     if (!storedText.empty() && storedText.size() <= cbBuffer)
                     {
                         if (cbStoredRaw <= cbBuffer)
-                            std::memcpy(pvData, stored.data(), std::min<std::size_t>(cbStoredRaw, stored.size()));
-                        std::memcpy(pvData, storedText.data(), storedText.size());
+                            std::memcpy(
+                                pvData,
+                                stored.data(),
+                                std::min<std::size_t>(
+                                    cbStoredRaw,
+                                    stored.size()
+                                )
+                            );
+                        std::memcpy(
+                            pvData,
+                            storedText.data(),
+                            storedText.size()
+                        );
                         *static_cast<char*>(pvData) = '\0';
                         *pcbData = cbNeeded;
                     }
@@ -789,13 +863,21 @@ LSTATUS Registry::GetValueA(
             if (isExpanded)
             {
                 if (cbStoredRaw <= cbBuffer)
-                    std::memcpy(pbData, stored.data(), std::min<std::size_t>(cbStoredRaw, stored.size()));
+                    std::memcpy(
+                        pbData,
+                        stored.data(),
+                        std::min<std::size_t>(cbStoredRaw, stored.size())
+                    );
             }
             else
             {
                 const DWORD cbStored = cbQuery - std::min<DWORD>(cbQuery, dwType == REG_MULTI_SZ ? 4 : 2);
                 if (cbStored <= cbBuffer)
-                    std::memcpy(pbData, data.data(), std::min<std::size_t>(cbStored, data.size()));
+                    std::memcpy(
+                        pbData,
+                        data.data(),
+                        std::min<std::size_t>(cbStored, data.size())
+                    );
             }
             if (cbText > 0)
             {
@@ -1360,7 +1442,11 @@ LSTATUS Registry::QueryMultipleValuesW(
                 const DWORD cbValue = placed[i].cbValue;
                 const DWORD ibValue = i == 0 ? 0 : AlignedToDword(cbEnd);
                 if (ibValue > cbEnd && cbEnd < cbBuffer)
-                    std::memset(pbBuffer + cbEnd, 0, std::min(ibValue, cbBuffer) - cbEnd);
+                    std::memset(
+                        pbBuffer + cbEnd,
+                        0,
+                        std::min(ibValue, cbBuffer) - cbEnd
+                    );
 
                 placed[i].ibValue = ibValue;
                 if (ibValue + cbValue <= cbBuffer)
@@ -1611,7 +1697,14 @@ LSTATUS Registry::GetString(
         {
             const DWORD dwTypeFlags = RRF_RT_REG_SZ | ((dwFlags & RRF_NOEXPAND) ? RRF_RT_REG_EXPAND_SZ : 0);
             std::vector<std::byte> data;
-            const auto status = GetValue(hKey, lpSubKey, lpValue, (dwFlags & ~RRF_RT_ANY) | dwTypeFlags, nullptr, data);
+            const auto status = GetValue(
+                hKey,
+                lpSubKey,
+                lpValue,
+                (dwFlags & ~RRF_RT_ANY) | dwTypeFlags,
+                nullptr,
+                data
+            );
             if (status != ERROR_SUCCESS)
                 return status;
 
@@ -1694,7 +1787,10 @@ LSTATUS Registry::EnumValue(
                 );
                 if (status == ERROR_MORE_DATA)
                 {
-                    cchName = std::min(Grown(cchName, cchRead + 1), kMaxValueNameChars);
+                    cchName = std::min(
+                        Grown(cchName, cchRead + 1),
+                        kMaxValueNameChars
+                    );
                     if (pData)
                         cbData = Grown(cbData, cbRead);
                     if (pData && isSized)

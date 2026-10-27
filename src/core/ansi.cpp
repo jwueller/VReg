@@ -14,10 +14,24 @@ std::wstring WideFromAnsi(const char* const pch, const std::size_t cch)
         throw std::length_error("ANSI string too long");
 
     const auto cchBytes = static_cast<int>(cch);
-    const auto cchWide = MultiByteToWideChar(CP_ACP, 0, pch, cchBytes, nullptr, 0);
+    const auto cchWide = MultiByteToWideChar(
+        CP_ACP,
+        0,
+        pch,
+        cchBytes,
+        nullptr,
+        0
+    );
     std::wstring text(static_cast<std::size_t>(cchWide), L'\0');
     if (cchWide > 0)
-        MultiByteToWideChar(CP_ACP, 0, pch, cchBytes, text.data(), cchWide);
+        MultiByteToWideChar(
+            CP_ACP,
+            0,
+            pch,
+            cchBytes,
+            text.data(),
+            cchWide
+        );
     return text;
 }
 
@@ -29,15 +43,33 @@ std::string AnsiFromWide(const wchar_t* const pch, const std::size_t cch)
         throw std::length_error("UTF-16 string too long");
 
     const auto cchUnits = static_cast<int>(cch);
-    const auto cchAnsi = WideCharToMultiByte(CP_ACP, 0, pch, cchUnits, nullptr, 0, nullptr, nullptr);
+    const auto cchAnsi = WideCharToMultiByte(
+        CP_ACP,
+        0,
+        pch,
+        cchUnits,
+        nullptr,
+        0,
+        nullptr,
+        nullptr
+    );
     std::string text(static_cast<std::size_t>(cchAnsi), '\0');
     if (cchAnsi > 0)
-        WideCharToMultiByte(CP_ACP, 0, pch, cchUnits, text.data(), cchAnsi, nullptr, nullptr);
+        WideCharToMultiByte(
+            CP_ACP,
+            0,
+            pch,
+            cchUnits,
+            text.data(),
+            cchAnsi,
+            nullptr,
+            nullptr
+        );
     return text;
 }
 
-WideArg::WideArg(const LPCSTR psz)
-    : m_isNull(psz == nullptr)
+WideArg::WideArg(const LPCSTR psz) :
+    m_isNull(psz == nullptr)
 {
     if (psz != nullptr)
         m_text = WideFromAnsi(psz, std::strlen(psz));

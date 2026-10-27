@@ -69,7 +69,8 @@ enum RefusedIndex : std::size_t
 #define VREG_INDEX(name) k##name,
     VREG_REFUSED_HOOKS(VREG_INDEX)
 #undef VREG_INDEX
-        kRefusedCount
+
+    kRefusedCount
 };
 
 std::array<void*, kRefusedCount> g_refusedTargets{};
@@ -121,7 +122,12 @@ public:
 
     [[nodiscard]] bool Allocate() noexcept
     {
-        m_pbBase = static_cast<std::byte*>(VirtualAlloc(nullptr, 2 * kPageSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE));
+        m_pbBase = static_cast<std::byte*>(VirtualAlloc(
+            nullptr,
+            2 * kPageSize,
+            MEM_RESERVE | MEM_COMMIT,
+            PAGE_READWRITE
+        ));
         return m_pbBase != nullptr;
     }
 

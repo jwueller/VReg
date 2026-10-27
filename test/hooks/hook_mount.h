@@ -19,7 +19,10 @@ inline constexpr wchar_t kModuleValue[] = L"Module";
 /// Mounts a hive whose @ref kModuleValue is @p pszModule at
 /// `HKEY_CURRENT_USER\pszPath` in a registry over the real one, and installs
 /// the hooks over it. The objects are leaked: the hooks outlive the caller.
-inline LONG InstallMount(const wchar_t* const pszPath, const wchar_t* const pszModule)
+inline LONG InstallMount(
+    const wchar_t* const pszPath,
+    const wchar_t* const pszModule
+)
 {
     auto* const pHive = new MemoryHive;
     auto* const pNative = new NativeRegistry;
@@ -27,7 +30,12 @@ inline LONG InstallMount(const wchar_t* const pszPath, const wchar_t* const pszM
 
     const std::wstring_view module = pszModule;
     const auto bytes = std::as_bytes(std::span(pszModule, module.size() + 1));
-    const auto stored = pHive->SetValue(pHive->Root(), kModuleValue, REG_SZ, bytes);
+    const auto stored = pHive->SetValue(
+        pHive->Root(),
+        kModuleValue,
+        REG_SZ,
+        bytes
+    );
     if (stored != ERROR_SUCCESS)
         return stored;
 

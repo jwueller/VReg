@@ -74,7 +74,12 @@ public:
     [[nodiscard]] static Node* NodeOf(HKEY hKey) noexcept;
     [[nodiscard]] static Hive* HiveOf(const Node* pNode) noexcept;
 
-    virtual LSTATUS OpenKey(Node* pParent, KeyPath path, REGSAM samDesired, OpenResult& result) noexcept = 0;
+    virtual LSTATUS OpenKey(
+        Node* pParent,
+        KeyPath path,
+        REGSAM samDesired,
+        OpenResult& result
+    ) noexcept = 0;
 
     /// On a frozen hive an existing key opens as with @ref OpenKey, and a
     /// missing one answers `ERROR_ACCESS_DENIED`.
@@ -93,9 +98,24 @@ public:
     /// Deletes every subkey and value of @p pNode, leaving the node itself.
     virtual LSTATUS DeleteTree(Node* pNode) noexcept = 0;
 
-    virtual LSTATUS QueryValue(Node* pNode, std::wstring_view name, DWORD& dwType, std::vector<std::byte>& data) noexcept = 0;
-    virtual LSTATUS SetValue(Node* pNode, std::wstring_view name, DWORD dwType, std::span<const std::byte> data) noexcept = 0;
-    virtual LSTATUS DeleteValue(Node* pNode, std::wstring_view name) noexcept = 0;
+    virtual LSTATUS QueryValue(
+        Node* pNode,
+        std::wstring_view name,
+        DWORD& dwType,
+        std::vector<std::byte>& data
+    ) noexcept = 0;
+
+    virtual LSTATUS SetValue(
+        Node* pNode,
+        std::wstring_view name,
+        DWORD dwType,
+        std::span<const std::byte> data
+    ) noexcept = 0;
+
+    virtual LSTATUS DeleteValue(
+        Node* pNode,
+        std::wstring_view name
+    ) noexcept = 0;
 
     virtual LSTATUS EnumKey(
         Node* pNode,
@@ -133,7 +153,12 @@ public:
      * @note Only writes made through the hive are seen; a change in the
      *  registry below an `OverlayHive` is not.
      */
-    virtual LSTATUS Watch(Node* pNode, bool isSubtree, DWORD dwFilter, HANDLE hEvent) noexcept = 0;
+    virtual LSTATUS Watch(
+        Node* pNode,
+        bool isSubtree,
+        DWORD dwFilter,
+        HANDLE hEvent
+    ) noexcept = 0;
 
     /// The registry below this hive, which answers the handles in
     /// @ref OpenResult::hLower; null for a hive with nothing below it.
@@ -142,6 +167,10 @@ public:
     /// A key of @ref Lower holding value @p name of @p pNode, when that value
     /// shows through from below; null (and success) when the hive holds it
     /// or nothing does. The caller closes it through @ref Lower.
-    virtual LSTATUS OpenLowerValueKey(Node* pNode, std::wstring_view name, HKEY& hLower) noexcept;
+    virtual LSTATUS OpenLowerValueKey(
+        Node* pNode,
+        std::wstring_view name,
+        HKEY& hLower
+    ) noexcept;
 };
 } // namespace VReg

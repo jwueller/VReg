@@ -31,7 +31,11 @@ struct LogicalLine
     std::wstring text;
     std::vector<Segment> segments;
 
-    void Position(const std::size_t offset, std::size_t& line, std::size_t& column) const
+    void Position(
+        const std::size_t offset,
+        std::size_t& line,
+        std::size_t& column
+    ) const
     {
         const Segment* pSegment = &segments.front();
         for (const auto& segment : segments)
@@ -114,8 +118,8 @@ bool FindRoot(const std::wstring_view name, HKEY& hRoot)
 class Parser
 {
 public:
-    explicit Parser(Script& script) noexcept
-        : m_script(script)
+    explicit Parser(Script& script) noexcept :
+        m_script(script)
     {
     }
 
@@ -137,7 +141,12 @@ public:
 
         const auto header = TrimEnd(lines[0]);
         if (header != L"Windows Registry Editor Version 5.00" && header != L"REGEDIT4")
-            return Fail(pError, 1, 1, "missing or unknown registry editor header");
+            return Fail(
+                pError,
+                1,
+                1,
+                "missing or unknown registry editor header"
+            );
 
         for (std::size_t i = 1; i < lines.size(); ++i)
         {
@@ -168,7 +177,12 @@ private:
         Deleted,
     };
 
-    static bool Fail(ParseError* const pError, const std::size_t line, const std::size_t column, const char* pszMessage)
+    static bool Fail(
+        ParseError* const pError,
+        const std::size_t line,
+        const std::size_t column,
+        const char* pszMessage
+    )
     {
         if (pError)
             *pError = {line, column, pszMessage};
@@ -177,7 +191,11 @@ private:
 
     /// Reads the logical line starting at @p index into @p line (empty for blank and comment lines) and
     /// returns the index of its last physical line.
-    static std::size_t ReadLine(const std::vector<std::wstring_view>& lines, std::size_t index, LogicalLine& line)
+    static std::size_t ReadLine(
+        const std::vector<std::wstring_view>& lines,
+        std::size_t index,
+        LogicalLine& line
+    )
     {
         auto physical = lines[index];
         std::size_t column = 1;
@@ -258,7 +276,8 @@ private:
 
     bool Consume(const std::wstring_view token)
     {
-        if (m_text.size() - m_pos < token.size() || !EqualsIgnoreCase(m_text.substr(m_pos, token.size()), token))
+        if (m_text.size() - m_pos < token.size()
+            || !EqualsIgnoreCase(m_text.substr(m_pos, token.size()), token))
             return false;
         m_pos += token.size();
         return true;
@@ -279,7 +298,10 @@ private:
         const bool isDelete = m_text[m_pos] == L'-';
         if (isDelete)
             ++m_pos;
-        const std::wstring_view full = std::wstring_view(m_text).substr(m_pos, close - m_pos);
+        const std::wstring_view full = std::wstring_view(m_text).substr(
+            m_pos,
+            close - m_pos
+        );
         const auto slash = full.find(L'\\');
         const auto rootName = full.substr(0, slash);
         HKEY hRoot{};
@@ -416,7 +438,11 @@ private:
             operation.kind = OperationKind::SetValue;
             operation.dwType = REG_SZ;
             operation.data.resize((text.size() + 1) * sizeof(wchar_t));
-            std::memcpy(operation.data.data(), text.c_str(), operation.data.size());
+            std::memcpy(
+                operation.data.data(),
+                text.c_str(),
+                operation.data.size()
+            );
         }
         else if (Consume(L"dword:"))
         {
@@ -457,7 +483,11 @@ private:
 };
 } // namespace
 
-LSTATUS Parse(const std::span<const std::byte> file, Script& script, ParseError* const pError) noexcept
+LSTATUS Parse(
+    const std::span<const std::byte> file,
+    Script& script,
+    ParseError* const pError
+) noexcept
 {
     try
     {
@@ -478,7 +508,11 @@ LSTATUS Parse(const std::span<const std::byte> file, Script& script, ParseError*
     }
 }
 
-LSTATUS ParseFile(const std::filesystem::path& path, Script& script, ParseError* const pError) noexcept
+LSTATUS ParseFile(
+    const std::filesystem::path& path,
+    Script& script,
+    ParseError* const pError
+) noexcept
 {
     try
     {
