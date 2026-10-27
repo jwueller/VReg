@@ -68,7 +68,17 @@ void ListUpper(
 )
 {
     const auto iFirst = records.size();
-    records.push_back({.kind = UpperRecord::Kind::Key, .path = path, .isOpaque = node.isOpaque});
+    records.push_back(
+        {
+            .kind = UpperRecord::Kind::Key,
+            .path = path,
+            .name = {},
+            .dwType = REG_NONE,
+            .data = {},
+            .isTombstone = false,
+            .isOpaque = node.isOpaque
+        }
+    );
     for (const auto& value : node.values)
     {
         records.push_back(
@@ -91,7 +101,17 @@ void ListUpper(
             path += L'\\';
         path += pChild->name;
         if (pChild->isTombstone)
-            records.push_back({.kind = UpperRecord::Kind::Key, .path = path, .isTombstone = true});
+            records.push_back(
+                {
+                    .kind = UpperRecord::Kind::Key,
+                    .path = path,
+                    .name = {},
+                    .dwType = REG_NONE,
+                    .data = {},
+                    .isTombstone = true,
+                    .isOpaque = false
+                }
+            );
         else
             ListUpper(*pChild, path, records);
 
