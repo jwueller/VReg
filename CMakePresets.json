@@ -21,7 +21,7 @@
     {"name": "clang-cl", "hidden": true, "cacheVariables": {"CMAKE_CXX_COMPILER": "clang-cl"}},
     {"name": "msvc-x86", "inherits": ["base", "x86", "msvc"]},
     {"name": "msvc-x64", "inherits": ["base", "x64", "msvc"]},
-    {"name": "clang-cl-x86", "inherits": ["base", "x86", "clang-cl"]},
+    {"name": "clang-cl-x86", "inherits": ["base", "x86", "clang-cl"], "cacheVariables": {"CMAKE_CXX_COMPILER_TARGET": "i686-pc-windows-msvc"}},
     {"name": "clang-cl-x64", "inherits": ["base", "x64", "clang-cl"]}
   ],
   "buildPresets": [
