@@ -291,7 +291,8 @@ LONG Attach(VirtualRegistry& registry, NativeRegistry& native) noexcept
     {
         // The caller aborts the transaction on failure, so nothing is hooked
         // and a later attempt may start over (with fresh thunks).
-        if (const auto error = DetourAttach(hooks[i].ppTarget, thunks[i]); error != NO_ERROR)
+        const auto error = DetourAttach(hooks[i].ppTarget, thunks[i]);
+        if (error != NO_ERROR)
         {
             g_cHooks.store(0, std::memory_order_release);
             s_isAttached = false;
@@ -304,8 +305,9 @@ LONG Attach(VirtualRegistry& registry, NativeRegistry& native) noexcept
 
 LONG Install(VirtualRegistry& registry, NativeRegistry& native) noexcept
 {
-    if (const auto error = DetourTransactionBegin(); error != NO_ERROR)
-        return error;
+    const auto began = DetourTransactionBegin();
+    if (began != NO_ERROR)
+        return began;
 
     auto error = DetourUpdateThread(GetCurrentThread());
     if (error == NO_ERROR)

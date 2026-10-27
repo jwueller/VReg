@@ -135,8 +135,8 @@ public:
             start = end + 1;
         }
 
-        if (const auto header = TrimEnd(lines[0]);
-            header != L"Windows Registry Editor Version 5.00" && header != L"REGEDIT4")
+        const auto header = TrimEnd(lines[0]);
+        if (header != L"Windows Registry Editor Version 5.00" && header != L"REGEDIT4")
             return Fail(pError, 1, 1, "missing or unknown registry editor header");
 
         for (std::size_t i = 1; i < lines.size(); ++i)
@@ -462,7 +462,8 @@ LSTATUS Parse(const std::span<const std::byte> file, Script& script, ParseError*
     try
     {
         std::wstring text;
-        if (const auto status = DecodeFile(file, text, pError); status != ERROR_SUCCESS)
+        const auto status = DecodeFile(file, text, pError);
+        if (status != ERROR_SUCCESS)
             return status;
         Script parsed;
         Parser parser(parsed);
@@ -482,7 +483,8 @@ LSTATUS ParseFile(const std::filesystem::path& path, Script& script, ParseError*
     try
     {
         std::vector<std::byte> file;
-        if (const auto status = ReadWholeFile(path, file); status != ERROR_SUCCESS)
+        const auto status = ReadWholeFile(path, file);
+        if (status != ERROR_SUCCESS)
             return status;
         return Parse(file, script, pError);
     }

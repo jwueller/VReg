@@ -173,22 +173,23 @@ LSTATUS Registry::QueryValueExA(
 
             DWORD dwType = lpType ? *lpType : 0;
             DWORD cbSize = (!lpData && lpcbData) ? *lpcbData : 0;
-            if (const auto status = QueryValueExW(hKey, valueName.Get(), nullptr, &dwType, nullptr, &cbSize);
-                status != ERROR_SUCCESS)
+            const auto sized = QueryValueExW(hKey, valueName.Get(), nullptr, &dwType, nullptr, &cbSize);
+            if (sized != ERROR_SUCCESS)
             {
                 if (lpType)
                     *lpType = dwType;
                 if (!lpData && lpcbData)
                     *lpcbData = cbSize;
-                return status;
+                return sized;
             }
 
             if (!IsStringType(dwType))
                 return QueryValueExW(hKey, valueName.Get(), nullptr, lpType, lpData, lpcbData);
 
             std::vector<std::byte> value;
-            if (const auto status = QueryValue(hKey, valueName.Get(), &dwType, value); status != ERROR_SUCCESS)
-                return status;
+            const auto read = QueryValue(hKey, valueName.Get(), &dwType, value);
+            if (read != ERROR_SUCCESS)
+                return read;
 
             const auto text
                 = AnsiFromWide(reinterpret_cast<const wchar_t*>(value.data()), value.size() / sizeof(wchar_t));
@@ -402,8 +403,8 @@ LSTATUS Registry::EnumValueA(
             std::wstring name;
             DWORD dwType{};
             std::vector<std::byte> value;
-            if (const auto status = EnumValue(hKey, dwIndex, name, &dwType, lpcbData ? &value : nullptr);
-                status != ERROR_SUCCESS)
+            const auto status = EnumValue(hKey, dwIndex, name, &dwType, lpcbData ? &value : nullptr);
+            if (status != ERROR_SUCCESS)
                 return status;
 
             const auto nameA = AnsiFromWide(name.data(), name.size());
@@ -624,8 +625,8 @@ LSTATUS Registry::GetValueA(
                 GetValueW(hkey, subKey.Get(), value.Get(), dwFlagsAnyType, &dwType, nullptr, &cbQuery);
 
             std::vector<std::byte> data;
-            if (const auto statusRead = GetValue(hkey, subKey.Get(), value.Get(), dwFlagsRead, &dwType, data);
-                statusRead != ERROR_SUCCESS)
+            const auto statusRead = GetValue(hkey, subKey.Get(), value.Get(), dwFlagsRead, &dwType, data);
+            if (statusRead != ERROR_SUCCESS)
                 return statusRead;
 
             const bool isExpanded = dwStoredType == REG_EXPAND_SZ && !(dwFlags & RRF_NOEXPAND);
@@ -825,7 +826,8 @@ LSTATUS Registry::QueryValueA(
     HKEY hSubKey = hKey;
     if (lpSubKey && *lpSubKey)
     {
-        if (const auto status = OpenKeyA(hKey, lpSubKey, &hSubKey); status != ERROR_SUCCESS)
+        const auto status = OpenKeyA(hKey, lpSubKey, &hSubKey);
+        if (status != ERROR_SUCCESS)
             return status;
     }
 
@@ -864,7 +866,8 @@ LSTATUS Registry::QueryValueW(
     HKEY hSubKey = hKey;
     if (lpSubKey && *lpSubKey)
     {
-        if (const auto status = OpenKeyW(hKey, lpSubKey, &hSubKey); status != ERROR_SUCCESS)
+        const auto status = OpenKeyW(hKey, lpSubKey, &hSubKey);
+        if (status != ERROR_SUCCESS)
             return status;
     }
 
@@ -909,7 +912,8 @@ LSTATUS Registry::SetValueA(
     HKEY hSubKey = hKey;
     if (lpSubKey && *lpSubKey)
     {
-        if (const auto status = CreateKeyA(hKey, lpSubKey, &hSubKey); status != ERROR_SUCCESS)
+        const auto status = CreateKeyA(hKey, lpSubKey, &hSubKey);
+        if (status != ERROR_SUCCESS)
             return status;
     }
 
@@ -942,7 +946,8 @@ LSTATUS Registry::SetValueW(
     HKEY hSubKey = hKey;
     if (lpSubKey && *lpSubKey)
     {
-        if (const auto status = CreateKeyW(hKey, lpSubKey, &hSubKey); status != ERROR_SUCCESS)
+        const auto status = CreateKeyW(hKey, lpSubKey, &hSubKey);
+        if (status != ERROR_SUCCESS)
             return status;
     }
 
@@ -1010,8 +1015,8 @@ LSTATUS Registry::SetKeyValueA(
     HKEY hSubKey = hKey;
     if (lpSubKey && *lpSubKey)
     {
-        if (const auto status = CreateKeyExA(hKey, lpSubKey, 0, nullptr, 0, KEY_SET_VALUE, nullptr, &hSubKey, nullptr);
-            status != ERROR_SUCCESS)
+        const auto status = CreateKeyExA(hKey, lpSubKey, 0, nullptr, 0, KEY_SET_VALUE, nullptr, &hSubKey, nullptr);
+        if (status != ERROR_SUCCESS)
             return status;
     }
 
@@ -1033,8 +1038,8 @@ LSTATUS Registry::SetKeyValueW(
     HKEY hSubKey = hKey;
     if (lpSubKey && *lpSubKey)
     {
-        if (const auto status = CreateKeyExW(hKey, lpSubKey, 0, nullptr, 0, KEY_SET_VALUE, nullptr, &hSubKey, nullptr);
-            status != ERROR_SUCCESS)
+        const auto status = CreateKeyExW(hKey, lpSubKey, 0, nullptr, 0, KEY_SET_VALUE, nullptr, &hSubKey, nullptr);
+        if (status != ERROR_SUCCESS)
             return status;
     }
 
@@ -1053,7 +1058,8 @@ LSTATUS Registry::DeleteKeyValueA(
     HKEY hSubKey = hKey;
     if (lpSubKey && *lpSubKey)
     {
-        if (const auto status = OpenKeyExA(hKey, lpSubKey, 0, KEY_SET_VALUE, &hSubKey); status != ERROR_SUCCESS)
+        const auto status = OpenKeyExA(hKey, lpSubKey, 0, KEY_SET_VALUE, &hSubKey);
+        if (status != ERROR_SUCCESS)
             return status;
     }
 
@@ -1072,7 +1078,8 @@ LSTATUS Registry::DeleteKeyValueW(
     HKEY hSubKey = hKey;
     if (lpSubKey && *lpSubKey)
     {
-        if (const auto status = OpenKeyExW(hKey, lpSubKey, 0, KEY_SET_VALUE, &hSubKey); status != ERROR_SUCCESS)
+        const auto status = OpenKeyExW(hKey, lpSubKey, 0, KEY_SET_VALUE, &hSubKey);
+        if (status != ERROR_SUCCESS)
             return status;
     }
 
@@ -1122,9 +1129,15 @@ LSTATUS Registry::QueryMultipleValuesW(
             std::vector<PlacedValue> placed(num_vals);
             for (DWORD i = 0; i < num_vals; ++i)
             {
-                if (const auto status
-                    = QueryValueExW(hKey, val_list[i].ve_valuename, nullptr, nullptr, nullptr, &placed[i].cbValue);
-                    status != ERROR_SUCCESS)
+                const auto status = QueryValueExW(
+                    hKey,
+                    val_list[i].ve_valuename,
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    &placed[i].cbValue
+                );
+                if (status != ERROR_SUCCESS)
                 {
                     if (status == ERROR_INVALID_HANDLE)
                         *ldwTotsize = cbBuffer;
@@ -1145,15 +1158,15 @@ LSTATUS Registry::QueryMultipleValuesW(
                 if (ibValue + cbValue <= cbBuffer)
                 {
                     DWORD cbRead = cbValue;
-                    if (const auto status = QueryValueExW(
-                            hKey,
-                            val_list[i].ve_valuename,
-                            nullptr,
-                            &placed[i].dwType,
-                            pbBuffer + ibValue,
-                            &cbRead
-                        );
-                        status != ERROR_SUCCESS)
+                    const auto status = QueryValueExW(
+                        hKey,
+                        val_list[i].ve_valuename,
+                        nullptr,
+                        &placed[i].dwType,
+                        pbBuffer + ibValue,
+                        &cbRead
+                    );
+                    if (status != ERROR_SUCCESS)
                         return status;
                     placed[i].cbValue = cbRead;
                 }
@@ -1204,9 +1217,15 @@ LSTATUS Registry::QueryMultipleValuesA(
             DWORD cbEnd = 0;
             for (DWORD i = 0; i < num_vals; ++i)
             {
-                if (const auto status
-                    = QueryValueExA(hKey, val_list[i].ve_valuename, nullptr, nullptr, nullptr, &placed[i].cbValue);
-                    status != ERROR_SUCCESS)
+                const auto status = QueryValueExA(
+                    hKey,
+                    val_list[i].ve_valuename,
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    &placed[i].cbValue
+                );
+                if (status != ERROR_SUCCESS)
                     return status;
                 placed[i].ibValue = i == 0 ? 0 : AlignedToDword(cbEnd);
                 cbEnd = placed[i].ibValue + placed[i].cbValue;
@@ -1219,8 +1238,8 @@ LSTATUS Registry::QueryMultipleValuesA(
                 {
                     const WideArg name(val_list[i].ve_valuename);
                     DWORD cbWide = 0;
-                    if (const auto status = QueryValueExW(hKey, name.Get(), nullptr, nullptr, nullptr, &cbWide);
-                        status != ERROR_SUCCESS)
+                    const auto status = QueryValueExW(hKey, name.Get(), nullptr, nullptr, nullptr, &cbWide);
+                    if (status != ERROR_SUCCESS)
                         return status;
                     cbWideEnd = (i == 0 ? 0 : AlignedToDword(cbWideEnd)) + cbWide;
                 }
@@ -1231,15 +1250,15 @@ LSTATUS Registry::QueryMultipleValuesA(
             for (DWORD i = 0; i < num_vals; ++i)
             {
                 DWORD cbRead = placed[i].cbValue;
-                if (const auto status = QueryValueExA(
-                        hKey,
-                        val_list[i].ve_valuename,
-                        nullptr,
-                        &placed[i].dwType,
-                        pbBuffer + placed[i].ibValue,
-                        &cbRead
-                    );
-                    status != ERROR_SUCCESS)
+                const auto status = QueryValueExA(
+                    hKey,
+                    val_list[i].ve_valuename,
+                    nullptr,
+                    &placed[i].dwType,
+                    pbBuffer + placed[i].ibValue,
+                    &cbRead
+                );
+                if (status != ERROR_SUCCESS)
                     return status;
                 placed[i].cbValue = cbRead;
             }
@@ -1268,9 +1287,9 @@ LSTATUS Registry::QueryValue(
         {
             DWORD dwType{};
             DWORD cbData = 0;
-            if (const auto status = QueryValueExW(hKey, lpValueName, nullptr, &dwType, nullptr, &cbData);
-                status != ERROR_SUCCESS)
-                return status;
+            const auto sized = QueryValueExW(hKey, lpValueName, nullptr, &dwType, nullptr, &cbData);
+            if (sized != ERROR_SUCCESS)
+                return sized;
 
             for (;;)
             {
@@ -1315,9 +1334,9 @@ LSTATUS Registry::GetValue(
         {
             DWORD dwType{};
             DWORD cbData = 0;
-            if (const auto status = GetValueW(hKey, lpSubKey, lpValue, dwFlags, &dwType, nullptr, &cbData);
-                status != ERROR_SUCCESS)
-                return status;
+            const auto sized = GetValueW(hKey, lpSubKey, lpValue, dwFlags, &dwType, nullptr, &cbData);
+            if (sized != ERROR_SUCCESS)
+                return sized;
 
             for (;;)
             {
@@ -1354,9 +1373,8 @@ LSTATUS Registry::GetString(
         {
             const DWORD dwTypeFlags = RRF_RT_REG_SZ | ((dwFlags & RRF_NOEXPAND) ? RRF_RT_REG_EXPAND_SZ : 0);
             std::vector<std::byte> data;
-            if (const auto status
-                = GetValue(hKey, lpSubKey, lpValue, (dwFlags & ~RRF_RT_ANY) | dwTypeFlags, nullptr, data);
-                status != ERROR_SUCCESS)
+            const auto status = GetValue(hKey, lpSubKey, lpValue, (dwFlags & ~RRF_RT_ANY) | dwTypeFlags, nullptr, data);
+            if (status != ERROR_SUCCESS)
                 return status;
 
             std::size_t cch = data.size() / sizeof(wchar_t);

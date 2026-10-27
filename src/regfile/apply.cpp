@@ -74,7 +74,8 @@ LSTATUS Perform(const Operation& operation, Registry& registry) noexcept
     }
     case OperationKind::DeleteKey:
     {
-        if (const auto status = NotFoundIsFine(registry.DeleteTreeW(operation.hRoot, pszPath)); status != ERROR_SUCCESS)
+        const auto status = NotFoundIsFine(registry.DeleteTreeW(operation.hRoot, pszPath));
+        if (status != ERROR_SUCCESS)
             return status;
         return NotFoundIsFine(registry.DeleteKeyExW(operation.hRoot, pszPath, 0, 0));
     }
@@ -83,8 +84,8 @@ LSTATUS Perform(const Operation& operation, Registry& registry) noexcept
         if (operation.data.size() > std::numeric_limits<DWORD>::max())
             return ERROR_INVALID_PARAMETER;
         KeyHandle key(registry);
-        if (const auto status = registry.OpenKeyExW(operation.hRoot, pszPath, 0, KEY_SET_VALUE, key.Receive());
-            status != ERROR_SUCCESS)
+        const auto status = registry.OpenKeyExW(operation.hRoot, pszPath, 0, KEY_SET_VALUE, key.Receive());
+        if (status != ERROR_SUCCESS)
             return status;
         // Native reads past unterminated string data for a terminator and may store one more wchar if it
         // finds a zero there, so such data goes in with nonzero bytes after it to store exactly what the
@@ -127,8 +128,8 @@ LSTATUS Perform(const Operation& operation, Registry& registry) noexcept
     case OperationKind::DeleteValue:
     {
         KeyHandle key(registry);
-        if (const auto status = registry.OpenKeyExW(operation.hRoot, pszPath, 0, KEY_SET_VALUE, key.Receive());
-            status != ERROR_SUCCESS)
+        const auto status = registry.OpenKeyExW(operation.hRoot, pszPath, 0, KEY_SET_VALUE, key.Receive());
+        if (status != ERROR_SUCCESS)
             return NotFoundIsFine(status);
         return NotFoundIsFine(registry.DeleteValueW(key.Get(), operation.name.c_str()));
     }
@@ -141,7 +142,8 @@ LSTATUS Apply(const Script& script, Registry& registry, std::size_t* const pFail
 {
     for (std::size_t i = 0; i < script.operations.size(); ++i)
     {
-        if (const auto status = Perform(script.operations[i], registry); status != ERROR_SUCCESS)
+        const auto status = Perform(script.operations[i], registry);
+        if (status != ERROR_SUCCESS)
         {
             if (pFailed)
                 *pFailed = i;

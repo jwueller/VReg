@@ -78,8 +78,8 @@ TEST_CASE("No route to a real key handle sets bit 0")
     e = RegConnectRegistryW(nullptr, HKEY_LOCAL_MACHINE, &h);
     CheckRoute("RegConnectRegistry (local)", e, h);
 
-    if (const auto hTransaction = CreateTransaction(nullptr, nullptr, 0, 0, 0, 0, nullptr);
-        hTransaction != INVALID_HANDLE_VALUE)
+    const auto hTransaction = CreateTransaction(nullptr, nullptr, 0, 0, 0, 0, nullptr);
+    if (hTransaction != INVALID_HANDLE_VALUE)
     {
         e = RegOpenKeyTransactedW(HKEY_CURRENT_USER, L"Software", 0, KEY_READ, &h, hTransaction, nullptr);
         CheckRoute("RegOpenKeyTransacted", e, h);

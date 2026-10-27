@@ -494,7 +494,8 @@ struct SetKeyValueForms
         {
             const auto label = Narrow(pszSub);
             HKEY hKey{};
-            if (api.OpenKeyExW(hRoot, pszSub, 0, KEY_READ, &hKey) != ERROR_SUCCESS)
+            const auto status = api.OpenKeyExW(hRoot, pszSub, 0, KEY_READ, &hKey);
+            if (status != ERROR_SUCCESS)
             {
                 RECORD("open " + label, ERROR_FILE_NOT_FOUND);
                 continue;

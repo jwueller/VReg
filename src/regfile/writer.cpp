@@ -79,9 +79,10 @@ void AppendValue(std::wstring& out, const Record& record)
         AppendQuoted(out, record.name);
     out.push_back(L'=');
 
+    std::wstring text;
     if (record.kind == Record::Kind::DeleteValue)
         out.push_back(L'-');
-    else if (std::wstring text; record.dwType == REG_SZ && FriendlyString(record.data, text))
+    else if (record.dwType == REG_SZ && FriendlyString(record.data, text))
         AppendQuoted(out, text);
     else if (record.dwType == REG_DWORD && record.data.size() == sizeof(DWORD))
     {

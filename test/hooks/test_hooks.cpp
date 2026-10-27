@@ -86,7 +86,8 @@ std::optional<std::wstring> ReadModule(const HKEY hKey, LSTATUS& status)
 std::optional<std::wstring> ReadMountModule(const std::wstring& name)
 {
     HKEY hKey{};
-    if (::RegOpenKeyExW(HKEY_CURRENT_USER, name.c_str(), 0, KEY_READ, &hKey) != ERROR_SUCCESS)
+    const auto opened = ::RegOpenKeyExW(HKEY_CURRENT_USER, name.c_str(), 0, KEY_READ, &hKey);
+    if (opened != ERROR_SUCCESS)
         return std::nullopt;
     LSTATUS status{};
     auto module = ReadModule(hKey, status);

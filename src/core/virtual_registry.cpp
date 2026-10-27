@@ -41,7 +41,8 @@ LSTATUS SplitPath(const std::wstring_view path, std::vector<std::wstring_view>& 
     while (start < path.size())
     {
         const auto end = std::min(path.find(L'\\', start), path.size());
-        if (const auto component = path.substr(start, end - start); !component.empty())
+        const auto component = path.substr(start, end - start);
+        if (!component.empty())
         {
             if (component.size() > kMaxKeyNameChars)
                 return ERROR_INVALID_PARAMETER;
@@ -459,8 +460,8 @@ try
         return ERROR_ACCESS_DENIED;
 
     OpenResult result;
-    if (const auto status = Hive::HiveOf(target.pNode)->OpenKey(target.pNode, target.rest, samDesired, result);
-        status != ERROR_SUCCESS)
+    const auto status = Hive::HiveOf(target.pNode)->OpenKey(target.pNode, target.rest, samDesired, result);
+    if (status != ERROR_SUCCESS)
         return status;
 
     *phkResult = result.hLower ? result.hLower : Hive::HandleOf(result.pNode);
@@ -519,16 +520,16 @@ try
 
     OpenResult result;
     DWORD dwDisposition = 0;
-    if (const auto status = Hive::HiveOf(target.pNode)->CreateKey(
-            target.pNode,
-            target.rest,
-            View(lpClass),
-            dwOptions,
-            samDesired,
-            result,
-            dwDisposition
-        );
-        status != ERROR_SUCCESS)
+    const auto status = Hive::HiveOf(target.pNode)->CreateKey(
+        target.pNode,
+        target.rest,
+        View(lpClass),
+        dwOptions,
+        samDesired,
+        result,
+        dwDisposition
+    );
+    if (status != ERROR_SUCCESS)
         return status;
 
     *phkResult = result.hLower ? result.hLower : Hive::HandleOf(result.pNode);
@@ -580,8 +581,8 @@ try
 
     DWORD dwType{};
     std::vector<std::byte> value;
-    if (const auto status = Hive::HiveOf(target.pNode)->QueryValue(target.pNode, View(lpValueName), dwType, value);
-        status != ERROR_SUCCESS)
+    const auto status = Hive::HiveOf(target.pNode)->QueryValue(target.pNode, View(lpValueName), dwType, value);
+    if (status != ERROR_SUCCESS)
         return status;
 
     if (lpType)
@@ -696,8 +697,9 @@ try
 
     auto* const pHive = Hive::HiveOf(target.pNode);
     OpenResult result;
-    if (const auto status = pHive->OpenKey(target.pNode, target.rest, KEY_ALL_ACCESS, result); status != ERROR_SUCCESS)
-        return status;
+    const auto opened = pHive->OpenKey(target.pNode, target.rest, KEY_ALL_ACCESS, result);
+    if (opened != ERROR_SUCCESS)
+        return opened;
 
     // Only a frozen hive hands out lower keys, and it refuses every write.
     if (result.hLower)
@@ -706,7 +708,8 @@ try
         return ERROR_ACCESS_DENIED;
     }
 
-    if (const auto status = pHive->DeleteTree(result.pNode); status != ERROR_SUCCESS || target.rest.empty())
+    const auto status = pHive->DeleteTree(result.pNode);
+    if (status != ERROR_SUCCESS || target.rest.empty())
         return status;
 
     return pHive->DeleteKey(target.pNode, target.rest);
@@ -747,8 +750,8 @@ try
     std::wstring name;
     std::wstring className;
     FILETIME lastWrite{};
-    if (const auto status = Hive::HiveOf(target.pNode)->EnumKey(target.pNode, dwIndex, name, className, lastWrite);
-        status != ERROR_SUCCESS)
+    const auto status = Hive::HiveOf(target.pNode)->EnumKey(target.pNode, dwIndex, name, className, lastWrite);
+    if (status != ERROR_SUCCESS)
         return status;
 
     if (lpftLastWriteTime)
@@ -806,8 +809,8 @@ try
     std::wstring name;
     DWORD dwType{};
     std::vector<std::byte> value;
-    if (const auto status = Hive::HiveOf(target.pNode)->EnumValue(target.pNode, dwIndex, name, dwType, value);
-        status != ERROR_SUCCESS)
+    const auto status = Hive::HiveOf(target.pNode)->EnumValue(target.pNode, dwIndex, name, dwType, value);
+    if (status != ERROR_SUCCESS)
         return status;
 
     if (lpType)
@@ -883,7 +886,8 @@ try
         return target.status;
 
     KeyInfo info;
-    if (const auto status = Hive::HiveOf(target.pNode)->QueryInfo(target.pNode, info); status != ERROR_SUCCESS)
+    const auto status = Hive::HiveOf(target.pNode)->QueryInfo(target.pNode, info);
+    if (status != ERROR_SUCCESS)
         return status;
 
     if (lpcSubKeys)
@@ -956,8 +960,9 @@ try
 
     auto* const pHive = Hive::HiveOf(target.pNode);
     HKEY hLower{};
-    if (const auto status = pHive->OpenLowerValueKey(target.pNode, View(pszValue), hLower); status != ERROR_SUCCESS)
-        return status;
+    const auto opened = pHive->OpenLowerValueKey(target.pNode, View(pszValue), hLower);
+    if (opened != ERROR_SUCCESS)
+        return opened;
 
     // A value from below is resolved there, as the system would; one the hive
     // holds is a literal, which would need a resource module to resolve.
@@ -971,7 +976,8 @@ try
 
     DWORD dwType{};
     std::vector<std::byte> value;
-    if (const auto status = pHive->QueryValue(target.pNode, View(pszValue), dwType, value); status != ERROR_SUCCESS)
+    const auto status = pHive->QueryValue(target.pNode, View(pszValue), dwType, value);
+    if (status != ERROR_SUCCESS)
         return status;
 
     return ERROR_INVALID_DATA;
@@ -1020,9 +1026,9 @@ try
     if (!target.rest.empty())
     {
         OpenResult result;
-        if (const auto status = pHive->OpenKey(target.pNode, target.rest, KEY_QUERY_VALUE, result);
-            status != ERROR_SUCCESS)
-            return fail(status);
+        const auto opened = pHive->OpenKey(target.pNode, target.rest, KEY_QUERY_VALUE, result);
+        if (opened != ERROR_SUCCESS)
+            return fail(opened);
 
         if (result.hLower)
         {
@@ -1042,8 +1048,9 @@ try
 
     DWORD dwType{};
     std::vector<std::byte> value;
-    if (const auto status = pHive->QueryValue(pNode, View(lpValue), dwType, value); status != ERROR_SUCCESS)
-        return fail(status);
+    const auto queried = pHive->QueryValue(pNode, View(lpValue), dwType, value);
+    if (queried != ERROR_SUCCESS)
+        return fail(queried);
 
     const bool isString = dwType == REG_SZ || dwType == REG_EXPAND_SZ || dwType == REG_MULTI_SZ;
 

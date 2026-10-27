@@ -203,8 +203,9 @@ try
 {
     className.clear();
     LowerKey lowerKey(m_lower);
-    if (const auto status = OpenLower(path, KEY_QUERY_VALUE, lowerKey.Receive()); status != ERROR_SUCCESS)
-        return status == ERROR_FILE_NOT_FOUND ? ERROR_SUCCESS : status;
+    const auto opened = OpenLower(path, KEY_QUERY_VALUE, lowerKey.Receive());
+    if (opened != ERROR_SUCCESS)
+        return opened == ERROR_FILE_NOT_FOUND ? ERROR_SUCCESS : opened;
 
     std::wstring buffer(256, L'\0');
     for (;;)
@@ -282,7 +283,8 @@ try
     const auto lowerPath = JoinPath(std::move(view.path), rest);
     LowerKey lowerKey(m_lower);
     const REGSAM samLower = IsFrozen() ? samDesired : KEY_QUERY_VALUE | (samDesired & KEY_WOW64_RES);
-    if (const auto status = OpenLower(lowerPath, samLower, lowerKey.Receive()); status != ERROR_SUCCESS)
+    const auto status = OpenLower(lowerPath, samLower, lowerKey.Receive());
+    if (status != ERROR_SUCCESS)
         return status;
 
     if (IsFrozen())
@@ -463,8 +465,9 @@ try
         return ERROR_ACCESS_DENIED;
 
     OpenResult opened;
-    if (const auto status = OpenKey(pParent, path, KEY_READ, opened); status != ERROR_SUCCESS)
-        return status;
+    const auto located = OpenKey(pParent, path, KEY_READ, opened);
+    if (located != ERROR_SUCCESS)
+        return located;
 
     auto* const pNode = opened.pNode;
     std::vector<std::wstring> tombstones;
@@ -596,7 +599,8 @@ try
         return ERROR_FILE_NOT_FOUND;
 
     LowerKey lowerKey(m_lower);
-    if (const auto status = OpenLower(view.path, KEY_QUERY_VALUE, lowerKey.Receive()); status != ERROR_SUCCESS)
+    const auto status = OpenLower(view.path, KEY_QUERY_VALUE, lowerKey.Receive());
+    if (status != ERROR_SUCCESS)
         return status;
 
     const std::wstring valueName(name);
@@ -767,27 +771,27 @@ try
         return ERROR_NO_MORE_ITEMS;
 
     LowerKey lowerKey(m_lower);
-    if (const auto status = OpenLower(view.path, KEY_ENUMERATE_SUB_KEYS | KEY_QUERY_VALUE, lowerKey.Receive());
-        status != ERROR_SUCCESS)
-        return status == ERROR_FILE_NOT_FOUND ? ERROR_NO_MORE_ITEMS : status;
+    const auto opened = OpenLower(view.path, KEY_ENUMERATE_SUB_KEYS | KEY_QUERY_VALUE, lowerKey.Receive());
+    if (opened != ERROR_SUCCESS)
+        return opened == ERROR_FILE_NOT_FOUND ? ERROR_NO_MORE_ITEMS : opened;
 
     DWORD cchMaxClass = 0;
-    if (const auto status = m_lower.QueryInfoKeyW(
-            lowerKey.Get(),
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
-            &cchMaxClass,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr
-        );
-        status != ERROR_SUCCESS)
-        return status;
+    const auto queried = m_lower.QueryInfoKeyW(
+        lowerKey.Get(),
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        &cchMaxClass,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr
+    );
+    if (queried != ERROR_SUCCESS)
+        return queried;
 
     // The children were listed in name order, so the shadow list is sorted.
     auto dwSkip = dwIndex - cUpper;
@@ -863,8 +867,9 @@ try
         return ERROR_NO_MORE_ITEMS;
 
     LowerKey lowerKey(m_lower);
-    if (const auto status = OpenLower(view.path, KEY_QUERY_VALUE, lowerKey.Receive()); status != ERROR_SUCCESS)
-        return status == ERROR_FILE_NOT_FOUND ? ERROR_NO_MORE_ITEMS : status;
+    const auto opened = OpenLower(view.path, KEY_QUERY_VALUE, lowerKey.Receive());
+    if (opened != ERROR_SUCCESS)
+        return opened == ERROR_FILE_NOT_FOUND ? ERROR_NO_MORE_ITEMS : opened;
 
     SortNames(shadowed);
     auto dwSkip = dwIndex - cUpper;
@@ -873,8 +878,8 @@ try
         std::wstring lowerName;
         DWORD dwLowerType{};
         std::vector<std::byte> lowerData;
-        if (const auto status = m_lower.EnumValue(lowerKey.Get(), i, lowerName, &dwLowerType, &lowerData);
-            status != ERROR_SUCCESS)
+        const auto status = m_lower.EnumValue(lowerKey.Get(), i, lowerName, &dwLowerType, &lowerData);
+        if (status != ERROR_SUCCESS)
             return status;
 
         if (ContainsName(shadowed, lowerName) || dwSkip-- != 0)
@@ -1066,8 +1071,9 @@ try
         return ERROR_SUCCESS;
 
     LowerKey lowerKey(m_lower);
-    if (const auto status = OpenLower(view.path, KEY_QUERY_VALUE, lowerKey.Receive()); status != ERROR_SUCCESS)
-        return status == ERROR_FILE_NOT_FOUND ? ERROR_SUCCESS : status;
+    const auto opened = OpenLower(view.path, KEY_QUERY_VALUE, lowerKey.Receive());
+    if (opened != ERROR_SUCCESS)
+        return opened == ERROR_FILE_NOT_FOUND ? ERROR_SUCCESS : opened;
 
     const std::wstring valueName(name);
     const auto status = m_lower.QueryValueExW(lowerKey.Get(), valueName.c_str(), nullptr, nullptr, nullptr, nullptr);

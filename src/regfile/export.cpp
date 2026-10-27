@@ -83,9 +83,9 @@ public:
             HKEY hSubkey{};
             // A symbolic link is exported as the key it is (its SymbolicLinkValue), never followed: following one
             // can leave the subtree or loop.
-            if (const auto status = m_registry.OpenKeyExW(hKey, subkey.c_str(), REG_OPTION_OPEN_LINK, KEY_READ, &hSubkey);
-                status != ERROR_SUCCESS)
-                return status;
+            const auto opened = m_registry.OpenKeyExW(hKey, subkey.c_str(), REG_OPTION_OPEN_LINK, KEY_READ, &hSubkey);
+            if (opened != ERROR_SUCCESS)
+                return opened;
             const auto status = Walk(hSubkey, fullName + L'\\' + subkey, depth + 1);
             m_registry.CloseKey(hSubkey);
             if (status != ERROR_SUCCESS)
@@ -121,8 +121,9 @@ LSTATUS ExportSnapshot(
     {
         const std::wstring subkey(path);
         HKEY hKey{};
-        if (const auto status = registry.OpenKeyExW(hRoot, subkey.c_str(), 0, KEY_READ, &hKey); status != ERROR_SUCCESS)
-            return status;
+        const auto opened = registry.OpenKeyExW(hRoot, subkey.c_str(), 0, KEY_READ, &hKey);
+        if (opened != ERROR_SUCCESS)
+            return opened;
 
         std::wstring fullName = pszRoot;
         if (!path.empty())
@@ -133,7 +134,8 @@ LSTATUS ExportSnapshot(
         if (walked != ERROR_SUCCESS)
             return walked;
         std::vector<std::byte> bytes;
-        if (const auto status = WriteRecords(walker.Records(), format, bytes); status != ERROR_SUCCESS)
+        const auto status = WriteRecords(walker.Records(), format, bytes);
+        if (status != ERROR_SUCCESS)
             return status;
         file = std::move(bytes);
         return ERROR_SUCCESS;
@@ -159,8 +161,9 @@ LSTATUS ExportDelta(
     try
     {
         std::vector<UpperRecord> upper;
-        if (const auto status = hive.SnapshotUpper(upper); status != ERROR_SUCCESS)
-            return status;
+        const auto snapshotted = hive.SnapshotUpper(upper);
+        if (snapshotted != ERROR_SUCCESS)
+            return snapshotted;
 
         std::wstring prefix = pszRoot;
         if (!path.empty())
@@ -197,7 +200,8 @@ LSTATUS ExportDelta(
         }
 
         std::vector<std::byte> bytes;
-        if (const auto status = WriteRecords(records, format, bytes); status != ERROR_SUCCESS)
+        const auto status = WriteRecords(records, format, bytes);
+        if (status != ERROR_SUCCESS)
             return status;
         file = std::move(bytes);
         return ERROR_SUCCESS;
@@ -219,7 +223,8 @@ LSTATUS ExportDeltaToFile(
     try
     {
         std::vector<std::byte> file;
-        if (const auto status = ExportDelta(hive, hRoot, path, format, file); status != ERROR_SUCCESS)
+        const auto status = ExportDelta(hive, hRoot, path, format, file);
+        if (status != ERROR_SUCCESS)
             return status;
         return WriteWholeFile(fileName, file);
     }
@@ -240,7 +245,8 @@ LSTATUS ExportSnapshotToFile(
     try
     {
         std::vector<std::byte> file;
-        if (const auto status = ExportSnapshot(registry, hRoot, path, format, file); status != ERROR_SUCCESS)
+        const auto status = ExportSnapshot(registry, hRoot, path, format, file);
+        if (status != ERROR_SUCCESS)
             return status;
         return WriteWholeFile(fileName, file);
     }

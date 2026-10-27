@@ -27,10 +27,12 @@ inline LONG InstallMount(const wchar_t* const pszPath, const wchar_t* const pszM
 
     const std::wstring_view module = pszModule;
     const auto bytes = std::as_bytes(std::span(pszModule, module.size() + 1));
-    if (const auto error = pHive->SetValue(pHive->Root(), kModuleValue, REG_SZ, bytes); error != ERROR_SUCCESS)
-        return error;
+    const auto stored = pHive->SetValue(pHive->Root(), kModuleValue, REG_SZ, bytes);
+    if (stored != ERROR_SUCCESS)
+        return stored;
 
-    if (const auto error = pRegistry->Mount(HKEY_CURRENT_USER, pszPath, *pHive); error != ERROR_SUCCESS)
+    const auto error = pRegistry->Mount(HKEY_CURRENT_USER, pszPath, *pHive);
+    if (error != ERROR_SUCCESS)
         return error;
 
     return Detours::Install(*pRegistry, *pNative);
