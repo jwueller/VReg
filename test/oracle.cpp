@@ -39,6 +39,21 @@ HKEY AppHive::Root() const noexcept
     return m_hRoot;
 }
 
+VirtualHive::VirtualHive()
+{
+    REQUIRE(m_registry.Mount(HKEY_CURRENT_USER, L"VRegOracle", m_hive) == ERROR_SUCCESS);
+}
+
+VirtualRegistry& VirtualHive::Registry() noexcept
+{
+    return m_registry;
+}
+
+HKEY VirtualHive::Root() noexcept
+{
+    return Hive::HandleOf(m_hive.Root());
+}
+
 void Recorder::operator()(
     std::string label,
     const LSTATUS status,
@@ -60,13 +75,16 @@ Recording Recorder::Take() noexcept
 
 void CheckSameRecording(const Recording& expected, const Recording& actual)
 {
+    constexpr std::size_t kMaxReported = 12;
+    std::size_t cReported = 0;
     for (std::size_t i = 0; i < expected.size() && i < actual.size(); ++i)
     {
         if (expected[i] != actual[i])
         {
             INFO("call " << i);
             CHECK(expected[i] == actual[i]);
-            return;
+            if (++cReported == kMaxReported)
+                return;
         }
     }
 

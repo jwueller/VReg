@@ -67,7 +67,7 @@ bool HandleSpace::IsUsable() const noexcept
     return m_pShared != nullptr;
 }
 
-HKEY HandleSpace::Allocate() noexcept
+HKEY HandleSpace::Allocate(void* const pTarget) noexcept
 {
     if (!m_pShared)
         return nullptr;
@@ -79,24 +79,74 @@ HKEY HandleSpace::Allocate() noexcept
         // InterlockedIncrement returns the new value; the block reserved is the
         // one before it.
         const auto block = static_cast<std::uintptr_t>(InterlockedIncrement(&m_pShared->nextBlock)) - 1;
-        if (block >= kBlockCount)
+        if (block >= kBlockCount || !AddBlock(block))
             return nullptr;
 
-        m_ownedBlocks[block / 64].fetch_or(std::uint64_t{1} << (block % 64), std::memory_order_release);
         m_nextIndex = block * kBlockSize;
         m_endIndex = m_nextIndex + kBlockSize;
     }
 
-    return VirtualHKeyFromIndex(m_nextIndex++);
+    const auto index = m_nextIndex++;
+    auto* const pTargets = const_cast<Targets*>(FindBlock(index / kBlockSize));
+    (*pTargets)[index % kBlockSize].store(pTarget, std::memory_order_release);
+    return VirtualHKeyFromIndex(index);
 }
 
 bool HandleSpace::Owns(const HKEY hKey) const noexcept
 {
+    return IsVirtualHKey(hKey) && FindBlock(IndexFromVirtualHKey(hKey) / kBlockSize) != nullptr;
+}
+
+void HandleSpace::Release(const HKEY hKey) noexcept
+{
     if (!IsVirtualHKey(hKey))
+        return;
+
+    const auto index = IndexFromVirtualHKey(hKey);
+    if (auto* const pTargets = const_cast<Targets*>(FindBlock(index / kBlockSize)))
+        (*pTargets)[index % kBlockSize].store(nullptr, std::memory_order_release);
+}
+
+void* HandleSpace::Find(const HKEY hKey) const noexcept
+{
+    if (!IsVirtualHKey(hKey))
+        return nullptr;
+
+    const auto index = IndexFromVirtualHKey(hKey);
+    const auto* const pTargets = FindBlock(index / kBlockSize);
+    if (!pTargets)
+        return nullptr;
+
+    return (*pTargets)[index % kBlockSize].load(std::memory_order_acquire);
+}
+
+const HandleSpace::Targets* HandleSpace::FindBlock(const std::uintptr_t block) const noexcept
+{
+    const auto* const pDirectory = m_directories[block / kDirectorySize].load(std::memory_order_acquire);
+    if (!pDirectory)
+        return nullptr;
+
+    return (*pDirectory)[block % kDirectorySize].load(std::memory_order_acquire);
+}
+
+bool HandleSpace::AddBlock(const std::uintptr_t block) noexcept
+{
+    auto& directorySlot = m_directories[block / kDirectorySize];
+    auto* pDirectory = directorySlot.load(std::memory_order_relaxed);
+    if (!pDirectory)
+    {
+        pDirectory = new (std::nothrow) Directory{};
+        if (!pDirectory)
+            return false;
+
+        directorySlot.store(pDirectory, std::memory_order_release);
+    }
+
+    auto* const pTargets = new (std::nothrow) Targets{};
+    if (!pTargets)
         return false;
 
-    const auto block = IndexFromVirtualHKey(hKey) / kBlockSize;
-    const auto bits = m_ownedBlocks[block / 64].load(std::memory_order_acquire);
-    return (bits >> (block % 64)) & 1;
+    (*pDirectory)[block % kDirectorySize].store(pTargets, std::memory_order_release);
+    return true;
 }
 } // namespace VReg

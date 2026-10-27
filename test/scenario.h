@@ -14,6 +14,7 @@
 #include "win32_api.h"
 
 #include <VReg/native_registry.h>
+#include <VReg/virtual_registry.h>
 
 #include <Windows.h>
 
@@ -24,6 +25,7 @@
 #include <initializer_list>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 
 /// Runs @p call, then records its status and the values the remaining
@@ -40,6 +42,29 @@ namespace VReg::Test
 {
 constexpr BYTE kFill = 0xCC;
 constexpr DWORD kFillSize = 0xCCCCCCCC;
+
+/// An API as the reference for a virtual run: scenarios skip the calls whose
+/// answer virtual keys cannot match (one handle per node, no per-open access
+/// rights), for the reference and the virtual registry alike.
+template <class Api> struct Reduced : Api
+{
+};
+
+/// Whether a scenario runs in the reduced form for virtual keys.
+template <class Api> inline constexpr bool kVirtualKeys = false;
+template <> inline constexpr bool kVirtualKeys<VirtualRegistry> = true;
+template <class Api> inline constexpr bool kVirtualKeys<Reduced<Api>> = true;
+
+/// Whether an `Ex` open or create handed back @p hParent. Native always
+/// returns a new handle, even for an empty subkey; a virtual key has one
+/// handle per node, so the reduced form reports a new handle for both.
+template <class Api> bool HandedBack(const HKEY hKey, const HKEY hParent) noexcept
+{
+    if constexpr (kVirtualKeys<Api>)
+        return false;
+    else
+        return hKey == hParent;
+}
 
 inline HKEY FillKey() noexcept
 {

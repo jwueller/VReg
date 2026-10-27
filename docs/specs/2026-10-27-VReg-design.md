@@ -164,6 +164,10 @@ from one namespace:
 - A copy reserves blocks of handle values with one `InterlockedIncrement` and
   hands out values from its own blocks; owning a handle means it falls in
   one of the copy's blocks.
+- A virtual handle from another copy's block is foreign: every entry point
+  treats it exactly like a real handle and passes it to its base registry
+  (in a hooked process, the trampoline: the next hooker, another copy or the
+  real function), so it reaches the copy that issued it.
 - Agent's choice: a section over a named mutex, since the counter needs
   shared storage either way and the section needs no lock; blocks of 4096
   over per-handle increments, for one cross-copy operation per block.
@@ -329,9 +333,10 @@ which would re-enter the hooks and bypass test stubs.
 
 Measured by the oracle; each is an input no sane caller relies on.
 
-- Strings set through `RegSetValueExA` without a terminator: native peeks
-  one byte past the data and may store the string unterminated; ours goes
-  through the W form, which terminates it.
+- Strings set without a terminator: native `RegSetValueExW` and
+  `RegSetValueExA` read one character past `cbData` and store an extra
+  terminator when it is zero. Ours never reads past `cbData`: the W form
+  stores exactly the bytes given, and the A form always terminates.
 - `RegGetValueA` on a string with an odd byte count: native keeps the stray
   byte in the buffer tail.
 - `RegQueryMultipleValuesA` with a buffer that holds some narrowed values
@@ -341,6 +346,26 @@ Measured by the oracle; each is an input no sane caller relies on.
   terminator past `cbData`; ours stays in bounds.
 - Null pointers on which native faults (`RegEnumKeyExA` and `RegEnumValueA`
   names, `RegQueryMultipleValues` lists and buffers) answer an error code.
+
+### Known divergences of virtual keys
+
+Measured by running the oracle catalogue against `VirtualRegistry` over a
+`MemoryHive`; the scenarios skip exactly these calls for the virtual run
+(and for its native reference).
+
+- Access rights are per node, not per open: a key opened `KEY_READ` can
+  still be written through its handle, and `KEY_QUERY_VALUE` is never
+  checked. (A zero `samDesired` is refused on open, as native does.)
+- Handle identity: two opens of a node return the same handle, and an `Ex`
+  open or create of an empty subkey returns the parent's own handle where
+  native returns a new one.
+- `REG_OPTION_BACKUP_RESTORE` opens succeed; native needs
+  `SeBackupPrivilege` and answers `ERROR_ACCESS_DENIED` without it.
+- `REG_OPTION_CREATE_LINK` creates an ordinary key.
+- `RegQueryInfoKey` reports a security descriptor size of 0.
+- `RegLoadMUIString` answers `ERROR_INVALID_DATA` for a hive value whether
+  or not it is an `@` indirect string; resolving one would load a resource
+  module, which detour bodies may not do.
 
 ## Testing
 

@@ -561,3 +561,13 @@ TEMPLATE_LIST_TEST_CASE("Value scenarios answer as the Win32 API does", "[oracle
     NativeRegistry native;
     CheckSameRecording(Record<TestType>(win32), Record<TestType>(native));
 }
+
+TEMPLATE_LIST_TEST_CASE(
+    "Value scenarios answer as the Win32 API does on virtual keys",
+    "[oracle][virtual][values]",
+    Scenarios
+)
+{
+    Reduced<Win32Api> win32;
+    CheckSameRecording(Record<TestType>(win32), RecordVirtual<TestType>());
+}

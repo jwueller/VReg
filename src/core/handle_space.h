@@ -57,21 +57,40 @@ public:
 
     [[nodiscard]] bool IsUsable() const noexcept;
 
-    /// A fresh handle owned by this instance, or null when the section is
-    /// unusable or the namespace is exhausted.
-    [[nodiscard]] HKEY Allocate() noexcept;
+    /// A fresh handle owned by this instance and bound to @p pTarget, or null
+    /// when the section is unusable, the namespace is exhausted or memory ran
+    /// out.
+    [[nodiscard]] HKEY Allocate(void* pTarget) noexcept;
 
     /// Whether @p hKey is a virtual handle from one of this instance's blocks.
     /// Lock-free.
     [[nodiscard]] bool Owns(HKEY hKey) const noexcept;
 
+    /// Unbinds @p hKey from its target. The value is never handed out again;
+    /// later lookups answer null.
+    void Release(HKEY hKey) noexcept;
+
+    /// The target @p hKey was allocated for; null when this instance does not
+    /// own it. Lock-free.
+    [[nodiscard]] void* Find(HKEY hKey) const noexcept;
+
 private:
+    using Targets = std::array<std::atomic<void*>, kBlockSize>;
+
+    // Two levels of block directories, filled in as blocks are reserved and
+    // never freed: a lookup is two acquire loads and an index.
+    static constexpr std::uintptr_t kDirectorySize = 512;
+    using Directory = std::array<std::atomic<Targets*>, kDirectorySize>;
+
+    [[nodiscard]] const Targets* FindBlock(std::uintptr_t block) const noexcept;
+    [[nodiscard]] bool AddBlock(std::uintptr_t block) noexcept;
+
     Shared* m_pShared = nullptr;
 
     std::mutex m_mutex;
     std::uintptr_t m_nextIndex = 0;
     std::uintptr_t m_endIndex = 0;
 
-    std::array<std::atomic<std::uint64_t>, kBlockCount / 64> m_ownedBlocks{};
+    std::array<std::atomic<Directory*>, kBlockCount / kDirectorySize> m_directories{};
 };
 } // namespace VReg

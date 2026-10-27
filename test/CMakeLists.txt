@@ -3,6 +3,7 @@ include(Catch)
 
 add_executable(
     VReg_Tests
+    no_dialogs.cpp
     oracle.cpp
     test_handle.cpp
     test_handle_probe.cpp
@@ -12,12 +13,14 @@ add_executable(
     test_oracle_get.cpp
     test_oracle_values.cpp
     test_registry.cpp
+    test_virtual_registry.cpp
     test_version.cpp
 )
 target_link_libraries(VReg_Tests PRIVATE VReg::Core VReg_BuildSettings Catch2::Catch2WithMain)
 # The tests reach internal headers as well as the public ones.
 target_include_directories(VReg_Tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
-catch_discover_tests(VReg_Tests)
+# A hung test fails instead of stalling an unattended run.
+catch_discover_tests(VReg_Tests PROPERTIES TIMEOUT 120)
 
 # Installs this build into a scratch prefix and builds `consumer/` against it
 # with find_package, the way a package manager would.

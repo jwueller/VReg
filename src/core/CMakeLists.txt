@@ -7,9 +7,12 @@ target_sources(
         ansi.cpp
         export_table.cpp
         handle_space.cpp
+        memory_hive.cpp
         native_registry.cpp
         registry.cpp
+        tree.cpp
         version.cpp
+        virtual_registry.cpp
 )
 target_include_directories(VReg_Core PUBLIC $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>)
 # NativeRegistry resolves from advapi32's export table and must find it

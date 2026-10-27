@@ -5,6 +5,9 @@
 // recordings of status codes, out-sizes and bytes must match the real Win32
 // API's exactly.
 
+#include <VReg/memory_hive.h>
+#include <VReg/virtual_registry.h>
+
 #include <Windows.h>
 
 #include <catch2/catch_tostring.hpp>
@@ -90,8 +93,37 @@ Recording Record(Api& api)
     return recorder.Take();
 }
 
+/// A `VirtualRegistry` without a base, with a `MemoryHive` mounted below
+/// `HKEY_CURRENT_USER`: the virtual counterpart of an @ref AppHive.
+class VirtualHive
+{
+public:
+    VirtualHive();
+
+    VirtualHive(const VirtualHive&) = delete;
+    VirtualHive& operator=(const VirtualHive&) = delete;
+
+    [[nodiscard]] VirtualRegistry& Registry() noexcept;
+
+    /// The virtual handle of the hive's root.
+    [[nodiscard]] HKEY Root() noexcept;
+
+private:
+    MemoryHive m_hive;
+    VirtualRegistry m_registry;
+};
+
+/// Runs @p Scenario against a `VirtualRegistry` over a fresh `MemoryHive`.
+template <class Scenario> Recording RecordVirtual()
+{
+    VirtualHive hive;
+    Recorder recorder;
+    Scenario{}(hive.Registry(), hive.Root(), recorder);
+    return recorder.Take();
+}
+
 /// Checks @p actual against @p expected call by call, reporting the first
-/// divergence with both calls in full.
+/// few divergences with both calls in full.
 void CheckSameRecording(const Recording& expected, const Recording& actual);
 } // namespace VReg::Test
 

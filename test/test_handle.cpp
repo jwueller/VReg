@@ -82,8 +82,8 @@ TEST_CASE("Copies sharing a section hand out disjoint handles and own only their
     // Past one block, so each copy reserves a second one.
     for (std::uintptr_t i = 0; i < HandleSpace::kBlockSize + 10; ++i)
     {
-        const auto hFirst = first.Allocate();
-        const auto hSecond = second.Allocate();
+        const auto hFirst = first.Allocate(&first);
+        const auto hSecond = second.Allocate(&second);
         REQUIRE(IsVirtualHKey(hFirst));
         REQUIRE(IsVirtualHKey(hSecond));
         CHECK(seen.insert(hFirst).second);
@@ -93,10 +93,15 @@ TEST_CASE("Copies sharing a section hand out disjoint handles and own only their
         CHECK_FALSE(first.Owns(hSecond));
         CHECK(second.Owns(hSecond));
         CHECK_FALSE(second.Owns(hFirst));
+
+        CHECK(first.Find(hFirst) == &first);
+        CHECK(first.Find(hSecond) == nullptr);
+        CHECK(second.Find(hSecond) == &second);
     }
 
     CHECK_FALSE(first.Owns(HKEY_LOCAL_MACHINE));
     CHECK_FALSE(first.Owns(nullptr));
+    CHECK(first.Find(HKEY_LOCAL_MACHINE) == nullptr);
 }
 
 TEST_CASE("A section claimed with a different layout makes the space unusable")
@@ -106,7 +111,7 @@ TEST_CASE("A section claimed with a different layout makes the space unusable")
 
     HandleSpace space(wsName);
     CHECK_FALSE(space.IsUsable());
-    CHECK(space.Allocate() == nullptr);
+    CHECK(space.Allocate(&space) == nullptr);
 }
 
 TEST_CASE("Allocation fails once the namespace is exhausted")
@@ -119,16 +124,16 @@ TEST_CASE("Allocation fails once the namespace is exhausted")
     HandleSpace space(wsName);
     REQUIRE(space.IsUsable());
     for (std::uintptr_t i = 0; i < HandleSpace::kBlockSize; ++i)
-        REQUIRE(IsVirtualHKey(space.Allocate()));
+        REQUIRE(IsVirtualHKey(space.Allocate(&space)));
 
-    CHECK(space.Allocate() == nullptr);
+    CHECK(space.Allocate(&space) == nullptr);
 }
 
 TEST_CASE("The process space is usable and issues virtual handles")
 {
     auto& space = HandleSpace::Process();
     REQUIRE(space.IsUsable());
-    const auto hKey = space.Allocate();
+    const auto hKey = space.Allocate(&space);
     CHECK(IsVirtualHKey(hKey));
     CHECK(space.Owns(hKey));
     CHECK(&space == &HandleSpace::Process());

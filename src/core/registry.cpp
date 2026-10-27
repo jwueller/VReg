@@ -241,7 +241,13 @@ LSTATUS Registry::SetValueExA(
             if (!IsStringType(dwType) || !lpData)
                 return SetValueExW(hKey, valueName.Get(), Reserved, dwType, lpData, cbData);
 
-            const auto text = WideFromAnsi(reinterpret_cast<const char*>(lpData), cbData);
+            auto text = WideFromAnsi(reinterpret_cast<const char*>(lpData), cbData);
+            // Native reads the byte after unterminated data and keeps it as the terminator when it is zero, which it
+            // nearly always is. Agent's choice: always terminate, so no byte past cbData is ever read; reading it,
+            // as native does, can fault at the end of a page.
+            if (!text.empty() && text.back() != L'\0')
+                text.push_back(L'\0');
+
             return SetValueExW(
                 hKey,
                 valueName.Get(),

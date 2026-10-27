@@ -484,7 +484,8 @@ void QueryInfoMatrix(Api& api, Recorder& record, const HKEY hKey, const std::str
                 outPointer(3),
                 outPointer(4),
                 outPointer(5),
-                outPointer(6),
+                // Virtual keys carry no security descriptor and report size 0.
+                kVirtualKeys<Api> ? nullptr : outPointer(6),
                 skip == 7 ? nullptr : &ft
             );
             RECORD(
@@ -622,11 +623,15 @@ struct QueryInfoKeyForms
             RECORD("close", api.CloseKey(hKey));
         }
 
-        HKEY hKey{};
-        RECORD("open for write only", api.OpenKeyExW(hRoot, L"Alpha", 0, KEY_SET_VALUE, &hKey));
-        QueryInfoMatrix<Api, wchar_t>(api, record, hKey, "write only W");
-        QueryInfoMatrix<Api, char>(api, record, hKey, "write only A");
-        RECORD("close", api.CloseKey(hKey));
+        // A virtual key has one handle per node, so it carries no per-open access rights.
+        if constexpr (!kVirtualKeys<Api>)
+        {
+            HKEY hKey{};
+            RECORD("open for write only", api.OpenKeyExW(hRoot, L"Alpha", 0, KEY_SET_VALUE, &hKey));
+            QueryInfoMatrix<Api, wchar_t>(api, record, hKey, "write only W");
+            QueryInfoMatrix<Api, char>(api, record, hKey, "write only A");
+            RECORD("close", api.CloseKey(hKey));
+        }
     }
 };
 
@@ -683,4 +688,14 @@ TEMPLATE_LIST_TEST_CASE("Enumeration scenarios answer as the Win32 API does", "[
     Win32Api win32;
     NativeRegistry native;
     CheckSameRecording(Record<TestType>(win32), Record<TestType>(native));
+}
+
+TEMPLATE_LIST_TEST_CASE(
+    "Enumeration scenarios answer as the Win32 API does on virtual keys",
+    "[oracle][virtual][enum]",
+    Scenarios
+)
+{
+    Reduced<Win32Api> win32;
+    CheckSameRecording(Record<TestType>(win32), RecordVirtual<TestType>());
 }

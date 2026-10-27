@@ -292,6 +292,10 @@ struct LoadMUIStringForms
               L"Missing",
               L""})
         {
+            // Resolving an indirect string loads a resource module, which a virtual key never does.
+            if (kVirtualKeys<Api> && std::wstring_view(pszName).starts_with(L"Indirect"))
+                continue;
+
             const auto label = Narrow(pszName);
             for (const DWORD dwFlags : {DWORD{0}, DWORD{REG_MUI_STRING_TRUNCATE}})
             {
@@ -539,4 +543,14 @@ TEMPLATE_LIST_TEST_CASE("Lookup scenarios answer as the Win32 API does", "[oracl
     Win32Api win32;
     NativeRegistry native;
     CheckSameRecording(Record<TestType>(win32), Record<TestType>(native));
+}
+
+TEMPLATE_LIST_TEST_CASE(
+    "Lookup scenarios answer as the Win32 API does on virtual keys",
+    "[oracle][virtual][get]",
+    Scenarios
+)
+{
+    Reduced<Win32Api> win32;
+    CheckSameRecording(Record<TestType>(win32), RecordVirtual<TestType>());
 }

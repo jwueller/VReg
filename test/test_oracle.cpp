@@ -183,8 +183,12 @@ struct CreateDispositionAndClass
             hKey = FillKey();
             const auto status
                 = api.CreateKeyExW(hRoot, pszSub, 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &hKey, &dwDisposition);
-            RECORD("create odd path " + Narrow(pszSub), status, {dwDisposition, KeyState(hKey), hKey == hRoot});
-            if (status == ERROR_SUCCESS && hKey != hRoot)
+            RECORD(
+                "create odd path " + Narrow(pszSub),
+                status,
+                {dwDisposition, KeyState(hKey), HandedBack<Api>(hKey, hRoot)}
+            );
+            if (status == ERROR_SUCCESS && !HandedBack<Api>(hKey, hRoot))
                 RECORD("close", api.CloseKey(hKey));
         }
 
@@ -291,8 +295,12 @@ struct CreateOpenAnsi
         {
             hKey = FillKey();
             const auto status = api.OpenKeyExA(hRoot, pszSub, 0, KEY_READ, &hKey);
-            RECORD(std::string("open A odd ") + (pszSub ? pszSub : "(null)"), status, {KeyState(hKey), hKey == hRoot});
-            if (status == ERROR_SUCCESS && hKey != hRoot)
+            RECORD(
+                std::string("open A odd ") + (pszSub ? pszSub : "(null)"),
+                status,
+                {KeyState(hKey), HandedBack<Api>(hKey, hRoot)}
+            );
+            if (status == ERROR_SUCCESS && !HandedBack<Api>(hKey, hRoot))
                 RECORD("close", api.CloseKey(hKey));
         }
 
@@ -345,9 +353,9 @@ struct OpenKeyForms
             RECORD(
                 std::string("open ") + (pszSub ? Narrow(pszSub) : "(null)"),
                 status,
-                {KeyState(hKey), hKey == hRoot}
+                {KeyState(hKey), HandedBack<Api>(hKey, hRoot)}
             );
-            if (status == ERROR_SUCCESS && hKey != hRoot)
+            if (status == ERROR_SUCCESS && !HandedBack<Api>(hKey, hRoot))
                 RECORD("close", api.CloseKey(hKey));
         }
 
@@ -355,11 +363,15 @@ struct OpenKeyForms
         RECORD("close", api.CloseKey(hKey));
         RECORD("open link option", api.OpenKeyExW(hRoot, L"A", REG_OPTION_OPEN_LINK, KEY_READ, &hKey));
         RECORD("close", api.CloseKey(hKey));
-        hKey = FillKey();
-        const auto backupStatus = api.OpenKeyExW(hRoot, L"A", REG_OPTION_BACKUP_RESTORE, KEY_READ, &hKey);
-        RECORD("open backup option", backupStatus, {KeyState(hKey)});
-        if (backupStatus == ERROR_SUCCESS)
-            RECORD("close", api.CloseKey(hKey));
+        // Native needs SeBackupPrivilege; a virtual key has no access check to bypass and always opens.
+        if constexpr (!kVirtualKeys<Api>)
+        {
+            hKey = FillKey();
+            const auto backupStatus = api.OpenKeyExW(hRoot, L"A", REG_OPTION_BACKUP_RESTORE, KEY_READ, &hKey);
+            RECORD("open backup option", backupStatus, {KeyState(hKey)});
+            if (backupStatus == ERROR_SUCCESS)
+                RECORD("close", api.CloseKey(hKey));
+        }
         hKey = FillKey();
         RECORD("open unknown option", api.OpenKeyExW(hRoot, L"A", 0x100, KEY_READ, &hKey), {KeyState(hKey)});
         RECORD("open wow64 64", api.OpenKeyExW(hRoot, L"A", 0, KEY_READ | KEY_WOW64_64KEY, &hKey));
@@ -375,19 +387,23 @@ struct OpenKeyForms
             {KeyState(hKey)}
         );
 
-        HKEY hRead{};
-        RECORD("open read", api.OpenKeyExW(hRoot, L"A", 0, KEY_READ, &hRead));
-        const BYTE data[4] = {1, 2, 3, 4};
-        RECORD("set on read key", api.SetValueExW(hRead, L"v", 0, REG_BINARY, data, 4));
-        hKey = FillKey();
-        RECORD(
-            "create on read key",
-            api.CreateKeyExW(hRead, L"New", 0, nullptr, 0, KEY_READ, nullptr, &hKey, nullptr),
-            {KeyState(hKey)}
-        );
-        RECORD("delete on read key", api.DeleteKeyExW(hRead, L"B", 0, 0));
-        RECORD("delete value on read key", api.DeleteValueW(hRead, L"v"));
-        RECORD("close", api.CloseKey(hRead));
+        // A virtual key has one handle per node, so it carries no per-open access rights.
+        if constexpr (!kVirtualKeys<Api>)
+        {
+            HKEY hRead{};
+            RECORD("open read", api.OpenKeyExW(hRoot, L"A", 0, KEY_READ, &hRead));
+            const BYTE data[4] = {1, 2, 3, 4};
+            RECORD("set on read key", api.SetValueExW(hRead, L"v", 0, REG_BINARY, data, 4));
+            hKey = FillKey();
+            RECORD(
+                "create on read key",
+                api.CreateKeyExW(hRead, L"New", 0, nullptr, 0, KEY_READ, nullptr, &hKey, nullptr),
+                {KeyState(hKey)}
+            );
+            RECORD("delete on read key", api.DeleteKeyExW(hRead, L"B", 0, 0));
+            RECORD("delete value on read key", api.DeleteValueW(hRead, L"v"));
+            RECORD("close", api.CloseKey(hRead));
+        }
         RECORD("close null", api.CloseKey(nullptr));
     }
 };
@@ -607,9 +623,12 @@ struct DeleteTrees
         );
         RECORD("close", api.CloseKey(hKey));
 
-        RECORD("open read", api.OpenKeyExW(hRoot, L"W", 0, KEY_READ, &hKey));
-        RECORD("tree on read key", api.DeleteTreeW(hKey, L"X"));
-        RECORD("close", api.CloseKey(hKey));
+        if constexpr (!kVirtualKeys<Api>)
+        {
+            RECORD("open read", api.OpenKeyExW(hRoot, L"W", 0, KEY_READ, &hKey));
+            RECORD("tree on read key", api.DeleteTreeW(hKey, L"X"));
+            RECORD("close", api.CloseKey(hKey));
+        }
 
         RECORD("tree top", api.DeleteTreeW(hRoot, L"T"));
         RECORD("tree trailing slash", api.DeleteTreeW(hRoot, L"X\\"));
@@ -686,4 +705,14 @@ TEMPLATE_LIST_TEST_CASE("Key scenarios answer as the Win32 API does", "[oracle][
     Win32Api win32;
     NativeRegistry native;
     CheckSameRecording(Record<TestType>(win32), Record<TestType>(native));
+}
+
+TEMPLATE_LIST_TEST_CASE(
+    "Key scenarios answer as the Win32 API does on virtual keys",
+    "[oracle][virtual][keys]",
+    Scenarios
+)
+{
+    Reduced<Win32Api> win32;
+    CheckSameRecording(Record<TestType>(win32), RecordVirtual<TestType>());
 }
