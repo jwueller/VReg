@@ -9,5 +9,4 @@
 #include "overlay_hive.h"
 #include "registry.h"
 #include "virtual_registry.h"
-
 #include "version.h"
