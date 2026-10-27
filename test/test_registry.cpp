@@ -17,13 +17,6 @@ using namespace VReg::Test;
 
 namespace
 {
-std::vector<std::byte> BytesFromWide(const std::wstring& text)
-{
-    std::vector<std::byte> bytes(text.size() * sizeof(wchar_t));
-    std::memcpy(bytes.data(), text.data(), bytes.size());
-    return bytes;
-}
-
 std::wstring WideFromBytes(const std::vector<std::byte>& bytes)
 {
     std::wstring text(bytes.size() / sizeof(wchar_t), L'\0');
