@@ -268,10 +268,16 @@ pre-`Ex` forms.
 
 ### Install
 
-- `Attach(VirtualRegistry&)` only calls `DetourAttach`, for a consumer that
-  owns the transaction (for example one that also carries other hooks and
-  thread enrollment).
-- `Install(VirtualRegistry&)` runs its own transaction around `Attach`.
+- `Attach(VirtualRegistry&, NativeRegistry&)` only calls `DetourAttach`, for
+  a consumer that owns the transaction (for example one that also carries
+  other hooks and thread enrollment). The `NativeRegistry` must be the
+  registry's base: its function table holds the targets handed to Detours, so
+  after the commit it holds the trampolines. A second call answers
+  `ERROR_ALREADY_INITIALIZED`.
+- `Install(VirtualRegistry&, NativeRegistry&)` runs its own transaction
+  around `Attach`, enrolling the calling thread.
+- `Neutralize()` makes every hook of the copy pass straight through; it also
+  runs by itself when the module unloads, through a static destructor.
 - A consumer installing from `DllMain` builds, freezes and mounts its hives
   before the commit, so the first hooked call already finds them.
 
@@ -283,7 +289,7 @@ pre-`Ex` forms.
   mounted by two copies the one on top wins (documented, not detected).
 - The library never calls `DetourDetach`. Each hook's detour is a thunk
   allocated outside the module image (`VirtualAlloc`), `jmp [slot]`, with
-  `slot` pointing at the detour body. On unload or on a detach request the
+  `slot` pointing at the detour body. On unload or on a `Neutralize` call the
   library writes `slot = trampoline` atomically, so the layer becomes a
   pass-through and other hookers' chains stay intact in any order. Thunks,
   slots and trampolines are leaked on purpose.

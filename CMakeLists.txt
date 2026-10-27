@@ -16,6 +16,7 @@ option(VREG_WITH_DETOURS "Build VReg::Detours (needs Microsoft Detours)" OFF)
 option(VREG_BUILD_TESTS "Build the tests" ${PROJECT_IS_TOP_LEVEL})
 
 include(GNUInstallDirs)
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 include(cmake/VRegTarget.cmake)
 
 add_subdirectory(src)

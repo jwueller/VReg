@@ -39,5 +39,11 @@ add_test(
         -D CONSUMER_WORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/consumer/$<CONFIG>
         -D CMAKE_GENERATOR=${CMAKE_GENERATOR}
         -D CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+        -D CONSUMER_WITH_DETOURS=$<IF:$<TARGET_EXISTS:VReg_Detours>,ON,OFF>
+        -D DETOURS_PREFIX=$<$<TARGET_EXISTS:VReg_Detours>:${Detours_INCLUDE_DIR}/..>
         -P ${CMAKE_CURRENT_SOURCE_DIR}/consumer/run.cmake
 )
+
+if(TARGET VReg_Detours)
+    add_subdirectory(hooks)
+endif()

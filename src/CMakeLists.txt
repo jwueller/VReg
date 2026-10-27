@@ -1,2 +1,5 @@
 add_subdirectory(core)
 add_subdirectory(regfile)
+if(VREG_WITH_DETOURS)
+    add_subdirectory(detours)
+endif()

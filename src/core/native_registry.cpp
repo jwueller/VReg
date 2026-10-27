@@ -9,8 +9,9 @@ namespace
 // Makes every module linking VReg import advapi32, so the loader maps it
 // before VReg runs and resolution finds it without loading anything.
 [[maybe_unused]] const volatile auto g_pfnImportAdvapi32 = &::RegOpenKeyW;
+} // namespace
 
-const void* FindRegistryExport(const char* pszName) noexcept
+const void* FindRegistryExport(const char* const pszName) noexcept
 {
     static const HMODULE hKernelBase = GetModuleHandleW(L"KernelBase.dll");
     static const HMODULE hAdvapi32 = GetModuleHandleW(L"advapi32.dll");
@@ -20,7 +21,6 @@ const void* FindRegistryExport(const char* pszName) noexcept
 
     return FindExport(hAdvapi32, pszName);
 }
-} // namespace
 
 NativeRegistry::Functions NativeRegistry::ResolveFunctions() noexcept
 {
