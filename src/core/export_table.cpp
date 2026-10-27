@@ -4,7 +4,7 @@
 
 namespace VReg
 {
-const void* FindExport(const HMODULE hModule, const char* const pszName) noexcept
+void* FindExport(const HMODULE hModule, const char* const pszName) noexcept
 {
     if (!hModule)
         return nullptr;
@@ -36,7 +36,7 @@ const void* FindExport(const HMODULE hModule, const char* const pszName) noexcep
             if (rva >= directory.VirtualAddress && rva < directory.VirtualAddress + directory.Size)
                 return nullptr;
 
-            return pBase + rva;
+            return reinterpret_cast<BYTE*>(hModule) + rva;
         }
 
         if (order < 0)

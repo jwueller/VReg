@@ -11,7 +11,7 @@ namespace
 [[maybe_unused]] const volatile auto g_pfnImportAdvapi32 = &::RegOpenKeyW;
 } // namespace
 
-const void* FindRegistryExport(const char* const pszName) noexcept
+void* FindRegistryExport(const char* const pszName) noexcept
 {
     static const HMODULE hKernelBase = GetModuleHandleW(L"KernelBase.dll");
     static const HMODULE hAdvapi32 = GetModuleHandleW(L"advapi32.dll");

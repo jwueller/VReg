@@ -17,7 +17,7 @@ TEST_CASE("Export lookup agrees with the loader")
     for (const auto* const pszName : {"RegOpenKeyExW", "RegCloseKey", "RegQueryInfoKeyA", "CreateFileW"})
     {
         INFO(pszName);
-        CHECK(FindExport(hKernelBase, pszName) == reinterpret_cast<const void*>(GetProcAddress(hKernelBase, pszName)));
+        CHECK(FindExport(hKernelBase, pszName) == reinterpret_cast<void*>(GetProcAddress(hKernelBase, pszName)));
     }
 
     CHECK(FindExport(hKernelBase, "NoSuchExport") == nullptr);

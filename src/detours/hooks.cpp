@@ -256,7 +256,7 @@ LONG Attach(VirtualRegistry& registry, NativeRegistry& native) noexcept
 
     // A refused function this system does not export has nothing to hook.
 #define VREG_REFUSED(name)                                                                                             \
-    g_refusedTargets[k##name] = const_cast<void*>(FindRegistryExport(#name));                                          \
+    g_refusedTargets[k##name] = FindRegistryExport(#name);                                                             \
     if (g_refusedTargets[k##name])                                                                                     \
     {                                                                                                                  \
         hooks[cHooks++] = {                                                                                            \
