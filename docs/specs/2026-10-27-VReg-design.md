@@ -453,7 +453,10 @@ Catch2.
 - Works through `add_subdirectory`/`FetchContent` (tests build only when
   VReg is the top-level project) and through
   `find_package(VReg CONFIG COMPONENTS Core RegFile Detours)` after install.
-- Static by default; `BUILD_SHARED_LIBS` is honored.
+- Static libraries only. Agent's choice: each module links its own copy and
+  the copies meet in the shared handle namespace, so a DLL build would buy
+  nothing and need an export surface; honoring `BUILD_SHARED_LIBS` was
+  passed over.
 - Detours is found as the vcpkg port lays it out (header plus library, no
   CMake config).
 

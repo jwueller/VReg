@@ -1,0 +1,26 @@
+{
+  "name": "vreg",
+  "version-semver": "0.1.0",
+  "description": "A virtualized Windows registry: the Win32 Reg* interface over in-memory and overlay hives, .reg import and export, and optional Detours hooks",
+  "homepage": "https://github.com/jwueller/VReg",
+  "license": "MIT",
+  "supports": "windows & !uwp & (x86 | x64)",
+  "dependencies": [
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ],
+  "features": {
+    "detours": {
+      "description": "Route the process's Reg* calls into a virtual registry through Microsoft Detours",
+      "dependencies": [
+        "detours"
+      ]
+    }
+  }
+}
