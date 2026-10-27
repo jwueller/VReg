@@ -56,4 +56,10 @@ the API it reimplements. Change them freely before the first release.
 - Conversions that return their result are named `YFromX`.
 - Parameter names are never omitted or commented out; an unused one is
   `(void)name;` in the body.
+- Signatures of the Win32-shaped functions and every call to a `Reg*`
+  function (Win32 or a `Registry` member) put one parameter or argument per
+  line, with blank lines between multi-line declarations.
+- No init-statement in an `if`, and no state-changing call inside its
+  condition: assign the result in a statement of its own first. A single
+  declaration as the condition is fine.
 - Doc comments are Doxygen with leading `///`.
