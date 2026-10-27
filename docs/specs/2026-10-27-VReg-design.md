@@ -148,13 +148,17 @@ Each statically linked copy of the library in a process allocates handles
 from one namespace:
 
 - A pagefile-backed section `Local\VReg-handles-<pid>` holds
-  `{magic, layoutVersion, nextBlock}`. This layout is the only ABI between
-  copies and is frozen forever.
-- Each copy creates or opens and maps it at init (`CreateFileMapping` is
-  atomic open-or-create, the pages are zero-filled, the first copy claims
-  `magic` with `InterlockedCompareExchange`). It is never unmapped or
-  closed, `DLL_PROCESS_DETACH` included.
-- A copy reserves blocks of handle values with one `InterlockedAdd` and
+  `{magic, nextBlock}`. This layout is the only ABI between copies and is
+  frozen forever. The magic value carries the layout version, so claiming
+  the section is a single compare-exchange with nothing published after it;
+  a copy that finds a different nonzero magic treats the namespace as
+  unusable.
+- Each copy creates or opens and maps it on first use (`CreateFileMapping`
+  is atomic open-or-create and needs no loader lock, the pages are
+  zero-filled, the first copy claims `magic` with
+  `InterlockedCompareExchange`). It is never unmapped or closed,
+  `DLL_PROCESS_DETACH` included.
+- A copy reserves blocks of handle values with one `InterlockedIncrement` and
   hands out values from its own blocks; owning a handle means it falls in
   one of the copy's blocks.
 - Agent's choice: a section over a named mutex, since the counter needs
