@@ -75,6 +75,7 @@ public:
     [[nodiscard]] static Hive* HiveOf(const Node* pNode) noexcept;
 
     virtual LSTATUS OpenKey(Node* pParent, KeyPath path, REGSAM samDesired, OpenResult& result) noexcept = 0;
+
     /// On a frozen hive an existing key opens as with @ref OpenKey, and a
     /// missing one answers `ERROR_ACCESS_DENIED`.
     virtual LSTATUS CreateKey(
@@ -86,6 +87,7 @@ public:
         OpenResult& result,
         DWORD& dwDisposition
     ) noexcept = 0;
+
     /// Deletes the last component of @p path, which must have no subkeys.
     virtual LSTATUS DeleteKey(Node* pParent, KeyPath path) noexcept = 0;
     /// Deletes every subkey and value of @p pNode, leaving the node itself.
@@ -102,6 +104,7 @@ public:
         std::wstring& className,
         FILETIME& lastWrite
     ) noexcept = 0;
+
     virtual LSTATUS EnumValue(
         Node* pNode,
         DWORD dwIndex,
@@ -109,6 +112,7 @@ public:
         DWORD& dwType,
         std::vector<std::byte>& data
     ) noexcept = 0;
+
     virtual LSTATUS QueryInfo(Node* pNode, KeyInfo& info) noexcept = 0;
     /// What `FlushKey` on @p pNode needs from the hive: success, or
     /// `ERROR_KEY_DELETED`.

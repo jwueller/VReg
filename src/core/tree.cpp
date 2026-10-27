@@ -18,8 +18,7 @@ int CompareNames(const std::wstring_view left, const std::wstring_view right) no
                right.data(),
                static_cast<int>(right.size()),
                TRUE
-           )
-           - CSTR_EQUAL;
+           ) - CSTR_EQUAL;
 }
 
 HKEY Hive::HandleOf(const Node* const pNode) noexcept

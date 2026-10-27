@@ -26,6 +26,7 @@ public:
     [[nodiscard]] Node* Root() noexcept override;
 
     LSTATUS OpenKey(Node* pParent, KeyPath path, REGSAM samDesired, OpenResult& result) noexcept override;
+
     LSTATUS CreateKey(
         Node* pParent,
         KeyPath path,
@@ -35,6 +36,7 @@ public:
         OpenResult& result,
         DWORD& dwDisposition
     ) noexcept override;
+
     LSTATUS DeleteKey(Node* pParent, KeyPath path) noexcept override;
     LSTATUS DeleteTree(Node* pNode) noexcept override;
 

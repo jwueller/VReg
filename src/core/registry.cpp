@@ -260,7 +260,10 @@ LSTATUS Registry::SetValueExA(
     );
 }
 
-LSTATUS Registry::DeleteValueA(const HKEY hKey, const LPCSTR lpValueName) noexcept
+LSTATUS Registry::DeleteValueA(
+    const HKEY hKey,
+    const LPCSTR lpValueName
+) noexcept
 {
     return Guard(
         [&]
@@ -271,8 +274,12 @@ LSTATUS Registry::DeleteValueA(const HKEY hKey, const LPCSTR lpValueName) noexce
     );
 }
 
-LSTATUS
-Registry::DeleteKeyExA(const HKEY hKey, const LPCSTR lpSubKey, const REGSAM samDesired, const DWORD Reserved) noexcept
+LSTATUS Registry::DeleteKeyExA(
+    const HKEY hKey,
+    const LPCSTR lpSubKey,
+    const REGSAM samDesired,
+    const DWORD Reserved
+) noexcept
 {
     return Guard(
         [&]
@@ -283,7 +290,10 @@ Registry::DeleteKeyExA(const HKEY hKey, const LPCSTR lpSubKey, const REGSAM samD
     );
 }
 
-LSTATUS Registry::DeleteTreeA(const HKEY hKey, const LPCSTR lpSubKey) noexcept
+LSTATUS Registry::DeleteTreeA(
+    const HKEY hKey,
+    const LPCSTR lpSubKey
+) noexcept
 {
     return Guard(
         [&]
@@ -717,7 +727,11 @@ LSTATUS Registry::GetValueA(
     );
 }
 
-LSTATUS Registry::OpenKeyA(const HKEY hKey, const LPCSTR lpSubKey, const PHKEY phkResult) noexcept
+LSTATUS Registry::OpenKeyA(
+    const HKEY hKey,
+    const LPCSTR lpSubKey,
+    const PHKEY phkResult
+) noexcept
 {
     if (!phkResult)
         return ERROR_INVALID_PARAMETER;
@@ -729,7 +743,11 @@ LSTATUS Registry::OpenKeyA(const HKEY hKey, const LPCSTR lpSubKey, const PHKEY p
     return OpenKeyExA(hKey, lpSubKey, 0, MAXIMUM_ALLOWED, phkResult);
 }
 
-LSTATUS Registry::OpenKeyW(const HKEY hKey, const LPCWSTR lpSubKey, const PHKEY phkResult) noexcept
+LSTATUS Registry::OpenKeyW(
+    const HKEY hKey,
+    const LPCWSTR lpSubKey,
+    const PHKEY phkResult
+) noexcept
 {
     if (!phkResult)
         return ERROR_INVALID_PARAMETER;
@@ -741,7 +759,11 @@ LSTATUS Registry::OpenKeyW(const HKEY hKey, const LPCWSTR lpSubKey, const PHKEY 
     return OpenKeyExW(hKey, lpSubKey, 0, MAXIMUM_ALLOWED, phkResult);
 }
 
-LSTATUS Registry::CreateKeyA(const HKEY hKey, const LPCSTR lpSubKey, const PHKEY phkResult) noexcept
+LSTATUS Registry::CreateKeyA(
+    const HKEY hKey,
+    const LPCSTR lpSubKey,
+    const PHKEY phkResult
+) noexcept
 {
     if (!phkResult)
         return ERROR_INVALID_PARAMETER;
@@ -765,7 +787,11 @@ LSTATUS Registry::CreateKeyA(const HKEY hKey, const LPCSTR lpSubKey, const PHKEY
     );
 }
 
-LSTATUS Registry::CreateKeyW(const HKEY hKey, const LPCWSTR lpSubKey, const PHKEY phkResult) noexcept
+LSTATUS Registry::CreateKeyW(
+    const HKEY hKey,
+    const LPCWSTR lpSubKey,
+    const PHKEY phkResult
+) noexcept
 {
     if (!phkResult)
         return ERROR_INVALID_PARAMETER;
@@ -789,7 +815,12 @@ LSTATUS Registry::CreateKeyW(const HKEY hKey, const LPCWSTR lpSubKey, const PHKE
     );
 }
 
-LSTATUS Registry::QueryValueA(const HKEY hKey, const LPCSTR lpSubKey, const LPSTR lpData, const PLONG lpcbData) noexcept
+LSTATUS Registry::QueryValueA(
+    const HKEY hKey,
+    const LPCSTR lpSubKey,
+    const LPSTR lpData,
+    const PLONG lpcbData
+) noexcept
 {
     HKEY hSubKey = hKey;
     if (lpSubKey && *lpSubKey)
@@ -823,8 +854,12 @@ LSTATUS Registry::QueryValueA(const HKEY hKey, const LPCSTR lpSubKey, const LPST
     return status;
 }
 
-LSTATUS
-Registry::QueryValueW(const HKEY hKey, const LPCWSTR lpSubKey, const LPWSTR lpData, const PLONG lpcbData) noexcept
+LSTATUS Registry::QueryValueW(
+    const HKEY hKey,
+    const LPCWSTR lpSubKey,
+    const LPWSTR lpData,
+    const PLONG lpcbData
+) noexcept
 {
     HKEY hSubKey = hKey;
     if (lpSubKey && *lpSubKey)
@@ -924,22 +959,38 @@ LSTATUS Registry::SetValueW(
     return status;
 }
 
-LSTATUS Registry::DeleteKeyA(const HKEY hKey, const LPCSTR lpSubKey) noexcept
+LSTATUS Registry::DeleteKeyA(
+    const HKEY hKey,
+    const LPCSTR lpSubKey
+) noexcept
 {
     return DeleteKeyExA(hKey, lpSubKey, 0, 0);
 }
 
-LSTATUS Registry::DeleteKeyW(const HKEY hKey, const LPCWSTR lpSubKey) noexcept
+LSTATUS Registry::DeleteKeyW(
+    const HKEY hKey,
+    const LPCWSTR lpSubKey
+) noexcept
 {
     return DeleteKeyExW(hKey, lpSubKey, 0, 0);
 }
 
-LSTATUS Registry::EnumKeyA(const HKEY hKey, const DWORD dwIndex, const LPSTR lpName, DWORD cchName) noexcept
+LSTATUS Registry::EnumKeyA(
+    const HKEY hKey,
+    const DWORD dwIndex,
+    const LPSTR lpName,
+    DWORD cchName
+) noexcept
 {
     return EnumKeyExA(hKey, dwIndex, lpName, &cchName, nullptr, nullptr, nullptr, nullptr);
 }
 
-LSTATUS Registry::EnumKeyW(const HKEY hKey, const DWORD dwIndex, const LPWSTR lpName, DWORD cchName) noexcept
+LSTATUS Registry::EnumKeyW(
+    const HKEY hKey,
+    const DWORD dwIndex,
+    const LPWSTR lpName,
+    DWORD cchName
+) noexcept
 {
     return EnumKeyExW(hKey, dwIndex, lpName, &cchName, nullptr, nullptr, nullptr, nullptr);
 }
@@ -993,7 +1044,11 @@ LSTATUS Registry::SetKeyValueW(
     return status;
 }
 
-LSTATUS Registry::DeleteKeyValueA(const HKEY hKey, const LPCSTR lpSubKey, const LPCSTR lpValueName) noexcept
+LSTATUS Registry::DeleteKeyValueA(
+    const HKEY hKey,
+    const LPCSTR lpSubKey,
+    const LPCSTR lpValueName
+) noexcept
 {
     HKEY hSubKey = hKey;
     if (lpSubKey && *lpSubKey)
@@ -1008,7 +1063,11 @@ LSTATUS Registry::DeleteKeyValueA(const HKEY hKey, const LPCSTR lpSubKey, const 
     return status;
 }
 
-LSTATUS Registry::DeleteKeyValueW(const HKEY hKey, const LPCWSTR lpSubKey, const LPCWSTR lpValueName) noexcept
+LSTATUS Registry::DeleteKeyValueW(
+    const HKEY hKey,
+    const LPCWSTR lpSubKey,
+    const LPCWSTR lpValueName
+) noexcept
 {
     HKEY hSubKey = hKey;
     if (lpSubKey && *lpSubKey)
@@ -1310,7 +1369,11 @@ LSTATUS Registry::GetString(
     );
 }
 
-LSTATUS Registry::EnumKey(const HKEY hKey, const DWORD dwIndex, std::wstring& name) noexcept
+LSTATUS Registry::EnumKey(
+    const HKEY hKey,
+    const DWORD dwIndex,
+    std::wstring& name
+) noexcept
 {
     return Guard(
         [&]

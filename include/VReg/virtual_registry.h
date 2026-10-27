@@ -63,7 +63,10 @@ public:
     /// held entirely in memory. @p pfnNtQueryKey replaces the `ntdll` export
     /// for native path resolution (a test seam); resolution happens here, so
     /// no call ever loads a module.
-    explicit VirtualRegistry(Registry* pBase = nullptr, NtQueryKeyFunction pfnNtQueryKey = nullptr) noexcept;
+    explicit VirtualRegistry(
+        Registry* pBase = nullptr,
+        NtQueryKeyFunction pfnNtQueryKey = nullptr
+    ) noexcept;
 
     VirtualRegistry(const VirtualRegistry&) = delete;
     VirtualRegistry& operator=(const VirtualRegistry&) = delete;
@@ -74,10 +77,21 @@ public:
     /// `ERROR_BAD_PATHNAME` for a malformed path and `ERROR_ALREADY_EXISTS`
     /// for a path already mounted. @p view limits the calls the mount answers
     /// to those of one registry view.
-    LSTATUS Mount(HKEY hRoot, std::wstring_view path, Hive& hive, MountView view = MountView::Both) noexcept;
+    LSTATUS Mount(
+        HKEY hRoot,
+        std::wstring_view path,
+        Hive& hive,
+        MountView view = MountView::Both
+    ) noexcept;
 
-    LSTATUS OpenKeyExW(HKEY hKey, LPCWSTR lpSubKey, DWORD ulOptions, REGSAM samDesired, PHKEY phkResult) noexcept
-        override;
+    LSTATUS OpenKeyExW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        DWORD ulOptions,
+        REGSAM samDesired,
+        PHKEY phkResult
+    ) noexcept override;
+
     LSTATUS CreateKeyExW(
         HKEY hKey,
         LPCWSTR lpSubKey,
@@ -89,7 +103,11 @@ public:
         PHKEY phkResult,
         LPDWORD lpdwDisposition
     ) noexcept override;
-    LSTATUS CloseKey(HKEY hKey) noexcept override;
+
+    LSTATUS CloseKey(
+        HKEY hKey
+    ) noexcept override;
+
     LSTATUS QueryValueExW(
         HKEY hKey,
         LPCWSTR lpValueName,
@@ -98,6 +116,7 @@ public:
         LPBYTE lpData,
         LPDWORD lpcbData
     ) noexcept override;
+
     LSTATUS SetValueExW(
         HKEY hKey,
         LPCWSTR lpValueName,
@@ -106,9 +125,24 @@ public:
         const BYTE* lpData,
         DWORD cbData
     ) noexcept override;
-    LSTATUS DeleteValueW(HKEY hKey, LPCWSTR lpValueName) noexcept override;
-    LSTATUS DeleteKeyExW(HKEY hKey, LPCWSTR lpSubKey, REGSAM samDesired, DWORD Reserved) noexcept override;
-    LSTATUS DeleteTreeW(HKEY hKey, LPCWSTR lpSubKey) noexcept override;
+
+    LSTATUS DeleteValueW(
+        HKEY hKey,
+        LPCWSTR lpValueName
+    ) noexcept override;
+
+    LSTATUS DeleteKeyExW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        REGSAM samDesired,
+        DWORD Reserved
+    ) noexcept override;
+
+    LSTATUS DeleteTreeW(
+        HKEY hKey,
+        LPCWSTR lpSubKey
+    ) noexcept override;
+
     LSTATUS EnumKeyExW(
         HKEY hKey,
         DWORD dwIndex,
@@ -119,6 +153,7 @@ public:
         LPDWORD lpcchClass,
         PFILETIME lpftLastWriteTime
     ) noexcept override;
+
     LSTATUS EnumValueW(
         HKEY hKey,
         DWORD dwIndex,
@@ -129,6 +164,7 @@ public:
         LPBYTE lpData,
         LPDWORD lpcbData
     ) noexcept override;
+
     LSTATUS QueryInfoKeyW(
         HKEY hKey,
         LPWSTR lpClass,
@@ -143,6 +179,7 @@ public:
         LPDWORD lpcbSecurityDescriptor,
         PFILETIME lpftLastWriteTime
     ) noexcept override;
+
     LSTATUS LoadMUIStringW(
         HKEY hKey,
         LPCWSTR pszValue,
@@ -152,6 +189,7 @@ public:
         DWORD Flags,
         LPCWSTR pszDirectory
     ) noexcept override;
+
     LSTATUS GetValueW(
         HKEY hkey,
         LPCWSTR lpSubKey,
@@ -161,6 +199,7 @@ public:
         PVOID pvData,
         LPDWORD pcbData
     ) noexcept override;
+
     LSTATUS NotifyChangeKeyValue(
         HKEY hKey,
         BOOL bWatchSubtree,
@@ -168,7 +207,10 @@ public:
         HANDLE hEvent,
         BOOL fAsynchronous
     ) noexcept override;
-    LSTATUS FlushKey(HKEY hKey) noexcept override;
+
+    LSTATUS FlushKey(
+        HKEY hKey
+    ) noexcept override;
 
 private:
     struct MountPoint

@@ -9,9 +9,21 @@ namespace VReg::Test
 /// alike.
 struct Win32Api
 {
-    LSTATUS OpenKeyExW(HKEY hKey, LPCWSTR lpSubKey, DWORD ulOptions, REGSAM samDesired, PHKEY phkResult)
+    LSTATUS OpenKeyExW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        DWORD ulOptions,
+        REGSAM samDesired,
+        PHKEY phkResult
+    )
     {
-        return ::RegOpenKeyExW(hKey, lpSubKey, ulOptions, samDesired, phkResult);
+        return ::RegOpenKeyExW(
+            hKey,
+            lpSubKey,
+            ulOptions,
+            samDesired,
+            phkResult
+        );
     }
 
     LSTATUS CreateKeyExW(
@@ -39,35 +51,88 @@ struct Win32Api
         );
     }
 
-    LSTATUS CloseKey(HKEY hKey)
+    LSTATUS CloseKey(
+        HKEY hKey
+    )
     {
-        return ::RegCloseKey(hKey);
+        return ::RegCloseKey(
+            hKey
+        );
     }
 
-    LSTATUS
-    QueryValueExW(HKEY hKey, LPCWSTR lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData)
+    LSTATUS QueryValueExW(
+        HKEY hKey,
+        LPCWSTR lpValueName,
+        LPDWORD lpReserved,
+        LPDWORD lpType,
+        LPBYTE lpData,
+        LPDWORD lpcbData
+    )
     {
-        return ::RegQueryValueExW(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
+        return ::RegQueryValueExW(
+            hKey,
+            lpValueName,
+            lpReserved,
+            lpType,
+            lpData,
+            lpcbData
+        );
     }
 
-    LSTATUS SetValueExW(HKEY hKey, LPCWSTR lpValueName, DWORD Reserved, DWORD dwType, const BYTE* lpData, DWORD cbData)
+    LSTATUS SetValueExW(
+        HKEY hKey,
+        LPCWSTR lpValueName,
+        DWORD Reserved,
+        DWORD dwType,
+        const BYTE* lpData,
+        DWORD cbData
+    )
     {
-        return ::RegSetValueExW(hKey, lpValueName, Reserved, dwType, lpData, cbData);
+        return ::RegSetValueExW(
+            hKey,
+            lpValueName,
+            Reserved,
+            dwType,
+            lpData,
+            cbData
+        );
     }
 
-    LSTATUS DeleteValueW(HKEY hKey, LPCWSTR lpValueName)
+    LSTATUS DeleteValueW(
+        HKEY hKey,
+        LPCWSTR lpValueName
+    )
     {
-        return ::RegDeleteValueW(hKey, lpValueName);
+        return ::RegDeleteValueW(
+            hKey,
+            lpValueName
+        );
     }
 
-    LSTATUS DeleteKeyExW(HKEY hKey, LPCWSTR lpSubKey, REGSAM samDesired, DWORD Reserved)
+    LSTATUS DeleteKeyExW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        REGSAM samDesired,
+        DWORD Reserved
+    )
     {
-        return ::RegDeleteKeyExW(hKey, lpSubKey, samDesired, Reserved);
+        return ::RegDeleteKeyExW(
+            hKey,
+            lpSubKey,
+            samDesired,
+            Reserved
+        );
     }
 
-    LSTATUS DeleteTreeW(HKEY hKey, LPCWSTR lpSubKey)
+    LSTATUS DeleteTreeW(
+        HKEY hKey,
+        LPCWSTR lpSubKey
+    )
     {
-        return ::RegDeleteTreeW(hKey, lpSubKey);
+        return ::RegDeleteTreeW(
+            hKey,
+            lpSubKey
+        );
     }
 
     LSTATUS EnumKeyExW(
@@ -81,7 +146,16 @@ struct Win32Api
         PFILETIME lpftLastWriteTime
     )
     {
-        return ::RegEnumKeyExW(hKey, dwIndex, lpName, lpcchName, lpReserved, lpClass, lpcchClass, lpftLastWriteTime);
+        return ::RegEnumKeyExW(
+            hKey,
+            dwIndex,
+            lpName,
+            lpcchName,
+            lpReserved,
+            lpClass,
+            lpcchClass,
+            lpftLastWriteTime
+        );
     }
 
     LSTATUS EnumValueW(
@@ -95,7 +169,16 @@ struct Win32Api
         LPDWORD lpcbData
     )
     {
-        return ::RegEnumValueW(hKey, dwIndex, lpValueName, lpcchValueName, lpReserved, lpType, lpData, lpcbData);
+        return ::RegEnumValueW(
+            hKey,
+            dwIndex,
+            lpValueName,
+            lpcchValueName,
+            lpReserved,
+            lpType,
+            lpData,
+            lpcbData
+        );
     }
 
     LSTATUS QueryInfoKeyW(
@@ -139,7 +222,15 @@ struct Win32Api
         LPCWSTR pszDirectory
     )
     {
-        return ::RegLoadMUIStringW(hKey, pszValue, pszOutBuf, cbOutBuf, pcbData, Flags, pszDirectory);
+        return ::RegLoadMUIStringW(
+            hKey,
+            pszValue,
+            pszOutBuf,
+            cbOutBuf,
+            pcbData,
+            Flags,
+            pszDirectory
+        );
     }
 
     LSTATUS GetValueW(
@@ -152,22 +243,58 @@ struct Win32Api
         LPDWORD pcbData
     )
     {
-        return ::RegGetValueW(hkey, lpSubKey, lpValue, dwFlags, pdwType, pvData, pcbData);
+        return ::RegGetValueW(
+            hkey,
+            lpSubKey,
+            lpValue,
+            dwFlags,
+            pdwType,
+            pvData,
+            pcbData
+        );
     }
 
-    LSTATUS NotifyChangeKeyValue(HKEY hKey, BOOL bWatchSubtree, DWORD dwNotifyFilter, HANDLE hEvent, BOOL fAsynchronous)
+    LSTATUS NotifyChangeKeyValue(
+        HKEY hKey,
+        BOOL bWatchSubtree,
+        DWORD dwNotifyFilter,
+        HANDLE hEvent,
+        BOOL fAsynchronous
+    )
     {
-        return ::RegNotifyChangeKeyValue(hKey, bWatchSubtree, dwNotifyFilter, hEvent, fAsynchronous);
+        return ::RegNotifyChangeKeyValue(
+            hKey,
+            bWatchSubtree,
+            dwNotifyFilter,
+            hEvent,
+            fAsynchronous
+        );
     }
 
-    LSTATUS FlushKey(HKEY hKey)
+    LSTATUS FlushKey(
+        HKEY hKey
+    )
     {
-        return ::RegFlushKey(hKey);
+        return ::RegFlushKey(
+            hKey
+        );
     }
 
-    LSTATUS OpenKeyExA(HKEY hKey, LPCSTR lpSubKey, DWORD ulOptions, REGSAM samDesired, PHKEY phkResult)
+    LSTATUS OpenKeyExA(
+        HKEY hKey,
+        LPCSTR lpSubKey,
+        DWORD ulOptions,
+        REGSAM samDesired,
+        PHKEY phkResult
+    )
     {
-        return ::RegOpenKeyExA(hKey, lpSubKey, ulOptions, samDesired, phkResult);
+        return ::RegOpenKeyExA(
+            hKey,
+            lpSubKey,
+            ulOptions,
+            samDesired,
+            phkResult
+        );
     }
 
     LSTATUS CreateKeyExA(
@@ -195,30 +322,79 @@ struct Win32Api
         );
     }
 
-    LSTATUS
-    QueryValueExA(HKEY hKey, LPCSTR lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData)
+    LSTATUS QueryValueExA(
+        HKEY hKey,
+        LPCSTR lpValueName,
+        LPDWORD lpReserved,
+        LPDWORD lpType,
+        LPBYTE lpData,
+        LPDWORD lpcbData
+    )
     {
-        return ::RegQueryValueExA(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
+        return ::RegQueryValueExA(
+            hKey,
+            lpValueName,
+            lpReserved,
+            lpType,
+            lpData,
+            lpcbData
+        );
     }
 
-    LSTATUS SetValueExA(HKEY hKey, LPCSTR lpValueName, DWORD Reserved, DWORD dwType, const BYTE* lpData, DWORD cbData)
+    LSTATUS SetValueExA(
+        HKEY hKey,
+        LPCSTR lpValueName,
+        DWORD Reserved,
+        DWORD dwType,
+        const BYTE* lpData,
+        DWORD cbData
+    )
     {
-        return ::RegSetValueExA(hKey, lpValueName, Reserved, dwType, lpData, cbData);
+        return ::RegSetValueExA(
+            hKey,
+            lpValueName,
+            Reserved,
+            dwType,
+            lpData,
+            cbData
+        );
     }
 
-    LSTATUS DeleteValueA(HKEY hKey, LPCSTR lpValueName)
+    LSTATUS DeleteValueA(
+        HKEY hKey,
+        LPCSTR lpValueName
+    )
     {
-        return ::RegDeleteValueA(hKey, lpValueName);
+        return ::RegDeleteValueA(
+            hKey,
+            lpValueName
+        );
     }
 
-    LSTATUS DeleteKeyExA(HKEY hKey, LPCSTR lpSubKey, REGSAM samDesired, DWORD Reserved)
+    LSTATUS DeleteKeyExA(
+        HKEY hKey,
+        LPCSTR lpSubKey,
+        REGSAM samDesired,
+        DWORD Reserved
+    )
     {
-        return ::RegDeleteKeyExA(hKey, lpSubKey, samDesired, Reserved);
+        return ::RegDeleteKeyExA(
+            hKey,
+            lpSubKey,
+            samDesired,
+            Reserved
+        );
     }
 
-    LSTATUS DeleteTreeA(HKEY hKey, LPCSTR lpSubKey)
+    LSTATUS DeleteTreeA(
+        HKEY hKey,
+        LPCSTR lpSubKey
+    )
     {
-        return ::RegDeleteTreeA(hKey, lpSubKey);
+        return ::RegDeleteTreeA(
+            hKey,
+            lpSubKey
+        );
     }
 
     LSTATUS EnumKeyExA(
@@ -232,7 +408,16 @@ struct Win32Api
         PFILETIME lpftLastWriteTime
     )
     {
-        return ::RegEnumKeyExA(hKey, dwIndex, lpName, lpcchName, lpReserved, lpClass, lpcchClass, lpftLastWriteTime);
+        return ::RegEnumKeyExA(
+            hKey,
+            dwIndex,
+            lpName,
+            lpcchName,
+            lpReserved,
+            lpClass,
+            lpcchClass,
+            lpftLastWriteTime
+        );
     }
 
     LSTATUS EnumValueA(
@@ -246,7 +431,16 @@ struct Win32Api
         LPDWORD lpcbData
     )
     {
-        return ::RegEnumValueA(hKey, dwIndex, lpValueName, lpcchValueName, lpReserved, lpType, lpData, lpcbData);
+        return ::RegEnumValueA(
+            hKey,
+            dwIndex,
+            lpValueName,
+            lpcchValueName,
+            lpReserved,
+            lpType,
+            lpData,
+            lpcbData
+        );
     }
 
     LSTATUS QueryInfoKeyA(
@@ -290,103 +484,302 @@ struct Win32Api
         LPCSTR pszDirectory
     )
     {
-        return ::RegLoadMUIStringA(hKey, pszValue, pszOutBuf, cbOutBuf, pcbData, Flags, pszDirectory);
+        return ::RegLoadMUIStringA(
+            hKey,
+            pszValue,
+            pszOutBuf,
+            cbOutBuf,
+            pcbData,
+            Flags,
+            pszDirectory
+        );
     }
 
-    LSTATUS
-    GetValueA(HKEY hkey, LPCSTR lpSubKey, LPCSTR lpValue, DWORD dwFlags, LPDWORD pdwType, PVOID pvData, LPDWORD pcbData)
+    LSTATUS GetValueA(
+        HKEY hkey,
+        LPCSTR lpSubKey,
+        LPCSTR lpValue,
+        DWORD dwFlags,
+        LPDWORD pdwType,
+        PVOID pvData,
+        LPDWORD pcbData
+    )
     {
-        return ::RegGetValueA(hkey, lpSubKey, lpValue, dwFlags, pdwType, pvData, pcbData);
+        return ::RegGetValueA(
+            hkey,
+            lpSubKey,
+            lpValue,
+            dwFlags,
+            pdwType,
+            pvData,
+            pcbData
+        );
     }
 
-    LSTATUS OpenKeyA(HKEY hKey, LPCSTR lpSubKey, PHKEY phkResult)
+    LSTATUS OpenKeyA(
+        HKEY hKey,
+        LPCSTR lpSubKey,
+        PHKEY phkResult
+    )
     {
-        return ::RegOpenKeyA(hKey, lpSubKey, phkResult);
+        return ::RegOpenKeyA(
+            hKey,
+            lpSubKey,
+            phkResult
+        );
     }
 
-    LSTATUS OpenKeyW(HKEY hKey, LPCWSTR lpSubKey, PHKEY phkResult)
+    LSTATUS OpenKeyW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        PHKEY phkResult
+    )
     {
-        return ::RegOpenKeyW(hKey, lpSubKey, phkResult);
+        return ::RegOpenKeyW(
+            hKey,
+            lpSubKey,
+            phkResult
+        );
     }
 
-    LSTATUS CreateKeyA(HKEY hKey, LPCSTR lpSubKey, PHKEY phkResult)
+    LSTATUS CreateKeyA(
+        HKEY hKey,
+        LPCSTR lpSubKey,
+        PHKEY phkResult
+    )
     {
-        return ::RegCreateKeyA(hKey, lpSubKey, phkResult);
+        return ::RegCreateKeyA(
+            hKey,
+            lpSubKey,
+            phkResult
+        );
     }
 
-    LSTATUS CreateKeyW(HKEY hKey, LPCWSTR lpSubKey, PHKEY phkResult)
+    LSTATUS CreateKeyW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        PHKEY phkResult
+    )
     {
-        return ::RegCreateKeyW(hKey, lpSubKey, phkResult);
+        return ::RegCreateKeyW(
+            hKey,
+            lpSubKey,
+            phkResult
+        );
     }
 
-    LSTATUS QueryValueA(HKEY hKey, LPCSTR lpSubKey, LPSTR lpData, PLONG lpcbData)
+    LSTATUS QueryValueA(
+        HKEY hKey,
+        LPCSTR lpSubKey,
+        LPSTR lpData,
+        PLONG lpcbData
+    )
     {
-        return ::RegQueryValueA(hKey, lpSubKey, lpData, lpcbData);
+        return ::RegQueryValueA(
+            hKey,
+            lpSubKey,
+            lpData,
+            lpcbData
+        );
     }
 
-    LSTATUS QueryValueW(HKEY hKey, LPCWSTR lpSubKey, LPWSTR lpData, PLONG lpcbData)
+    LSTATUS QueryValueW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        LPWSTR lpData,
+        PLONG lpcbData
+    )
     {
-        return ::RegQueryValueW(hKey, lpSubKey, lpData, lpcbData);
+        return ::RegQueryValueW(
+            hKey,
+            lpSubKey,
+            lpData,
+            lpcbData
+        );
     }
 
-    LSTATUS SetValueA(HKEY hKey, LPCSTR lpSubKey, DWORD dwType, LPCSTR lpData, DWORD cbData)
+    LSTATUS SetValueA(
+        HKEY hKey,
+        LPCSTR lpSubKey,
+        DWORD dwType,
+        LPCSTR lpData,
+        DWORD cbData
+    )
     {
-        return ::RegSetValueA(hKey, lpSubKey, dwType, lpData, cbData);
+        return ::RegSetValueA(
+            hKey,
+            lpSubKey,
+            dwType,
+            lpData,
+            cbData
+        );
     }
 
-    LSTATUS SetValueW(HKEY hKey, LPCWSTR lpSubKey, DWORD dwType, LPCWSTR lpData, DWORD cbData)
+    LSTATUS SetValueW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        DWORD dwType,
+        LPCWSTR lpData,
+        DWORD cbData
+    )
     {
-        return ::RegSetValueW(hKey, lpSubKey, dwType, lpData, cbData);
+        return ::RegSetValueW(
+            hKey,
+            lpSubKey,
+            dwType,
+            lpData,
+            cbData
+        );
     }
 
-    LSTATUS DeleteKeyA(HKEY hKey, LPCSTR lpSubKey)
+    LSTATUS DeleteKeyA(
+        HKEY hKey,
+        LPCSTR lpSubKey
+    )
     {
-        return ::RegDeleteKeyA(hKey, lpSubKey);
+        return ::RegDeleteKeyA(
+            hKey,
+            lpSubKey
+        );
     }
 
-    LSTATUS DeleteKeyW(HKEY hKey, LPCWSTR lpSubKey)
+    LSTATUS DeleteKeyW(
+        HKEY hKey,
+        LPCWSTR lpSubKey
+    )
     {
-        return ::RegDeleteKeyW(hKey, lpSubKey);
+        return ::RegDeleteKeyW(
+            hKey,
+            lpSubKey
+        );
     }
 
-    LSTATUS EnumKeyA(HKEY hKey, DWORD dwIndex, LPSTR lpName, DWORD cchName)
+    LSTATUS EnumKeyA(
+        HKEY hKey,
+        DWORD dwIndex,
+        LPSTR lpName,
+        DWORD cchName
+    )
     {
-        return ::RegEnumKeyA(hKey, dwIndex, lpName, cchName);
+        return ::RegEnumKeyA(
+            hKey,
+            dwIndex,
+            lpName,
+            cchName
+        );
     }
 
-    LSTATUS EnumKeyW(HKEY hKey, DWORD dwIndex, LPWSTR lpName, DWORD cchName)
+    LSTATUS EnumKeyW(
+        HKEY hKey,
+        DWORD dwIndex,
+        LPWSTR lpName,
+        DWORD cchName
+    )
     {
-        return ::RegEnumKeyW(hKey, dwIndex, lpName, cchName);
+        return ::RegEnumKeyW(
+            hKey,
+            dwIndex,
+            lpName,
+            cchName
+        );
     }
 
-    LSTATUS SetKeyValueA(HKEY hKey, LPCSTR lpSubKey, LPCSTR lpValueName, DWORD dwType, LPCVOID lpData, DWORD cbData)
+    LSTATUS SetKeyValueA(
+        HKEY hKey,
+        LPCSTR lpSubKey,
+        LPCSTR lpValueName,
+        DWORD dwType,
+        LPCVOID lpData,
+        DWORD cbData
+    )
     {
-        return ::RegSetKeyValueA(hKey, lpSubKey, lpValueName, dwType, lpData, cbData);
+        return ::RegSetKeyValueA(
+            hKey,
+            lpSubKey,
+            lpValueName,
+            dwType,
+            lpData,
+            cbData
+        );
     }
 
-    LSTATUS SetKeyValueW(HKEY hKey, LPCWSTR lpSubKey, LPCWSTR lpValueName, DWORD dwType, LPCVOID lpData, DWORD cbData)
+    LSTATUS SetKeyValueW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        LPCWSTR lpValueName,
+        DWORD dwType,
+        LPCVOID lpData,
+        DWORD cbData
+    )
     {
-        return ::RegSetKeyValueW(hKey, lpSubKey, lpValueName, dwType, lpData, cbData);
+        return ::RegSetKeyValueW(
+            hKey,
+            lpSubKey,
+            lpValueName,
+            dwType,
+            lpData,
+            cbData
+        );
     }
 
-    LSTATUS DeleteKeyValueA(HKEY hKey, LPCSTR lpSubKey, LPCSTR lpValueName)
+    LSTATUS DeleteKeyValueA(
+        HKEY hKey,
+        LPCSTR lpSubKey,
+        LPCSTR lpValueName
+    )
     {
-        return ::RegDeleteKeyValueA(hKey, lpSubKey, lpValueName);
+        return ::RegDeleteKeyValueA(
+            hKey,
+            lpSubKey,
+            lpValueName
+        );
     }
 
-    LSTATUS DeleteKeyValueW(HKEY hKey, LPCWSTR lpSubKey, LPCWSTR lpValueName)
+    LSTATUS DeleteKeyValueW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        LPCWSTR lpValueName
+    )
     {
-        return ::RegDeleteKeyValueW(hKey, lpSubKey, lpValueName);
+        return ::RegDeleteKeyValueW(
+            hKey,
+            lpSubKey,
+            lpValueName
+        );
     }
 
-    LSTATUS QueryMultipleValuesA(HKEY hKey, PVALENTA val_list, DWORD num_vals, LPSTR lpValueBuf, LPDWORD ldwTotsize)
+    LSTATUS QueryMultipleValuesA(
+        HKEY hKey,
+        PVALENTA val_list,
+        DWORD num_vals,
+        LPSTR lpValueBuf,
+        LPDWORD ldwTotsize
+    )
     {
-        return ::RegQueryMultipleValuesA(hKey, val_list, num_vals, lpValueBuf, ldwTotsize);
+        return ::RegQueryMultipleValuesA(
+            hKey,
+            val_list,
+            num_vals,
+            lpValueBuf,
+            ldwTotsize
+        );
     }
 
-    LSTATUS QueryMultipleValuesW(HKEY hKey, PVALENTW val_list, DWORD num_vals, LPWSTR lpValueBuf, LPDWORD ldwTotsize)
+    LSTATUS QueryMultipleValuesW(
+        HKEY hKey,
+        PVALENTW val_list,
+        DWORD num_vals,
+        LPWSTR lpValueBuf,
+        LPDWORD ldwTotsize
+    )
     {
-        return ::RegQueryMultipleValuesW(hKey, val_list, num_vals, lpValueBuf, ldwTotsize);
+        return ::RegQueryMultipleValuesW(
+            hKey,
+            val_list,
+            num_vals,
+            lpValueBuf,
+            ldwTotsize
+        );
     }
 };
 } // namespace VReg::Test

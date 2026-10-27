@@ -84,8 +84,14 @@ public:
     /// The live table: what the hooks attach to.
     [[nodiscard]] Functions& GetFunctions() noexcept;
 
-    LSTATUS OpenKeyExW(HKEY hKey, LPCWSTR lpSubKey, DWORD ulOptions, REGSAM samDesired, PHKEY phkResult) noexcept
-        override;
+    LSTATUS OpenKeyExW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        DWORD ulOptions,
+        REGSAM samDesired,
+        PHKEY phkResult
+    ) noexcept override;
+
     LSTATUS CreateKeyExW(
         HKEY hKey,
         LPCWSTR lpSubKey,
@@ -97,7 +103,11 @@ public:
         PHKEY phkResult,
         LPDWORD lpdwDisposition
     ) noexcept override;
-    LSTATUS CloseKey(HKEY hKey) noexcept override;
+
+    LSTATUS CloseKey(
+        HKEY hKey
+    ) noexcept override;
+
     LSTATUS QueryValueExW(
         HKEY hKey,
         LPCWSTR lpValueName,
@@ -106,6 +116,7 @@ public:
         LPBYTE lpData,
         LPDWORD lpcbData
     ) noexcept override;
+
     LSTATUS SetValueExW(
         HKEY hKey,
         LPCWSTR lpValueName,
@@ -114,9 +125,24 @@ public:
         const BYTE* lpData,
         DWORD cbData
     ) noexcept override;
-    LSTATUS DeleteValueW(HKEY hKey, LPCWSTR lpValueName) noexcept override;
-    LSTATUS DeleteKeyExW(HKEY hKey, LPCWSTR lpSubKey, REGSAM samDesired, DWORD Reserved) noexcept override;
-    LSTATUS DeleteTreeW(HKEY hKey, LPCWSTR lpSubKey) noexcept override;
+
+    LSTATUS DeleteValueW(
+        HKEY hKey,
+        LPCWSTR lpValueName
+    ) noexcept override;
+
+    LSTATUS DeleteKeyExW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        REGSAM samDesired,
+        DWORD Reserved
+    ) noexcept override;
+
+    LSTATUS DeleteTreeW(
+        HKEY hKey,
+        LPCWSTR lpSubKey
+    ) noexcept override;
+
     LSTATUS EnumKeyExW(
         HKEY hKey,
         DWORD dwIndex,
@@ -127,6 +153,7 @@ public:
         LPDWORD lpcchClass,
         PFILETIME lpftLastWriteTime
     ) noexcept override;
+
     LSTATUS EnumValueW(
         HKEY hKey,
         DWORD dwIndex,
@@ -137,6 +164,7 @@ public:
         LPBYTE lpData,
         LPDWORD lpcbData
     ) noexcept override;
+
     LSTATUS QueryInfoKeyW(
         HKEY hKey,
         LPWSTR lpClass,
@@ -151,6 +179,7 @@ public:
         LPDWORD lpcbSecurityDescriptor,
         PFILETIME lpftLastWriteTime
     ) noexcept override;
+
     LSTATUS LoadMUIStringW(
         HKEY hKey,
         LPCWSTR pszValue,
@@ -160,6 +189,7 @@ public:
         DWORD Flags,
         LPCWSTR pszDirectory
     ) noexcept override;
+
     LSTATUS GetValueW(
         HKEY hkey,
         LPCWSTR lpSubKey,
@@ -169,6 +199,7 @@ public:
         PVOID pvData,
         LPDWORD pcbData
     ) noexcept override;
+
     LSTATUS NotifyChangeKeyValue(
         HKEY hKey,
         BOOL bWatchSubtree,
@@ -176,7 +207,10 @@ public:
         HANDLE hEvent,
         BOOL fAsynchronous
     ) noexcept override;
-    LSTATUS FlushKey(HKEY hKey) noexcept override;
+
+    LSTATUS FlushKey(
+        HKEY hKey
+    ) noexcept override;
 
 private:
     Functions m_functions;

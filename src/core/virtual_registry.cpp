@@ -541,7 +541,9 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS VirtualRegistry::CloseKey(const HKEY hKey) noexcept
+LSTATUS VirtualRegistry::CloseKey(
+    const HKEY hKey
+) noexcept
 {
     if (Hive::NodeOf(hKey) || IsPredefinedHKey(hKey))
         return ERROR_SUCCESS;
@@ -635,7 +637,10 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS VirtualRegistry::DeleteValueW(const HKEY hKey, const LPCWSTR lpValueName) noexcept
+LSTATUS VirtualRegistry::DeleteValueW(
+    const HKEY hKey,
+    const LPCWSTR lpValueName
+) noexcept
 try
 {
     const auto target = Resolve(hKey, {});
@@ -676,7 +681,10 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS VirtualRegistry::DeleteTreeW(const HKEY hKey, const LPCWSTR lpSubKey) noexcept
+LSTATUS VirtualRegistry::DeleteTreeW(
+    const HKEY hKey,
+    const LPCWSTR lpSubKey
+) noexcept
 try
 {
     const auto target = Resolve(hKey, View(lpSubKey));
@@ -1181,7 +1189,9 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS VirtualRegistry::FlushKey(const HKEY hKey) noexcept
+LSTATUS VirtualRegistry::FlushKey(
+    const HKEY hKey
+) noexcept
 try
 {
     const auto target = Resolve(hKey, {});

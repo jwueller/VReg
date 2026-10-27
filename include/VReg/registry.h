@@ -38,7 +38,14 @@ public:
 
     /// @name The virtual surface
     /// @{
-    virtual LSTATUS OpenKeyExW(HKEY hKey, LPCWSTR lpSubKey, DWORD ulOptions, REGSAM samDesired, PHKEY phkResult) noexcept = 0;
+    virtual LSTATUS OpenKeyExW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        DWORD ulOptions,
+        REGSAM samDesired,
+        PHKEY phkResult
+    ) noexcept = 0;
+
     virtual LSTATUS CreateKeyExW(
         HKEY hKey,
         LPCWSTR lpSubKey,
@@ -50,7 +57,11 @@ public:
         PHKEY phkResult,
         LPDWORD lpdwDisposition
     ) noexcept = 0;
-    virtual LSTATUS CloseKey(HKEY hKey) noexcept = 0;
+
+    virtual LSTATUS CloseKey(
+        HKEY hKey
+    ) noexcept = 0;
+
     virtual LSTATUS QueryValueExW(
         HKEY hKey,
         LPCWSTR lpValueName,
@@ -59,6 +70,7 @@ public:
         LPBYTE lpData,
         LPDWORD lpcbData
     ) noexcept = 0;
+
     virtual LSTATUS SetValueExW(
         HKEY hKey,
         LPCWSTR lpValueName,
@@ -67,9 +79,24 @@ public:
         const BYTE* lpData,
         DWORD cbData
     ) noexcept = 0;
-    virtual LSTATUS DeleteValueW(HKEY hKey, LPCWSTR lpValueName) noexcept = 0;
-    virtual LSTATUS DeleteKeyExW(HKEY hKey, LPCWSTR lpSubKey, REGSAM samDesired, DWORD Reserved) noexcept = 0;
-    virtual LSTATUS DeleteTreeW(HKEY hKey, LPCWSTR lpSubKey) noexcept = 0;
+
+    virtual LSTATUS DeleteValueW(
+        HKEY hKey,
+        LPCWSTR lpValueName
+    ) noexcept = 0;
+
+    virtual LSTATUS DeleteKeyExW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        REGSAM samDesired,
+        DWORD Reserved
+    ) noexcept = 0;
+
+    virtual LSTATUS DeleteTreeW(
+        HKEY hKey,
+        LPCWSTR lpSubKey
+    ) noexcept = 0;
+
     virtual LSTATUS EnumKeyExW(
         HKEY hKey,
         DWORD dwIndex,
@@ -80,6 +107,7 @@ public:
         LPDWORD lpcchClass,
         PFILETIME lpftLastWriteTime
     ) noexcept = 0;
+
     virtual LSTATUS EnumValueW(
         HKEY hKey,
         DWORD dwIndex,
@@ -90,6 +118,7 @@ public:
         LPBYTE lpData,
         LPDWORD lpcbData
     ) noexcept = 0;
+
     virtual LSTATUS QueryInfoKeyW(
         HKEY hKey,
         LPWSTR lpClass,
@@ -104,6 +133,7 @@ public:
         LPDWORD lpcbSecurityDescriptor,
         PFILETIME lpftLastWriteTime
     ) noexcept = 0;
+
     virtual LSTATUS LoadMUIStringW(
         HKEY hKey,
         LPCWSTR pszValue,
@@ -113,6 +143,7 @@ public:
         DWORD Flags,
         LPCWSTR pszDirectory
     ) noexcept = 0;
+
     virtual LSTATUS GetValueW(
         HKEY hkey,
         LPCWSTR lpSubKey,
@@ -122,6 +153,7 @@ public:
         PVOID pvData,
         LPDWORD pcbData
     ) noexcept = 0;
+
     virtual LSTATUS NotifyChangeKeyValue(
         HKEY hKey,
         BOOL bWatchSubtree,
@@ -129,12 +161,22 @@ public:
         HANDLE hEvent,
         BOOL fAsynchronous
     ) noexcept = 0;
-    virtual LSTATUS FlushKey(HKEY hKey) noexcept = 0;
+
+    virtual LSTATUS FlushKey(
+        HKEY hKey
+    ) noexcept = 0;
     /// @}
 
     /// @name A forms of the virtual surface
     /// @{
-    LSTATUS OpenKeyExA(HKEY hKey, LPCSTR lpSubKey, DWORD ulOptions, REGSAM samDesired, PHKEY phkResult) noexcept;
+    LSTATUS OpenKeyExA(
+        HKEY hKey,
+        LPCSTR lpSubKey,
+        DWORD ulOptions,
+        REGSAM samDesired,
+        PHKEY phkResult
+    ) noexcept;
+
     LSTATUS CreateKeyExA(
         HKEY hKey,
         LPCSTR lpSubKey,
@@ -146,6 +188,7 @@ public:
         PHKEY phkResult,
         LPDWORD lpdwDisposition
     ) noexcept;
+
     LSTATUS QueryValueExA(
         HKEY hKey,
         LPCSTR lpValueName,
@@ -154,6 +197,7 @@ public:
         LPBYTE lpData,
         LPDWORD lpcbData
     ) noexcept;
+
     LSTATUS SetValueExA(
         HKEY hKey,
         LPCSTR lpValueName,
@@ -162,9 +206,24 @@ public:
         const BYTE* lpData,
         DWORD cbData
     ) noexcept;
-    LSTATUS DeleteValueA(HKEY hKey, LPCSTR lpValueName) noexcept;
-    LSTATUS DeleteKeyExA(HKEY hKey, LPCSTR lpSubKey, REGSAM samDesired, DWORD Reserved) noexcept;
-    LSTATUS DeleteTreeA(HKEY hKey, LPCSTR lpSubKey) noexcept;
+
+    LSTATUS DeleteValueA(
+        HKEY hKey,
+        LPCSTR lpValueName
+    ) noexcept;
+
+    LSTATUS DeleteKeyExA(
+        HKEY hKey,
+        LPCSTR lpSubKey,
+        REGSAM samDesired,
+        DWORD Reserved
+    ) noexcept;
+
+    LSTATUS DeleteTreeA(
+        HKEY hKey,
+        LPCSTR lpSubKey
+    ) noexcept;
+
     LSTATUS EnumKeyExA(
         HKEY hKey,
         DWORD dwIndex,
@@ -175,6 +234,7 @@ public:
         LPDWORD lpcchClass,
         PFILETIME lpftLastWriteTime
     ) noexcept;
+
     LSTATUS EnumValueA(
         HKEY hKey,
         DWORD dwIndex,
@@ -185,6 +245,7 @@ public:
         LPBYTE lpData,
         LPDWORD lpcbData
     ) noexcept;
+
     LSTATUS QueryInfoKeyA(
         HKEY hKey,
         LPSTR lpClass,
@@ -199,6 +260,7 @@ public:
         LPDWORD lpcbSecurityDescriptor,
         PFILETIME lpftLastWriteTime
     ) noexcept;
+
     /// Answers `ERROR_CALL_NOT_IMPLEMENTED` on every input, as the native
     /// function does.
     LSTATUS LoadMUIStringA(
@@ -210,6 +272,7 @@ public:
         DWORD Flags,
         LPCSTR pszDirectory
     ) noexcept;
+
     LSTATUS GetValueA(
         HKEY hkey,
         LPCSTR lpSubKey,
@@ -223,18 +286,83 @@ public:
 
     /// @name Pre-`Ex` forms
     /// @{
-    LSTATUS OpenKeyA(HKEY hKey, LPCSTR lpSubKey, PHKEY phkResult) noexcept;
-    LSTATUS OpenKeyW(HKEY hKey, LPCWSTR lpSubKey, PHKEY phkResult) noexcept;
-    LSTATUS CreateKeyA(HKEY hKey, LPCSTR lpSubKey, PHKEY phkResult) noexcept;
-    LSTATUS CreateKeyW(HKEY hKey, LPCWSTR lpSubKey, PHKEY phkResult) noexcept;
-    LSTATUS QueryValueA(HKEY hKey, LPCSTR lpSubKey, LPSTR lpData, PLONG lpcbData) noexcept;
-    LSTATUS QueryValueW(HKEY hKey, LPCWSTR lpSubKey, LPWSTR lpData, PLONG lpcbData) noexcept;
-    LSTATUS SetValueA(HKEY hKey, LPCSTR lpSubKey, DWORD dwType, LPCSTR lpData, DWORD cbData) noexcept;
-    LSTATUS SetValueW(HKEY hKey, LPCWSTR lpSubKey, DWORD dwType, LPCWSTR lpData, DWORD cbData) noexcept;
-    LSTATUS DeleteKeyA(HKEY hKey, LPCSTR lpSubKey) noexcept;
-    LSTATUS DeleteKeyW(HKEY hKey, LPCWSTR lpSubKey) noexcept;
-    LSTATUS EnumKeyA(HKEY hKey, DWORD dwIndex, LPSTR lpName, DWORD cchName) noexcept;
-    LSTATUS EnumKeyW(HKEY hKey, DWORD dwIndex, LPWSTR lpName, DWORD cchName) noexcept;
+    LSTATUS OpenKeyA(
+        HKEY hKey,
+        LPCSTR lpSubKey,
+        PHKEY phkResult
+    ) noexcept;
+
+    LSTATUS OpenKeyW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        PHKEY phkResult
+    ) noexcept;
+
+    LSTATUS CreateKeyA(
+        HKEY hKey,
+        LPCSTR lpSubKey,
+        PHKEY phkResult
+    ) noexcept;
+
+    LSTATUS CreateKeyW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        PHKEY phkResult
+    ) noexcept;
+
+    LSTATUS QueryValueA(
+        HKEY hKey,
+        LPCSTR lpSubKey,
+        LPSTR lpData,
+        PLONG lpcbData
+    ) noexcept;
+
+    LSTATUS QueryValueW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        LPWSTR lpData,
+        PLONG lpcbData
+    ) noexcept;
+
+    LSTATUS SetValueA(
+        HKEY hKey,
+        LPCSTR lpSubKey,
+        DWORD dwType,
+        LPCSTR lpData,
+        DWORD cbData
+    ) noexcept;
+
+    LSTATUS SetValueW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        DWORD dwType,
+        LPCWSTR lpData,
+        DWORD cbData
+    ) noexcept;
+
+    LSTATUS DeleteKeyA(
+        HKEY hKey,
+        LPCSTR lpSubKey
+    ) noexcept;
+
+    LSTATUS DeleteKeyW(
+        HKEY hKey,
+        LPCWSTR lpSubKey
+    ) noexcept;
+
+    LSTATUS EnumKeyA(
+        HKEY hKey,
+        DWORD dwIndex,
+        LPSTR lpName,
+        DWORD cchName
+    ) noexcept;
+
+    LSTATUS EnumKeyW(
+        HKEY hKey,
+        DWORD dwIndex,
+        LPWSTR lpName,
+        DWORD cchName
+    ) noexcept;
     /// @}
 
     /// @name Conveniences Win32 builds from the calls above
@@ -247,6 +375,7 @@ public:
         LPCVOID lpData,
         DWORD cbData
     ) noexcept;
+
     LSTATUS SetKeyValueW(
         HKEY hKey,
         LPCWSTR lpSubKey,
@@ -255,8 +384,19 @@ public:
         LPCVOID lpData,
         DWORD cbData
     ) noexcept;
-    LSTATUS DeleteKeyValueA(HKEY hKey, LPCSTR lpSubKey, LPCSTR lpValueName) noexcept;
-    LSTATUS DeleteKeyValueW(HKEY hKey, LPCWSTR lpSubKey, LPCWSTR lpValueName) noexcept;
+
+    LSTATUS DeleteKeyValueA(
+        HKEY hKey,
+        LPCSTR lpSubKey,
+        LPCSTR lpValueName
+    ) noexcept;
+
+    LSTATUS DeleteKeyValueW(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        LPCWSTR lpValueName
+    ) noexcept;
+
     LSTATUS QueryMultipleValuesA(
         HKEY hKey,
         PVALENTA val_list,
@@ -264,6 +404,7 @@ public:
         LPSTR lpValueBuf,
         LPDWORD ldwTotsize
     ) noexcept;
+
     LSTATUS QueryMultipleValuesW(
         HKEY hKey,
         PVALENTW val_list,
@@ -277,7 +418,13 @@ public:
     /// Each retries with a larger buffer while the value grows between the
     /// sizing call and the read.
     /// @{
-    LSTATUS QueryValue(HKEY hKey, LPCWSTR lpValueName, LPDWORD lpType, std::vector<std::byte>& data) noexcept;
+    LSTATUS QueryValue(
+        HKEY hKey,
+        LPCWSTR lpValueName,
+        LPDWORD lpType,
+        std::vector<std::byte>& data
+    ) noexcept;
+
     LSTATUS GetValue(
         HKEY hKey,
         LPCWSTR lpSubKey,
@@ -286,14 +433,40 @@ public:
         LPDWORD pdwType,
         std::vector<std::byte>& data
     ) noexcept;
+
     /// A string value without its terminator. @p dwFlags takes `RRF_*` flags
     /// except the type restriction, which this adds: `REG_SZ`, and with
     /// `RRF_NOEXPAND` also `REG_EXPAND_SZ` (otherwise `GetValueW` expands it
     /// into a `REG_SZ`).
-    LSTATUS GetString(HKEY hKey, LPCWSTR lpSubKey, LPCWSTR lpValue, DWORD dwFlags, std::wstring& text) noexcept;
-    LSTATUS EnumKey(HKEY hKey, DWORD dwIndex, std::wstring& name) noexcept;
-    LSTATUS EnumValue(HKEY hKey, DWORD dwIndex, std::wstring& name, LPDWORD lpType, std::vector<std::byte>* pData) noexcept;
-    LSTATUS LoadMUIString(HKEY hKey, LPCWSTR pszValue, DWORD Flags, LPCWSTR pszDirectory, std::wstring& text) noexcept;
+    LSTATUS GetString(
+        HKEY hKey,
+        LPCWSTR lpSubKey,
+        LPCWSTR lpValue,
+        DWORD dwFlags,
+        std::wstring& text
+    ) noexcept;
+
+    LSTATUS EnumKey(
+        HKEY hKey,
+        DWORD dwIndex,
+        std::wstring& name
+    ) noexcept;
+
+    LSTATUS EnumValue(
+        HKEY hKey,
+        DWORD dwIndex,
+        std::wstring& name,
+        LPDWORD lpType,
+        std::vector<std::byte>* pData
+    ) noexcept;
+
+    LSTATUS LoadMUIString(
+        HKEY hKey,
+        LPCWSTR pszValue,
+        DWORD Flags,
+        LPCWSTR pszDirectory,
+        std::wstring& text
+    ) noexcept;
     /// @}
 };
 } // namespace VReg

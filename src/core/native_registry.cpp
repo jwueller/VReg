@@ -100,7 +100,13 @@ LSTATUS NativeRegistry::OpenKeyExW(
     const PHKEY phkResult
 ) noexcept
 {
-    return m_functions.RegOpenKeyExW(hKey, lpSubKey, ulOptions, samDesired, phkResult);
+    return m_functions.RegOpenKeyExW(
+        hKey,
+        lpSubKey,
+        ulOptions,
+        samDesired,
+        phkResult
+    );
 }
 
 LSTATUS NativeRegistry::CreateKeyExW(
@@ -128,9 +134,13 @@ LSTATUS NativeRegistry::CreateKeyExW(
     );
 }
 
-LSTATUS NativeRegistry::CloseKey(const HKEY hKey) noexcept
+LSTATUS NativeRegistry::CloseKey(
+    const HKEY hKey
+) noexcept
 {
-    return m_functions.RegCloseKey(hKey);
+    return m_functions.RegCloseKey(
+        hKey
+    );
 }
 
 LSTATUS NativeRegistry::QueryValueExW(
@@ -142,7 +152,14 @@ LSTATUS NativeRegistry::QueryValueExW(
     const LPDWORD lpcbData
 ) noexcept
 {
-    return m_functions.RegQueryValueExW(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
+    return m_functions.RegQueryValueExW(
+        hKey,
+        lpValueName,
+        lpReserved,
+        lpType,
+        lpData,
+        lpcbData
+    );
 }
 
 LSTATUS NativeRegistry::SetValueExW(
@@ -154,12 +171,25 @@ LSTATUS NativeRegistry::SetValueExW(
     const DWORD cbData
 ) noexcept
 {
-    return m_functions.RegSetValueExW(hKey, lpValueName, Reserved, dwType, lpData, cbData);
+    return m_functions.RegSetValueExW(
+        hKey,
+        lpValueName,
+        Reserved,
+        dwType,
+        lpData,
+        cbData
+    );
 }
 
-LSTATUS NativeRegistry::DeleteValueW(const HKEY hKey, const LPCWSTR lpValueName) noexcept
+LSTATUS NativeRegistry::DeleteValueW(
+    const HKEY hKey,
+    const LPCWSTR lpValueName
+) noexcept
 {
-    return m_functions.RegDeleteValueW(hKey, lpValueName);
+    return m_functions.RegDeleteValueW(
+        hKey,
+        lpValueName
+    );
 }
 
 LSTATUS NativeRegistry::DeleteKeyExW(
@@ -169,12 +199,23 @@ LSTATUS NativeRegistry::DeleteKeyExW(
     const DWORD Reserved
 ) noexcept
 {
-    return m_functions.RegDeleteKeyExW(hKey, lpSubKey, samDesired, Reserved);
+    return m_functions.RegDeleteKeyExW(
+        hKey,
+        lpSubKey,
+        samDesired,
+        Reserved
+    );
 }
 
-LSTATUS NativeRegistry::DeleteTreeW(const HKEY hKey, const LPCWSTR lpSubKey) noexcept
+LSTATUS NativeRegistry::DeleteTreeW(
+    const HKEY hKey,
+    const LPCWSTR lpSubKey
+) noexcept
 {
-    return m_functions.RegDeleteTreeW(hKey, lpSubKey);
+    return m_functions.RegDeleteTreeW(
+        hKey,
+        lpSubKey
+    );
 }
 
 LSTATUS NativeRegistry::EnumKeyExW(
@@ -188,7 +229,16 @@ LSTATUS NativeRegistry::EnumKeyExW(
     const PFILETIME lpftLastWriteTime
 ) noexcept
 {
-    return m_functions.RegEnumKeyExW(hKey, dwIndex, lpName, lpcchName, lpReserved, lpClass, lpcchClass, lpftLastWriteTime);
+    return m_functions.RegEnumKeyExW(
+        hKey,
+        dwIndex,
+        lpName,
+        lpcchName,
+        lpReserved,
+        lpClass,
+        lpcchClass,
+        lpftLastWriteTime
+    );
 }
 
 LSTATUS NativeRegistry::EnumValueW(
@@ -202,7 +252,16 @@ LSTATUS NativeRegistry::EnumValueW(
     const LPDWORD lpcbData
 ) noexcept
 {
-    return m_functions.RegEnumValueW(hKey, dwIndex, lpValueName, lpcchValueName, lpReserved, lpType, lpData, lpcbData);
+    return m_functions.RegEnumValueW(
+        hKey,
+        dwIndex,
+        lpValueName,
+        lpcchValueName,
+        lpReserved,
+        lpType,
+        lpData,
+        lpcbData
+    );
 }
 
 LSTATUS NativeRegistry::QueryInfoKeyW(
@@ -246,7 +305,15 @@ LSTATUS NativeRegistry::LoadMUIStringW(
     const LPCWSTR pszDirectory
 ) noexcept
 {
-    return m_functions.RegLoadMUIStringW(hKey, pszValue, pszOutBuf, cbOutBuf, pcbData, Flags, pszDirectory);
+    return m_functions.RegLoadMUIStringW(
+        hKey,
+        pszValue,
+        pszOutBuf,
+        cbOutBuf,
+        pcbData,
+        Flags,
+        pszDirectory
+    );
 }
 
 LSTATUS NativeRegistry::GetValueW(
@@ -259,7 +326,15 @@ LSTATUS NativeRegistry::GetValueW(
     const LPDWORD pcbData
 ) noexcept
 {
-    return m_functions.RegGetValueW(hkey, lpSubKey, lpValue, dwFlags, pdwType, pvData, pcbData);
+    return m_functions.RegGetValueW(
+        hkey,
+        lpSubKey,
+        lpValue,
+        dwFlags,
+        pdwType,
+        pvData,
+        pcbData
+    );
 }
 
 LSTATUS NativeRegistry::NotifyChangeKeyValue(
@@ -270,11 +345,21 @@ LSTATUS NativeRegistry::NotifyChangeKeyValue(
     const BOOL fAsynchronous
 ) noexcept
 {
-    return m_functions.RegNotifyChangeKeyValue(hKey, bWatchSubtree, dwNotifyFilter, hEvent, fAsynchronous);
+    return m_functions.RegNotifyChangeKeyValue(
+        hKey,
+        bWatchSubtree,
+        dwNotifyFilter,
+        hEvent,
+        fAsynchronous
+    );
 }
 
-LSTATUS NativeRegistry::FlushKey(const HKEY hKey) noexcept
+LSTATUS NativeRegistry::FlushKey(
+    const HKEY hKey
+) noexcept
 {
-    return m_functions.RegFlushKey(hKey);
+    return m_functions.RegFlushKey(
+        hKey
+    );
 }
 } // namespace VReg
