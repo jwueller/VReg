@@ -40,7 +40,7 @@ bool IsPredefinedKey(const HKEY hKey) noexcept
 {
     const auto value = reinterpret_cast<std::uintptr_t>(hKey);
     const auto low = static_cast<std::uint32_t>(value);
-    const auto signExtended = static_cast<std::uintptr_t>(static_cast<std::intptr_t>(static_cast<std::int32_t>(low)));
+    const auto signExtended = static_cast<std::uintptr_t>(static_cast<std::int32_t>(low));
     return low >= 0x80000000u && low <= 0x800000FFu && value == signExtended;
 }
 
@@ -408,7 +408,7 @@ LSTATUS Registry::EnumKeyExA(
 
             const auto nameA = AnsiFromWide(name.data(), name.size());
             if (!CopyAnsiName(nameA, lpName, *lpcchName))
-                return static_cast<LSTATUS>(ERROR_MORE_DATA);
+                return ERROR_MORE_DATA;
             *lpcchName = static_cast<DWORD>(nameA.size());
 
             if (lpcchClass && !lpClass)
@@ -419,7 +419,7 @@ LSTATUS Registry::EnumKeyExA(
             {
                 const auto classA = AnsiFromWide(className.data(), className.size());
                 if (!CopyAnsiClass(classA, lpClass, *lpcchClass))
-                    return static_cast<LSTATUS>(ERROR_MORE_DATA);
+                    return ERROR_MORE_DATA;
                 *lpcchClass = static_cast<DWORD>(classA.size());
             }
 
@@ -469,14 +469,14 @@ LSTATUS Registry::EnumValueA(
             if (lpcbData)
                 *lpcbData = cbValue;
             if (lpData && cbValue > cbBuffer)
-                return static_cast<LSTATUS>(ERROR_MORE_DATA);
+                return ERROR_MORE_DATA;
 
             if (nameA.size() > *lpcchValueName)
             {
                 // Native terminates the text in the caller's buffer here, and writes nothing else.
                 if (lpData && isString && cbValue > 0 && cbValue < cbBuffer)
                     lpData[cbValue] = 0;
-                return static_cast<LSTATUS>(ERROR_MORE_DATA);
+                return ERROR_MORE_DATA;
             }
 
             const bool nameFits = CopyAnsiName(nameA, lpValueName, *lpcchValueName);
@@ -500,7 +500,7 @@ LSTATUS Registry::EnumValueA(
             }
 
             if (!nameFits)
-                return static_cast<LSTATUS>(ERROR_MORE_DATA);
+                return ERROR_MORE_DATA;
             *lpcchValueName = static_cast<DWORD>(nameA.size());
             return static_cast<LSTATUS>(ERROR_SUCCESS);
         }
@@ -595,7 +595,7 @@ LSTATUS Registry::QueryInfoKeyA(
             if (!CopyAnsiClass(classA, lpClass, *lpcchClass))
             {
                 *lpcchClass -= 1;
-                return static_cast<LSTATUS>(ERROR_MORE_DATA);
+                return ERROR_MORE_DATA;
             }
             *lpcchClass = static_cast<DWORD>(classA.size());
             return static_cast<LSTATUS>(ERROR_SUCCESS);
@@ -779,7 +779,7 @@ LSTATUS Registry::GetValueA(
                 }
                 if ((dwFlags & RRF_ZEROONFAILURE) && cbBuffer > 0)
                     std::memset(pvData, 0, cbBuffer);
-                return isMismatch ? status : static_cast<LSTATUS>(ERROR_MORE_DATA);
+                return isMismatch ? status : ERROR_MORE_DATA;
             }
 
             // Native reads the stored wide data into the caller's buffer when it fits there and narrows it in
@@ -1387,7 +1387,7 @@ LSTATUS Registry::QueryMultipleValuesW(
 
             *ldwTotsize = cbEnd;
             if (!isComplete)
-                return static_cast<LSTATUS>(ERROR_MORE_DATA);
+                return ERROR_MORE_DATA;
 
             for (DWORD i = 0; i < num_vals; ++i)
             {
@@ -1459,7 +1459,7 @@ LSTATUS Registry::QueryMultipleValuesA(
                     cbWideEnd = (i == 0 ? 0 : AlignedToDword(cbWideEnd)) + cbWide;
                 }
                 *ldwTotsize = cbWideEnd;
-                return static_cast<LSTATUS>(ERROR_MORE_DATA);
+                return ERROR_MORE_DATA;
             }
 
             for (DWORD i = 0; i < num_vals; ++i)

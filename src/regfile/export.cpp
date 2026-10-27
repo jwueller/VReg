@@ -49,13 +49,33 @@ public:
         if (depth > kMaxDepth)
             return ERROR_CANTREAD;
 
-        m_records.push_back({Record::Kind::Key, fullName, {}, 0, {}});
+        m_records.push_back(
+            {
+                .kind = Record::Kind::Key,
+                .key = fullName,
+                .name = {},
+                .dwType = 0,
+                .data = {}
+            }
+        );
 
         std::vector<Record> values;
         for (DWORD dwIndex = 0;; ++dwIndex)
         {
-            Record value{Record::Kind::Value, {}, {}, 0, {}};
-            const auto status = m_registry.EnumValue(hKey, dwIndex, value.name, &value.dwType, &value.data);
+            Record value{
+                .kind = Record::Kind::Value,
+                .key = {},
+                .name = {},
+                .dwType = 0,
+                .data = {}
+            };
+            const auto status = m_registry.EnumValue(
+                hKey,
+                dwIndex,
+                value.name,
+                &value.dwType,
+                &value.data
+            );
             if (status == ERROR_NO_MORE_ITEMS)
                 break;
             if (status != ERROR_SUCCESS)
@@ -193,21 +213,39 @@ LSTATUS ExportDelta(
         {
             const auto& key = upper[i++];
             if (key.isTombstone || key.isOpaque)
-                records.push_back({Record::Kind::DeleteKey, keyName(key.path), {}, 0, {}});
+                records.push_back(
+                    {
+                        .kind = Record::Kind::DeleteKey,
+                        .key = keyName(key.path),
+                        .name = {},
+                        .dwType = 0,
+                        .data = {}
+                    }
+                );
             if (key.isTombstone)
                 continue;
 
-            records.push_back({Record::Kind::Key, keyName(key.path), {}, 0, {}});
+            records.push_back(
+                {
+                    .kind = Record::Kind::Key,
+                    .key = keyName(key.path),
+                    .name = {},
+                    .dwType = 0,
+                    .data = {}
+                }
+            );
             std::vector<Record> values;
             for (; i < upper.size() && upper[i].kind == UpperRecord::Kind::Value; ++i)
             {
                 auto& value = upper[i];
                 values.push_back(
-                    {value.isTombstone ? Record::Kind::DeleteValue : Record::Kind::Value,
-                     {},
-                     std::move(value.name),
-                     value.dwType,
-                     std::move(value.data)}
+                    {
+                        .kind = value.isTombstone ? Record::Kind::DeleteValue : Record::Kind::Value,
+                        .key = {},
+                        .name = std::move(value.name),
+                        .dwType = value.dwType,
+                        .data = std::move(value.data)
+                    }
                 );
             }
             std::ranges::sort(values, NameLess, &Record::name);

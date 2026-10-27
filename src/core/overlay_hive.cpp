@@ -56,12 +56,14 @@ void ListUpper(const Node& node, std::wstring& path, std::vector<UpperRecord>& r
     for (const auto& value : node.values)
     {
         records.push_back(
-            {.kind = UpperRecord::Kind::Value,
-             .path = path,
-             .name = value.name,
-             .dwType = value.dwType,
-             .data = value.data,
-             .isTombstone = value.isTombstone}
+            {
+                .kind = UpperRecord::Kind::Value,
+                .path = path,
+                .name = value.name,
+                .dwType = value.dwType,
+                .data = value.data,
+                .isTombstone = value.isTombstone
+            }
         );
     }
 
