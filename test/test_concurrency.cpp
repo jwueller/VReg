@@ -127,17 +127,35 @@ void WriterLoop(Registry& registry, const HKEY hRoot, Shared& shared, const std:
         {
             HKEY hKey{};
             const auto status =
-                registry.CreateKeyExW(hRoot, path.c_str(), 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &hKey, nullptr);
+                registry.CreateKeyExW(
+                    hRoot,
+                    path.c_str(),
+                    0,
+                    nullptr,
+                    0,
+                    KEY_ALL_ACCESS,
+                    nullptr,
+                    &hKey,
+                    nullptr
+                );
             Judge(shared, status);
             if (status == ERROR_SUCCESS)
-                registry.CloseKey(hKey);
+                registry.CloseKey(
+                    hKey
+                );
             break;
         }
         case 2:
         case 3:
         {
             HKEY hKey{};
-            const auto status = registry.OpenKeyExW(hRoot, path.c_str(), 0, KEY_SET_VALUE, &hKey);
+            const auto status = registry.OpenKeyExW(
+                hRoot,
+                path.c_str(),
+                0,
+                KEY_SET_VALUE,
+                &hKey
+            );
             Judge(shared, status);
             if (status != ERROR_SUCCESS)
                 break;
@@ -156,28 +174,58 @@ void WriterLoop(Registry& registry, const HKEY hRoot, Shared& shared, const std:
                     sizeof(dwValue)
                 )
             );
-            registry.CloseKey(hKey);
+            registry.CloseKey(
+                hKey
+            );
             break;
         }
         case 4:
         {
             HKEY hKey{};
-            const auto status = registry.OpenKeyExW(hRoot, path.c_str(), 0, KEY_SET_VALUE, &hKey);
+            const auto status = registry.OpenKeyExW(
+                hRoot,
+                path.c_str(),
+                0,
+                KEY_SET_VALUE,
+                &hKey
+            );
             Judge(shared, status);
             if (status != ERROR_SUCCESS)
                 break;
 
-            Judge(shared, registry.DeleteValueW(hKey, ValueName(random.Next(kValues)).c_str()));
-            registry.CloseKey(hKey);
+            Judge(
+                shared,
+                registry.DeleteValueW(
+                    hKey,
+                    ValueName(random.Next(kValues)).c_str()
+                )
+            );
+            registry.CloseKey(
+                hKey
+            );
             break;
         }
         case 5:
-            Judge(shared, registry.DeleteKeyExW(hRoot, path.c_str(), 0, 0));
+            Judge(
+                shared,
+                registry.DeleteKeyExW(
+                    hRoot,
+                    path.c_str(),
+                    0,
+                    0
+                )
+            );
             break;
         case 6:
             // Rare, because it empties whole subtrees.
             if (random.Next(8) == 0)
-                Judge(shared, registry.DeleteTreeW(hRoot, KeyName(random.Next(kKeys)).c_str()));
+                Judge(
+                    shared,
+                    registry.DeleteTreeW(
+                        hRoot,
+                        KeyName(random.Next(kKeys)).c_str()
+                    )
+                );
             break;
         }
     }
@@ -195,7 +243,14 @@ void ReadKey(Registry& registry, const HKEY hKey, Shared& shared, Random& random
         const auto index = random.Next(kValues);
         const auto name = ValueName(index);
         const auto status =
-            registry.QueryValueExW(hKey, name.c_str(), nullptr, &dwType, reinterpret_cast<BYTE*>(&dwValue), &cbValue);
+            registry.QueryValueExW(
+                hKey,
+                name.c_str(),
+                nullptr,
+                &dwType,
+                reinterpret_cast<BYTE*>(&dwValue),
+                &cbValue
+            );
         Judge(shared, status);
         if (status == ERROR_SUCCESS && (dwType != REG_DWORD || cbValue != sizeof(dwValue)))
             Judge(shared, ERROR_INVALID_DATA);
@@ -206,7 +261,16 @@ void ReadKey(Registry& registry, const HKEY hKey, Shared& shared, Random& random
         {
             wchar_t szName[64];
             DWORD cchName = ARRAYSIZE(szName);
-            const auto status = registry.EnumKeyExW(hKey, i, szName, &cchName, nullptr, nullptr, nullptr, nullptr);
+            const auto status = registry.EnumKeyExW(
+                hKey,
+                i,
+                szName,
+                &cchName,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr
+            );
             Judge(shared, status);
             if (status != ERROR_SUCCESS)
                 break;
@@ -221,7 +285,16 @@ void ReadKey(Registry& registry, const HKEY hKey, Shared& shared, Random& random
             BYTE data[16];
             DWORD cbData = sizeof(data);
             const auto status =
-                registry.EnumValueW(hKey, i, szName, &cchName, nullptr, &dwType, data, &cbData);
+                registry.EnumValueW(
+                    hKey,
+                    i,
+                    szName,
+                    &cchName,
+                    nullptr,
+                    &dwType,
+                    data,
+                    &cbData
+                );
             Judge(shared, status);
             if (status != ERROR_SUCCESS)
                 break;
@@ -262,7 +335,13 @@ void ReaderLoop(Registry& registry, const HKEY hRoot, Shared& shared, const std:
     {
         const auto path = RandomPath(random);
         HKEY hKey{};
-        const auto status = registry.OpenKeyExW(hRoot, path.c_str(), 0, KEY_READ, &hKey);
+        const auto status = registry.OpenKeyExW(
+            hRoot,
+            path.c_str(),
+            0,
+            KEY_READ,
+            &hKey
+        );
         Judge(shared, status);
         if (status != ERROR_SUCCESS)
             continue;
@@ -271,7 +350,9 @@ void ReaderLoop(Registry& registry, const HKEY hRoot, Shared& shared, const std:
         for (int i = 0; i < 4; ++i)
             ReadKey(registry, hKey, shared, random);
 
-        registry.CloseKey(hKey);
+        registry.CloseKey(
+            hKey
+        );
     }
 }
 
@@ -283,7 +364,13 @@ void WatcherLoop(Registry& registry, const HKEY hRoot, Shared& shared)
     {
         ResetEvent(hEvent);
         const auto status =
-            registry.NotifyChangeKeyValue(hRoot, TRUE, REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_LAST_SET, hEvent, TRUE);
+            registry.NotifyChangeKeyValue(
+                hRoot,
+                TRUE,
+                REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_LAST_SET,
+                hEvent,
+                TRUE
+            );
         Judge(shared, status);
         if (WaitForSingleObject(hEvent, 100) == WAIT_OBJECT_0)
             shared.cFired.fetch_add(1, std::memory_order_relaxed);
@@ -315,7 +402,16 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
     {
         wchar_t szName[64];
         DWORD cchName = ARRAYSIZE(szName);
-        const auto status = registry.EnumKeyExW(hRoot, i, szName, &cchName, nullptr, nullptr, nullptr, nullptr);
+        const auto status = registry.EnumKeyExW(
+            hRoot,
+            i,
+            szName,
+            &cchName,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        );
         if (status == ERROR_NO_MORE_ITEMS)
             break;
         REQUIRE(status == ERROR_SUCCESS);
@@ -324,7 +420,20 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
 
     DWORD cSubKeys{};
     REQUIRE(
-        registry.QueryInfoKeyW(hRoot, nullptr, nullptr, nullptr, &cSubKeys, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr)
+        registry.QueryInfoKeyW(
+            hRoot,
+            nullptr,
+            nullptr,
+            nullptr,
+            &cSubKeys,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        )
         == ERROR_SUCCESS
     );
     CHECK(cSubKeys == keys.size());
@@ -332,7 +441,13 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
     for (unsigned k = 0; k < kKeys; ++k)
     {
         HKEY hKey{};
-        const auto status = registry.OpenKeyExW(hRoot, KeyName(k).c_str(), 0, KEY_READ, &hKey);
+        const auto status = registry.OpenKeyExW(
+            hRoot,
+            KeyName(k).c_str(),
+            0,
+            KEY_READ,
+            &hKey
+        );
         CHECK((status == ERROR_SUCCESS) == (keys.count(KeyName(k)) == 1));
         if (status != ERROR_SUCCESS)
             continue;
@@ -342,7 +457,16 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
         {
             wchar_t szName[64];
             DWORD cchName = ARRAYSIZE(szName);
-            const auto enumStatus = registry.EnumKeyExW(hKey, i, szName, &cchName, nullptr, nullptr, nullptr, nullptr);
+            const auto enumStatus = registry.EnumKeyExW(
+                hKey,
+                i,
+                szName,
+                &cchName,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr
+            );
             if (enumStatus == ERROR_NO_MORE_ITEMS)
                 break;
             REQUIRE(enumStatus == ERROR_SUCCESS);
@@ -379,7 +503,20 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
         DWORD cSubs{};
         DWORD cVals{};
         REQUIRE(
-            registry.QueryInfoKeyW(hKey, nullptr, nullptr, nullptr, &cSubs, nullptr, nullptr, &cVals, nullptr, nullptr, nullptr, nullptr)
+            registry.QueryInfoKeyW(
+                hKey,
+                nullptr,
+                nullptr,
+                nullptr,
+                &cSubs,
+                nullptr,
+                nullptr,
+                &cVals,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr
+            )
             == ERROR_SUCCESS
         );
         CHECK(cSubs == subKeys.size());
@@ -388,8 +525,18 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
         for (const auto& name : subKeys)
         {
             HKEY hSub{};
-            CHECK(registry.OpenKeyExW(hKey, name.c_str(), 0, KEY_READ, &hSub) == ERROR_SUCCESS);
-            registry.CloseKey(hSub);
+            CHECK(
+                registry.OpenKeyExW(
+                    hKey,
+                    name.c_str(),
+                    0,
+                    KEY_READ,
+                    &hSub
+                ) == ERROR_SUCCESS
+            );
+            registry.CloseKey(
+                hSub
+            );
         }
 
         for (const auto& name : values)
@@ -397,12 +544,21 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
             DWORD dwValue{};
             DWORD cbValue = sizeof(dwValue);
             CHECK(
-                registry.QueryValueExW(hKey, name.c_str(), nullptr, nullptr, reinterpret_cast<BYTE*>(&dwValue), &cbValue)
+                registry.QueryValueExW(
+                    hKey,
+                    name.c_str(),
+                    nullptr,
+                    nullptr,
+                    reinterpret_cast<BYTE*>(&dwValue),
+                    &cbValue
+                )
                 == ERROR_SUCCESS
             );
         }
 
-        registry.CloseKey(hKey);
+        registry.CloseKey(
+            hKey
+        );
     }
 }
 
@@ -499,7 +655,17 @@ TEST_CASE("Readers and writers on a writable OverlayHive over an app hive")
             const auto path = KeyName(k) + L'\\' + SubName(s);
             HKEY hKey{};
             REQUIRE(
-                native.CreateKeyExW(mount.LowerRoot(), path.c_str(), 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &hKey, nullptr)
+                native.CreateKeyExW(
+                    mount.LowerRoot(),
+                    path.c_str(),
+                    0,
+                    nullptr,
+                    0,
+                    KEY_ALL_ACCESS,
+                    nullptr,
+                    &hKey,
+                    nullptr
+                )
                 == ERROR_SUCCESS
             );
             for (unsigned v = 0; v < kValues; v += 2)
@@ -507,11 +673,20 @@ TEST_CASE("Readers and writers on a writable OverlayHive over an app hive")
                 const DWORD dwValue = ValueData(v);
                 const auto name = ValueName(v);
                 REQUIRE(
-                    native.SetValueExW(hKey, name.c_str(), 0, REG_DWORD, reinterpret_cast<const BYTE*>(&dwValue), sizeof(dwValue))
+                    native.SetValueExW(
+                        hKey,
+                        name.c_str(),
+                        0,
+                        REG_DWORD,
+                        reinterpret_cast<const BYTE*>(&dwValue),
+                        sizeof(dwValue)
+                    )
                     == ERROR_SUCCESS
                 );
             }
-            native.CloseKey(hKey);
+            native.CloseKey(
+                hKey
+            );
         }
     }
 

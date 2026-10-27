@@ -83,11 +83,19 @@ public:
             HKEY hSubkey{};
             // A symbolic link is exported as the key it is (its SymbolicLinkValue), never followed: following one
             // can leave the subtree or loop.
-            const auto opened = m_registry.OpenKeyExW(hKey, subkey.c_str(), REG_OPTION_OPEN_LINK, KEY_READ, &hSubkey);
+            const auto opened = m_registry.OpenKeyExW(
+                hKey,
+                subkey.c_str(),
+                REG_OPTION_OPEN_LINK,
+                KEY_READ,
+                &hSubkey
+            );
             if (opened != ERROR_SUCCESS)
                 return opened;
             const auto status = Walk(hSubkey, fullName + L'\\' + subkey, depth + 1);
-            m_registry.CloseKey(hSubkey);
+            m_registry.CloseKey(
+                hSubkey
+            );
             if (status != ERROR_SUCCESS)
                 return status;
         }
@@ -121,7 +129,13 @@ LSTATUS ExportSnapshot(
     {
         const std::wstring subkey(path);
         HKEY hKey{};
-        const auto opened = registry.OpenKeyExW(hRoot, subkey.c_str(), 0, KEY_READ, &hKey);
+        const auto opened = registry.OpenKeyExW(
+            hRoot,
+            subkey.c_str(),
+            0,
+            KEY_READ,
+            &hKey
+        );
         if (opened != ERROR_SUCCESS)
             return opened;
 
@@ -130,7 +144,9 @@ LSTATUS ExportSnapshot(
             fullName.append(L"\\").append(path);
         SnapshotWalker walker(registry);
         const auto walked = walker.Walk(hKey, fullName);
-        registry.CloseKey(hKey);
+        registry.CloseKey(
+            hKey
+        );
         if (walked != ERROR_SUCCESS)
             return walked;
         std::vector<std::byte> bytes;

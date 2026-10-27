@@ -43,7 +43,13 @@ public:
     {
         if (const auto status = Enter("OpenKeyExW"))
             return *status;
-        return m_inner.OpenKeyExW(hKey, lpSubKey, ulOptions, samDesired, phkResult);
+        return m_inner.OpenKeyExW(
+            hKey,
+            lpSubKey,
+            ulOptions,
+            samDesired,
+            phkResult
+        );
     }
 
     LSTATUS CreateKeyExW(
@@ -75,7 +81,9 @@ public:
 
     LSTATUS CloseKey(HKEY hKey) noexcept override
     {
-        return m_inner.CloseKey(hKey);
+        return m_inner.CloseKey(
+            hKey
+        );
     }
 
     LSTATUS QueryValueExW(
@@ -89,7 +97,14 @@ public:
     {
         if (const auto status = Enter("QueryValueExW"))
             return *status;
-        return m_inner.QueryValueExW(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
+        return m_inner.QueryValueExW(
+            hKey,
+            lpValueName,
+            lpReserved,
+            lpType,
+            lpData,
+            lpcbData
+        );
     }
 
     LSTATUS SetValueExW(
@@ -103,28 +118,46 @@ public:
     {
         if (const auto status = Enter("SetValueExW"))
             return *status;
-        return m_inner.SetValueExW(hKey, lpValueName, Reserved, dwType, lpData, cbData);
+        return m_inner.SetValueExW(
+            hKey,
+            lpValueName,
+            Reserved,
+            dwType,
+            lpData,
+            cbData
+        );
     }
 
     LSTATUS DeleteValueW(HKEY hKey, LPCWSTR lpValueName) noexcept override
     {
         if (const auto status = Enter("DeleteValueW"))
             return *status;
-        return m_inner.DeleteValueW(hKey, lpValueName);
+        return m_inner.DeleteValueW(
+            hKey,
+            lpValueName
+        );
     }
 
     LSTATUS DeleteKeyExW(HKEY hKey, LPCWSTR lpSubKey, REGSAM samDesired, DWORD Reserved) noexcept override
     {
         if (const auto status = Enter("DeleteKeyExW"))
             return *status;
-        return m_inner.DeleteKeyExW(hKey, lpSubKey, samDesired, Reserved);
+        return m_inner.DeleteKeyExW(
+            hKey,
+            lpSubKey,
+            samDesired,
+            Reserved
+        );
     }
 
     LSTATUS DeleteTreeW(HKEY hKey, LPCWSTR lpSubKey) noexcept override
     {
         if (const auto status = Enter("DeleteTreeW"))
             return *status;
-        return m_inner.DeleteTreeW(hKey, lpSubKey);
+        return m_inner.DeleteTreeW(
+            hKey,
+            lpSubKey
+        );
     }
 
     LSTATUS EnumKeyExW(
@@ -140,7 +173,16 @@ public:
     {
         if (const auto status = Enter("EnumKeyExW"))
             return *status;
-        return m_inner.EnumKeyExW(hKey, dwIndex, lpName, lpcchName, lpReserved, lpClass, lpcchClass, lpftLastWriteTime);
+        return m_inner.EnumKeyExW(
+            hKey,
+            dwIndex,
+            lpName,
+            lpcchName,
+            lpReserved,
+            lpClass,
+            lpcchClass,
+            lpftLastWriteTime
+        );
     }
 
     LSTATUS EnumValueW(
@@ -156,7 +198,16 @@ public:
     {
         if (const auto status = Enter("EnumValueW"))
             return *status;
-        return m_inner.EnumValueW(hKey, dwIndex, lpValueName, lpcchValueName, lpReserved, lpType, lpData, lpcbData);
+        return m_inner.EnumValueW(
+            hKey,
+            dwIndex,
+            lpValueName,
+            lpcchValueName,
+            lpReserved,
+            lpType,
+            lpData,
+            lpcbData
+        );
     }
 
     LSTATUS QueryInfoKeyW(
@@ -204,7 +255,15 @@ public:
     {
         if (const auto status = Enter("LoadMUIStringW"))
             return *status;
-        return m_inner.LoadMUIStringW(hKey, pszValue, pszOutBuf, cbOutBuf, pcbData, Flags, pszDirectory);
+        return m_inner.LoadMUIStringW(
+            hKey,
+            pszValue,
+            pszOutBuf,
+            cbOutBuf,
+            pcbData,
+            Flags,
+            pszDirectory
+        );
     }
 
     LSTATUS GetValueW(
@@ -219,7 +278,15 @@ public:
     {
         if (const auto status = Enter("GetValueW"))
             return *status;
-        return m_inner.GetValueW(hkey, lpSubKey, lpValue, dwFlags, pdwType, pvData, pcbData);
+        return m_inner.GetValueW(
+            hkey,
+            lpSubKey,
+            lpValue,
+            dwFlags,
+            pdwType,
+            pvData,
+            pcbData
+        );
     }
 
     LSTATUS NotifyChangeKeyValue(
@@ -232,14 +299,22 @@ public:
     {
         if (const auto status = Enter("NotifyChangeKeyValue"))
             return *status;
-        return m_inner.NotifyChangeKeyValue(hKey, bWatchSubtree, dwNotifyFilter, hEvent, fAsynchronous);
+        return m_inner.NotifyChangeKeyValue(
+            hKey,
+            bWatchSubtree,
+            dwNotifyFilter,
+            hEvent,
+            fAsynchronous
+        );
     }
 
     LSTATUS FlushKey(HKEY hKey) noexcept override
     {
         if (const auto status = Enter("FlushKey"))
             return *status;
-        return m_inner.FlushKey(hKey);
+        return m_inner.FlushKey(
+            hKey
+        );
     }
 
 private:
@@ -270,7 +345,17 @@ public:
         , m_registry(&m_lowerRegistry)
     {
         REQUIRE(
-            m_native.CreateKeyExW(m_appHive.Root(), L"Lower", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &m_hLower, nullptr)
+            m_native.CreateKeyExW(
+                m_appHive.Root(),
+                L"Lower",
+                0,
+                nullptr,
+                0,
+                KEY_ALL_ACCESS,
+                nullptr,
+                &m_hLower,
+                nullptr
+            )
             == ERROR_SUCCESS
         );
         REQUIRE(m_registry.Mount(HKEY_CURRENT_USER, mountPath, m_overlay) == ERROR_SUCCESS);
@@ -278,7 +363,9 @@ public:
 
     ~Fixture()
     {
-        m_native.CloseKey(m_hLower);
+        m_native.CloseKey(
+            m_hLower
+        );
     }
 
     Fixture(const Fixture&) = delete;
@@ -348,7 +435,13 @@ HKEY Create(Registry& registry, const HKEY hParent, const wchar_t* const pszPath
 LSTATUS Open(Registry& registry, const HKEY hParent, const wchar_t* const pszPath, HKEY& hKey)
 {
     hKey = nullptr;
-    return registry.OpenKeyExW(hParent, pszPath, 0, KEY_ALL_ACCESS, &hKey);
+    return registry.OpenKeyExW(
+        hParent,
+        pszPath,
+        0,
+        KEY_ALL_ACCESS,
+        &hKey
+    );
 }
 
 HKEY MustOpen(Registry& registry, const HKEY hParent, const wchar_t* const pszPath)
@@ -360,7 +453,14 @@ HKEY MustOpen(Registry& registry, const HKEY hParent, const wchar_t* const pszPa
 
 LSTATUS SetDword(Registry& registry, const HKEY hKey, const wchar_t* const pszName, const DWORD dwValue)
 {
-    return registry.SetValueExW(hKey, pszName, 0, REG_DWORD, reinterpret_cast<const BYTE*>(&dwValue), sizeof(dwValue));
+    return registry.SetValueExW(
+        hKey,
+        pszName,
+        0,
+        REG_DWORD,
+        reinterpret_cast<const BYTE*>(&dwValue),
+        sizeof(dwValue)
+    );
 }
 
 LSTATUS SetString(Registry& registry, const HKEY hKey, const wchar_t* const pszName, const std::wstring& text)
@@ -378,14 +478,28 @@ LSTATUS SetString(Registry& registry, const HKEY hKey, const wchar_t* const pszN
 LSTATUS SetSized(Registry& registry, const HKEY hKey, const wchar_t* const pszName, const DWORD cbData)
 {
     const std::vector<BYTE> data(cbData, 0x5A);
-    return registry.SetValueExW(hKey, pszName, 0, REG_BINARY, data.data(), cbData);
+    return registry.SetValueExW(
+        hKey,
+        pszName,
+        0,
+        REG_BINARY,
+        data.data(),
+        cbData
+    );
 }
 
 LSTATUS QueryDword(Registry& registry, const HKEY hKey, const wchar_t* const pszName, DWORD& dwValue)
 {
     dwValue = 0;
     DWORD cbValue = sizeof(dwValue);
-    return registry.QueryValueExW(hKey, pszName, nullptr, nullptr, reinterpret_cast<BYTE*>(&dwValue), &cbValue);
+    return registry.QueryValueExW(
+        hKey,
+        pszName,
+        nullptr,
+        nullptr,
+        reinterpret_cast<BYTE*>(&dwValue),
+        &cbValue
+    );
 }
 
 /// The value as a number, or 0xFFFFFFFF when the query fails.
@@ -412,7 +526,16 @@ Listing ListKeys(Registry& registry, const HKEY hKey)
         wchar_t className[300]{};
         DWORD cchName = 300;
         DWORD cchClass = 300;
-        const auto status = registry.EnumKeyExW(hKey, i, name, &cchName, nullptr, className, &cchClass, nullptr);
+        const auto status = registry.EnumKeyExW(
+            hKey,
+            i,
+            name,
+            &cchName,
+            nullptr,
+            className,
+            &cchClass,
+            nullptr
+        );
         if (status != ERROR_SUCCESS)
         {
             listing.end = status;
@@ -432,7 +555,16 @@ Listing ListValues(Registry& registry, const HKEY hKey)
     {
         wchar_t name[300]{};
         DWORD cchName = 300;
-        const auto status = registry.EnumValueW(hKey, i, name, &cchName, nullptr, nullptr, nullptr, nullptr);
+        const auto status = registry.EnumValueW(
+            hKey,
+            i,
+            name,
+            &cchName,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        );
         if (status != ERROR_SUCCESS)
         {
             listing.end = status;
@@ -508,9 +640,19 @@ void Snapshot(Registry& registry, const HKEY hKey, const std::wstring& path, std
 
         lines.push_back(std::format(L"{}\\{}", path, name));
         HKEY hChild{};
-        REQUIRE(registry.OpenKeyExW(hKey, name.c_str(), 0, KEY_READ, &hChild) == ERROR_SUCCESS);
+        REQUIRE(
+            registry.OpenKeyExW(
+                hKey,
+                name.c_str(),
+                0,
+                KEY_READ,
+                &hChild
+            ) == ERROR_SUCCESS
+        );
         Snapshot(registry, hChild, std::format(L"{}\\{}", path, name), lines);
-        registry.CloseKey(hChild);
+        registry.CloseKey(
+            hChild
+        );
     }
 }
 
@@ -543,7 +685,17 @@ TEST_CASE("Upper values and keys shadow lower ones")
     DWORD dwDisposition = 0;
     HKEY hK{};
     REQUIRE(
-        reg.CreateKeyExW(fx.Root(), L"K", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &hK, &dwDisposition) == ERROR_SUCCESS
+        reg.CreateKeyExW(
+            fx.Root(),
+            L"K",
+            0,
+            nullptr,
+            0,
+            KEY_ALL_ACCESS,
+            nullptr,
+            &hK,
+            &dwDisposition
+        ) == ERROR_SUCCESS
     );
     CHECK(dwDisposition == REG_OPENED_EXISTING_KEY);
     CHECK(IsVirtualHKey(hK));
@@ -555,7 +707,9 @@ TEST_CASE("Upper values and keys shadow lower ones")
     CHECK(MustOpen(reg, fx.Root(), L"k") == hK);
 
     CHECK(Snapshot(native, fx.LowerRoot()) == before);
-    native.CloseKey(hLowerK);
+    native.CloseKey(
+        hLowerK
+    );
 }
 
 TEST_CASE("Value tombstones hide lower values")
@@ -567,13 +721,28 @@ TEST_CASE("Value tombstones hide lower values")
     REQUIRE(SetDword(native, fx.LowerRoot(), L"v2", 2) == ERROR_SUCCESS);
     const auto before = Snapshot(native, fx.LowerRoot());
 
-    REQUIRE(reg.DeleteValueW(fx.Root(), L"v1") == ERROR_SUCCESS);
+    REQUIRE(
+        reg.DeleteValueW(
+            fx.Root(),
+            L"v1"
+        ) == ERROR_SUCCESS
+    );
     DWORD dwValue{};
     CHECK(QueryDword(reg, fx.Root(), L"V1", dwValue) == ERROR_FILE_NOT_FOUND);
     CHECK(ListValues(reg, fx.Root()).names == Names{L"v2"});
     CHECK(QueryInfo(reg, fx.Root()).cValues == 1);
-    CHECK(reg.DeleteValueW(fx.Root(), L"v1") == ERROR_FILE_NOT_FOUND);
-    CHECK(reg.DeleteValueW(fx.Root(), L"missing") == ERROR_FILE_NOT_FOUND);
+    CHECK(
+        reg.DeleteValueW(
+            fx.Root(),
+            L"v1"
+        ) == ERROR_FILE_NOT_FOUND
+    );
+    CHECK(
+        reg.DeleteValueW(
+            fx.Root(),
+            L"missing"
+        ) == ERROR_FILE_NOT_FOUND
+    );
     CHECK(Snapshot(native, fx.LowerRoot()) == before);
 
     REQUIRE(SetDword(reg, fx.Root(), L"v1", 7) == ERROR_SUCCESS);
@@ -583,7 +752,12 @@ TEST_CASE("Value tombstones hide lower values")
     SECTION("An upper-only value is simply removed")
     {
         REQUIRE(SetDword(reg, fx.Root(), L"u", 1) == ERROR_SUCCESS);
-        REQUIRE(reg.DeleteValueW(fx.Root(), L"u") == ERROR_SUCCESS);
+        REQUIRE(
+            reg.DeleteValueW(
+                fx.Root(),
+                L"u"
+            ) == ERROR_SUCCESS
+        );
         CHECK(QueryInfo(reg, fx.Root()).cValues == 2);
     }
 }
@@ -593,30 +767,80 @@ TEST_CASE("Key tombstones hide lower keys")
     Fixture fx;
     auto& native = fx.Native();
     auto& reg = fx.Registry();
-    native.CloseKey(Create(native, fx.LowerRoot(), L"Empty"));
-    native.CloseKey(Create(native, fx.LowerRoot(), L"Full\\Child"));
+    native.CloseKey(
+        Create(native, fx.LowerRoot(), L"Empty")
+    );
+    native.CloseKey(
+        Create(native, fx.LowerRoot(), L"Full\\Child")
+    );
     const auto before = Snapshot(native, fx.LowerRoot());
 
-    REQUIRE(reg.DeleteKeyExW(fx.Root(), L"empty", 0, 0) == ERROR_SUCCESS);
+    REQUIRE(
+        reg.DeleteKeyExW(
+            fx.Root(),
+            L"empty",
+            0,
+            0
+        ) == ERROR_SUCCESS
+    );
     HKEY hKey{};
     CHECK(Open(reg, fx.Root(), L"Empty", hKey) == ERROR_FILE_NOT_FOUND);
     CHECK(ListKeys(reg, fx.Root()).names == Names{L"Full"});
     CHECK(QueryInfo(reg, fx.Root()).cSubKeys == 1);
-    CHECK(reg.DeleteKeyExW(fx.Root(), L"Empty", 0, 0) == ERROR_FILE_NOT_FOUND);
+    CHECK(
+        reg.DeleteKeyExW(
+            fx.Root(),
+            L"Empty",
+            0,
+            0
+        ) == ERROR_FILE_NOT_FOUND
+    );
     CHECK(Snapshot(native, fx.LowerRoot()) == before);
 
-    CHECK(reg.DeleteKeyExW(fx.Root(), L"Full", 0, 0) == ERROR_ACCESS_DENIED);
-    REQUIRE(reg.DeleteKeyExW(fx.Root(), L"Full\\Child", 0, 0) == ERROR_SUCCESS);
+    CHECK(
+        reg.DeleteKeyExW(
+            fx.Root(),
+            L"Full",
+            0,
+            0
+        ) == ERROR_ACCESS_DENIED
+    );
+    REQUIRE(
+        reg.DeleteKeyExW(
+            fx.Root(),
+            L"Full\\Child",
+            0,
+            0
+        ) == ERROR_SUCCESS
+    );
     CHECK(Open(reg, fx.Root(), L"Full\\Child", hKey) == ERROR_FILE_NOT_FOUND);
-    REQUIRE(reg.DeleteKeyExW(fx.Root(), L"Full", 0, 0) == ERROR_SUCCESS);
+    REQUIRE(
+        reg.DeleteKeyExW(
+            fx.Root(),
+            L"Full",
+            0,
+            0
+        ) == ERROR_SUCCESS
+    );
     CHECK(ListKeys(reg, fx.Root()).names.empty());
     CHECK(Snapshot(native, fx.LowerRoot()) == before);
 
     SECTION("Creating the key again makes a new, empty one")
     {
         DWORD dwDisposition = 0;
-        REQUIRE(reg.CreateKeyExW(fx.Root(), L"Full", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &hKey, &dwDisposition)
-                == ERROR_SUCCESS);
+        REQUIRE(
+            reg.CreateKeyExW(
+                fx.Root(),
+                L"Full",
+                0,
+                nullptr,
+                0,
+                KEY_ALL_ACCESS,
+                nullptr,
+                &hKey,
+                &dwDisposition
+            ) == ERROR_SUCCESS
+        );
         CHECK(dwDisposition == REG_CREATED_NEW_KEY);
         CHECK(ListKeys(reg, hKey).names.empty());
         CHECK(Open(reg, fx.Root(), L"Full\\Child", hKey) == ERROR_FILE_NOT_FOUND);
@@ -630,23 +854,43 @@ TEST_CASE("Opaque keys hide everything below them")
     auto& reg = fx.Registry();
     const HKEY hLowerK = Create(native, fx.LowerRoot(), L"K");
     REQUIRE(SetDword(native, hLowerK, L"a", 1) == ERROR_SUCCESS);
-    native.CloseKey(Create(native, hLowerK, L"S\\Deep"));
+    native.CloseKey(
+        Create(native, hLowerK, L"S\\Deep")
+    );
     const HKEY hLowerL = Create(native, fx.LowerRoot(), L"L");
     REQUIRE(SetDword(native, hLowerL, L"a", 1) == ERROR_SUCCESS);
-    native.CloseKey(Create(native, hLowerL, L"S"));
+    native.CloseKey(
+        Create(native, hLowerL, L"S")
+    );
     const auto before = Snapshot(native, fx.LowerRoot());
 
     SECTION("RegDeleteTree on a subkey, then creating it again")
     {
-        REQUIRE(reg.DeleteTreeW(fx.Root(), L"K") == ERROR_SUCCESS);
+        REQUIRE(
+            reg.DeleteTreeW(
+                fx.Root(),
+                L"K"
+            ) == ERROR_SUCCESS
+        );
         HKEY hKey{};
         CHECK(Open(reg, fx.Root(), L"K", hKey) == ERROR_FILE_NOT_FOUND);
         CHECK(ListKeys(reg, fx.Root()).names == Names{L"L"});
         CHECK(Snapshot(native, fx.LowerRoot()) == before);
 
         DWORD dwDisposition = 0;
-        REQUIRE(reg.CreateKeyExW(fx.Root(), L"K", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &hKey, &dwDisposition)
-                == ERROR_SUCCESS);
+        REQUIRE(
+            reg.CreateKeyExW(
+                fx.Root(),
+                L"K",
+                0,
+                nullptr,
+                0,
+                KEY_ALL_ACCESS,
+                nullptr,
+                &hKey,
+                &dwDisposition
+            ) == ERROR_SUCCESS
+        );
         CHECK(dwDisposition == REG_CREATED_NEW_KEY);
         CHECK(ListKeys(reg, hKey).names.empty());
         CHECK(ListValues(reg, hKey).names.empty());
@@ -664,7 +908,12 @@ TEST_CASE("Opaque keys hide everything below them")
     SECTION("RegDeleteTree on the key itself keeps it, emptied")
     {
         const HKEY hL = MustOpen(reg, fx.Root(), L"L");
-        REQUIRE(reg.DeleteTreeW(hL, nullptr) == ERROR_SUCCESS);
+        REQUIRE(
+            reg.DeleteTreeW(
+                hL,
+                nullptr
+            ) == ERROR_SUCCESS
+        );
         CHECK(ListKeys(reg, hL).names.empty());
         CHECK(ListValues(reg, hL).names.empty());
         CHECK(ListKeys(reg, hL).end == ERROR_NO_MORE_ITEMS);
@@ -677,7 +926,12 @@ TEST_CASE("Opaque keys hide everything below them")
 
     SECTION("RegDeleteTree on the mount root hides the whole lower key")
     {
-        REQUIRE(reg.DeleteTreeW(fx.Root(), nullptr) == ERROR_SUCCESS);
+        REQUIRE(
+            reg.DeleteTreeW(
+                fx.Root(),
+                nullptr
+            ) == ERROR_SUCCESS
+        );
         CHECK(ListKeys(reg, fx.Root()).names.empty());
         CHECK(ListValues(reg, fx.Root()).names.empty());
         HKEY hKey{};
@@ -685,8 +939,12 @@ TEST_CASE("Opaque keys hide everything below them")
         CHECK(Snapshot(native, fx.LowerRoot()) == before);
     }
 
-    native.CloseKey(hLowerK);
-    native.CloseKey(hLowerL);
+    native.CloseKey(
+        hLowerK
+    );
+    native.CloseKey(
+        hLowerL
+    );
 }
 
 TEST_CASE("Enumeration merges both layers")
@@ -695,12 +953,18 @@ TEST_CASE("Enumeration merges both layers")
     auto& native = fx.Native();
     auto& reg = fx.Registry();
     for (const auto* const pszName : {L"a", L"c", L"e"})
-        native.CloseKey(Create(native, fx.LowerRoot(), pszName));
+        native.CloseKey(
+            Create(native, fx.LowerRoot(), pszName)
+        );
     for (const auto* const pszName : {L"l1", L"l2", L"l3"})
         REQUIRE(SetDword(native, fx.LowerRoot(), pszName, 1) == ERROR_SUCCESS);
 
-    reg.CloseKey(Create(reg, fx.Root(), L"b"));
-    reg.CloseKey(Create(reg, fx.Root(), L"d"));
+    reg.CloseKey(
+        Create(reg, fx.Root(), L"b")
+    );
+    reg.CloseKey(
+        Create(reg, fx.Root(), L"d")
+    );
     REQUIRE(SetDword(reg, MustOpen(reg, fx.Root(), L"c"), L"touch", 1) == ERROR_SUCCESS);
     REQUIRE(SetDword(reg, fx.Root(), L"u1", 1) == ERROR_SUCCESS);
     REQUIRE(SetDword(reg, fx.Root(), L"l2", 2) == ERROR_SUCCESS);
@@ -722,19 +986,57 @@ TEST_CASE("Enumeration merges both layers")
     {
         wchar_t name[16]{};
         DWORD cchName = 16;
-        CHECK(reg.EnumKeyExW(fx.Root(), 3, name, &cchName, nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS);
+        CHECK(
+            reg.EnumKeyExW(
+                fx.Root(),
+                3,
+                name,
+                &cchName,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr
+            ) == ERROR_SUCCESS
+        );
         CHECK(std::wstring(name, cchName) == L"a");
         cchName = 16;
-        CHECK(reg.EnumKeyExW(fx.Root(), 5, name, &cchName, nullptr, nullptr, nullptr, nullptr)
-              == ERROR_NO_MORE_ITEMS);
+        CHECK(
+            reg.EnumKeyExW(
+                fx.Root(),
+                5,
+                name,
+                &cchName,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr
+            ) == ERROR_NO_MORE_ITEMS
+        );
         cchName = 16;
-        CHECK(reg.EnumKeyExW(fx.Root(), 100, name, &cchName, nullptr, nullptr, nullptr, nullptr)
-              == ERROR_NO_MORE_ITEMS);
+        CHECK(
+            reg.EnumKeyExW(
+                fx.Root(),
+                100,
+                name,
+                &cchName,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr
+            ) == ERROR_NO_MORE_ITEMS
+        );
     }
 
     SECTION("Tombstoned lower keys are stepped over")
     {
-        REQUIRE(reg.DeleteKeyExW(fx.Root(), L"a", 0, 0) == ERROR_SUCCESS);
+        REQUIRE(
+            reg.DeleteKeyExW(
+                fx.Root(),
+                L"a",
+                0,
+                0
+            ) == ERROR_SUCCESS
+        );
         const auto keys = ListKeys(reg, fx.Root());
         CHECK(keys.end == ERROR_NO_MORE_ITEMS);
         CHECK(keys.names == Names{L"b", L"c", L"d", L"e"});
@@ -746,8 +1048,12 @@ TEST_CASE("QueryInfoKey covers both layers")
     Fixture fx;
     auto& native = fx.Native();
     auto& reg = fx.Registry();
-    native.CloseKey(Create(native, fx.LowerRoot(), L"aa", L"ccc"));
-    native.CloseKey(Create(native, fx.LowerRoot(), L"bbbb"));
+    native.CloseKey(
+        Create(native, fx.LowerRoot(), L"aa", L"ccc")
+    );
+    native.CloseKey(
+        Create(native, fx.LowerRoot(), L"bbbb")
+    );
     REQUIRE(SetSized(native, fx.LowerRoot(), L"v1", 4) == ERROR_SUCCESS);
     REQUIRE(SetSized(native, fx.LowerRoot(), L"value2", 10) == ERROR_SUCCESS);
 
@@ -760,7 +1066,9 @@ TEST_CASE("QueryInfoKey covers both layers")
     CHECK(info.cchMaxValueName == 6);
     CHECK(info.cbMaxValue == 10);
 
-    reg.CloseKey(Create(reg, fx.Root(), L"ccccccc", L"upperclass"));
+    reg.CloseKey(
+        Create(reg, fx.Root(), L"ccccccc", L"upperclass")
+    );
     REQUIRE(SetDword(reg, MustOpen(reg, fx.Root(), L"bbbb"), L"x", 1) == ERROR_SUCCESS);
     REQUIRE(SetSized(reg, fx.Root(), L"x", 20) == ERROR_SUCCESS);
     REQUIRE(SetSized(reg, fx.Root(), L"v1", 2) == ERROR_SUCCESS);
@@ -776,8 +1084,20 @@ TEST_CASE("QueryInfoKey covers both layers")
 
     SECTION("A shadowed name is counted once, a tombstone not at all")
     {
-        REQUIRE(reg.DeleteValueW(fx.Root(), L"value2") == ERROR_SUCCESS);
-        REQUIRE(reg.DeleteKeyExW(fx.Root(), L"aa", 0, 0) == ERROR_SUCCESS);
+        REQUIRE(
+            reg.DeleteValueW(
+                fx.Root(),
+                L"value2"
+            ) == ERROR_SUCCESS
+        );
+        REQUIRE(
+            reg.DeleteKeyExW(
+                fx.Root(),
+                L"aa",
+                0,
+                0
+            ) == ERROR_SUCCESS
+        );
         info = QueryInfo(reg, fx.Root());
         REQUIRE(info.status == ERROR_SUCCESS);
         CHECK(info.cSubKeys == 2);
@@ -791,10 +1111,14 @@ TEST_CASE("A failed lower query is never a smaller successful view")
     Fixture fx;
     auto& native = fx.Native();
     auto& reg = fx.Registry();
-    native.CloseKey(Create(native, fx.LowerRoot(), L"sub"));
+    native.CloseKey(
+        Create(native, fx.LowerRoot(), L"sub")
+    );
     REQUIRE(SetDword(native, fx.LowerRoot(), L"v", 1) == ERROR_SUCCESS);
     REQUIRE(SetDword(native, fx.LowerRoot(), L"lw", 3) == ERROR_SUCCESS);
-    reg.CloseKey(Create(reg, fx.Root(), L"upperkey"));
+    reg.CloseKey(
+        Create(reg, fx.Root(), L"upperkey")
+    );
     REQUIRE(SetDword(reg, fx.Root(), L"v", 2) == ERROR_SUCCESS);
     REQUIRE(SetDword(reg, fx.Root(), L"uv", 2) == ERROR_SUCCESS);
 
@@ -822,14 +1146,54 @@ TEST_CASE("A failed lower query is never a smaller successful view")
     // The upper entries come first and never need the lower layer.
     wchar_t buffer[32]{};
     DWORD cch = 32;
-    CHECK(reg.EnumKeyExW(fx.Root(), 0, buffer, &cch, nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS);
+    CHECK(
+        reg.EnumKeyExW(
+            fx.Root(),
+            0,
+            buffer,
+            &cch,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        ) == ERROR_SUCCESS
+    );
     cch = 32;
-    CHECK(reg.EnumValueW(fx.Root(), 0, buffer, &cch, nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS);
+    CHECK(
+        reg.EnumValueW(
+            fx.Root(),
+            0,
+            buffer,
+            &cch,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        ) == ERROR_SUCCESS
+    );
 
     cch = 32;
-    const auto keyStatus = reg.EnumKeyExW(fx.Root(), 1, buffer, &cch, nullptr, nullptr, nullptr, nullptr);
+    const auto keyStatus = reg.EnumKeyExW(
+        fx.Root(),
+        1,
+        buffer,
+        &cch,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr
+    );
     cch = 32;
-    const auto valueStatus = reg.EnumValueW(fx.Root(), 2, buffer, &cch, nullptr, nullptr, nullptr, nullptr);
+    const auto valueStatus = reg.EnumValueW(
+        fx.Root(),
+        2,
+        buffer,
+        &cch,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr
+    );
     if (name == "OpenKeyExW" || name == "QueryInfoKeyW" || name == "EnumKeyExW")
         CHECK(keyStatus == status);
     else
@@ -843,9 +1207,15 @@ TEST_CASE("Classes come from the lower key for keys the upper layer does not def
     Fixture fx;
     auto& native = fx.Native();
     auto& reg = fx.Registry();
-    native.CloseKey(Create(native, fx.LowerRoot(), L"K", L"LowerClass"));
-    native.CloseKey(Create(native, fx.LowerRoot(), L"Untouched", L"Other"));
-    reg.CloseKey(Create(reg, fx.Root(), L"U", L"UpperClass"));
+    native.CloseKey(
+        Create(native, fx.LowerRoot(), L"K", L"LowerClass")
+    );
+    native.CloseKey(
+        Create(native, fx.LowerRoot(), L"Untouched", L"Other")
+    );
+    reg.CloseKey(
+        Create(reg, fx.Root(), L"U", L"UpperClass")
+    );
 
     const auto classOf = [&](const std::wstring& key)
     {
@@ -865,7 +1235,9 @@ TEST_CASE("Classes come from the lower key for keys the upper layer does not def
 
     SECTION("Creating an existing key keeps its class")
     {
-        reg.CloseKey(Create(reg, fx.Root(), L"K", L"Ignored"));
+        reg.CloseKey(
+            Create(reg, fx.Root(), L"K", L"Ignored")
+        );
         CHECK(classOf(L"K") == L"LowerClass");
     }
 
@@ -878,8 +1250,17 @@ TEST_CASE("Classes come from the lower key for keys the upper layer does not def
 
     SECTION("A key created again takes the new class")
     {
-        REQUIRE(reg.DeleteKeyExW(fx.Root(), L"K", 0, 0) == ERROR_SUCCESS);
-        reg.CloseKey(Create(reg, fx.Root(), L"K", L"Fresh"));
+        REQUIRE(
+            reg.DeleteKeyExW(
+                fx.Root(),
+                L"K",
+                0,
+                0
+            ) == ERROR_SUCCESS
+        );
+        reg.CloseKey(
+            Create(reg, fx.Root(), L"K", L"Fresh")
+        );
         CHECK(classOf(L"K") == L"Fresh");
         CHECK(QueryInfo(reg, MustOpen(reg, fx.Root(), L"K")).className == L"Fresh");
     }
@@ -893,11 +1274,35 @@ TEST_CASE("An upper-only key ends its enumerations with ERROR_NO_MORE_ITEMS")
 
     wchar_t buffer[32]{};
     DWORD cch = 32;
-    CHECK(reg.EnumKeyExW(hUpper, 0, buffer, &cch, nullptr, nullptr, nullptr, nullptr) == ERROR_NO_MORE_ITEMS);
+    CHECK(
+        reg.EnumKeyExW(
+            hUpper,
+            0,
+            buffer,
+            &cch,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        ) == ERROR_NO_MORE_ITEMS
+    );
     cch = 32;
-    CHECK(reg.EnumValueW(hUpper, 0, buffer, &cch, nullptr, nullptr, nullptr, nullptr) == ERROR_NO_MORE_ITEMS);
+    CHECK(
+        reg.EnumValueW(
+            hUpper,
+            0,
+            buffer,
+            &cch,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        ) == ERROR_NO_MORE_ITEMS
+    );
 
-    reg.CloseKey(Create(reg, hUpper, L"child"));
+    reg.CloseKey(
+        Create(reg, hUpper, L"child")
+    );
     REQUIRE(SetDword(reg, hUpper, L"v", 1) == ERROR_SUCCESS);
     CHECK(ListKeys(reg, hUpper).names == Names{L"child"});
     CHECK(ListKeys(reg, hUpper).end == ERROR_NO_MORE_ITEMS);
@@ -911,9 +1316,13 @@ TEST_CASE("A key created as a whole path is not a direct child of the root")
     Fixture fx;
     auto& native = fx.Native();
     auto& reg = fx.Registry();
-    native.CloseKey(Create(native, fx.LowerRoot(), L"Other"));
+    native.CloseKey(
+        Create(native, fx.LowerRoot(), L"Other")
+    );
 
-    reg.CloseKey(Create(reg, fx.Root(), L"A\\B\\C"));
+    reg.CloseKey(
+        Create(reg, fx.Root(), L"A\\B\\C")
+    );
     CHECK(ListKeys(reg, fx.Root()).names == Names{L"A", L"Other"});
     CHECK(QueryInfo(reg, fx.Root()).cSubKeys == 2);
     CHECK(ListKeys(reg, MustOpen(reg, fx.Root(), L"A")).names == Names{L"B"});
@@ -922,7 +1331,9 @@ TEST_CASE("A key created as a whole path is not a direct child of the root")
 
     SECTION("Also below a lower key")
     {
-        reg.CloseKey(Create(reg, fx.Root(), L"Other\\X\\Y"));
+        reg.CloseKey(
+            Create(reg, fx.Root(), L"Other\\X\\Y")
+        );
         CHECK(ListKeys(reg, fx.Root()).names == Names{L"A", L"Other"});
         CHECK(ListKeys(reg, MustOpen(reg, fx.Root(), L"Other")).names == Names{L"X"});
     }
@@ -936,10 +1347,20 @@ TEST_CASE("A handle to an ancestor of the mount point opens down into the mount"
     auto& reg = fx.Registry();
     const HKEY hLowerKey = Create(native, fx.LowerRoot(), L"L");
     REQUIRE(SetDword(native, hLowerKey, L"v", 11) == ERROR_SUCCESS);
-    native.CloseKey(hLowerKey);
+    native.CloseKey(
+        hLowerKey
+    );
 
     HKEY hSoftware{};
-    REQUIRE(fx.Lower().OpenKeyExW(HKEY_CURRENT_USER, L"Software", 0, KEY_READ, &hSoftware) == ERROR_SUCCESS);
+    REQUIRE(
+        fx.Lower().OpenKeyExW(
+            HKEY_CURRENT_USER,
+            L"Software",
+            0,
+            KEY_READ,
+            &hSoftware
+        ) == ERROR_SUCCESS
+    );
     REQUIRE_FALSE(IsVirtualHKey(hSoftware));
 
     HKEY hKey{};
@@ -951,8 +1372,19 @@ TEST_CASE("A handle to an ancestor of the mount point opens down into the mount"
     CHECK(Open(reg, hSoftware, (name + L"\\Missing").c_str(), hKey) == ERROR_FILE_NOT_FOUND);
 
     DWORD dwDisposition = 0;
-    REQUIRE(reg.CreateKeyExW(hSoftware, (name + L"\\L\\New").c_str(), 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &hKey, &dwDisposition)
-            == ERROR_SUCCESS);
+    REQUIRE(
+        reg.CreateKeyExW(
+            hSoftware,
+            (name + L"\\L\\New").c_str(),
+            0,
+            nullptr,
+            0,
+            KEY_ALL_ACCESS,
+            nullptr,
+            &hKey,
+            &dwDisposition
+        ) == ERROR_SUCCESS
+    );
     CHECK(IsVirtualHKey(hKey));
     CHECK(dwDisposition == REG_CREATED_NEW_KEY);
 
@@ -962,7 +1394,9 @@ TEST_CASE("A handle to an ancestor of the mount point opens down into the mount"
     CHECK(IsVirtualHKey(hKey));
     RegCloseKey(hCurrentUser);
 
-    fx.Lower().CloseKey(hSoftware);
+    fx.Lower().CloseKey(
+        hSoftware
+    );
 }
 
 TEST_CASE("RegLoadMUIStringW forwards a lower value to the lower key")
@@ -987,16 +1421,17 @@ TEST_CASE("RegLoadMUIStringW forwards a lower value to the lower key")
 
     std::wstring actual(256, L'\0');
     DWORD cbActual = 0;
-    CHECK(reg.LoadMUIStringW(
-              fx.Root(),
-              L"Indirect",
-              actual.data(),
-              static_cast<DWORD>(actual.size() * sizeof(wchar_t)),
-              &cbActual,
-              0,
-              nullptr
-          )
-          == expectedStatus);
+    CHECK(
+        reg.LoadMUIStringW(
+            fx.Root(),
+            L"Indirect",
+            actual.data(),
+            static_cast<DWORD>(actual.size() * sizeof(wchar_t)),
+            &cbActual,
+            0,
+            nullptr
+        ) == expectedStatus
+    );
     CHECK(cbActual == cbExpected);
     CHECK(actual == expected);
 
@@ -1007,9 +1442,21 @@ TEST_CASE("RegLoadMUIStringW forwards a lower value to the lower key")
         const HKEY hVirtualSub = MustOpen(reg, fx.Root(), L"Sub");
         DWORD cb = 0;
         std::wstring text(256, L'\0');
-        CHECK(reg.LoadMUIStringW(hVirtualSub, L"Indirect", text.data(), 512, &cb, 0, nullptr) == ERROR_SUCCESS);
+        CHECK(
+            reg.LoadMUIStringW(
+                hVirtualSub,
+                L"Indirect",
+                text.data(),
+                512,
+                &cb,
+                0,
+                nullptr
+            ) == ERROR_SUCCESS
+        );
         CHECK(text == expected);
-        native.CloseKey(hSub);
+        native.CloseKey(
+            hSub
+        );
     }
 
     SECTION("A value the upper layer holds is a literal")
@@ -1017,17 +1464,47 @@ TEST_CASE("RegLoadMUIStringW forwards a lower value to the lower key")
         REQUIRE(SetString(reg, fx.Root(), L"Indirect", kMuiString) == ERROR_SUCCESS);
         DWORD cb = 0;
         std::wstring text(256, L'\0');
-        CHECK(reg.LoadMUIStringW(fx.Root(), L"Indirect", text.data(), 512, &cb, 0, nullptr) == ERROR_INVALID_DATA);
+        CHECK(
+            reg.LoadMUIStringW(
+                fx.Root(),
+                L"Indirect",
+                text.data(),
+                512,
+                &cb,
+                0,
+                nullptr
+            ) == ERROR_INVALID_DATA
+        );
 
         REQUIRE(SetString(reg, fx.Root(), L"Plain", L"plain text") == ERROR_SUCCESS);
-        CHECK(reg.LoadMUIStringW(fx.Root(), L"Plain", text.data(), 512, &cb, 0, nullptr) == ERROR_INVALID_DATA);
+        CHECK(
+            reg.LoadMUIStringW(
+                fx.Root(),
+                L"Plain",
+                text.data(),
+                512,
+                &cb,
+                0,
+                nullptr
+            ) == ERROR_INVALID_DATA
+        );
     }
 
     SECTION("A missing value")
     {
         DWORD cb = 0;
         std::wstring text(256, L'\0');
-        CHECK(reg.LoadMUIStringW(fx.Root(), L"Missing", text.data(), 512, &cb, 0, nullptr) == ERROR_FILE_NOT_FOUND);
+        CHECK(
+            reg.LoadMUIStringW(
+                fx.Root(),
+                L"Missing",
+                text.data(),
+                512,
+                &cb,
+                0,
+                nullptr
+            ) == ERROR_FILE_NOT_FOUND
+        );
     }
 }
 
@@ -1039,12 +1516,18 @@ TEST_CASE("A frozen overlay refuses writes and hands out lower keys")
     REQUIRE(SetDword(native, fx.LowerRoot(), L"lv", 1) == ERROR_SUCCESS);
     const HKEY hM = Create(native, fx.LowerRoot(), L"M");
     REQUIRE(SetDword(native, hM, L"m", 3) == ERROR_SUCCESS);
-    native.CloseKey(hM);
+    native.CloseKey(
+        hM
+    );
     const HKEY hLowerK = Create(native, fx.LowerRoot(), L"K\\Sub");
-    native.CloseKey(hLowerK);
+    native.CloseKey(
+        hLowerK
+    );
 
     REQUIRE(SetDword(reg, fx.Root(), L"uv", 2) == ERROR_SUCCESS);
-    reg.CloseKey(Create(reg, fx.Root(), L"U"));
+    reg.CloseKey(
+        Create(reg, fx.Root(), L"U")
+    );
     REQUIRE(SetDword(reg, MustOpen(reg, fx.Root(), L"K"), L"b", 4) == ERROR_SUCCESS);
     const auto before = Snapshot(native, fx.LowerRoot());
 
@@ -1056,17 +1539,78 @@ TEST_CASE("A frozen overlay refuses writes and hands out lower keys")
         HKEY hKey{};
         DWORD dwDisposition = 0;
         CHECK(SetDword(reg, fx.Root(), L"new", 1) == ERROR_ACCESS_DENIED);
-        CHECK(reg.DeleteValueW(fx.Root(), L"uv") == ERROR_ACCESS_DENIED);
-        CHECK(reg.DeleteValueW(fx.Root(), L"lv") == ERROR_ACCESS_DENIED);
-        CHECK(reg.DeleteKeyExW(fx.Root(), L"U", 0, 0) == ERROR_ACCESS_DENIED);
-        CHECK(reg.DeleteKeyExW(fx.Root(), L"M", 0, 0) == ERROR_ACCESS_DENIED);
-        CHECK(reg.DeleteTreeW(fx.Root(), L"K") == ERROR_ACCESS_DENIED);
-        CHECK(reg.DeleteTreeW(fx.Root(), L"M") == ERROR_ACCESS_DENIED);
-        CHECK(reg.DeleteTreeW(fx.Root(), nullptr) == ERROR_ACCESS_DENIED);
-        CHECK(reg.CreateKeyExW(fx.Root(), L"Nope", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &hKey, &dwDisposition)
-              == ERROR_ACCESS_DENIED);
-        CHECK(reg.CreateKeyExW(fx.Root(), L"M\\Nope", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &hKey, &dwDisposition)
-              == ERROR_ACCESS_DENIED);
+        CHECK(
+            reg.DeleteValueW(
+                fx.Root(),
+                L"uv"
+            ) == ERROR_ACCESS_DENIED
+        );
+        CHECK(
+            reg.DeleteValueW(
+                fx.Root(),
+                L"lv"
+            ) == ERROR_ACCESS_DENIED
+        );
+        CHECK(
+            reg.DeleteKeyExW(
+                fx.Root(),
+                L"U",
+                0,
+                0
+            ) == ERROR_ACCESS_DENIED
+        );
+        CHECK(
+            reg.DeleteKeyExW(
+                fx.Root(),
+                L"M",
+                0,
+                0
+            ) == ERROR_ACCESS_DENIED
+        );
+        CHECK(
+            reg.DeleteTreeW(
+                fx.Root(),
+                L"K"
+            ) == ERROR_ACCESS_DENIED
+        );
+        CHECK(
+            reg.DeleteTreeW(
+                fx.Root(),
+                L"M"
+            ) == ERROR_ACCESS_DENIED
+        );
+        CHECK(
+            reg.DeleteTreeW(
+                fx.Root(),
+                nullptr
+            ) == ERROR_ACCESS_DENIED
+        );
+        CHECK(
+            reg.CreateKeyExW(
+                fx.Root(),
+                L"Nope",
+                0,
+                nullptr,
+                0,
+                KEY_ALL_ACCESS,
+                nullptr,
+                &hKey,
+                &dwDisposition
+            ) == ERROR_ACCESS_DENIED
+        );
+        CHECK(
+            reg.CreateKeyExW(
+                fx.Root(),
+                L"M\\Nope",
+                0,
+                nullptr,
+                0,
+                KEY_ALL_ACCESS,
+                nullptr,
+                &hKey,
+                &dwDisposition
+            ) == ERROR_ACCESS_DENIED
+        );
         CHECK(Snapshot(native, fx.LowerRoot()) == before);
     }
 
@@ -1076,11 +1620,19 @@ TEST_CASE("A frozen overlay refuses writes and hands out lower keys")
         REQUIRE(Open(reg, fx.Root(), L"M", hKey) == ERROR_SUCCESS);
         CHECK_FALSE(IsVirtualHKey(hKey));
         CHECK(DwordOr(reg, hKey, L"m") == 3);
-        CHECK(reg.CloseKey(hKey) == ERROR_SUCCESS);
+        CHECK(
+            reg.CloseKey(
+                hKey
+            ) == ERROR_SUCCESS
+        );
 
         REQUIRE(Open(reg, fx.Root(), L"K\\Sub", hKey) == ERROR_SUCCESS);
         CHECK_FALSE(IsVirtualHKey(hKey));
-        CHECK(reg.CloseKey(hKey) == ERROR_SUCCESS);
+        CHECK(
+            reg.CloseKey(
+                hKey
+            ) == ERROR_SUCCESS
+        );
 
         REQUIRE(Open(reg, fx.Root(), L"U", hKey) == ERROR_SUCCESS);
         CHECK(IsVirtualHKey(hKey));
@@ -1102,15 +1654,39 @@ TEST_CASE("A frozen overlay refuses writes and hands out lower keys")
     {
         HKEY hKey{};
         DWORD dwDisposition = 0;
-        REQUIRE(reg.CreateKeyExW(fx.Root(), L"M", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &hKey, &dwDisposition)
-                == ERROR_SUCCESS);
+        REQUIRE(
+            reg.CreateKeyExW(
+                fx.Root(),
+                L"M",
+                0,
+                nullptr,
+                0,
+                KEY_ALL_ACCESS,
+                nullptr,
+                &hKey,
+                &dwDisposition
+            ) == ERROR_SUCCESS
+        );
         CHECK(dwDisposition == REG_OPENED_EXISTING_KEY);
         CHECK_FALSE(IsVirtualHKey(hKey));
         CHECK(DwordOr(reg, hKey, L"m") == 3);
-        reg.CloseKey(hKey);
+        reg.CloseKey(
+            hKey
+        );
 
-        REQUIRE(reg.CreateKeyExW(fx.Root(), L"U", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &hKey, &dwDisposition)
-                == ERROR_SUCCESS);
+        REQUIRE(
+            reg.CreateKeyExW(
+                fx.Root(),
+                L"U",
+                0,
+                nullptr,
+                0,
+                KEY_ALL_ACCESS,
+                nullptr,
+                &hKey,
+                &dwDisposition
+            ) == ERROR_SUCCESS
+        );
         CHECK(dwDisposition == REG_OPENED_EXISTING_KEY);
         CHECK(IsVirtualHKey(hKey));
     }
@@ -1123,7 +1699,9 @@ TEST_CASE("A writable overlay hands out virtual handles and copies up")
     auto& reg = fx.Registry();
     const HKEY hM = Create(native, fx.LowerRoot(), L"M\\Deep");
     REQUIRE(SetDword(native, hM, L"d", 6) == ERROR_SUCCESS);
-    native.CloseKey(hM);
+    native.CloseKey(
+        hM
+    );
     REQUIRE(SetDword(native, fx.LowerRoot(), L"lv", 1) == ERROR_SUCCESS);
     const auto before = Snapshot(native, fx.LowerRoot());
 
@@ -1141,7 +1719,12 @@ TEST_CASE("A writable overlay hands out virtual handles and copies up")
     REQUIRE(SetDword(reg, hKey, L"d", 60) == ERROR_SUCCESS);
     REQUIRE(SetDword(reg, hKey, L"extra", 1) == ERROR_SUCCESS);
     REQUIRE(SetDword(reg, hM2, L"m", 5) == ERROR_SUCCESS);
-    REQUIRE(reg.DeleteValueW(fx.Root(), L"lv") == ERROR_SUCCESS);
+    REQUIRE(
+        reg.DeleteValueW(
+            fx.Root(),
+            L"lv"
+        ) == ERROR_SUCCESS
+    );
 
     CHECK(DwordOr(reg, hKey, L"d") == 60);
     CHECK(DwordOr(reg, hM2, L"m") == 5);
@@ -1180,9 +1763,15 @@ TEST_CASE("The hive lock is never held across a call into the lower registry")
     const HKEY hLowerL = Create(native, fx.LowerRoot(), L"L");
     REQUIRE(SetDword(native, hLowerL, L"v", 1) == ERROR_SUCCESS);
     REQUIRE(SetDword(native, hLowerL, L"w", 1) == ERROR_SUCCESS);
-    native.CloseKey(Create(native, hLowerL, L"s1"));
-    native.CloseKey(Create(native, hLowerL, L"Empty"));
-    native.CloseKey(hLowerL);
+    native.CloseKey(
+        Create(native, hLowerL, L"s1")
+    );
+    native.CloseKey(
+        Create(native, hLowerL, L"Empty")
+    );
+    native.CloseKey(
+        hLowerL
+    );
 
     const HKEY hProbe = Create(reg, fx.Root(), L"Probe");
     REQUIRE(SetDword(reg, hProbe, L"seed", 0) == ERROR_SUCCESS);
@@ -1219,8 +1808,19 @@ TEST_CASE("The hive lock is never held across a call into the lower registry")
           [&]
           {
               HKEY hKey{};
-              CHECK(reg.CreateKeyExW(fx.Root(), L"L\\New\\Deeper", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &hKey, nullptr)
-                    == ERROR_SUCCESS);
+              CHECK(
+                  reg.CreateKeyExW(
+                      fx.Root(),
+                      L"L\\New\\Deeper",
+                      0,
+                      nullptr,
+                      0,
+                      KEY_ALL_ACCESS,
+                      nullptr,
+                      &hKey,
+                      nullptr
+                  ) == ERROR_SUCCESS
+              );
           });
     check("query value",
           [&]
@@ -1246,24 +1846,49 @@ TEST_CASE("The hive lock is never held across a call into the lower registry")
     check("delete key",
           [&]
           {
-              CHECK(reg.DeleteKeyExW(fx.Root(), L"L\\Empty", 0, 0) == ERROR_SUCCESS);
+              CHECK(
+                  reg.DeleteKeyExW(
+                      fx.Root(),
+                      L"L\\Empty",
+                      0,
+                      0
+                  ) == ERROR_SUCCESS
+              );
           });
     check("delete value",
           [&]
           {
-              CHECK(reg.DeleteValueW(hL, L"w") == ERROR_SUCCESS);
+              CHECK(
+                  reg.DeleteValueW(
+                      hL,
+                      L"w"
+                  ) == ERROR_SUCCESS
+              );
           });
     check("load MUI string",
           [&]
           {
               DWORD cb = 0;
               wchar_t text[8]{};
-              reg.LoadMUIStringW(hL, L"v", text, sizeof(text), &cb, 0, nullptr);
+              reg.LoadMUIStringW(
+                  hL,
+                  L"v",
+                  text,
+                  sizeof(text),
+                  &cb,
+                  0,
+                  nullptr
+              );
           });
     check("delete tree",
           [&]
           {
-              CHECK(reg.DeleteTreeW(fx.Root(), L"L\\s1") == ERROR_SUCCESS);
+              CHECK(
+                  reg.DeleteTreeW(
+                      fx.Root(),
+                      L"L\\s1"
+                  ) == ERROR_SUCCESS
+              );
           });
 
     fx.Lower().onCall = nullptr;

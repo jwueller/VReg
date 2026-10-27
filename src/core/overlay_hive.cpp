@@ -96,7 +96,9 @@ public:
     ~LowerKey()
     {
         if (m_hKey)
-            m_registry.CloseKey(m_hKey);
+            m_registry.CloseKey(
+                m_hKey
+            );
     }
 
     LowerKey(const LowerKey&) = delete;
@@ -195,7 +197,13 @@ OverlayHive::LowerView OverlayHive::ViewOf(const Node& node) const
 
 LSTATUS OverlayHive::OpenLower(const std::wstring& path, const REGSAM samDesired, HKEY& hKey) noexcept
 {
-    return m_lower.OpenKeyExW(m_hLowerRoot, path.empty() ? nullptr : path.c_str(), 0, samDesired | m_samLowerView, &hKey);
+    return m_lower.OpenKeyExW(
+        m_hLowerRoot,
+        path.empty() ? nullptr : path.c_str(),
+        0,
+        samDesired | m_samLowerView,
+        &hKey
+    );
 }
 
 LSTATUS OverlayHive::QueryLowerClass(const std::wstring& path, std::wstring& className) noexcept
@@ -674,7 +682,14 @@ try
         if (status == ERROR_SUCCESS)
         {
             const std::wstring valueName(name);
-            const auto queryStatus = m_lower.QueryValueExW(lowerKey.Get(), valueName.c_str(), nullptr, nullptr, nullptr, nullptr);
+            const auto queryStatus = m_lower.QueryValueExW(
+                lowerKey.Get(),
+                valueName.c_str(),
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr
+            );
             if (queryStatus != ERROR_FILE_NOT_FOUND && !Exists(queryStatus))
                 return queryStatus;
 
@@ -986,7 +1001,13 @@ try
             for (const auto& name : shadowedKeys)
             {
                 LowerKey child(m_lower);
-                const auto childStatus = m_lower.OpenKeyExW(lowerKey.Get(), name.c_str(), 0, KEY_QUERY_VALUE | m_samLowerView, &child.Receive());
+                const auto childStatus = m_lower.OpenKeyExW(
+                    lowerKey.Get(),
+                    name.c_str(),
+                    0,
+                    KEY_QUERY_VALUE | m_samLowerView,
+                    &child.Receive()
+                );
                 if (childStatus != ERROR_FILE_NOT_FOUND && !Exists(childStatus))
                     return childStatus;
                 if (Exists(childStatus))
@@ -995,7 +1016,14 @@ try
 
             for (const auto& name : shadowedValues)
             {
-                const auto valueStatus = m_lower.QueryValueExW(lowerKey.Get(), name.c_str(), nullptr, nullptr, nullptr, nullptr);
+                const auto valueStatus = m_lower.QueryValueExW(
+                    lowerKey.Get(),
+                    name.c_str(),
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    nullptr
+                );
                 if (valueStatus != ERROR_FILE_NOT_FOUND && !Exists(valueStatus))
                     return valueStatus;
                 if (Exists(valueStatus))
@@ -1076,7 +1104,14 @@ try
         return opened == ERROR_FILE_NOT_FOUND ? ERROR_SUCCESS : opened;
 
     const std::wstring valueName(name);
-    const auto status = m_lower.QueryValueExW(lowerKey.Get(), valueName.c_str(), nullptr, nullptr, nullptr, nullptr);
+    const auto status = m_lower.QueryValueExW(
+        lowerKey.Get(),
+        valueName.c_str(),
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr
+    );
     if (status == ERROR_FILE_NOT_FOUND)
         return ERROR_SUCCESS;
     if (!Exists(status))

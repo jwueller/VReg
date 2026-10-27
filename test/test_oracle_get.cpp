@@ -28,14 +28,30 @@ LSTATUS GetEx(
     LPDWORD pcbData
 )
 {
-    return api.GetValueW(hKey, pszSub, pszValue, dwFlags, pdwType, pData, pcbData);
+    return api.GetValueW(
+        hKey,
+        pszSub,
+        pszValue,
+        dwFlags,
+        pdwType,
+        pData,
+        pcbData
+    );
 }
 
 template <class Api>
 LSTATUS
 GetEx(Api& api, HKEY hKey, LPCSTR pszSub, LPCSTR pszValue, DWORD dwFlags, LPDWORD pdwType, PVOID pData, LPDWORD pcbData)
 {
-    return api.GetValueA(hKey, pszSub, pszValue, dwFlags, pdwType, pData, pcbData);
+    return api.GetValueA(
+        hKey,
+        pszSub,
+        pszValue,
+        dwFlags,
+        pdwType,
+        pData,
+        pcbData
+    );
 }
 
 std::vector<StoredValue> GetValues()
@@ -174,11 +190,61 @@ struct GetValueSubKeyAndName
 {
     template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
     {
-        RECORD("set sub", api.SetKeyValueW(hRoot, L"Sub\\Deep", L"v", REG_SZ, L"deep", 10));
-        RECORD("set sub default", api.SetKeyValueW(hRoot, L"Sub", nullptr, REG_SZ, L"default", 16));
-        RECORD("set root default", api.SetKeyValueW(hRoot, nullptr, nullptr, REG_SZ, L"root", 10));
-        RECORD("set non-ASCII", api.SetKeyValueW(hRoot, L"S\u00e4b", L"v\u20ac", REG_SZ, L"x", 4));
-        RECORD("set 32", api.SetKeyValueW(hRoot, L"Sub", L"v32", REG_SZ, L"x", 4));
+        RECORD(
+            "set sub",
+            api.SetKeyValueW(
+                hRoot,
+                L"Sub\\Deep",
+                L"v",
+                REG_SZ,
+                L"deep",
+                10
+            )
+        );
+        RECORD(
+            "set sub default",
+            api.SetKeyValueW(
+                hRoot,
+                L"Sub",
+                nullptr,
+                REG_SZ,
+                L"default",
+                16
+            )
+        );
+        RECORD(
+            "set root default",
+            api.SetKeyValueW(
+                hRoot,
+                nullptr,
+                nullptr,
+                REG_SZ,
+                L"root",
+                10
+            )
+        );
+        RECORD(
+            "set non-ASCII",
+            api.SetKeyValueW(
+                hRoot,
+                L"S\u00e4b",
+                L"v\u20ac",
+                REG_SZ,
+                L"x",
+                4
+            )
+        );
+        RECORD(
+            "set 32",
+            api.SetKeyValueW(
+                hRoot,
+                L"Sub",
+                L"v32",
+                REG_SZ,
+                L"x",
+                4
+            )
+        );
 
         for (const wchar_t* const pszSub :
              {static_cast<const wchar_t*>(nullptr),
@@ -210,7 +276,15 @@ struct GetValueSubKeyAndName
                     DWORD cbData = sizeof(data);
                     RECORD(
                         label + std::format(" W {:#x}", dwFlags),
-                        api.GetValueW(hRoot, pszSub, pszValue, dwFlags, &dwType, data.data(), &cbData),
+                        api.GetValueW(
+                            hRoot,
+                            pszSub,
+                            pszValue,
+                            dwFlags,
+                            &dwType,
+                            data.data(),
+                            &cbData
+                        ),
                         {dwType, cbData},
                         {Bytes(data)}
                     );
@@ -221,7 +295,15 @@ struct GetValueSubKeyAndName
                     cbData = sizeof(adata);
                     RECORD(
                         label + std::format(" A {:#x}", dwFlags),
-                        api.GetValueA(hRoot, pszNarrow, pszNarrowValue, dwFlags, &dwType, adata.data(), &cbData),
+                        api.GetValueA(
+                            hRoot,
+                            pszNarrow,
+                            pszNarrowValue,
+                            dwFlags,
+                            &dwType,
+                            adata.data(),
+                            &cbData
+                        ),
                         {dwType, cbData},
                         {Bytes(adata)}
                     );
@@ -233,22 +315,54 @@ struct GetValueSubKeyAndName
         std::array<BYTE, 8> data;
         RECORD(
             "W invalid handle",
-            api.GetValueW(nullptr, nullptr, L"v", RRF_RT_ANY, nullptr, data.data(), &cbData),
+            api.GetValueW(
+                nullptr,
+                nullptr,
+                L"v",
+                RRF_RT_ANY,
+                nullptr,
+                data.data(),
+                &cbData
+            ),
             {cbData}
         );
         RECORD(
             "A invalid handle",
-            api.GetValueA(nullptr, nullptr, "v", RRF_RT_ANY, nullptr, data.data(), &cbData),
+            api.GetValueA(
+                nullptr,
+                nullptr,
+                "v",
+                RRF_RT_ANY,
+                nullptr,
+                data.data(),
+                &cbData
+            ),
             {cbData}
         );
         RECORD(
             "W invalid handle with sub",
-            api.GetValueW(nullptr, L"Sub", L"v", RRF_RT_ANY, nullptr, data.data(), &cbData),
+            api.GetValueW(
+                nullptr,
+                L"Sub",
+                L"v",
+                RRF_RT_ANY,
+                nullptr,
+                data.data(),
+                &cbData
+            ),
             {cbData}
         );
         RECORD(
             "A invalid handle with sub",
-            api.GetValueA(nullptr, "Sub", "v", RRF_RT_ANY, nullptr, data.data(), &cbData),
+            api.GetValueA(
+                nullptr,
+                "Sub",
+                "v",
+                RRF_RT_ANY,
+                nullptr,
+                data.data(),
+                &cbData
+            ),
             {cbData}
         );
     }
@@ -306,7 +420,15 @@ struct LoadMUIStringForms
                     DWORD cbData = kFillSize;
                     RECORD(
                         "muiW " + label + std::format(" flags {} buffer {}", dwFlags, cbBuffer),
-                        api.LoadMUIStringW(hRoot, pszName, data.data(), cbBuffer, &cbData, dwFlags, nullptr),
+                        api.LoadMUIStringW(
+                            hRoot,
+                            pszName,
+                            data.data(),
+                            cbBuffer,
+                            &cbData,
+                            dwFlags,
+                            nullptr
+                        ),
                         {cbData},
                         {Bytes(data)}
                     );
@@ -315,14 +437,30 @@ struct LoadMUIStringForms
                 DWORD cbData = kFillSize;
                 RECORD(
                     "muiW size " + label + std::format(" flags {}", dwFlags),
-                    api.LoadMUIStringW(hRoot, pszName, nullptr, 0, &cbData, dwFlags, nullptr),
+                    api.LoadMUIStringW(
+                        hRoot,
+                        pszName,
+                        nullptr,
+                        0,
+                        &cbData,
+                        dwFlags,
+                        nullptr
+                    ),
                     {cbData}
                 );
                 std::array<wchar_t, 64> data;
                 std::memset(data.data(), kFill, sizeof(data));
                 RECORD(
                     "muiW no size " + label + std::format(" flags {}", dwFlags),
-                    api.LoadMUIStringW(hRoot, pszName, data.data(), 128, nullptr, dwFlags, nullptr),
+                    api.LoadMUIStringW(
+                        hRoot,
+                        pszName,
+                        data.data(),
+                        128,
+                        nullptr,
+                        dwFlags,
+                        nullptr
+                    ),
                     {},
                     {Bytes(data)}
                 );
@@ -333,7 +471,15 @@ struct LoadMUIStringForms
             DWORD cbData = kFillSize;
             RECORD(
                 "muiW directory " + label,
-                api.LoadMUIStringW(hRoot, pszName, data.data(), 128, &cbData, 0, L"C:\\Windows\\System32"),
+                api.LoadMUIStringW(
+                    hRoot,
+                    pszName,
+                    data.data(),
+                    128,
+                    &cbData,
+                    0,
+                    L"C:\\Windows\\System32"
+                ),
                 {cbData},
                 {Bytes(data)}
             );
@@ -344,38 +490,123 @@ struct LoadMUIStringForms
             cbData = kFillSize;
             RECORD(
                 "muiA " + label,
-                api.LoadMUIStringA(hRoot, narrow.c_str(), adata.data(), 64, &cbData, 0, nullptr),
+                api.LoadMUIStringA(
+                    hRoot,
+                    narrow.c_str(),
+                    adata.data(),
+                    64,
+                    &cbData,
+                    0,
+                    nullptr
+                ),
                 {cbData},
                 {Bytes(adata)}
             );
             cbData = kFillSize;
             RECORD(
                 "muiA size " + label,
-                api.LoadMUIStringA(hRoot, narrow.c_str(), nullptr, 0, &cbData, 0, nullptr),
+                api.LoadMUIStringA(
+                    hRoot,
+                    narrow.c_str(),
+                    nullptr,
+                    0,
+                    &cbData,
+                    0,
+                    nullptr
+                ),
                 {cbData}
             );
             RECORD(
                 "muiA no size " + label,
-                api.LoadMUIStringA(hRoot, narrow.c_str(), adata.data(), 64, nullptr, 0, "C:\\Windows")
+                api.LoadMUIStringA(
+                    hRoot,
+                    narrow.c_str(),
+                    adata.data(),
+                    64,
+                    nullptr,
+                    0,
+                    "C:\\Windows"
+                )
             );
         }
 
         std::array<char, 8> adata;
-        RECORD("muiA null value", api.LoadMUIStringA(hRoot, nullptr, adata.data(), 8, nullptr, 0, nullptr));
-        RECORD("muiA invalid handle", api.LoadMUIStringA(nullptr, "Plain", adata.data(), 8, nullptr, 0, nullptr));
-        RECORD("muiA bad flags", api.LoadMUIStringA(hRoot, "Plain", adata.data(), 8, nullptr, 0xFFFF, nullptr));
+        RECORD(
+            "muiA null value",
+            api.LoadMUIStringA(
+                hRoot,
+                nullptr,
+                adata.data(),
+                8,
+                nullptr,
+                0,
+                nullptr
+            )
+        );
+        RECORD(
+            "muiA invalid handle",
+            api.LoadMUIStringA(
+                nullptr,
+                "Plain",
+                adata.data(),
+                8,
+                nullptr,
+                0,
+                nullptr
+            )
+        );
+        RECORD(
+            "muiA bad flags",
+            api.LoadMUIStringA(
+                hRoot,
+                "Plain",
+                adata.data(),
+                8,
+                nullptr,
+                0xFFFF,
+                nullptr
+            )
+        );
 
         std::array<wchar_t, 8> wdata;
         DWORD cbData = kFillSize;
-        RECORD("muiW null value", api.LoadMUIStringW(hRoot, nullptr, wdata.data(), 16, &cbData, 0, nullptr), {cbData});
+        RECORD(
+            "muiW null value",
+            api.LoadMUIStringW(
+                hRoot,
+                nullptr,
+                wdata.data(),
+                16,
+                &cbData,
+                0,
+                nullptr
+            ),
+            {cbData}
+        );
         RECORD(
             "muiW invalid handle",
-            api.LoadMUIStringW(nullptr, L"Plain", wdata.data(), 16, &cbData, 0, nullptr),
+            api.LoadMUIStringW(
+                nullptr,
+                L"Plain",
+                wdata.data(),
+                16,
+                &cbData,
+                0,
+                nullptr
+            ),
             {cbData}
         );
         RECORD(
             "muiW bad flags",
-            api.LoadMUIStringW(hRoot, L"Plain", wdata.data(), 16, &cbData, 0xFFFF, nullptr),
+            api.LoadMUIStringW(
+                hRoot,
+                L"Plain",
+                wdata.data(),
+                16,
+                &cbData,
+                0xFFFF,
+                nullptr
+            ),
             {cbData}
         );
     }
@@ -384,13 +615,25 @@ struct LoadMUIStringForms
 template <class Api>
 LSTATUS QueryMultiple(Api& api, HKEY hKey, PVALENTW pEntries, DWORD cEntries, LPWSTR pBuffer, LPDWORD pcbTotal)
 {
-    return api.QueryMultipleValuesW(hKey, pEntries, cEntries, pBuffer, pcbTotal);
+    return api.QueryMultipleValuesW(
+        hKey,
+        pEntries,
+        cEntries,
+        pBuffer,
+        pcbTotal
+    );
 }
 
 template <class Api>
 LSTATUS QueryMultiple(Api& api, HKEY hKey, PVALENTA pEntries, DWORD cEntries, LPSTR pBuffer, LPDWORD pcbTotal)
 {
-    return api.QueryMultipleValuesA(hKey, pEntries, cEntries, pBuffer, pcbTotal);
+    return api.QueryMultipleValuesA(
+        hKey,
+        pEntries,
+        cEntries,
+        pBuffer,
+        pcbTotal
+    );
 }
 
 template <class Api, class Char, class Valent>
@@ -477,12 +720,72 @@ struct QueryMultipleValuesForms
     {
         const BYTE binary[3] = {1, 2, 3};
         const DWORD dword = 0x12345678;
-        RECORD("set a", api.SetValueExW(hRoot, L"a", 0, REG_SZ, BytesOf(L"alpha", 6).data(), 12));
-        RECORD("set b", api.SetValueExW(hRoot, L"b", 0, REG_DWORD, Raw(&dword), 4));
-        RECORD("set c", api.SetValueExW(hRoot, L"c", 0, REG_BINARY, binary, 3));
-        RECORD("set d", api.SetValueExW(hRoot, L"d", 0, REG_SZ, BytesOf(L"\u00e4\u4e2d", 3).data(), 6));
-        RECORD("set e", api.SetValueExW(hRoot, L"e", 0, REG_MULTI_SZ, BytesOf(L"x\0y\0", 5).data(), 10));
-        RECORD("set default", api.SetValueExW(hRoot, nullptr, 0, REG_SZ, BytesOf(L"def", 4).data(), 8));
+        RECORD(
+            "set a",
+            api.SetValueExW(
+                hRoot,
+                L"a",
+                0,
+                REG_SZ,
+                BytesOf(L"alpha", 6).data(),
+                12
+            )
+        );
+        RECORD(
+            "set b",
+            api.SetValueExW(
+                hRoot,
+                L"b",
+                0,
+                REG_DWORD,
+                Raw(&dword),
+                4
+            )
+        );
+        RECORD(
+            "set c",
+            api.SetValueExW(
+                hRoot,
+                L"c",
+                0,
+                REG_BINARY,
+                binary,
+                3
+            )
+        );
+        RECORD(
+            "set d",
+            api.SetValueExW(
+                hRoot,
+                L"d",
+                0,
+                REG_SZ,
+                BytesOf(L"\u00e4\u4e2d", 3).data(),
+                6
+            )
+        );
+        RECORD(
+            "set e",
+            api.SetValueExW(
+                hRoot,
+                L"e",
+                0,
+                REG_MULTI_SZ,
+                BytesOf(L"x\0y\0", 5).data(),
+                10
+            )
+        );
+        RECORD(
+            "set default",
+            api.SetValueExW(
+                hRoot,
+                nullptr,
+                0,
+                REG_SZ,
+                BytesOf(L"def", 4).data(),
+                8
+            )
+        );
 
         using W = std::vector<std::wstring>;
         using A = std::vector<std::string>;
@@ -509,27 +812,51 @@ struct QueryMultipleValuesForms
         buffer.fill(kFill);
         RECORD(
             "W no entries",
-            api.QueryMultipleValuesW(hRoot, &wide, 0, reinterpret_cast<LPWSTR>(buffer.data()), &cbTotal),
+            api.QueryMultipleValuesW(
+                hRoot,
+                &wide,
+                0,
+                reinterpret_cast<LPWSTR>(buffer.data()),
+                &cbTotal
+            ),
             {cbTotal},
             {Bytes(buffer)}
         );
         cbTotal = 64;
         RECORD(
             "A no entries",
-            api.QueryMultipleValuesA(hRoot, &narrow, 0, reinterpret_cast<LPSTR>(buffer.data()), &cbTotal),
+            api.QueryMultipleValuesA(
+                hRoot,
+                &narrow,
+                0,
+                reinterpret_cast<LPSTR>(buffer.data()),
+                &cbTotal
+            ),
             {cbTotal},
             {Bytes(buffer)}
         );
         cbTotal = 64;
         RECORD(
             "W invalid handle",
-            api.QueryMultipleValuesW(nullptr, &wide, 1, reinterpret_cast<LPWSTR>(buffer.data()), &cbTotal),
+            api.QueryMultipleValuesW(
+                nullptr,
+                &wide,
+                1,
+                reinterpret_cast<LPWSTR>(buffer.data()),
+                &cbTotal
+            ),
             {cbTotal}
         );
         cbTotal = 64;
         RECORD(
             "A invalid handle",
-            api.QueryMultipleValuesA(nullptr, &narrow, 1, reinterpret_cast<LPSTR>(buffer.data()), &cbTotal),
+            api.QueryMultipleValuesA(
+                nullptr,
+                &narrow,
+                1,
+                reinterpret_cast<LPSTR>(buffer.data()),
+                &cbTotal
+            ),
             {cbTotal}
         );
     }

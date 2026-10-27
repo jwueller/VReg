@@ -23,7 +23,17 @@ public:
         , m_freshRegistry(&m_native)
     {
         REQUIRE(
-            m_native.CreateKeyExW(m_appHive.Root(), L"Lower", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &m_hLower, nullptr)
+            m_native.CreateKeyExW(
+                m_appHive.Root(),
+                L"Lower",
+                0,
+                nullptr,
+                0,
+                KEY_ALL_ACCESS,
+                nullptr,
+                &m_hLower,
+                nullptr
+            )
             == ERROR_SUCCESS
         );
         REQUIRE(m_modifiedRegistry.Mount(HKEY_CURRENT_USER, kMount, m_modified) == ERROR_SUCCESS);
@@ -32,7 +42,9 @@ public:
 
     ~DeltaFixture()
     {
-        m_native.CloseKey(m_hLower);
+        m_native.CloseKey(
+            m_hLower
+        );
     }
 
     DeltaFixture(const DeltaFixture&) = delete;
@@ -43,22 +55,53 @@ public:
     {
         HKEY hKey{};
         REQUIRE(
-            m_native.CreateKeyExW(m_hLower, pszPath, 0, nullptr, 0, KEY_SET_VALUE, nullptr, &hKey, nullptr) == ERROR_SUCCESS
+            m_native.CreateKeyExW(
+                m_hLower,
+                pszPath,
+                0,
+                nullptr,
+                0,
+                KEY_SET_VALUE,
+                nullptr,
+                &hKey,
+                nullptr
+            ) == ERROR_SUCCESS
         );
         REQUIRE(
-            m_native.SetValueExW(hKey, pszName, 0, dwType, reinterpret_cast<const BYTE*>(data.data()), static_cast<DWORD>(data.size()))
+            m_native.SetValueExW(
+                hKey,
+                pszName,
+                0,
+                dwType,
+                reinterpret_cast<const BYTE*>(data.data()),
+                static_cast<DWORD>(data.size())
+            )
             == ERROR_SUCCESS
         );
-        m_native.CloseKey(hKey);
+        m_native.CloseKey(
+            hKey
+        );
     }
 
     void LowerKey(const wchar_t* const pszPath)
     {
         HKEY hKey{};
         REQUIRE(
-            m_native.CreateKeyExW(m_hLower, pszPath, 0, nullptr, 0, KEY_READ, nullptr, &hKey, nullptr) == ERROR_SUCCESS
+            m_native.CreateKeyExW(
+                m_hLower,
+                pszPath,
+                0,
+                nullptr,
+                0,
+                KEY_READ,
+                nullptr,
+                &hKey,
+                nullptr
+            ) == ERROR_SUCCESS
         );
-        m_native.CloseKey(hKey);
+        m_native.CloseKey(
+            hKey
+        );
     }
 
     /// Changes to the modified overlay take paths relative to its root.
@@ -72,40 +115,80 @@ public:
         HKEY hKey{};
         REQUIRE(
             m_modifiedRegistry
-                .CreateKeyExW(HKEY_CURRENT_USER, Full(path).c_str(), 0, nullptr, 0, KEY_READ, nullptr, &hKey, nullptr)
+                .CreateKeyExW(
+                    HKEY_CURRENT_USER,
+                    Full(path).c_str(),
+                    0,
+                    nullptr,
+                    0,
+                    KEY_READ,
+                    nullptr,
+                    &hKey,
+                    nullptr
+                )
             == ERROR_SUCCESS
         );
-        m_modifiedRegistry.CloseKey(hKey);
+        m_modifiedRegistry.CloseKey(
+            hKey
+        );
     }
 
     void Open(const std::wstring& path)
     {
-        m_modifiedRegistry.CloseKey(MustOpen(m_modifiedRegistry, Full(path).c_str()));
+        m_modifiedRegistry.CloseKey(
+            MustOpen(m_modifiedRegistry, Full(path).c_str())
+        );
     }
 
     void DeleteValue(const std::wstring& path, const wchar_t* const pszName)
     {
         const HKEY hKey = MustOpen(m_modifiedRegistry, Full(path).c_str(), KEY_SET_VALUE);
-        CHECK(m_modifiedRegistry.DeleteValueW(hKey, pszName) == ERROR_SUCCESS);
-        m_modifiedRegistry.CloseKey(hKey);
+        CHECK(
+            m_modifiedRegistry.DeleteValueW(
+                hKey,
+                pszName
+            ) == ERROR_SUCCESS
+        );
+        m_modifiedRegistry.CloseKey(
+            hKey
+        );
     }
 
     void DeleteKey(const std::wstring& path)
     {
-        CHECK(m_modifiedRegistry.DeleteKeyExW(HKEY_CURRENT_USER, Full(path).c_str(), 0, 0) == ERROR_SUCCESS);
+        CHECK(
+            m_modifiedRegistry.DeleteKeyExW(
+                HKEY_CURRENT_USER,
+                Full(path).c_str(),
+                0,
+                0
+            ) == ERROR_SUCCESS
+        );
     }
 
     /// `RegDeleteTree` on an open key: empties it but keeps the key.
     void EmptyKey(const std::wstring& path)
     {
         const HKEY hKey = MustOpen(m_modifiedRegistry, Full(path).c_str(), KEY_ALL_ACCESS);
-        CHECK(m_modifiedRegistry.DeleteTreeW(hKey, nullptr) == ERROR_SUCCESS);
-        m_modifiedRegistry.CloseKey(hKey);
+        CHECK(
+            m_modifiedRegistry.DeleteTreeW(
+                hKey,
+                nullptr
+            ) == ERROR_SUCCESS
+        );
+        m_modifiedRegistry.CloseKey(
+            hKey
+        );
     }
 
     void DeleteTree(const std::wstring& path)
     {
-        CHECK(m_modifiedRegistry.DeleteTreeW(HKEY_CURRENT_USER, Full(path).c_str()) == ERROR_SUCCESS);
+        CHECK(
+            m_modifiedRegistry.DeleteTreeW(
+                HKEY_CURRENT_USER,
+                Full(path).c_str()
+            ) == ERROR_SUCCESS
+        );
     }
 
     [[nodiscard]] std::vector<std::byte> Delta(const Format format = Format::Unicode)

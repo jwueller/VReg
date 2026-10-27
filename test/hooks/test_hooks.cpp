@@ -56,7 +56,12 @@ bool RealKeyExists(const std::wstring& name)
     REQUIRE(pfnNtClose);
 
     HKEY hUser{};
-    REQUIRE(::RegOpenCurrentUser(KEY_READ, &hUser) == ERROR_SUCCESS);
+    REQUIRE(
+        ::RegOpenCurrentUser(
+            KEY_READ,
+            &hUser
+        ) == ERROR_SUCCESS
+    );
     std::wstring buffer = name;
     const auto cbName = static_cast<USHORT>(buffer.size() * sizeof(wchar_t));
     UnicodeString objectName{cbName, cbName, buffer.data()};
@@ -66,7 +71,9 @@ bool RealKeyExists(const std::wstring& name)
     const auto status = pfnNtOpenKey(&hKey, KEY_READ, &attributes);
     if (status >= 0)
         pfnNtClose(hKey);
-    ::RegCloseKey(hUser);
+    ::RegCloseKey(
+        hUser
+    );
     return status >= 0;
 }
 
@@ -75,7 +82,15 @@ std::optional<std::wstring> ReadModule(const HKEY hKey, LSTATUS& status)
 {
     std::array<wchar_t, 16> buffer{};
     DWORD cbBuffer = sizeof(buffer);
-    status = ::RegGetValueW(hKey, nullptr, kModuleValue, RRF_RT_REG_SZ, nullptr, buffer.data(), &cbBuffer);
+    status = ::RegGetValueW(
+        hKey,
+        nullptr,
+        kModuleValue,
+        RRF_RT_REG_SZ,
+        nullptr,
+        buffer.data(),
+        &cbBuffer
+    );
     if (status != ERROR_SUCCESS)
         return std::nullopt;
     return std::wstring(buffer.data());
@@ -86,19 +101,35 @@ std::optional<std::wstring> ReadModule(const HKEY hKey, LSTATUS& status)
 std::optional<std::wstring> ReadMountModule(const std::wstring& name)
 {
     HKEY hKey{};
-    const auto opened = ::RegOpenKeyExW(HKEY_CURRENT_USER, name.c_str(), 0, KEY_READ, &hKey);
+    const auto opened = ::RegOpenKeyExW(
+        HKEY_CURRENT_USER,
+        name.c_str(),
+        0,
+        KEY_READ,
+        &hKey
+    );
     if (opened != ERROR_SUCCESS)
         return std::nullopt;
     LSTATUS status{};
     auto module = ReadModule(hKey, status);
-    ::RegCloseKey(hKey);
+    ::RegCloseKey(
+        hKey
+    );
     return module;
 }
 
 HKEY OpenMount(const std::wstring& name)
 {
     HKEY hKey{};
-    REQUIRE(::RegOpenKeyExW(HKEY_CURRENT_USER, name.c_str(), 0, KEY_ALL_ACCESS, &hKey) == ERROR_SUCCESS);
+    REQUIRE(
+        ::RegOpenKeyExW(
+            HKEY_CURRENT_USER,
+            name.c_str(),
+            0,
+            KEY_ALL_ACCESS,
+            &hKey
+        ) == ERROR_SUCCESS
+    );
     return hKey;
 }
 
@@ -138,18 +169,39 @@ void CheckRealKeysWork()
 {
     HKEY hKey{};
     REQUIRE(
-        ::RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion", 0, KEY_READ, &hKey)
+        ::RegOpenKeyExW(
+            HKEY_LOCAL_MACHINE,
+            L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion",
+            0,
+            KEY_READ,
+            &hKey
+        )
         == ERROR_SUCCESS
     );
     CHECK(!IsVirtualHKey(hKey));
     DWORD cValues = 0;
     CHECK(
         ::RegQueryInfoKeyW(
-            hKey, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, &cValues, nullptr, nullptr, nullptr, nullptr
+            hKey,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            &cValues,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
         )
         == ERROR_SUCCESS
     );
-    CHECK(::RegCloseKey(hKey) == ERROR_SUCCESS);
+    CHECK(
+        ::RegCloseKey(
+            hKey
+        ) == ERROR_SUCCESS
+    );
 }
 
 /// What two installed modules must satisfy while both are loaded.
@@ -171,12 +223,44 @@ void CheckBothMounts(const Module& lower, const Module& upper, const wchar_t* co
     CHECK(ReadModule(hUpper, status) == pszUpper);
 
     HKEY hSub{};
-    CHECK(::RegCreateKeyExW(hLower, L"Sub", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &hSub, nullptr) == ERROR_SUCCESS);
-    CHECK(::RegCloseKey(hSub) == ERROR_SUCCESS);
-    CHECK(::RegOpenKeyExW(hUpper, L"Sub", 0, KEY_READ, &hSub) == ERROR_FILE_NOT_FOUND);
+    CHECK(
+        ::RegCreateKeyExW(
+            hLower,
+            L"Sub",
+            0,
+            nullptr,
+            0,
+            KEY_ALL_ACCESS,
+            nullptr,
+            &hSub,
+            nullptr
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegCloseKey(
+            hSub
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegOpenKeyExW(
+            hUpper,
+            L"Sub",
+            0,
+            KEY_READ,
+            &hSub
+        ) == ERROR_FILE_NOT_FOUND
+    );
 
-    CHECK(::RegCloseKey(hLower) == ERROR_SUCCESS);
-    CHECK(::RegCloseKey(hUpper) == ERROR_SUCCESS);
+    CHECK(
+        ::RegCloseKey(
+            hLower
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegCloseKey(
+            hUpper
+        ) == ERROR_SUCCESS
+    );
     CheckRealKeysWork();
 }
 } // namespace
@@ -193,50 +277,158 @@ TEST_CASE("Hooked Reg functions answer on virtual keys")
 
     HKEY hByA{};
     const auto nameA = std::format("VRegHook-{}-Exe", GetCurrentProcessId());
-    CHECK(::RegOpenKeyExA(HKEY_CURRENT_USER, nameA.c_str(), 0, KEY_READ, &hByA) == ERROR_SUCCESS);
-    CHECK(::RegCloseKey(hByA) == ERROR_SUCCESS);
-    CHECK(::RegOpenKeyA(HKEY_CURRENT_USER, nameA.c_str(), &hByA) == ERROR_SUCCESS);
-    CHECK(::RegCloseKey(hByA) == ERROR_SUCCESS);
-    CHECK(::RegOpenKeyW(HKEY_CURRENT_USER, name.c_str(), &hByA) == ERROR_SUCCESS);
-    CHECK(::RegCloseKey(hByA) == ERROR_SUCCESS);
+    CHECK(
+        ::RegOpenKeyExA(
+            HKEY_CURRENT_USER,
+            nameA.c_str(),
+            0,
+            KEY_READ,
+            &hByA
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegCloseKey(
+            hByA
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegOpenKeyA(
+            HKEY_CURRENT_USER,
+            nameA.c_str(),
+            &hByA
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegCloseKey(
+            hByA
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegOpenKeyW(
+            HKEY_CURRENT_USER,
+            name.c_str(),
+            &hByA
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegCloseKey(
+            hByA
+        ) == ERROR_SUCCESS
+    );
 
     HKEY hDeep{};
     DWORD dwDisposition = 0;
     REQUIRE(
-        ::RegCreateKeyExW(hRoot, L"Sub\\Deep", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &hDeep, &dwDisposition)
+        ::RegCreateKeyExW(
+            hRoot,
+            L"Sub\\Deep",
+            0,
+            nullptr,
+            0,
+            KEY_ALL_ACCESS,
+            nullptr,
+            &hDeep,
+            &dwDisposition
+        )
         == ERROR_SUCCESS
     );
     CHECK(IsVirtualHKey(hDeep));
     CHECK(dwDisposition == REG_CREATED_NEW_KEY);
 
     HKEY hOther{};
-    CHECK(::RegCreateKeyExA(hRoot, "SubA", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &hOther, nullptr) == ERROR_SUCCESS);
-    CHECK(::RegCloseKey(hOther) == ERROR_SUCCESS);
-    CHECK(::RegCreateKeyW(hRoot, L"SubB", &hOther) == ERROR_SUCCESS);
-    CHECK(::RegCloseKey(hOther) == ERROR_SUCCESS);
-    CHECK(::RegCreateKeyA(hRoot, "SubC", &hOther) == ERROR_SUCCESS);
-    CHECK(::RegCloseKey(hOther) == ERROR_SUCCESS);
+    CHECK(
+        ::RegCreateKeyExA(
+            hRoot,
+            "SubA",
+            0,
+            nullptr,
+            0,
+            KEY_ALL_ACCESS,
+            nullptr,
+            &hOther,
+            nullptr
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegCloseKey(
+            hOther
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegCreateKeyW(
+            hRoot,
+            L"SubB",
+            &hOther
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegCloseKey(
+            hOther
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegCreateKeyA(
+            hRoot,
+            "SubC",
+            &hOther
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegCloseKey(
+            hOther
+        ) == ERROR_SUCCESS
+    );
 
     const DWORD dwValue = 0x1234;
     CHECK(
-        ::RegSetValueExW(hDeep, L"Number", 0, REG_DWORD, reinterpret_cast<const BYTE*>(&dwValue), sizeof(dwValue))
+        ::RegSetValueExW(
+            hDeep,
+            L"Number",
+            0,
+            REG_DWORD,
+            reinterpret_cast<const BYTE*>(&dwValue),
+            sizeof(dwValue)
+        )
         == ERROR_SUCCESS
     );
     DWORD dwType = 0;
     DWORD dwRead = 0;
     DWORD cbRead = sizeof(dwRead);
     CHECK(
-        ::RegQueryValueExW(hDeep, L"Number", nullptr, &dwType, reinterpret_cast<BYTE*>(&dwRead), &cbRead)
+        ::RegQueryValueExW(
+            hDeep,
+            L"Number",
+            nullptr,
+            &dwType,
+            reinterpret_cast<BYTE*>(&dwRead),
+            &cbRead
+        )
         == ERROR_SUCCESS
     );
     CHECK(dwType == REG_DWORD);
     CHECK(dwRead == dwValue);
 
-    CHECK(::RegSetValueExA(hDeep, "Text", 0, REG_SZ, reinterpret_cast<const BYTE*>("hello"), 6) == ERROR_SUCCESS);
+    CHECK(
+        ::RegSetValueExA(
+            hDeep,
+            "Text",
+            0,
+            REG_SZ,
+            reinterpret_cast<const BYTE*>("hello"),
+            6
+        ) == ERROR_SUCCESS
+    );
     std::array<char, 16> narrow{};
     cbRead = sizeof(narrow);
     CHECK(
-        ::RegQueryValueExA(hDeep, "Text", nullptr, &dwType, reinterpret_cast<BYTE*>(narrow.data()), &cbRead)
+        ::RegQueryValueExA(
+            hDeep,
+            "Text",
+            nullptr,
+            &dwType,
+            reinterpret_cast<BYTE*>(narrow.data()),
+            &cbRead
+        )
         == ERROR_SUCCESS
     );
     CHECK(std::string(narrow.data()) == "hello");
@@ -244,37 +436,103 @@ TEST_CASE("Hooked Reg functions answer on virtual keys")
     std::array<wchar_t, 16> wide{};
     cbRead = sizeof(wide);
     CHECK(
-        ::RegQueryValueExW(hDeep, L"Text", nullptr, &dwType, reinterpret_cast<BYTE*>(wide.data()), &cbRead)
+        ::RegQueryValueExW(
+            hDeep,
+            L"Text",
+            nullptr,
+            &dwType,
+            reinterpret_cast<BYTE*>(wide.data()),
+            &cbRead
+        )
         == ERROR_SUCCESS
     );
     CHECK(std::wstring(wide.data()) == L"hello");
     CHECK(cbRead == 12);
 
-    CHECK(::RegSetValueW(hRoot, L"SubB", REG_SZ, L"unnamed", 0) == ERROR_SUCCESS);
+    CHECK(
+        ::RegSetValueW(
+            hRoot,
+            L"SubB",
+            REG_SZ,
+            L"unnamed",
+            0
+        ) == ERROR_SUCCESS
+    );
     LONG cbUnnamed = sizeof(wide);
     wide.fill(0);
-    CHECK(::RegQueryValueW(hRoot, L"SubB", wide.data(), &cbUnnamed) == ERROR_SUCCESS);
+    CHECK(
+        ::RegQueryValueW(
+            hRoot,
+            L"SubB",
+            wide.data(),
+            &cbUnnamed
+        ) == ERROR_SUCCESS
+    );
     CHECK(std::wstring(wide.data()) == L"unnamed");
-    CHECK(::RegSetValueA(hRoot, "SubC", REG_SZ, "narrow", 0) == ERROR_SUCCESS);
+    CHECK(
+        ::RegSetValueA(
+            hRoot,
+            "SubC",
+            REG_SZ,
+            "narrow",
+            0
+        ) == ERROR_SUCCESS
+    );
     LONG cbNarrow = sizeof(narrow);
     narrow.fill(0);
-    CHECK(::RegQueryValueA(hRoot, "SubC", narrow.data(), &cbNarrow) == ERROR_SUCCESS);
+    CHECK(
+        ::RegQueryValueA(
+            hRoot,
+            "SubC",
+            narrow.data(),
+            &cbNarrow
+        ) == ERROR_SUCCESS
+    );
     CHECK(std::string(narrow.data()) == "narrow");
 
     wide.fill(0);
     cbRead = sizeof(wide);
-    CHECK(::RegGetValueW(hDeep, nullptr, L"Text", RRF_RT_REG_SZ, &dwType, wide.data(), &cbRead) == ERROR_SUCCESS);
+    CHECK(
+        ::RegGetValueW(
+            hDeep,
+            nullptr,
+            L"Text",
+            RRF_RT_REG_SZ,
+            &dwType,
+            wide.data(),
+            &cbRead
+        ) == ERROR_SUCCESS
+    );
     CHECK(std::wstring(wide.data()) == L"hello");
     cbRead = sizeof(dwRead);
     CHECK(
-        ::RegGetValueW(hDeep, nullptr, L"Text", RRF_RT_REG_DWORD, nullptr, &dwRead, &cbRead) == ERROR_UNSUPPORTED_TYPE
+        ::RegGetValueW(
+            hDeep,
+            nullptr,
+            L"Text",
+            RRF_RT_REG_DWORD,
+            nullptr,
+            &dwRead,
+            &cbRead
+        ) == ERROR_UNSUPPORTED_TYPE
     );
 
     DWORD cSubKeys = 0;
     DWORD cValues = 0;
     CHECK(
         ::RegQueryInfoKeyW(
-            hRoot, nullptr, nullptr, nullptr, &cSubKeys, nullptr, nullptr, &cValues, nullptr, nullptr, nullptr, nullptr
+            hRoot,
+            nullptr,
+            nullptr,
+            nullptr,
+            &cSubKeys,
+            nullptr,
+            nullptr,
+            &cValues,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
         )
         == ERROR_SUCCESS
     );
@@ -287,7 +545,16 @@ TEST_CASE("Hooked Reg functions answer on virtual keys")
         std::array<wchar_t, 32> buffer{};
         DWORD cchBuffer = static_cast<DWORD>(buffer.size());
         const auto statusEnum =
-            ::RegEnumKeyExW(hRoot, i, buffer.data(), &cchBuffer, nullptr, nullptr, nullptr, nullptr);
+            ::RegEnumKeyExW(
+                hRoot,
+                i,
+                buffer.data(),
+                &cchBuffer,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr
+            );
         if (statusEnum == ERROR_NO_MORE_ITEMS)
             break;
         REQUIRE(statusEnum == ERROR_SUCCESS);
@@ -299,28 +566,98 @@ TEST_CASE("Hooked Reg functions answer on virtual keys")
     std::array<wchar_t, 32> valueName{};
     DWORD cchValueName = static_cast<DWORD>(valueName.size());
     CHECK(
-        ::RegEnumValueW(hRoot, 0, valueName.data(), &cchValueName, nullptr, &dwType, nullptr, nullptr) == ERROR_SUCCESS
+        ::RegEnumValueW(
+            hRoot,
+            0,
+            valueName.data(),
+            &cchValueName,
+            nullptr,
+            &dwType,
+            nullptr,
+            nullptr
+        ) == ERROR_SUCCESS
     );
     CHECK(std::wstring(valueName.data()) == kModuleValue);
     cchValueName = static_cast<DWORD>(valueName.size());
     CHECK(
-        ::RegEnumValueW(hRoot, 1, valueName.data(), &cchValueName, nullptr, nullptr, nullptr, nullptr)
+        ::RegEnumValueW(
+            hRoot,
+            1,
+            valueName.data(),
+            &cchValueName,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        )
         == ERROR_NO_MORE_ITEMS
     );
 
-    CHECK(::RegDeleteValueW(hDeep, L"Number") == ERROR_SUCCESS);
-    CHECK(::RegDeleteValueA(hDeep, "Number") == ERROR_FILE_NOT_FOUND);
-    CHECK(::RegCloseKey(hDeep) == ERROR_SUCCESS);
-    CHECK(::RegDeleteKeyW(hRoot, L"SubC") == ERROR_SUCCESS);
-    CHECK(::RegDeleteKeyExW(hRoot, L"SubB", 0, 0) == ERROR_SUCCESS);
-    CHECK(::RegDeleteTreeW(hRoot, L"Sub") == ERROR_SUCCESS);
-    CHECK(::RegDeleteTreeA(hRoot, "SubA") == ERROR_SUCCESS);
+    CHECK(
+        ::RegDeleteValueW(
+            hDeep,
+            L"Number"
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegDeleteValueA(
+            hDeep,
+            "Number"
+        ) == ERROR_FILE_NOT_FOUND
+    );
+    CHECK(
+        ::RegCloseKey(
+            hDeep
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegDeleteKeyW(
+            hRoot,
+            L"SubC"
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegDeleteKeyExW(
+            hRoot,
+            L"SubB",
+            0,
+            0
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegDeleteTreeW(
+            hRoot,
+            L"Sub"
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegDeleteTreeA(
+            hRoot,
+            "SubA"
+        ) == ERROR_SUCCESS
+    );
 
     HKEY hGone{};
-    CHECK(::RegOpenKeyExW(hRoot, L"Sub", 0, KEY_READ, &hGone) == ERROR_FILE_NOT_FOUND);
+    CHECK(
+        ::RegOpenKeyExW(
+            hRoot,
+            L"Sub",
+            0,
+            KEY_READ,
+            &hGone
+        ) == ERROR_FILE_NOT_FOUND
+    );
 
-    CHECK(::RegFlushKey(hRoot) == ERROR_SUCCESS);
-    CHECK(::RegCloseKey(hRoot) == ERROR_SUCCESS);
+    CHECK(
+        ::RegFlushKey(
+            hRoot
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegCloseKey(
+            hRoot
+        ) == ERROR_SUCCESS
+    );
     CHECK(!RealKeyExists(name));
 }
 
@@ -334,7 +671,17 @@ TEST_CASE("Hooked Reg functions pass real keys through")
     HKEY hKey{};
     DWORD dwDisposition = 0;
     REQUIRE(
-        ::RegCreateKeyExW(hRoot, L"Real\\Child", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &hKey, &dwDisposition)
+        ::RegCreateKeyExW(
+            hRoot,
+            L"Real\\Child",
+            0,
+            nullptr,
+            0,
+            KEY_ALL_ACCESS,
+            nullptr,
+            &hKey,
+            &dwDisposition
+        )
         == ERROR_SUCCESS
     );
     CHECK(!IsVirtualHKey(hKey));
@@ -342,21 +689,67 @@ TEST_CASE("Hooked Reg functions pass real keys through")
 
     const DWORD dwValue = 7;
     CHECK(
-        ::RegSetValueExW(hKey, L"Number", 0, REG_DWORD, reinterpret_cast<const BYTE*>(&dwValue), sizeof(dwValue))
+        ::RegSetValueExW(
+            hKey,
+            L"Number",
+            0,
+            REG_DWORD,
+            reinterpret_cast<const BYTE*>(&dwValue),
+            sizeof(dwValue)
+        )
         == ERROR_SUCCESS
     );
-    CHECK(::RegSetValueExA(hKey, "Text", 0, REG_SZ, reinterpret_cast<const BYTE*>("real"), 5) == ERROR_SUCCESS);
+    CHECK(
+        ::RegSetValueExA(
+            hKey,
+            "Text",
+            0,
+            REG_SZ,
+            reinterpret_cast<const BYTE*>("real"),
+            5
+        ) == ERROR_SUCCESS
+    );
 
     DWORD dwRead = 0;
     DWORD cbRead = sizeof(dwRead);
-    CHECK(::RegGetValueW(hKey, nullptr, L"Number", RRF_RT_REG_DWORD, nullptr, &dwRead, &cbRead) == ERROR_SUCCESS);
+    CHECK(
+        ::RegGetValueW(
+            hKey,
+            nullptr,
+            L"Number",
+            RRF_RT_REG_DWORD,
+            nullptr,
+            &dwRead,
+            &cbRead
+        ) == ERROR_SUCCESS
+    );
     CHECK(dwRead == dwValue);
-    CHECK(::RegQueryValueExW(hKey, L"Missing", nullptr, nullptr, nullptr, nullptr) == ERROR_FILE_NOT_FOUND);
+    CHECK(
+        ::RegQueryValueExW(
+            hKey,
+            L"Missing",
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        ) == ERROR_FILE_NOT_FOUND
+    );
 
     DWORD cValues = 0;
     CHECK(
         ::RegQueryInfoKeyW(
-            hKey, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, &cValues, nullptr, nullptr, nullptr, nullptr
+            hKey,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            &cValues,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
         )
         == ERROR_SUCCESS
     );
@@ -364,15 +757,58 @@ TEST_CASE("Hooked Reg functions pass real keys through")
 
     std::array<wchar_t, 32> buffer{};
     DWORD cchBuffer = static_cast<DWORD>(buffer.size());
-    CHECK(::RegEnumKeyExW(hRoot, 0, buffer.data(), &cchBuffer, nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS);
+    CHECK(
+        ::RegEnumKeyExW(
+            hRoot,
+            0,
+            buffer.data(),
+            &cchBuffer,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        ) == ERROR_SUCCESS
+    );
     CHECK(std::wstring(buffer.data()) == L"Real");
     cchBuffer = static_cast<DWORD>(buffer.size());
-    CHECK(::RegEnumValueW(hKey, 0, buffer.data(), &cchBuffer, nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS);
+    CHECK(
+        ::RegEnumValueW(
+            hKey,
+            0,
+            buffer.data(),
+            &cchBuffer,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        ) == ERROR_SUCCESS
+    );
 
-    CHECK(::RegCloseKey(hKey) == ERROR_SUCCESS);
-    CHECK(::RegDeleteTreeW(hRoot, L"Real") == ERROR_SUCCESS);
-    CHECK(::RegOpenKeyExW(hRoot, L"Real", 0, KEY_READ, &hKey) == ERROR_FILE_NOT_FOUND);
-    CHECK(::RegCloseKey(hKey) == ERROR_INVALID_HANDLE);
+    CHECK(
+        ::RegCloseKey(
+            hKey
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegDeleteTreeW(
+            hRoot,
+            L"Real"
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegOpenKeyExW(
+            hRoot,
+            L"Real",
+            0,
+            KEY_READ,
+            &hKey
+        ) == ERROR_FILE_NOT_FOUND
+    );
+    CHECK(
+        ::RegCloseKey(
+            hKey
+        ) == ERROR_INVALID_HANDLE
+    );
 
     CheckRealKeysWork();
     CHECK(!RealKeyExists(name));
@@ -384,30 +820,127 @@ TEST_CASE("Refused functions answer not supported on virtual keys and pass real 
     REQUIRE(InstallMount(name.c_str(), L"Exe") == NO_ERROR);
     const HKEY hVirtual = OpenMount(name);
 
-    CHECK(::RegSaveKeyW(hVirtual, L"unused.hiv", nullptr) == ERROR_NOT_SUPPORTED);
-    CHECK(::RegSaveKeyExA(hVirtual, "unused.hiv", nullptr, REG_LATEST_FORMAT) == ERROR_NOT_SUPPORTED);
-    CHECK(::RegRenameKey(hVirtual, L"Old", L"New") == ERROR_NOT_SUPPORTED);
-    CHECK(::RegCopyTreeW(hVirtual, nullptr, HKEY_CURRENT_USER) == ERROR_NOT_SUPPORTED);
-    CHECK(::RegCopyTreeW(HKEY_CURRENT_USER, nullptr, hVirtual) == ERROR_NOT_SUPPORTED);
+    CHECK(
+        ::RegSaveKeyW(
+            hVirtual,
+            L"unused.hiv",
+            nullptr
+        ) == ERROR_NOT_SUPPORTED
+    );
+    CHECK(
+        ::RegSaveKeyExA(
+            hVirtual,
+            "unused.hiv",
+            nullptr,
+            REG_LATEST_FORMAT
+        ) == ERROR_NOT_SUPPORTED
+    );
+    CHECK(
+        ::RegRenameKey(
+            hVirtual,
+            L"Old",
+            L"New"
+        ) == ERROR_NOT_SUPPORTED
+    );
+    CHECK(
+        ::RegCopyTreeW(
+            hVirtual,
+            nullptr,
+            HKEY_CURRENT_USER
+        ) == ERROR_NOT_SUPPORTED
+    );
+    CHECK(
+        ::RegCopyTreeW(
+            HKEY_CURRENT_USER,
+            nullptr,
+            hVirtual
+        ) == ERROR_NOT_SUPPORTED
+    );
     DWORD cbSecurity = 0;
-    CHECK(::RegGetKeySecurity(hVirtual, OWNER_SECURITY_INFORMATION, nullptr, &cbSecurity) == ERROR_NOT_SUPPORTED);
+    CHECK(
+        ::RegGetKeySecurity(
+            hVirtual,
+            OWNER_SECURITY_INFORMATION,
+            nullptr,
+            &cbSecurity
+        ) == ERROR_NOT_SUPPORTED
+    );
 
     AppHive appHive;
     const HKEY hRoot = appHive.Root();
     HKEY hKey{};
-    REQUIRE(::RegCreateKeyExW(hRoot, L"Old", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &hKey, nullptr) == ERROR_SUCCESS);
-    CHECK(::RegCloseKey(hKey) == ERROR_SUCCESS);
+    REQUIRE(
+        ::RegCreateKeyExW(
+            hRoot,
+            L"Old",
+            0,
+            nullptr,
+            0,
+            KEY_ALL_ACCESS,
+            nullptr,
+            &hKey,
+            nullptr
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegCloseKey(
+            hKey
+        ) == ERROR_SUCCESS
+    );
 
-    CHECK(::RegRenameKey(hRoot, L"Old", L"New") == ERROR_SUCCESS);
-    CHECK(::RegOpenKeyExW(hRoot, L"New", 0, KEY_READ, &hKey) == ERROR_SUCCESS);
-    CHECK(::RegCloseKey(hKey) == ERROR_SUCCESS);
-    CHECK(::RegOpenKeyExW(hRoot, L"Old", 0, KEY_READ, &hKey) == ERROR_FILE_NOT_FOUND);
+    CHECK(
+        ::RegRenameKey(
+            hRoot,
+            L"Old",
+            L"New"
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegOpenKeyExW(
+            hRoot,
+            L"New",
+            0,
+            KEY_READ,
+            &hKey
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegCloseKey(
+            hKey
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegOpenKeyExW(
+            hRoot,
+            L"Old",
+            0,
+            KEY_READ,
+            &hKey
+        ) == ERROR_FILE_NOT_FOUND
+    );
 
-    CHECK(::RegGetKeySecurity(hRoot, OWNER_SECURITY_INFORMATION, nullptr, &cbSecurity) == ERROR_INSUFFICIENT_BUFFER);
+    CHECK(
+        ::RegGetKeySecurity(
+            hRoot,
+            OWNER_SECURITY_INFORMATION,
+            nullptr,
+            &cbSecurity
+        ) == ERROR_INSUFFICIENT_BUFFER
+    );
     CHECK(cbSecurity != 0);
-    CHECK(::RegSaveKeyW(hRoot, L"unused.hiv", nullptr) != ERROR_NOT_SUPPORTED);
+    CHECK(
+        ::RegSaveKeyW(
+            hRoot,
+            L"unused.hiv",
+            nullptr
+        ) != ERROR_NOT_SUPPORTED
+    );
 
-    CHECK(::RegCloseKey(hVirtual) == ERROR_SUCCESS);
+    CHECK(
+        ::RegCloseKey(
+            hVirtual
+        ) == ERROR_SUCCESS
+    );
     CHECK(!RealKeyExists(name));
 }
 
@@ -420,11 +953,23 @@ TEST_CASE("RegLoadMUIStringA answers not implemented on virtual keys")
     std::array<char, 16> buffer{};
     DWORD cbData = 0;
     CHECK(
-        ::RegLoadMUIStringA(hVirtual, "Anything", buffer.data(), static_cast<DWORD>(buffer.size()), &cbData, 0, nullptr)
+        ::RegLoadMUIStringA(
+            hVirtual,
+            "Anything",
+            buffer.data(),
+            static_cast<DWORD>(buffer.size()),
+            &cbData,
+            0,
+            nullptr
+        )
         == ERROR_CALL_NOT_IMPLEMENTED
     );
 
-    CHECK(::RegCloseKey(hVirtual) == ERROR_SUCCESS);
+    CHECK(
+        ::RegCloseKey(
+            hVirtual
+        ) == ERROR_SUCCESS
+    );
     CHECK(!RealKeyExists(name));
 }
 
@@ -450,15 +995,37 @@ TEST_CASE("Neutralize removes the mount and leaves real keys working")
     Detours::Neutralize();
 
     HKEY hKey{};
-    CHECK(::RegOpenKeyExW(HKEY_CURRENT_USER, name.c_str(), 0, KEY_READ, &hKey) == ERROR_FILE_NOT_FOUND);
+    CHECK(
+        ::RegOpenKeyExW(
+            HKEY_CURRENT_USER,
+            name.c_str(),
+            0,
+            KEY_READ,
+            &hKey
+        ) == ERROR_FILE_NOT_FOUND
+    );
     CheckRealKeysWork();
 
     AppHive appHive;
     REQUIRE(
-        ::RegCreateKeyExW(appHive.Root(), L"Real", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &hKey, nullptr)
+        ::RegCreateKeyExW(
+            appHive.Root(),
+            L"Real",
+            0,
+            nullptr,
+            0,
+            KEY_ALL_ACCESS,
+            nullptr,
+            &hKey,
+            nullptr
+        )
         == ERROR_SUCCESS
     );
-    CHECK(::RegCloseKey(hKey) == ERROR_SUCCESS);
+    CHECK(
+        ::RegCloseKey(
+            hKey
+        ) == ERROR_SUCCESS
+    );
     CHECK(!RealKeyExists(name));
 }
 

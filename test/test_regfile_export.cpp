@@ -52,7 +52,9 @@ TEST_CASE("Export lays a snapshot out the way regedit does")
                 nullptr
             ) == ERROR_SUCCESS
         );
-        registry.CloseKey(hKey);
+        registry.CloseKey(
+            hKey
+        );
     }
 
     const std::wstring expected = kHeader +

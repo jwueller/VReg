@@ -19,7 +19,9 @@ public:
     ~KeyHandle()
     {
         if (m_hKey)
-            m_registry.CloseKey(m_hKey);
+            m_registry.CloseKey(
+                m_hKey
+            );
     }
 
     KeyHandle(const KeyHandle&) = delete;
@@ -74,17 +76,35 @@ LSTATUS Perform(const Operation& operation, Registry& registry) noexcept
     }
     case OperationKind::DeleteKey:
     {
-        const auto status = NotFoundIsFine(registry.DeleteTreeW(operation.hRoot, pszPath));
+        const auto status = NotFoundIsFine(
+            registry.DeleteTreeW(
+                operation.hRoot,
+                pszPath
+            )
+        );
         if (status != ERROR_SUCCESS)
             return status;
-        return NotFoundIsFine(registry.DeleteKeyExW(operation.hRoot, pszPath, 0, 0));
+        return NotFoundIsFine(
+            registry.DeleteKeyExW(
+                operation.hRoot,
+                pszPath,
+                0,
+                0
+            )
+        );
     }
     case OperationKind::SetValue:
     {
         if (operation.data.size() > std::numeric_limits<DWORD>::max())
             return ERROR_INVALID_PARAMETER;
         KeyHandle key(registry);
-        const auto status = registry.OpenKeyExW(operation.hRoot, pszPath, 0, KEY_SET_VALUE, key.Receive());
+        const auto status = registry.OpenKeyExW(
+            operation.hRoot,
+            pszPath,
+            0,
+            KEY_SET_VALUE,
+            key.Receive()
+        );
         if (status != ERROR_SUCCESS)
             return status;
         // Native reads past unterminated string data for a terminator and may store one more wchar if it
@@ -128,10 +148,21 @@ LSTATUS Perform(const Operation& operation, Registry& registry) noexcept
     case OperationKind::DeleteValue:
     {
         KeyHandle key(registry);
-        const auto status = registry.OpenKeyExW(operation.hRoot, pszPath, 0, KEY_SET_VALUE, key.Receive());
+        const auto status = registry.OpenKeyExW(
+            operation.hRoot,
+            pszPath,
+            0,
+            KEY_SET_VALUE,
+            key.Receive()
+        );
         if (status != ERROR_SUCCESS)
             return NotFoundIsFine(status);
-        return NotFoundIsFine(registry.DeleteValueW(key.Get(), operation.name.c_str()));
+        return NotFoundIsFine(
+            registry.DeleteValueW(
+                key.Get(),
+                operation.name.c_str()
+            )
+        );
     }
     }
     return ERROR_INVALID_PARAMETER;

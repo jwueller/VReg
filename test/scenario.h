@@ -117,7 +117,12 @@ void CloseUnlessParent(Api& api, Recorder& record, const std::string& label, con
 {
     if (hKey == hParent)
         return;
-    RECORD(label + " close", api.CloseKey(hKey));
+    RECORD(
+        label + " close",
+        api.CloseKey(
+            hKey
+        )
+    );
 }
 
 /// A stored value: what to put into the registry.
@@ -137,7 +142,14 @@ template <class Api> LSTATUS SetStored(Api& api, const HKEY hKey, const StoredVa
     auto guarded = value.data;
     guarded.insert(guarded.end(), 4, BYTE{0x58});
     return api
-        .SetValueExW(hKey, value.name.c_str(), 0, value.type, guarded.data(), static_cast<DWORD>(value.data.size()));
+        .SetValueExW(
+            hKey,
+            value.name.c_str(),
+            0,
+            value.type,
+            guarded.data(),
+            static_cast<DWORD>(value.data.size())
+        );
 }
 
 template <class T> std::vector<BYTE> BytesOf(const T* const p, const std::size_t count)
@@ -149,13 +161,27 @@ template <class T> std::vector<BYTE> BytesOf(const T* const p, const std::size_t
 template <class Api>
 LSTATUS QueryEx(Api& api, HKEY hKey, LPCWSTR pszName, LPDWORD pdwType, LPBYTE pData, LPDWORD pcbData)
 {
-    return api.QueryValueExW(hKey, pszName, nullptr, pdwType, pData, pcbData);
+    return api.QueryValueExW(
+        hKey,
+        pszName,
+        nullptr,
+        pdwType,
+        pData,
+        pcbData
+    );
 }
 
 template <class Api>
 LSTATUS QueryEx(Api& api, HKEY hKey, LPCSTR pszName, LPDWORD pdwType, LPBYTE pData, LPDWORD pcbData)
 {
-    return api.QueryValueExA(hKey, pszName, nullptr, pdwType, pData, pcbData);
+    return api.QueryValueExA(
+        hKey,
+        pszName,
+        nullptr,
+        pdwType,
+        pData,
+        pcbData
+    );
 }
 
 /// Queries one value in every way the caller can vary the buffers: type

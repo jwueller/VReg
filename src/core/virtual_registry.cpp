@@ -447,7 +447,13 @@ try
 {
     const auto target = Resolve(hKey, View(lpSubKey), samDesired);
     if (target.isBase)
-        return m_pBase->OpenKeyExW(hKey, lpSubKey, ulOptions, samDesired, phkResult);
+        return m_pBase->OpenKeyExW(
+            hKey,
+            lpSubKey,
+            ulOptions,
+            samDesired,
+            phkResult
+        );
 
     if (!phkResult)
         return ERROR_INVALID_PARAMETER;
@@ -552,7 +558,9 @@ LSTATUS VirtualRegistry::CloseKey(
     if (HandleSpace::Process().Owns(hKey) || !m_pBase)
         return ERROR_INVALID_HANDLE;
 
-    return m_pBase->CloseKey(hKey);
+    return m_pBase->CloseKey(
+        hKey
+    );
 }
 
 LSTATUS VirtualRegistry::QueryValueExW(
@@ -567,7 +575,14 @@ try
 {
     const auto target = Resolve(hKey, {});
     if (target.isBase)
-        return m_pBase->QueryValueExW(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
+        return m_pBase->QueryValueExW(
+            hKey,
+            lpValueName,
+            lpReserved,
+            lpType,
+            lpData,
+            lpcbData
+        );
 
     if ((lpData && !lpcbData) || lpReserved)
         return ERROR_INVALID_PARAMETER;
@@ -621,7 +636,14 @@ try
 {
     const auto target = Resolve(hKey, {});
     if (target.isBase)
-        return m_pBase->SetValueExW(hKey, lpValueName, Reserved, dwType, lpData, cbData);
+        return m_pBase->SetValueExW(
+            hKey,
+            lpValueName,
+            Reserved,
+            dwType,
+            lpData,
+            cbData
+        );
 
     if (Reserved)
         return ERROR_INVALID_PARAMETER;
@@ -646,7 +668,10 @@ try
 {
     const auto target = Resolve(hKey, {});
     if (target.isBase)
-        return m_pBase->DeleteValueW(hKey, lpValueName);
+        return m_pBase->DeleteValueW(
+            hKey,
+            lpValueName
+        );
 
     if (!target.pNode)
         return target.status;
@@ -668,7 +693,12 @@ try
 {
     const auto target = Resolve(hKey, View(lpSubKey), samDesired);
     if (target.isBase)
-        return m_pBase->DeleteKeyExW(hKey, lpSubKey, samDesired, Reserved);
+        return m_pBase->DeleteKeyExW(
+            hKey,
+            lpSubKey,
+            samDesired,
+            Reserved
+        );
 
     if (Reserved)
         return ERROR_INVALID_PARAMETER;
@@ -690,7 +720,10 @@ try
 {
     const auto target = Resolve(hKey, View(lpSubKey));
     if (target.isBase)
-        return m_pBase->DeleteTreeW(hKey, lpSubKey);
+        return m_pBase->DeleteTreeW(
+            hKey,
+            lpSubKey
+        );
 
     if (!target.pNode)
         return target.status;
@@ -704,7 +737,9 @@ try
     // Only a frozen hive hands out lower keys, and it refuses every write.
     if (result.hLower)
     {
-        pHive->Lower()->CloseKey(result.hLower);
+        pHive->Lower()->CloseKey(
+            result.hLower
+        );
         return ERROR_ACCESS_DENIED;
     }
 
@@ -735,7 +770,16 @@ try
     if (target.isBase)
     {
         return m_pBase
-            ->EnumKeyExW(hKey, dwIndex, lpName, lpcchName, lpReserved, lpClass, lpcchClass, lpftLastWriteTime);
+            ->EnumKeyExW(
+                hKey,
+                dwIndex,
+                lpName,
+                lpcchName,
+                lpReserved,
+                lpClass,
+                lpcchClass,
+                lpftLastWriteTime
+            );
     }
 
     if (lpReserved || !lpcchName || (lpClass && !lpcchClass))
@@ -793,7 +837,16 @@ try
     if (target.isBase)
     {
         return m_pBase
-            ->EnumValueW(hKey, dwIndex, lpValueName, lpcchValueName, lpReserved, lpType, lpData, lpcbData);
+            ->EnumValueW(
+                hKey,
+                dwIndex,
+                lpValueName,
+                lpcchValueName,
+                lpReserved,
+                lpType,
+                lpData,
+                lpcbData
+            );
     }
 
     if (lpReserved || !lpValueName || !lpcchValueName || (lpData && !lpcbData))
@@ -947,7 +1000,15 @@ try
 {
     const auto target = Resolve(hKey, {});
     if (target.isBase)
-        return m_pBase->LoadMUIStringW(hKey, pszValue, pszOutBuf, cbOutBuf, pcbData, Flags, pszDirectory);
+        return m_pBase->LoadMUIStringW(
+            hKey,
+            pszValue,
+            pszOutBuf,
+            cbOutBuf,
+            pcbData,
+            Flags,
+            pszDirectory
+        );
 
     if (!hKey)
         return ERROR_INVALID_PARAMETER;
@@ -969,8 +1030,18 @@ try
     if (hLower)
     {
         auto* const pLower = pHive->Lower();
-        const auto status = pLower->LoadMUIStringW(hLower, pszValue, pszOutBuf, cbOutBuf, pcbData, Flags, pszDirectory);
-        pLower->CloseKey(hLower);
+        const auto status = pLower->LoadMUIStringW(
+            hLower,
+            pszValue,
+            pszOutBuf,
+            cbOutBuf,
+            pcbData,
+            Flags,
+            pszDirectory
+        );
+        pLower->CloseKey(
+            hLower
+        );
         return status;
     }
 
@@ -1004,7 +1075,15 @@ try
         ((dwFlags & RRF_SUBKEY_WOW6464KEY) ? KEY_WOW64_64KEY : 0) | ((dwFlags & RRF_SUBKEY_WOW6432KEY) ? KEY_WOW64_32KEY : 0)
     );
     if (target.isBase)
-        return m_pBase->GetValueW(hkey, lpSubKey, lpValue, dwFlags, pdwType, pvData, pcbData);
+        return m_pBase->GetValueW(
+            hkey,
+            lpSubKey,
+            lpValue,
+            dwFlags,
+            pdwType,
+            pvData,
+            pcbData
+        );
 
     constexpr DWORD kBothViews = RRF_SUBKEY_WOW6464KEY | RRF_SUBKEY_WOW6432KEY;
     if (!hkey || (pvData && !pcbData) || !(dwFlags & RRF_RT_ANY) || (dwFlags & kBothViews) == kBothViews)
@@ -1033,8 +1112,18 @@ try
         if (result.hLower)
         {
             auto* const pLower = pHive->Lower();
-            const auto status = pLower->GetValueW(result.hLower, nullptr, lpValue, dwFlags, pdwType, pvData, pcbData);
-            pLower->CloseKey(result.hLower);
+            const auto status = pLower->GetValueW(
+                result.hLower,
+                nullptr,
+                lpValue,
+                dwFlags,
+                pdwType,
+                pvData,
+                pcbData
+            );
+            pLower->CloseKey(
+                result.hLower
+            );
             return status;
         }
 
@@ -1162,7 +1251,13 @@ try
 {
     const auto target = Resolve(hKey, {});
     if (target.isBase)
-        return m_pBase->NotifyChangeKeyValue(hKey, bWatchSubtree, dwNotifyFilter, hEvent, fAsynchronous);
+        return m_pBase->NotifyChangeKeyValue(
+            hKey,
+            bWatchSubtree,
+            dwNotifyFilter,
+            hEvent,
+            fAsynchronous
+        );
 
     if (!target.pNode)
         return target.status;
@@ -1203,7 +1298,9 @@ try
 {
     const auto target = Resolve(hKey, {});
     if (target.isBase)
-        return m_pBase->FlushKey(hKey);
+        return m_pBase->FlushKey(
+            hKey
+        );
 
     if (!target.pNode)
         return target.status;

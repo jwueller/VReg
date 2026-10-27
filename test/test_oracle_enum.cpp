@@ -28,7 +28,16 @@ LSTATUS EnumKeyEx(
     PFILETIME pft
 )
 {
-    return api.EnumKeyExW(hKey, dwIndex, pszName, pcchName, pReserved, pszClass, pcchClass, pft);
+    return api.EnumKeyExW(
+        hKey,
+        dwIndex,
+        pszName,
+        pcchName,
+        pReserved,
+        pszClass,
+        pcchClass,
+        pft
+    );
 }
 
 template <class Api>
@@ -44,7 +53,16 @@ LSTATUS EnumKeyEx(
     PFILETIME pft
 )
 {
-    return api.EnumKeyExA(hKey, dwIndex, pszName, pcchName, pReserved, pszClass, pcchClass, pft);
+    return api.EnumKeyExA(
+        hKey,
+        dwIndex,
+        pszName,
+        pcchName,
+        pReserved,
+        pszClass,
+        pcchClass,
+        pft
+    );
 }
 
 template <class Api>
@@ -60,7 +78,16 @@ LSTATUS EnumValueEx(
     LPDWORD pcbData
 )
 {
-    return api.EnumValueW(hKey, dwIndex, pszName, pcchName, pReserved, pdwType, pData, pcbData);
+    return api.EnumValueW(
+        hKey,
+        dwIndex,
+        pszName,
+        pcchName,
+        pReserved,
+        pdwType,
+        pData,
+        pcbData
+    );
 }
 
 template <class Api>
@@ -76,7 +103,16 @@ LSTATUS EnumValueEx(
     LPDWORD pcbData
 )
 {
-    return api.EnumValueA(hKey, dwIndex, pszName, pcchName, pReserved, pdwType, pData, pcbData);
+    return api.EnumValueA(
+        hKey,
+        dwIndex,
+        pszName,
+        pcchName,
+        pReserved,
+        pdwType,
+        pData,
+        pcbData
+    );
 }
 
 template <class Api>
@@ -185,7 +221,12 @@ template <class Api> void PopulateKeys(Api& api, Recorder& record, const HKEY hR
          })
     {
         const auto hKey = CreateWithClass(api, record, hRoot, pszName, pszClass);
-        RECORD("close", api.CloseKey(hKey));
+        RECORD(
+            "close",
+            api.CloseKey(
+                hKey
+            )
+        );
     }
 }
 
@@ -302,7 +343,12 @@ struct EnumerateKeysPreEx
                 std::memset(wname.data(), kFill, sizeof(wname));
                 RECORD(
                     std::format("W index {} size {}", dwIndex, cchName),
-                    api.EnumKeyW(hRoot, dwIndex, wname.data(), cchName),
+                    api.EnumKeyW(
+                        hRoot,
+                        dwIndex,
+                        wname.data(),
+                        cchName
+                    ),
                     {},
                     {Bytes(wname)}
                 );
@@ -310,18 +356,55 @@ struct EnumerateKeysPreEx
                 std::memset(name.data(), kFill, sizeof(name));
                 RECORD(
                     std::format("A index {} size {}", dwIndex, cchName),
-                    api.EnumKeyA(hRoot, dwIndex, name.data(), cchName),
+                    api.EnumKeyA(
+                        hRoot,
+                        dwIndex,
+                        name.data(),
+                        cchName
+                    ),
                     {},
                     {Bytes(name)}
                 );
             }
         }
-        RECORD("W no name", api.EnumKeyW(hRoot, 0, nullptr, 0));
-        RECORD("A no name", api.EnumKeyA(hRoot, 0, nullptr, 0));
+        RECORD(
+            "W no name",
+            api.EnumKeyW(
+                hRoot,
+                0,
+                nullptr,
+                0
+            )
+        );
+        RECORD(
+            "A no name",
+            api.EnumKeyA(
+                hRoot,
+                0,
+                nullptr,
+                0
+            )
+        );
         wchar_t wname[8];
         char name[8];
-        RECORD("W invalid handle", api.EnumKeyW(nullptr, 0, wname, 8));
-        RECORD("A invalid handle", api.EnumKeyA(nullptr, 0, name, 8));
+        RECORD(
+            "W invalid handle",
+            api.EnumKeyW(
+                nullptr,
+                0,
+                wname,
+                8
+            )
+        );
+        RECORD(
+            "A invalid handle",
+            api.EnumKeyA(
+                nullptr,
+                0,
+                name,
+                8
+            )
+        );
     }
 };
 
@@ -617,20 +700,48 @@ struct QueryInfoKeyForms
         for (const auto* const pszName : {L"Alpha", L"B\u00e4ta", L"Gamma\u4e2d", L"D\u0101lta"})
         {
             HKEY hKey{};
-            RECORD("open", api.OpenKeyExW(hRoot, pszName, 0, KEY_READ, &hKey));
+            RECORD(
+                "open",
+                api.OpenKeyExW(
+                    hRoot,
+                    pszName,
+                    0,
+                    KEY_READ,
+                    &hKey
+                )
+            );
             QueryInfoMatrix<Api, wchar_t>(api, record, hKey, "sub W");
             QueryInfoMatrix<Api, char>(api, record, hKey, "sub A");
-            RECORD("close", api.CloseKey(hKey));
+            RECORD(
+                "close",
+                api.CloseKey(
+                    hKey
+                )
+            );
         }
 
         // A virtual key has one handle per node, so it carries no per-open access rights.
         if constexpr (!kVirtualKeys<Api>)
         {
             HKEY hKey{};
-            RECORD("open for write only", api.OpenKeyExW(hRoot, L"Alpha", 0, KEY_SET_VALUE, &hKey));
+            RECORD(
+                "open for write only",
+                api.OpenKeyExW(
+                    hRoot,
+                    L"Alpha",
+                    0,
+                    KEY_SET_VALUE,
+                    &hKey
+                )
+            );
             QueryInfoMatrix<Api, wchar_t>(api, record, hKey, "write only W");
             QueryInfoMatrix<Api, char>(api, record, hKey, "write only A");
-            RECORD("close", api.CloseKey(hKey));
+            RECORD(
+                "close",
+                api.CloseKey(
+                    hKey
+                )
+            );
         }
     }
 };
@@ -647,22 +758,52 @@ struct EnumerateWhileChanging
         {
             name.fill(L'\0');
             DWORD cchName = 64;
-            const auto status
-                = api.EnumKeyExW(hRoot, dwIndex, name.data(), &cchName, nullptr, nullptr, nullptr, nullptr);
+            const auto status = api.EnumKeyExW(
+                hRoot,
+                dwIndex,
+                name.data(),
+                &cchName,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr
+            );
             RECORD("enum key", status, {cchName}, {Bytes(name)});
             if (status == ERROR_SUCCESS)
-                RECORD("delete enumerated", api.DeleteKeyExW(hRoot, name.data(), 0, 0));
+                RECORD(
+                    "delete enumerated",
+                    api.DeleteKeyExW(
+                        hRoot,
+                        name.data(),
+                        0,
+                        0
+                    )
+                );
         }
 
         for (DWORD dwIndex = 0; dwIndex < 5; ++dwIndex)
         {
             name.fill(L'\0');
             DWORD cchName = 64;
-            const auto status
-                = api.EnumValueW(hRoot, dwIndex, name.data(), &cchName, nullptr, nullptr, nullptr, nullptr);
+            const auto status = api.EnumValueW(
+                hRoot,
+                dwIndex,
+                name.data(),
+                &cchName,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr
+            );
             RECORD("enum value", status, {cchName}, {Bytes(name)});
             if (status == ERROR_SUCCESS)
-                RECORD("delete enumerated", api.DeleteValueW(hRoot, name.data()));
+                RECORD(
+                    "delete enumerated",
+                    api.DeleteValueW(
+                        hRoot,
+                        name.data()
+                    )
+                );
         }
 
         for (DWORD dwIndex = 0; dwIndex < 3; ++dwIndex)
@@ -671,7 +812,16 @@ struct EnumerateWhileChanging
             DWORD cchName = 64;
             RECORD(
                 "enum key after",
-                api.EnumKeyExW(hRoot, dwIndex, name.data(), &cchName, nullptr, nullptr, nullptr, nullptr),
+                api.EnumKeyExW(
+                    hRoot,
+                    dwIndex,
+                    name.data(),
+                    &cchName,
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    nullptr
+                ),
                 {cchName},
                 {Bytes(name)}
             );

@@ -14,9 +14,17 @@ const std::wstring kHeader = L"Windows Registry Editor Version 5.00\r\n";
 bool KeyExists(Registry& registry, const wchar_t* const pszPath)
 {
     HKEY hKey{};
-    const auto status = registry.OpenKeyExW(HKEY_CURRENT_USER, pszPath, 0, KEY_READ, &hKey);
+    const auto status = registry.OpenKeyExW(
+        HKEY_CURRENT_USER,
+        pszPath,
+        0,
+        KEY_READ,
+        &hKey
+    );
     if (status == ERROR_SUCCESS)
-        registry.CloseKey(hKey);
+        registry.CloseKey(
+            hKey
+        );
     return status == ERROR_SUCCESS;
 }
 } // namespace
@@ -83,10 +91,39 @@ TEST_CASE("Apply deletes values and keys")
         REQUIRE(Apply(MustParse(kHeader + L"[HKCU\\T]\r\n\"a\"=-\r\n@=-\r\n"), registry, nullptr) == ERROR_SUCCESS);
         const HKEY hKey = MustOpen(registry, L"T");
         DWORD dwType{};
-        CHECK(registry.QueryValueExW(hKey, L"a", nullptr, &dwType, nullptr, nullptr) == ERROR_FILE_NOT_FOUND);
-        CHECK(registry.QueryValueExW(hKey, L"", nullptr, &dwType, nullptr, nullptr) == ERROR_FILE_NOT_FOUND);
-        CHECK(registry.QueryValueExW(hKey, L"b", nullptr, &dwType, nullptr, nullptr) == ERROR_SUCCESS);
-        registry.CloseKey(hKey);
+        CHECK(
+            registry.QueryValueExW(
+                hKey,
+                L"a",
+                nullptr,
+                &dwType,
+                nullptr,
+                nullptr
+            ) == ERROR_FILE_NOT_FOUND
+        );
+        CHECK(
+            registry.QueryValueExW(
+                hKey,
+                L"",
+                nullptr,
+                &dwType,
+                nullptr,
+                nullptr
+            ) == ERROR_FILE_NOT_FOUND
+        );
+        CHECK(
+            registry.QueryValueExW(
+                hKey,
+                L"b",
+                nullptr,
+                &dwType,
+                nullptr,
+                nullptr
+            ) == ERROR_SUCCESS
+        );
+        registry.CloseKey(
+            hKey
+        );
     }
     SECTION("a key with its whole subtree")
     {
@@ -135,8 +172,19 @@ TEST_CASE("Delete then create replaces a key")
     CHECK_FALSE(KeyExists(registry, L"T\\Old"));
     CheckValue(registry, L"T", L"z", REG_DWORD, DwordBytes(2));
     const HKEY hKey = MustOpen(registry, L"T");
-    CHECK(registry.QueryValueExW(hKey, L"y", nullptr, nullptr, nullptr, nullptr) == ERROR_FILE_NOT_FOUND);
-    registry.CloseKey(hKey);
+    CHECK(
+        registry.QueryValueExW(
+            hKey,
+            L"y",
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        ) == ERROR_FILE_NOT_FOUND
+    );
+    registry.CloseKey(
+        hKey
+    );
 }
 
 TEST_CASE("Apply stops at the first failing operation")

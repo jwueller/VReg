@@ -51,7 +51,14 @@ LSTATUS SetString(
 
 LSTATUS SetDword(Registry& registry, const HKEY hKey, const wchar_t* const pszName, const DWORD dwValue)
 {
-    return registry.SetValueExW(hKey, pszName, 0, REG_DWORD, reinterpret_cast<const BYTE*>(&dwValue), sizeof(dwValue));
+    return registry.SetValueExW(
+        hKey,
+        pszName,
+        0,
+        REG_DWORD,
+        reinterpret_cast<const BYTE*>(&dwValue),
+        sizeof(dwValue)
+    );
 }
 
 // The first call that reads data answers that the value grew, to exercise the
@@ -70,7 +77,14 @@ LSTATUS WINAPI GrowingQueryValueExW(
     if (lpData != nullptr && lpcbData != nullptr && g_nGrowthsLeft > 0)
     {
         --g_nGrowthsLeft;
-        const auto status = ::RegQueryValueExW(hKey, lpValueName, lpReserved, lpType, nullptr, lpcbData);
+        const auto status = ::RegQueryValueExW(
+            hKey,
+            lpValueName,
+            lpReserved,
+            lpType,
+            nullptr,
+            lpcbData
+        );
         if (status == ERROR_SUCCESS)
         {
             *lpcbData += 16;
@@ -78,7 +92,14 @@ LSTATUS WINAPI GrowingQueryValueExW(
         }
         return status;
     }
-    return ::RegQueryValueExW(hKey, lpValueName, lpReserved, lpType, lpData, lpcbData);
+    return ::RegQueryValueExW(
+        hKey,
+        lpValueName,
+        lpReserved,
+        lpType,
+        lpData,
+        lpcbData
+    );
 }
 
 LSTATUS WINAPI GrowingGetValueW(
@@ -94,7 +115,15 @@ LSTATUS WINAPI GrowingGetValueW(
     if (pvData != nullptr && pcbData != nullptr && g_nGrowthsLeft > 0)
     {
         --g_nGrowthsLeft;
-        const auto status = ::RegGetValueW(hKey, lpSubKey, lpValue, dwFlags, pdwType, nullptr, pcbData);
+        const auto status = ::RegGetValueW(
+            hKey,
+            lpSubKey,
+            lpValue,
+            dwFlags,
+            pdwType,
+            nullptr,
+            pcbData
+        );
         if (status == ERROR_SUCCESS)
         {
             *pcbData += 16;
@@ -102,7 +131,15 @@ LSTATUS WINAPI GrowingGetValueW(
         }
         return status;
     }
-    return ::RegGetValueW(hKey, lpSubKey, lpValue, dwFlags, pdwType, pvData, pcbData);
+    return ::RegGetValueW(
+        hKey,
+        lpSubKey,
+        lpValue,
+        dwFlags,
+        pdwType,
+        pvData,
+        pcbData
+    );
 }
 
 NativeRegistry GrowingRegistry()
@@ -121,7 +158,16 @@ TEST_CASE("QueryValue returns the type and the bytes")
 
     REQUIRE(SetDword(registry, hive.Root(), L"Dword", 0x12345678) == ERROR_SUCCESS);
     REQUIRE(SetString(registry, hive.Root(), L"Text", REG_SZ, L"hello") == ERROR_SUCCESS);
-    REQUIRE(registry.SetValueExW(hive.Root(), L"Empty", 0, REG_BINARY, nullptr, 0) == ERROR_SUCCESS);
+    REQUIRE(
+        registry.SetValueExW(
+            hive.Root(),
+            L"Empty",
+            0,
+            REG_BINARY,
+            nullptr,
+            0
+        ) == ERROR_SUCCESS
+    );
 
     DWORD dwType = 0;
     std::vector<std::byte> data;
@@ -162,7 +208,15 @@ TEST_CASE("GetValue applies the flags")
     NativeRegistry registry;
 
     REQUIRE(
-        registry.SetKeyValueW(hive.Root(), L"Sub", L"Dword", REG_DWORD, std::array<DWORD, 1>{7}.data(), 4)
+        registry.SetKeyValueW(
+            hive.Root(),
+            L"Sub",
+            L"Dword",
+            REG_DWORD,
+            std::array<DWORD,
+            1>{7}.data(),
+            4
+        )
         == ERROR_SUCCESS
     );
     REQUIRE(SetString(registry, hive.Root(), L"Expand", REG_EXPAND_SZ, L"%OS%") == ERROR_SUCCESS);
@@ -245,10 +299,22 @@ TEST_CASE("EnumKey walks the subkeys to the end")
     {
         HKEY hKey{};
         REQUIRE(
-            registry.CreateKeyExW(hive.Root(), name.c_str(), 0, nullptr, 0, KEY_READ, nullptr, &hKey, nullptr)
+            registry.CreateKeyExW(
+                hive.Root(),
+                name.c_str(),
+                0,
+                nullptr,
+                0,
+                KEY_READ,
+                nullptr,
+                &hKey,
+                nullptr
+            )
             == ERROR_SUCCESS
         );
-        registry.CloseKey(hKey);
+        registry.CloseKey(
+            hKey
+        );
     }
 
     std::vector<std::wstring> names;

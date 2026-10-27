@@ -64,7 +64,17 @@ OverlayMount::OverlayMount()
     , m_registry(&m_native)
 {
     REQUIRE(
-        m_native.CreateKeyExW(m_appHive.Root(), L"Lower", 0, nullptr, 0, KEY_ALL_ACCESS, nullptr, &m_hLower, nullptr)
+        m_native.CreateKeyExW(
+            m_appHive.Root(),
+            L"Lower",
+            0,
+            nullptr,
+            0,
+            KEY_ALL_ACCESS,
+            nullptr,
+            &m_hLower,
+            nullptr
+        )
         == ERROR_SUCCESS
     );
     REQUIRE(m_registry.Mount(HKEY_CURRENT_USER, L"VRegOracle", m_hive) == ERROR_SUCCESS);
@@ -72,7 +82,9 @@ OverlayMount::OverlayMount()
 
 OverlayMount::~OverlayMount()
 {
-    m_native.CloseKey(m_hLower);
+    m_native.CloseKey(
+        m_hLower
+    );
 }
 
 VirtualRegistry& OverlayMount::Registry() noexcept
