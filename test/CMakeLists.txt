@@ -27,6 +27,12 @@ add_executable(
 target_link_libraries(VReg_Tests PRIVATE VReg::RegFile VReg::Core VReg_BuildSettings Catch2::Catch2WithMain)
 # The tests reach internal headers as well as the public ones.
 target_include_directories(VReg_Tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# Agent's choice: CI runs these tests under Wine, whose msvcp140.dll predates
+# the constexpr std::mutex the current headers build; std::future then loses
+# its wakeups. Microsoft's switch for an older runtime restores the old
+# construction. Passed over: rewriting the tests' std::async and std::promise
+# on Win32 threads.
+target_compile_definitions(VReg_Tests PRIVATE _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
 # A hung test fails instead of stalling an unattended run.
 catch_discover_tests(VReg_Tests PROPERTIES TIMEOUT 120)
 
