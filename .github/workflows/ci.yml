@@ -82,10 +82,20 @@ jobs:
 
       # Tests that need a private app hive skip themselves under Wine: native
       # Windows behavior is the spec, and Wine may deviate in edge cases.
+      # Each test case runs in a process of its own, as under ctest: hooks
+      # stay installed for the life of a process. A comma separates test
+      # specs, so one in a name is escaped.
       - name: Test
         working-directory: tests
         run: |
-          set -e
+          failed=0
           for test in $(find . -name 'VReg_*Tests.exe'); do
-            (cd "$(dirname "$test")" && wine "$(basename "$test")")
+            cd "$(dirname "$test")"
+            exe=$(basename "$test")
+            mapfile -t names < <(wine "$exe" --list-tests --verbosity quiet | tr -d '\r')
+            for name in "${names[@]}"; do
+              wine "$exe" "${name//,/\\,}" || failed=1
+            done
+            cd - > /dev/null
           done
+          exit $failed
