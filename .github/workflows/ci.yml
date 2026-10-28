@@ -16,19 +16,28 @@ jobs:
     env:
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-cache
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Restore vcpkg binary cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/.vcpkg-cache
           key: vcpkg-${{ matrix.compiler }}-${{ matrix.arch }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
           restore-keys: vcpkg-${{ matrix.compiler }}-${{ matrix.arch }}-
 
+      # Hands the variables the developer shell changes on to the later steps.
       - name: Enter the developer environment
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: ${{ matrix.arch == 'x86' && 'amd64_x86' || 'amd64' }}
+        shell: pwsh
+        run: |
+          $before = @{}
+          Get-ChildItem env: | ForEach-Object { $before[$_.Name] = $_.Value }
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath
+          Import-Module "$vs\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+          Enter-VsDevShell -VsInstallPath $vs -SkipAutomaticLocation -DevCmdArguments "-arch=${{ matrix.arch }} -host_arch=amd64"
+          Get-ChildItem env: |
+              Where-Object { $before[$_.Name] -ne $_.Value } |
+              ForEach-Object { "$($_.Name)=$($_.Value)" } |
+              Add-Content -Path $env:GITHUB_ENV
 
       - name: Configure
         shell: pwsh
@@ -50,7 +59,7 @@ jobs:
       # The Wine job runs these binaries; only one compiler's are needed.
       - name: Upload the test binaries
         if: matrix.compiler == 'msvc'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tests-${{ matrix.arch }}
           path: |
@@ -75,7 +84,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends wine wine64 wine32:i386
           wineboot --init
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: tests-${{ matrix.arch }}
           path: tests
