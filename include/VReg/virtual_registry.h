@@ -5,7 +5,6 @@
 
 #include <atomic>
 #include <memory>
-#include <mutex>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -267,6 +266,6 @@ private:
     Registry* m_pBase;
     NtQueryKeyFunction m_pfnNtQueryKey;
     std::atomic<const MountTable*> m_pMounts;
-    std::mutex m_mountMutex;
+    SRWLOCK m_mountLock = SRWLOCK_INIT;
 };
 } // namespace VReg

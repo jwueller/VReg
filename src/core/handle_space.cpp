@@ -1,5 +1,7 @@
 #include "handle_space.h"
 
+#include "lock.h"
+
 #include <cwchar>
 #include <new>
 #include <string>
@@ -82,7 +84,7 @@ HKEY HandleSpace::Allocate(void* const pTarget) noexcept
     if (!m_pShared)
         return nullptr;
 
-    std::scoped_lock lock(m_mutex);
+    ExclusiveLock lock(m_lock);
 
     if (m_nextIndex == m_endIndex)
     {

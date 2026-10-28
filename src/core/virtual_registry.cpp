@@ -4,6 +4,7 @@
 
 #include "export_table.h"
 #include "handle_space.h"
+#include "lock.h"
 #include "tree.h"
 
 #include <algorithm>
@@ -242,7 +243,7 @@ try
         }
     }
 
-    std::scoped_lock lock(m_mountMutex);
+    ExclusiveLock lock(m_mountLock);
     const auto* const pOld = m_pMounts.load(std::memory_order_acquire);
     auto* const pNew = new MountTable(pOld ? *pOld : MountTable{});
     for (const auto& existing : pNew->mounts)

@@ -41,6 +41,9 @@ work by `docs/plans/`.
   separately built copies, so it never changes.
 - **Hooks are never detached**; they are neutralized through their slot.
   Nothing calls `DetourDetach`.
+- **No `std::mutex` in the library.** It locks with `SRWLOCK`
+  (`src/core/lock.h` says why); Wine's `msvcp140.dll` aborts on the
+  current `std::mutex`.
 
 ## Code conventions
 

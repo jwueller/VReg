@@ -7,7 +7,6 @@
 #include <array>
 #include <atomic>
 #include <cstdint>
-#include <mutex>
 #include <string_view>
 
 namespace VReg
@@ -87,7 +86,7 @@ private:
 
     Shared* m_pShared = nullptr;
 
-    std::mutex m_mutex;
+    SRWLOCK m_lock = SRWLOCK_INIT;
     std::uintptr_t m_nextIndex = 0;
     std::uintptr_t m_endIndex = 0;
 
