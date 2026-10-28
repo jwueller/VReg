@@ -134,7 +134,9 @@ TEST_CASE("No route to a real key handle sets bit 0")
             nullptr
         );
         CheckRoute("app hive child", e, h);
-        CheckRoute("RegLoadAppKey", ERROR_SUCCESS, hHive);
+        // Wine's RegLoadAppKey answers success with a placeholder that is no
+        // key at all; only a hive that took a child gave out a real handle.
+        CheckRoute("RegLoadAppKey", e, hHive);
     }
     else
     {
