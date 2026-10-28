@@ -83,15 +83,23 @@ TEST_CASE("No route to a real key handle sets bit 0")
     e = RegConnectRegistryW(nullptr, HKEY_LOCAL_MACHINE, &h);
     CheckRoute("RegConnectRegistry (local)", e, h);
 
-    const auto hTransaction = CreateTransaction(
-        nullptr,
-        nullptr,
-        0,
-        0,
-        0,
-        0,
-        nullptr
-    );
+    // Wine creates the transaction, but its RegOpenKeyTransactedW is a stub
+    // that aborts the process instead of failing.
+    const bool isWine = GetProcAddress(
+        GetModuleHandleW(L"ntdll.dll"),
+        "wine_get_version"
+    ) != nullptr;
+    const auto hTransaction = isWine
+        ? INVALID_HANDLE_VALUE
+        : CreateTransaction(
+            nullptr,
+            nullptr,
+            0,
+            0,
+            0,
+            0,
+            nullptr
+        );
     if (hTransaction != INVALID_HANDLE_VALUE)
     {
         e = RegOpenKeyTransactedW(
