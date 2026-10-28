@@ -93,18 +93,26 @@ jobs:
       # Windows behavior is the spec, and Wine may deviate in edge cases.
       # Each test case runs in a process of its own, as under ctest: hooks
       # stay installed for the life of a process. A comma separates test
-      # specs, so one in a name is escaped.
+      # specs, so one in a name is escaped. Catch2 exits with 4 when the test
+      # case skipped itself, which ctest counts as skipped too.
       - name: Test
         working-directory: tests
         run: |
-          failed=0
+          failures=()
           for test in $(find . -name 'VReg_*Tests.exe'); do
             cd "$(dirname "$test")"
             exe=$(basename "$test")
             mapfile -t names < <(wine "$exe" --list-tests --verbosity quiet | tr -d '\r')
             for name in "${names[@]}"; do
-              wine "$exe" "${name//,/\\,}" || failed=1
+              status=0
+              wine "$exe" "${name//,/\\,}" || status=$?
+              if [ "$status" -ne 0 ] && [ "$status" -ne 4 ]; then
+                failures+=("$exe: $name (exit $status)")
+              fi
             done
             cd - > /dev/null
           done
-          exit $failed
+          if [ ${#failures[@]} -ne 0 ]; then
+            printf 'Failed: %s\n' "${failures[@]}"
+            exit 1
+          fi
