@@ -15,5 +15,8 @@
       "description": "Build the tests",
       "dependencies": ["catch2"]
     }
-  }
+  },
+  "overrides": [
+    {"name": "detours", "version-date": "2025-06-20"}
+  ]
 }
