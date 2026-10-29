@@ -84,12 +84,12 @@ GetEx(
 
 std::vector<StoredValue> GetValues()
 {
-    const wchar_t kNonAscii[] = L"a\u00e4\u20ac\u0101\u4e2d";
+    const wchar_t NON_ASCII[] = L"a\u00e4\u20ac\u0101\u4e2d";
     std::vector<StoredValue> values;
     values.push_back({L"Sz", REG_SZ, BytesOf(L"text", 5)});
     values.push_back({L"SzNoTerminator", REG_SZ, BytesOf(L"text", 4)});
     values.push_back({L"SzEmpty", REG_SZ, {}});
-    values.push_back({L"SzNonAscii", REG_SZ, BytesOf(kNonAscii, std::size(kNonAscii))});
+    values.push_back({L"SzNonAscii", REG_SZ, BytesOf(NON_ASCII, std::size(NON_ASCII))});
     values.push_back({L"ExpandShort", REG_EXPAND_SZ, BytesOf(L"%SystemRoot%", 13)});
     values.push_back({L"ExpandLong", REG_EXPAND_SZ, BytesOf(L"%OS%\\x", 7)});
     values.push_back({L"ExpandUnset", REG_EXPAND_SZ, BytesOf(L"%VREG_UNSET_VARIABLE%", 22)});
@@ -107,7 +107,7 @@ std::vector<StoredValue> GetValues()
     return values;
 }
 
-constexpr DWORD kFlagSets[] = {
+constexpr DWORD FLAG_SETS[] = {
     0,
     RRF_RT_ANY,
     RRF_RT_REG_SZ,
@@ -145,11 +145,11 @@ void GetMatrix(
     const std::string& label
 )
 {
-    for (const DWORD dwFlags : kFlagSets)
+    for (const DWORD dwFlags : FLAG_SETS)
     {
         const auto flagLabel = label + std::format(" flags {:#x}", dwFlags);
 
-        DWORD dwType = kFillSize;
+        DWORD dwType = FILL_SIZE;
         RECORD(
             flagLabel + " type only",
             GetEx(
@@ -165,8 +165,8 @@ void GetMatrix(
             {dwType}
         );
 
-        dwType = kFillSize;
-        DWORD cbData = kFillSize;
+        dwType = FILL_SIZE;
+        DWORD cbData = FILL_SIZE;
         RECORD(
             flagLabel + " size",
             GetEx(
@@ -185,8 +185,8 @@ void GetMatrix(
         for (const DWORD cbBuffer : {0u, 3u, 8u, 16u, 128u})
         {
             std::array<BYTE, 128> data;
-            data.fill(kFill);
-            dwType = kFillSize;
+            data.fill(FILL);
+            dwType = FILL_SIZE;
             cbData = cbBuffer;
             RECORD(
                 flagLabel + std::format(" buffer {}", cbBuffer),
@@ -206,7 +206,7 @@ void GetMatrix(
         }
 
         std::array<BYTE, 128> data;
-        data.fill(kFill);
+        data.fill(FILL);
         cbData = 128;
         RECORD(
             flagLabel + " no type",
@@ -223,8 +223,8 @@ void GetMatrix(
             {cbData},
             {Bytes(data)}
         );
-        data.fill(kFill);
-        dwType = kFillSize;
+        data.fill(FILL);
+        dwType = FILL_SIZE;
         RECORD(
             flagLabel + " data without size",
             GetEx(
@@ -372,8 +372,8 @@ struct GetValueSubKeyAndName
                      {RRF_RT_ANY, RRF_RT_REG_SZ, RRF_RT_DWORD | RRF_ZEROONFAILURE, RRF_RT_ANY | RRF_SUBKEY_WOW6432KEY})
                 {
                     std::array<wchar_t, 16> data;
-                    std::memset(data.data(), kFill, sizeof(data));
-                    DWORD dwType = kFillSize;
+                    std::memset(data.data(), FILL, sizeof(data));
+                    DWORD dwType = FILL_SIZE;
                     DWORD cbData = sizeof(data);
                     RECORD(
                         label + std::format(" W {:#x}", dwFlags),
@@ -391,8 +391,8 @@ struct GetValueSubKeyAndName
                     );
 
                     std::array<char, 16> adata;
-                    std::memset(adata.data(), kFill, sizeof(adata));
-                    dwType = kFillSize;
+                    std::memset(adata.data(), FILL, sizeof(adata));
+                    dwType = FILL_SIZE;
                     cbData = sizeof(adata);
                     RECORD(
                         label + std::format(" A {:#x}", dwFlags),
@@ -522,7 +522,7 @@ struct LoadMUIStringForms
               L""})
         {
             // Resolving an indirect string loads a resource module, which a virtual key never does.
-            if (kVirtualKeys<Api> && std::wstring_view(pszName).starts_with(L"Indirect")
+            if (VIRTUAL_KEYS<Api> && std::wstring_view(pszName).starts_with(L"Indirect")
                 && std::wstring_view(pszName) != L"Indirect")
                 continue;
 
@@ -532,8 +532,8 @@ struct LoadMUIStringForms
                 for (const DWORD cbBuffer : {0u, 2u, 3u, 6u, 10u, 128u})
                 {
                     std::array<wchar_t, 64> data;
-                    std::memset(data.data(), kFill, sizeof(data));
-                    DWORD cbData = kFillSize;
+                    std::memset(data.data(), FILL, sizeof(data));
+                    DWORD cbData = FILL_SIZE;
                     RECORD(
                         "muiW " + label + std::format(" flags {} buffer {}", dwFlags, cbBuffer),
                         api.RegLoadMUIStringW(
@@ -550,7 +550,7 @@ struct LoadMUIStringForms
                     );
                 }
 
-                DWORD cbData = kFillSize;
+                DWORD cbData = FILL_SIZE;
                 RECORD(
                     "muiW size " + label + std::format(" flags {}", dwFlags),
                     api.RegLoadMUIStringW(
@@ -564,7 +564,7 @@ struct LoadMUIStringForms
                     ),
                     {cbData}
                 );
-                cbData = kFillSize;
+                cbData = FILL_SIZE;
                 RECORD(
                     "muiW null buffer " + label + std::format(" flags {}", dwFlags),
                     api.RegLoadMUIStringW(
@@ -579,7 +579,7 @@ struct LoadMUIStringForms
                     {cbData}
                 );
                 std::array<wchar_t, 64> data;
-                std::memset(data.data(), kFill, sizeof(data));
+                std::memset(data.data(), FILL, sizeof(data));
                 RECORD(
                     "muiW no size " + label + std::format(" flags {}", dwFlags),
                     api.RegLoadMUIStringW(
@@ -597,11 +597,11 @@ struct LoadMUIStringForms
             }
 
             std::array<wchar_t, 64> data;
-            std::memset(data.data(), kFill, sizeof(data));
-            DWORD cbData = kFillSize;
+            std::memset(data.data(), FILL, sizeof(data));
+            DWORD cbData = FILL_SIZE;
             // Natively the directory decides where the module is found; a
             // value marked as MUI text has no module.
-            if (!kVirtualKeys<Api> || label != "Indirect")
+            if (!VIRTUAL_KEYS<Api> || label != "Indirect")
             {
                 RECORD(
                     "muiW directory " + label,
@@ -621,8 +621,8 @@ struct LoadMUIStringForms
 
             const auto narrow = Narrow(pszName);
             std::array<char, 64> adata;
-            std::memset(adata.data(), kFill, sizeof(adata));
-            cbData = kFillSize;
+            std::memset(adata.data(), FILL, sizeof(adata));
+            cbData = FILL_SIZE;
             RECORD(
                 "muiA " + label,
                 api.RegLoadMUIStringA(
@@ -637,7 +637,7 @@ struct LoadMUIStringForms
                 {cbData},
                 {Bytes(adata)}
             );
-            cbData = kFillSize;
+            cbData = FILL_SIZE;
             RECORD(
                 "muiA size " + label,
                 api.RegLoadMUIStringA(
@@ -704,7 +704,7 @@ struct LoadMUIStringForms
         );
 
         std::array<wchar_t, 8> wdata;
-        DWORD cbData = kFillSize;
+        DWORD cbData = FILL_SIZE;
         RECORD(
             "muiW null value",
             api.RegLoadMUIStringW(
@@ -808,14 +808,14 @@ void MultipleMatrix(
         for (std::size_t i = 0; i < names.size(); ++i)
         {
             entries[i].ve_valuename = const_cast<Char*>(names[i].c_str());
-            entries[i].ve_valuelen = kFillSize;
-            entries[i].ve_valueptr = static_cast<DWORD_PTR>(kFillSize);
-            entries[i].ve_type = kFillSize;
+            entries[i].ve_valuelen = FILL_SIZE;
+            entries[i].ve_valueptr = static_cast<DWORD_PTR>(FILL_SIZE);
+            entries[i].ve_type = FILL_SIZE;
         }
 
         std::array<BYTE, 256> buffer;
-        buffer.fill(kFill);
-        DWORD cbInOut = cbTotal < 0 ? kFillSize : static_cast<DWORD>(cbTotal);
+        buffer.fill(FILL);
+        DWORD cbInOut = cbTotal < 0 ? FILL_SIZE : static_cast<DWORD>(cbTotal);
         const auto status = QueryMultiple(
             api,
             hKey,
@@ -831,7 +831,7 @@ void MultipleMatrix(
             sizes.push_back(entry.ve_valuelen);
             sizes.push_back(entry.ve_type);
             sizes.push_back(
-                entry.ve_valueptr == static_cast<DWORD_PTR>(kFillSize)
+                entry.ve_valueptr == static_cast<DWORD_PTR>(FILL_SIZE)
                     ? ~std::uint64_t{}
                     : Offset(
                         reinterpret_cast<const void*>(entry.ve_valueptr),
@@ -966,7 +966,7 @@ struct QueryMultipleValuesForms
         VALENTA narrow{const_cast<LPSTR>("a"), 0, 0, 0};
         DWORD cbTotal = 64;
         std::array<BYTE, 64> buffer;
-        buffer.fill(kFill);
+        buffer.fill(FILL);
         RECORD(
             "W no entries",
             api.RegQueryMultipleValuesW(

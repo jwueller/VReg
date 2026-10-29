@@ -21,7 +21,7 @@ struct CreateOpenAndClose
     template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
     {
         HKEY hKey{};
-        DWORD dwDisposition = kFillSize;
+        DWORD dwDisposition = FILL_SIZE;
         RECORD(
             "create new",
             api.RegCreateKeyExW(
@@ -44,7 +44,7 @@ struct CreateOpenAndClose
             )
         );
 
-        dwDisposition = kFillSize;
+        dwDisposition = FILL_SIZE;
         RECORD(
             "create existing",
             api.RegCreateKeyExW(
@@ -103,7 +103,7 @@ struct QueryStringBufferTooSmall
 {
     template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
     {
-        constexpr wchar_t kText[] = L"value";
+        constexpr wchar_t VALUE_TEXT[] = L"value";
         RECORD(
             "set",
             api.RegSetValueExW(
@@ -111,14 +111,14 @@ struct QueryStringBufferTooSmall
                 L"Text",
                 0,
                 REG_SZ,
-                reinterpret_cast<const BYTE*>(kText),
-                sizeof(kText)
+                reinterpret_cast<const BYTE*>(VALUE_TEXT),
+                sizeof(VALUE_TEXT)
             )
         );
 
         std::array<BYTE, 6> data;
-        data.fill(kFill);
-        DWORD dwType = kFillSize;
+        data.fill(FILL);
+        DWORD dwType = FILL_SIZE;
         DWORD cbData = static_cast<DWORD>(data.size());
         RECORD(
             "query too small",
@@ -141,7 +141,7 @@ struct CreateDispositionAndClass
     template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
     {
         HKEY hKey{};
-        DWORD dwDisposition = kFillSize;
+        DWORD dwDisposition = FILL_SIZE;
         wchar_t szClass[] = L"MyClass";
         RECORD(
             "create with class",
@@ -165,7 +165,7 @@ struct CreateDispositionAndClass
             )
         );
 
-        dwDisposition = kFillSize;
+        dwDisposition = FILL_SIZE;
         wchar_t szOther[] = L"OtherClass";
         RECORD(
             "create existing other class",
@@ -202,7 +202,7 @@ struct CreateDispositionAndClass
         for (const DWORD cchClass : {0u, 3u, 7u, 8u, 64u})
         {
             std::array<wchar_t, 64> cls;
-            std::memset(cls.data(), kFill, sizeof(cls));
+            std::memset(cls.data(), FILL, sizeof(cls));
             DWORD cch = cchClass;
             RECORD(
                 "class",
@@ -231,7 +231,7 @@ struct CreateDispositionAndClass
             )
         );
 
-        dwDisposition = kFillSize;
+        dwDisposition = FILL_SIZE;
         RECORD(
             "create volatile",
             api.RegCreateKeyExW(
@@ -289,7 +289,7 @@ struct CreateDispositionAndClass
                 nullptr
             )
         );
-        dwDisposition = kFillSize;
+        dwDisposition = FILL_SIZE;
         RECORD(
             "create no result with disposition",
             api.RegCreateKeyExW(
@@ -306,7 +306,7 @@ struct CreateDispositionAndClass
             {dwDisposition}
         );
 
-        dwDisposition = kFillSize;
+        dwDisposition = FILL_SIZE;
         hKey = FillKey();
         RECORD(
             "create nested",
@@ -329,7 +329,7 @@ struct CreateDispositionAndClass
                 hKey
             )
         );
-        dwDisposition = kFillSize;
+        dwDisposition = FILL_SIZE;
         RECORD(
             "create nested partly existing",
             api.RegCreateKeyExW(
@@ -354,7 +354,7 @@ struct CreateDispositionAndClass
 
         for (const wchar_t* const pszSub : {L"", L"\\Leading", L"Trailing\\", L"Double\\\\Slash", L"\\"})
         {
-            dwDisposition = kFillSize;
+            dwDisposition = FILL_SIZE;
             hKey = FillKey();
             const auto status = api.RegCreateKeyExW(
                 hRoot,
@@ -442,7 +442,7 @@ struct CreateDispositionAndClass
             ),
             {KeyState(hKey)}
         );
-        dwDisposition = kFillSize;
+        dwDisposition = FILL_SIZE;
         RECORD(
             "create case differs",
             api.RegCreateKeyExW(
@@ -472,7 +472,7 @@ struct CreateOpenAnsi
     template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
     {
         HKEY hKey{};
-        DWORD dwDisposition = kFillSize;
+        DWORD dwDisposition = FILL_SIZE;
         char szClass[] = "Cl\xe4ss\x80";
         RECORD(
             "create A",
@@ -507,7 +507,7 @@ struct CreateOpenAnsi
             )
         );
         std::array<wchar_t, 16> cls;
-        std::memset(cls.data(), kFill, sizeof(cls));
+        std::memset(cls.data(), FILL, sizeof(cls));
         DWORD cch = 16;
         RECORD(
             "class as W",
@@ -535,7 +535,7 @@ struct CreateOpenAnsi
             )
         );
 
-        dwDisposition = kFillSize;
+        dwDisposition = FILL_SIZE;
         RECORD(
             "create A existing",
             api.RegCreateKeyExA(
@@ -874,7 +874,7 @@ struct OpenKeyForms
             )
         );
         // Native needs SeBackupPrivilege; a virtual key has no access check to bypass and always opens.
-        if constexpr (!kVirtualKeys<Api>)
+        if constexpr (!VIRTUAL_KEYS<Api>)
         {
             hKey = FillKey();
             const auto backupStatus = api.RegOpenKeyExW(
@@ -972,7 +972,7 @@ struct OpenKeyForms
         );
 
         // A virtual key has one handle per node, so it carries no per-open access rights.
-        if constexpr (!kVirtualKeys<Api>)
+        if constexpr (!VIRTUAL_KEYS<Api>)
         {
             HKEY hRead{};
             RECORD(
@@ -1596,7 +1596,7 @@ struct OperateOnDeletedKey
 
         DWORD cbData = 4;
         std::array<BYTE, 4> out;
-        out.fill(kFill);
+        out.fill(FILL);
         RECORD(
             "query",
             api.RegQueryValueExW(
@@ -1857,8 +1857,8 @@ struct DeleteTrees
                 ""
             )
         );
-        DWORD cSubKeys = kFillSize;
-        DWORD cValues = kFillSize;
+        DWORD cSubKeys = FILL_SIZE;
+        DWORD cValues = FILL_SIZE;
         RECORD(
             "info",
             api.RegQueryInfoKeyW(
@@ -1884,7 +1884,7 @@ struct DeleteTrees
             )
         );
 
-        if constexpr (!kVirtualKeys<Api>)
+        if constexpr (!VIRTUAL_KEYS<Api>)
         {
             RECORD(
                 "open read",
@@ -1933,8 +1933,8 @@ struct DeleteTrees
                 nullptr
             )
         );
-        cSubKeys = kFillSize;
-        cValues = kFillSize;
+        cSubKeys = FILL_SIZE;
+        cValues = FILL_SIZE;
         RECORD(
             "root info",
             api.RegQueryInfoKeyW(

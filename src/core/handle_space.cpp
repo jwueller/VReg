@@ -46,10 +46,10 @@ HandleSpace::HandleSpace(const std::wstring_view wsName) noexcept
     // of the magic value, so there is nothing else to publish.
     const auto previous = InterlockedCompareExchange(
         &pShared->magic,
-        kMagic,
+        MAGIC,
         0
     );
-    if (previous != 0 && previous != kMagic)
+    if (previous != 0 && previous != MAGIC)
         return;
 
     m_pShared = pShared;
@@ -91,22 +91,22 @@ HKEY HandleSpace::Allocate(void* const pTarget) noexcept
         // InterlockedIncrement returns the new value; the block reserved is the
         // one before it.
         const auto block = static_cast<std::uintptr_t>(InterlockedIncrement(&m_pShared->nextBlock)) - 1;
-        if (block >= kBlockCount || !AddBlock(block))
+        if (block >= BLOCK_COUNT || !AddBlock(block))
             return nullptr;
 
-        m_nextIndex = block * kBlockSize;
-        m_endIndex = m_nextIndex + kBlockSize;
+        m_nextIndex = block * BLOCK_SIZE;
+        m_endIndex = m_nextIndex + BLOCK_SIZE;
     }
 
     const auto index = m_nextIndex++;
-    auto* const pTargets = const_cast<Targets*>(FindBlock(index / kBlockSize));
-    (*pTargets)[index % kBlockSize].store(pTarget, std::memory_order_release);
+    auto* const pTargets = const_cast<Targets*>(FindBlock(index / BLOCK_SIZE));
+    (*pTargets)[index % BLOCK_SIZE].store(pTarget, std::memory_order_release);
     return VirtualHKeyFromIndex(index);
 }
 
 bool HandleSpace::Owns(const HKEY hKey) const noexcept
 {
-    return IsVirtualHKey(hKey) && FindBlock(IndexFromVirtualHKey(hKey) / kBlockSize) != nullptr;
+    return IsVirtualHKey(hKey) && FindBlock(IndexFromVirtualHKey(hKey) / BLOCK_SIZE) != nullptr;
 }
 
 void HandleSpace::Release(const HKEY hKey) noexcept
@@ -115,8 +115,8 @@ void HandleSpace::Release(const HKEY hKey) noexcept
         return;
 
     const auto index = IndexFromVirtualHKey(hKey);
-    if (auto* const pTargets = const_cast<Targets*>(FindBlock(index / kBlockSize)))
-        (*pTargets)[index % kBlockSize].store(
+    if (auto* const pTargets = const_cast<Targets*>(FindBlock(index / BLOCK_SIZE)))
+        (*pTargets)[index % BLOCK_SIZE].store(
             nullptr,
             std::memory_order_release
         );
@@ -128,25 +128,25 @@ void* HandleSpace::Find(const HKEY hKey) const noexcept
         return nullptr;
 
     const auto index = IndexFromVirtualHKey(hKey);
-    const auto* const pTargets = FindBlock(index / kBlockSize);
+    const auto* const pTargets = FindBlock(index / BLOCK_SIZE);
     if (!pTargets)
         return nullptr;
 
-    return (*pTargets)[index % kBlockSize].load(std::memory_order_acquire);
+    return (*pTargets)[index % BLOCK_SIZE].load(std::memory_order_acquire);
 }
 
 const HandleSpace::Targets* HandleSpace::FindBlock(const std::uintptr_t block) const noexcept
 {
-    const auto* const pDirectory = m_directories[block / kDirectorySize].load(std::memory_order_acquire);
+    const auto* const pDirectory = m_directories[block / DIRECTORY_SIZE].load(std::memory_order_acquire);
     if (!pDirectory)
         return nullptr;
 
-    return (*pDirectory)[block % kDirectorySize].load(std::memory_order_acquire);
+    return (*pDirectory)[block % DIRECTORY_SIZE].load(std::memory_order_acquire);
 }
 
 bool HandleSpace::AddBlock(const std::uintptr_t block) noexcept
 {
-    auto& directorySlot = m_directories[block / kDirectorySize];
+    auto& directorySlot = m_directories[block / DIRECTORY_SIZE];
     auto* pDirectory = directorySlot.load(std::memory_order_relaxed);
     if (!pDirectory)
     {
@@ -161,7 +161,7 @@ bool HandleSpace::AddBlock(const std::uintptr_t block) noexcept
     if (!pTargets)
         return false;
 
-    (*pDirectory)[block % kDirectorySize].store(
+    (*pDirectory)[block % DIRECTORY_SIZE].store(
         pTargets,
         std::memory_order_release
     );

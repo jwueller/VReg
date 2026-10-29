@@ -256,8 +256,8 @@ void EnumKeyMatrix(
             {
                 std::array<Char, 64> name;
                 std::array<Char, 64> cls;
-                std::memset(name.data(), kFill, sizeof(name));
-                std::memset(cls.data(), kFill, sizeof(cls));
+                std::memset(name.data(), FILL, sizeof(name));
+                std::memset(cls.data(), FILL, sizeof(cls));
                 DWORD cchNameInOut = cchName;
                 DWORD cchClassInOut = cchClass < 0 ? 0 : static_cast<DWORD>(cchClass);
                 FILETIME ft = FillTime();
@@ -284,8 +284,8 @@ void EnumKeyMatrix(
 
     std::array<Char, 64> name;
     std::array<Char, 64> cls;
-    std::memset(name.data(), kFill, sizeof(name));
-    std::memset(cls.data(), kFill, sizeof(cls));
+    std::memset(name.data(), FILL, sizeof(name));
+    std::memset(cls.data(), FILL, sizeof(cls));
     DWORD cchName = 64;
     DWORD cchClass = 64;
     const DWORD reserved = 1;
@@ -415,7 +415,7 @@ struct EnumerateKeysPreEx
             for (const DWORD cchName : {0u, 1u, 2u, 4u, 5u, 6u, 7u, 8u, 64u})
             {
                 std::array<wchar_t, 64> wname;
-                std::memset(wname.data(), kFill, sizeof(wname));
+                std::memset(wname.data(), FILL, sizeof(wname));
                 RECORD(
                     std::format("W index {} size {}", dwIndex, cchName),
                     api.RegEnumKeyW(
@@ -428,7 +428,7 @@ struct EnumerateKeysPreEx
                     {Bytes(wname)}
                 );
                 std::array<char, 64> name;
-                std::memset(name.data(), kFill, sizeof(name));
+                std::memset(name.data(), FILL, sizeof(name));
                 RECORD(
                     std::format("A index {} size {}", dwIndex, cchName),
                     api.RegEnumKeyA(
@@ -515,23 +515,23 @@ void EnumValueMatrix(
     const std::string& label
 )
 {
-    constexpr int kNoData = -2;
-    constexpr int kSizeOnly = -1;
+    constexpr int WITHOUT_DATA = -2;
+    constexpr int SIZE_ONLY = -1;
     for (const DWORD dwIndex : {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u, 10u, 11u, 12u})
     {
         for (const DWORD cchName : {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 64u})
         {
-            for (const int cbData : {kNoData, kSizeOnly, 0, 1, 2, 3, 5, 10, 64})
+            for (const int cbData : {WITHOUT_DATA, SIZE_ONLY, 0, 1, 2, 3, 5, 10, 64})
             {
                 std::array<Char, 64> name;
                 std::array<BYTE, 64> data;
-                std::memset(name.data(), kFill, sizeof(name));
-                data.fill(kFill);
+                std::memset(name.data(), FILL, sizeof(name));
+                data.fill(FILL);
                 DWORD cchNameInOut = cchName;
                 DWORD cbDataInOut = cbData < 0 ? 0 : static_cast<DWORD>(cbData);
-                DWORD dwType = kFillSize;
-                if (cbData == kSizeOnly)
-                    cbDataInOut = kFillSize;
+                DWORD dwType = FILL_SIZE;
+                if (cbData == SIZE_ONLY)
+                    cbDataInOut = FILL_SIZE;
                 const auto status = EnumValueEx(
                     api,
                     hKey,
@@ -540,13 +540,13 @@ void EnumValueMatrix(
                     &cchNameInOut,
                     nullptr,
                     &dwType,
-                    cbData == kNoData ? nullptr : (cbData == kSizeOnly ? nullptr : data.data()),
-                    cbData == kNoData ? nullptr : &cbDataInOut
+                    cbData == WITHOUT_DATA ? nullptr : (cbData == SIZE_ONLY ? nullptr : data.data()),
+                    cbData == WITHOUT_DATA ? nullptr : &cbDataInOut
                 );
                 RECORD(
                     label + std::format(" index {} name {} data {}", dwIndex, cchName, cbData),
                     status,
-                    {cchNameInOut, cbData == kNoData ? 0 : cbDataInOut, dwType},
+                    {cchNameInOut, cbData == WITHOUT_DATA ? 0 : cbDataInOut, dwType},
                     {Bytes(name), Bytes(data)}
                 );
             }
@@ -555,11 +555,11 @@ void EnumValueMatrix(
 
     std::array<Char, 64> name;
     std::array<BYTE, 64> data;
-    std::memset(name.data(), kFill, sizeof(name));
-    data.fill(kFill);
+    std::memset(name.data(), FILL, sizeof(name));
+    data.fill(FILL);
     DWORD cchName = 64;
     DWORD cbData = 64;
-    DWORD dwType = kFillSize;
+    DWORD dwType = FILL_SIZE;
     const DWORD reserved = 1;
     RECORD(
         label + " no types",
@@ -698,15 +698,15 @@ void QueryInfoMatrix(
     const std::string& label
 )
 {
-    constexpr int kOutputs = 8;
-    for (int skip = -1; skip < kOutputs; ++skip)
+    constexpr int OUTPUTS = 8;
+    for (int skip = -1; skip < OUTPUTS; ++skip)
     {
         for (const int cchClass : {-1, 0, 1, 3, 7, 8, 64})
         {
             std::array<Char, 64> cls;
-            std::memset(cls.data(), kFill, sizeof(cls));
-            std::array<DWORD, kOutputs> out;
-            out.fill(kFillSize);
+            std::memset(cls.data(), FILL, sizeof(cls));
+            std::array<DWORD, OUTPUTS> out;
+            out.fill(FILL_SIZE);
             FILETIME ft = FillTime();
             DWORD cchClassInOut = cchClass < 0 ? 0 : static_cast<DWORD>(cchClass);
 
@@ -727,7 +727,7 @@ void QueryInfoMatrix(
                 outPointer(4),
                 outPointer(5),
                 // Virtual keys carry no security descriptor and report size 0.
-                kVirtualKeys<Api> ? nullptr : outPointer(6),
+                VIRTUAL_KEYS<Api> ? nullptr : outPointer(6),
                 skip == 7 ? nullptr : &ft
             );
             RECORD(
@@ -740,9 +740,9 @@ void QueryInfoMatrix(
     }
 
     std::array<Char, 64> cls;
-    std::memset(cls.data(), kFill, sizeof(cls));
+    std::memset(cls.data(), FILL, sizeof(cls));
     DWORD cchClass = 64;
-    DWORD cSubKeys = kFillSize;
+    DWORD cSubKeys = FILL_SIZE;
     const DWORD reserved = 1;
     RECORD(
         label + " class without length",
@@ -764,7 +764,7 @@ void QueryInfoMatrix(
         {cSubKeys},
         {Bytes(cls)}
     );
-    cSubKeys = kFillSize;
+    cSubKeys = FILL_SIZE;
     RECORD(
         label + " class length without class",
         QueryInfo(
@@ -784,7 +784,7 @@ void QueryInfoMatrix(
         ),
         {cchClass, cSubKeys}
     );
-    cSubKeys = kFillSize;
+    cSubKeys = FILL_SIZE;
     RECORD(
         label + " reserved",
         QueryInfo(
@@ -822,7 +822,7 @@ void QueryInfoMatrix(
             nullptr
         )
     );
-    cSubKeys = kFillSize;
+    cSubKeys = FILL_SIZE;
     cchClass = 64;
     RECORD(
         label + " invalid handle",
@@ -880,7 +880,7 @@ struct QueryInfoKeyForms
         }
 
         // A virtual key has one handle per node, so it carries no per-open access rights.
-        if constexpr (!kVirtualKeys<Api>)
+        if constexpr (!VIRTUAL_KEYS<Api>)
         {
             HKEY hKey{};
             RECORD(

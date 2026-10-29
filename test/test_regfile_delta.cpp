@@ -9,8 +9,8 @@ using namespace VReg::Test;
 
 namespace
 {
-const std::wstring kHeader = L"Windows Registry Editor Version 5.00\r\n\r\n";
-constexpr const wchar_t* kMount = L"VRegDelta";
+const std::wstring HEADER = L"Windows Registry Editor Version 5.00\r\n\r\n";
+constexpr const wchar_t* MOUNT = L"VRegDelta";
 
 /// Two overlays over the same lower key of an app hive: one to change, one to apply the exported delta to.
 class DeltaFixture
@@ -39,14 +39,14 @@ public:
         REQUIRE(
             m_modifiedRegistry.Mount(
                 HKEY_CURRENT_USER,
-                kMount,
+                MOUNT,
                 m_modified
             ) == ERROR_SUCCESS
         );
         REQUIRE(
             m_freshRegistry.Mount(
                 HKEY_CURRENT_USER,
-                kMount,
+                MOUNT,
                 m_fresh
             ) == ERROR_SUCCESS
         );
@@ -228,7 +228,7 @@ public:
             ExportDelta(
                 m_modified,
                 HKEY_CURRENT_USER,
-                kMount,
+                MOUNT,
                 format,
                 file
             ) == ERROR_SUCCESS
@@ -252,7 +252,7 @@ public:
             ExportSnapshot(
                 m_modifiedRegistry,
                 HKEY_CURRENT_USER,
-                kMount,
+                MOUNT,
                 Format::Unicode,
                 expected
             ) == ERROR_SUCCESS
@@ -261,7 +261,7 @@ public:
             ExportSnapshot(
                 m_freshRegistry,
                 HKEY_CURRENT_USER,
-                kMount,
+                MOUNT,
                 Format::Unicode,
                 actual
             ) == ERROR_SUCCESS
@@ -274,7 +274,7 @@ public:
             ExportDelta(
                 m_fresh,
                 HKEY_CURRENT_USER,
-                kMount,
+                MOUNT,
                 format,
                 again
             ) == ERROR_SUCCESS
@@ -290,7 +290,7 @@ public:
 private:
     static std::wstring Full(const std::wstring& path)
     {
-        return path.empty() ? std::wstring(kMount) : std::wstring(kMount) + L'\\' + path;
+        return path.empty() ? std::wstring(MOUNT) : std::wstring(MOUNT) + L'\\' + path;
     }
 
     AppHive m_appHive;
@@ -304,7 +304,7 @@ private:
 
 std::vector<std::byte> Text(const std::wstring& body)
 {
-    return Utf16File(kHeader + body);
+    return Utf16File(HEADER + body);
 }
 } // namespace
 
@@ -313,7 +313,7 @@ TEST_CASE("An overlay with no changes has an empty delta")
     DeltaFixture f;
     f.LowerSet(L"A", L"v", REG_DWORD, DwordBytes(1));
     f.Open(L"A");
-    CHECK(f.Delta() == Utf16File(kHeader));
+    CHECK(f.Delta() == Utf16File(HEADER));
 }
 
 TEST_CASE("Delta names its keys after the mount point")

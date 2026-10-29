@@ -70,10 +70,10 @@ enum RefusedIndex : std::size_t
     VREG_REFUSED_HOOKS(VREG_INDEX)
 #undef VREG_INDEX
 
-    kRefusedCount
+    REFUSED_COUNT
 };
 
-std::array<void*, kRefusedCount> g_refusedTargets{};
+std::array<void*, REFUSED_COUNT> g_refusedTargets{};
 
 bool IsOwned(const HKEY hKey) noexcept
 {
@@ -117,15 +117,15 @@ struct Refused<LSTATUS(APIENTRY*)(Args...), Index>
 class Thunks
 {
 public:
-    static constexpr std::size_t kCodeSize = 16;
-    static constexpr std::size_t kPageSize = 4096;
-    static constexpr std::size_t kCapacity = kPageSize / kCodeSize;
+    static constexpr std::size_t CODE_SIZE = 16;
+    static constexpr std::size_t PAGE_SIZE = 4096;
+    static constexpr std::size_t CAPACITY = PAGE_SIZE / CODE_SIZE;
 
     [[nodiscard]] bool Allocate() noexcept
     {
         m_pbBase = static_cast<std::byte*>(VirtualAlloc(
             nullptr,
-            2 * kPageSize,
+            2 * PAGE_SIZE,
             MEM_RESERVE | MEM_COMMIT,
             PAGE_READWRITE
         ));
@@ -135,7 +135,7 @@ public:
     /// Writes thunk @p index, initially jumping to @p pTarget.
     void* Write(const std::size_t index, void* const pTarget) noexcept
     {
-        auto* const pbCode = m_pbBase + index * kCodeSize;
+        auto* const pbCode = m_pbBase + index * CODE_SIZE;
         auto* const ppSlot = Slot(index);
         *ppSlot = pTarget;
 
@@ -169,16 +169,16 @@ public:
     [[nodiscard]] bool Seal() noexcept
     {
         DWORD dwOld{};
-        if (!VirtualProtect(m_pbBase, kPageSize, PAGE_EXECUTE_READ, &dwOld))
+        if (!VirtualProtect(m_pbBase, PAGE_SIZE, PAGE_EXECUTE_READ, &dwOld))
             return false;
 
-        FlushInstructionCache(GetCurrentProcess(), m_pbBase, kPageSize);
+        FlushInstructionCache(GetCurrentProcess(), m_pbBase, PAGE_SIZE);
         return true;
     }
 
     [[nodiscard]] void** Slot(const std::size_t index) const noexcept
     {
-        return reinterpret_cast<void**>(m_pbBase + kPageSize) + index;
+        return reinterpret_cast<void**>(m_pbBase + PAGE_SIZE) + index;
     }
 
 private:
@@ -194,7 +194,7 @@ struct Hook
 };
 
 Thunks g_thunks;
-std::array<void**, Thunks::kCapacity> g_ppTargets{};
+std::array<void**, Thunks::CAPACITY> g_ppTargets{};
 std::atomic<std::size_t> g_cHooks;
 
 /// Neutralizes the hooks when the module that holds the hook bodies is
@@ -217,7 +217,7 @@ LONG Attach(Registry& registry, NativeRegistry& native) noexcept
     g_pRegistry.store(&registry, std::memory_order_release);
 
     auto& functions = native.GetFunctions();
-    std::array<Hook, Thunks::kCapacity> hooks{};
+    std::array<Hook, Thunks::CAPACITY> hooks{};
     std::size_t cHooks = 0;
 
 #define VREG_EMULATED(name, member)                                                                                    \
@@ -294,7 +294,7 @@ LONG Attach(Registry& registry, NativeRegistry& native) noexcept
     for (std::size_t i = 0; i < cHooks; ++i)
         g_ppTargets[i] = hooks[i].ppTarget;
 
-    std::array<void*, Thunks::kCapacity> thunks{};
+    std::array<void*, Thunks::CAPACITY> thunks{};
     for (std::size_t i = 0; i < cHooks; ++i)
         thunks[i] = g_thunks.Write(i, hooks[i].pBody);
 

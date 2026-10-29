@@ -12,8 +12,8 @@ namespace
 {
 // Windows `reg export` breaks after the first comma past this column and indents continuation lines by two
 // spaces. Wine regedit breaks at the column itself, which differs when a line ends exactly there.
-constexpr std::size_t kHexWrapColumn = 76;
-constexpr const wchar_t* kNewline = L"\r\n";
+constexpr std::size_t HEX_WRAP_COLUMN = 76;
+constexpr const wchar_t* NEWLINE = L"\r\n";
 
 bool HasLineBreak(const std::wstring& text)
 {
@@ -66,7 +66,7 @@ void AppendHex(std::wstring& out, const Record& record, std::size_t column)
         if (i + 1 == record.data.size())
             break;
         out.push_back(L',');
-        if (++column > kHexWrapColumn)
+        if (++column > HEX_WRAP_COLUMN)
         {
             out.append(L"\\\r\n  ");
             column = 2;
@@ -98,7 +98,7 @@ void AppendValue(std::wstring& out, const Record& record)
     }
     else
         AppendHex(out, record, out.size() - lineStart);
-    out.append(kNewline);
+    out.append(NEWLINE);
 }
 } // namespace
 
@@ -115,8 +115,8 @@ LSTATUS WriteRecords(
                 ? L"REGEDIT4"
                 : L"Windows Registry Editor Version 5.00";
 
-        out.append(kNewline);
-        out.append(kNewline);
+        out.append(NEWLINE);
+        out.append(NEWLINE);
 
         for (const auto& record : records)
         {
@@ -128,11 +128,11 @@ LSTATUS WriteRecords(
             case Record::Kind::Key:
             case Record::Kind::DeleteKey:
                 if (&record != records.data())
-                    out.append(kNewline);
+                    out.append(NEWLINE);
                 out.append(record.kind == Record::Kind::Key ? L"[" : L"[-");
                 out.append(record.key);
                 out.append(L"]");
-                out.append(kNewline);
+                out.append(NEWLINE);
                 break;
 
             case Record::Kind::Value:
@@ -143,7 +143,7 @@ LSTATUS WriteRecords(
         }
 
         if (!records.empty())
-            out.append(kNewline);
+            out.append(NEWLINE);
 
         return EncodeFile(out, format, file);
     }

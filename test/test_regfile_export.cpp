@@ -10,7 +10,7 @@ using namespace VReg::Test;
 
 namespace
 {
-const std::wstring kHeader = L"Windows Registry Editor Version 5.00\r\n\r\n";
+const std::wstring HEADER = L"Windows Registry Editor Version 5.00\r\n\r\n";
 
 std::vector<std::byte> Sequence(const int first, const int count)
 {
@@ -93,7 +93,7 @@ TEST_CASE("Export lays a snapshot out the way regedit does")
         );
     }
 
-    const std::wstring expected = kHeader +
+    const std::wstring expected = HEADER +
         L"[HKEY_CURRENT_USER\\Software\\VRegTest]\r\n"
         L"@=\"default\"\r\n"
         L"\"Dword\"=dword:0000002a\r\n"
@@ -126,7 +126,7 @@ TEST_CASE("Export wraps hex data the way regedit does")
     MustSet(registry, L"W", L"Edge76", REG_BINARY, Sequence(0, 23));
     MustSet(registry, L"W", L"Last", REG_BINARY, Sequence(0, 22));
 
-    const std::wstring expected = kHeader +
+    const std::wstring expected = HEADER +
         L"[HKEY_CURRENT_USER\\W]\r\n"
         L"@=hex:00,01,02,03,04,05,06,07,08,09,0a,0b,0c,0d,0e,0f,10,11,12,13,14,15,16,17,\\\r\n"
         L"  18,19,1a,1b,1c,1d\r\n"
@@ -178,7 +178,7 @@ TEST_CASE("Export writes typed values as hex(n) and friendly forms only when exa
     MustSet(registry, L"T", L"c none", REG_NONE, {});
     MustSet(registry, L"T", L"d type", 0x12345, {std::byte{7}});
 
-    const std::wstring expected = kHeader +
+    const std::wstring expected = HEADER +
         L"[HKEY_CURRENT_USER\\T]\r\n"
         L"\"1 sz\"=\"text\"\r\n"
         L"\"2 empty sz\"=\"\"\r\n"
@@ -263,7 +263,7 @@ TEST_CASE("Export escapes names the way strings are escaped")
     MustSet(registry, L"N\\a]b", L"q\"uo\\te", REG_DWORD, DwordBytes(1));
     MustSet(registry, L"N\\a]b", L"@", REG_DWORD, DwordBytes(2));
 
-    const std::wstring expected = kHeader +
+    const std::wstring expected = HEADER +
         L"[HKEY_CURRENT_USER\\N]\r\n"
         L"\r\n"
         L"[HKEY_CURRENT_USER\\N\\a]b]\r\n"
@@ -312,7 +312,7 @@ TEST_CASE("Non-ASCII text exports in Unicode and UTF-8")
     CHECK(
         Export(registry, L"U", Format::Unicode) ==
         Utf16File(
-            kHeader + L"[HKEY_CURRENT_USER\\U]\r\n\r\n[HKEY_CURRENT_USER\\U\\中]\r\n\"café\"=\"é\"\r\n\r\n"
+            HEADER + L"[HKEY_CURRENT_USER\\U]\r\n\r\n[HKEY_CURRENT_USER\\U\\中]\r\n\"café\"=\"é\"\r\n\r\n"
         )
     );
 }
@@ -426,7 +426,7 @@ TEST_CASE("The root itself can be exported")
     MustSet(registry, L"", L"v", REG_DWORD, DwordBytes(1));
     CHECK(
         Export(registry, L"", Format::Unicode) ==
-        Utf16File(kHeader + L"[HKEY_CURRENT_USER]\r\n\"v\"=dword:00000001\r\n\r\n")
+        Utf16File(HEADER + L"[HKEY_CURRENT_USER]\r\n\"v\"=dword:00000001\r\n\r\n")
     );
 }
 

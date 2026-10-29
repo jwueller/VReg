@@ -52,10 +52,10 @@ TEST_CASE("Virtual handles count down from the base in odd steps")
 {
     CHECK(ValueOf(VirtualHKeyFromIndex(0)) == 0x7FFFFFFF);
     CHECK(ValueOf(VirtualHKeyFromIndex(1)) == 0x7FFFFFFD);
-    CHECK(ValueOf(VirtualHKeyFromIndex(kVirtualHKeyCount - 1)) == 1);
-    CHECK(VirtualHKeyFromIndex(kVirtualHKeyCount) == nullptr);
+    CHECK(ValueOf(VirtualHKeyFromIndex(VREG_VIRTUAL_HKEY_COUNT - 1)) == 1);
+    CHECK(VirtualHKeyFromIndex(VREG_VIRTUAL_HKEY_COUNT) == nullptr);
 
-    for (const std::uintptr_t index : {std::uintptr_t{0}, std::uintptr_t{12345}, kVirtualHKeyCount - 1})
+    for (const std::uintptr_t index : {std::uintptr_t{0}, std::uintptr_t{12345}, VREG_VIRTUAL_HKEY_COUNT - 1})
     {
         const auto hKey = VirtualHKeyFromIndex(index);
         CHECK(IsVirtualHKey(hKey));
@@ -86,7 +86,7 @@ TEST_CASE("Copies sharing a section hand out disjoint handles and own only their
 
     std::set<HKEY> seen;
     // Past one block, so each copy reserves a second one.
-    for (std::uintptr_t i = 0; i < HandleSpace::kBlockSize + 10; ++i)
+    for (std::uintptr_t i = 0; i < HandleSpace::BLOCK_SIZE + 10; ++i)
     {
         const auto hFirst = first.Allocate(&first);
         const auto hSecond = second.Allocate(&second);
@@ -124,12 +124,12 @@ TEST_CASE("Allocation fails once the namespace is exhausted")
 {
     const auto wsName = UniqueSectionName(L"exhausted");
     auto* const pShared = MapRaw(wsName);
-    pShared->magic = HandleSpace::kMagic;
-    pShared->nextBlock = static_cast<LONG>(HandleSpace::kBlockCount - 1);
+    pShared->magic = HandleSpace::MAGIC;
+    pShared->nextBlock = static_cast<LONG>(HandleSpace::BLOCK_COUNT - 1);
 
     HandleSpace space(wsName);
     REQUIRE(space.IsUsable());
-    for (std::uintptr_t i = 0; i < HandleSpace::kBlockSize; ++i)
+    for (std::uintptr_t i = 0; i < HandleSpace::BLOCK_SIZE; ++i)
         REQUIRE(IsVirtualHKey(space.Allocate(&space)));
 
     CHECK(space.Allocate(&space) == nullptr);

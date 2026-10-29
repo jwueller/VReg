@@ -9,7 +9,7 @@ using namespace VReg::Test;
 
 namespace
 {
-const std::wstring kHeader = L"Windows Registry Editor Version 5.00\r\n";
+const std::wstring HEADER = L"Windows Registry Editor Version 5.00\r\n";
 
 bool KeyExists(Registry& registry, const wchar_t* const pszPath)
 {
@@ -35,7 +35,7 @@ TEST_CASE("Apply creates keys and sets every value form")
     AppHiveRegistry registry(hive.Root());
 
     const auto script = MustParse(
-        kHeader +
+        HEADER +
         L"[HKEY_CURRENT_USER\\Software\\T\\Deep]\r\n"
         L"@=\"default\"\r\n"
         L"\"str\"=\"a\\\\b\"\r\n"
@@ -77,7 +77,7 @@ TEST_CASE("Apply overwrites values and keeps unrelated ones")
 
     REQUIRE(
         Apply(
-            MustParse(kHeader + L"[HKCU\\T]\r\n\"change\"=\"now text\"\r\n"),
+            MustParse(HEADER + L"[HKCU\\T]\r\n\"change\"=\"now text\"\r\n"),
             registry,
             nullptr
         ) == ERROR_SUCCESS
@@ -100,7 +100,7 @@ TEST_CASE("Apply deletes values and keys")
     {
         REQUIRE(
             Apply(
-                MustParse(kHeader + L"[HKCU\\T]\r\n\"a\"=-\r\n@=-\r\n"),
+                MustParse(HEADER + L"[HKCU\\T]\r\n\"a\"=-\r\n@=-\r\n"),
                 registry,
                 nullptr
             ) == ERROR_SUCCESS
@@ -145,7 +145,7 @@ TEST_CASE("Apply deletes values and keys")
     {
         REQUIRE(
             Apply(
-                MustParse(kHeader + L"[-HKCU\\Gone]\r\n"),
+                MustParse(HEADER + L"[-HKCU\\Gone]\r\n"),
                 registry,
                 nullptr
             ) == ERROR_SUCCESS
@@ -157,7 +157,7 @@ TEST_CASE("Apply deletes values and keys")
     {
         REQUIRE(
             Apply(
-                MustParse(kHeader + L"[-HKCU\\Missing\\Deep]\r\n[-HKCU\\Gone\\Deep\\Deeper\\Nope]\r\n"),
+                MustParse(HEADER + L"[-HKCU\\Missing\\Deep]\r\n[-HKCU\\Gone\\Deep\\Deeper\\Nope]\r\n"),
                 registry,
                 nullptr
             ) == ERROR_SUCCESS
@@ -190,7 +190,7 @@ TEST_CASE("Delete then create replaces a key")
 
     REQUIRE(
         Apply(
-            MustParse(kHeader + L"[-HKCU\\T]\r\n[HKCU\\T]\r\n\"z\"=dword:2\r\n"),
+            MustParse(HEADER + L"[-HKCU\\T]\r\n[HKCU\\T]\r\n\"z\"=dword:2\r\n"),
             registry,
             nullptr
         ) == ERROR_SUCCESS
@@ -218,7 +218,7 @@ TEST_CASE("Apply stops at the first failing operation")
     AppHive hive;
     AppHiveRegistry registry(hive.Root());
 
-    Script script = MustParse(kHeader + L"[HKCU\\First]\r\n\"a\"=dword:1\r\n");
+    Script script = MustParse(HEADER + L"[HKCU\\First]\r\n\"a\"=dword:1\r\n");
     Operation orphan;
     orphan.kind = OperationKind::SetValue;
     orphan.hRoot = HKEY_CURRENT_USER;
@@ -227,7 +227,7 @@ TEST_CASE("Apply stops at the first failing operation")
     orphan.dwType = REG_DWORD;
     orphan.data = DwordBytes(1);
     script.operations.push_back(orphan);
-    script.operations.push_back(MustParse(kHeader + L"[HKCU\\Never]\r\n").operations[0]);
+    script.operations.push_back(MustParse(HEADER + L"[HKCU\\Never]\r\n").operations[0]);
 
     std::size_t failed = 99;
     CHECK(Apply(script, registry, &failed) == ERROR_FILE_NOT_FOUND);
@@ -243,7 +243,7 @@ TEST_CASE("Apply refuses operations that would cut a path short or delete a root
 {
     AppHive hive;
     AppHiveRegistry registry(hive.Root());
-    const Script setup = MustParse(kHeader + L"[HKCU\\Keep]\r\n");
+    const Script setup = MustParse(HEADER + L"[HKCU\\Keep]\r\n");
     REQUIRE(Apply(setup, registry, nullptr) == ERROR_SUCCESS);
 
     Operation deleteRoot;

@@ -6,7 +6,7 @@ TEST_CASE("The linked library reports the version its headers declare")
 {
     const auto version = VReg::GetVersion();
 
-    CHECK(version.major == VReg::kVersionMajor);
-    CHECK(version.minor == VReg::kVersionMinor);
-    CHECK(version.patch == VReg::kVersionPatch);
+    CHECK(version.major == VReg::VREG_VERSION_MAJOR);
+    CHECK(version.minor == VReg::VREG_VERSION_MINOR);
+    CHECK(version.patch == VReg::VREG_VERSION_PATCH);
 }

@@ -12,13 +12,13 @@ using namespace VReg::Test;
 
 namespace
 {
-const std::wstring kHeader = L"Windows Registry Editor Version 5.00\r\n";
-const std::wstring kKey = L"[HKEY_CURRENT_USER\\T]\r\n";
+const std::wstring HEADER = L"Windows Registry Editor Version 5.00\r\n";
+const std::wstring KEY = L"[HKEY_CURRENT_USER\\T]\r\n";
 
 /// Parses @p body under the v5 header and a key at line 2, so body line 1 is file line 3.
 Script ParseBody(const std::wstring& body)
 {
-    return MustParse(kHeader + kKey + body);
+    return MustParse(HEADER + KEY + body);
 }
 
 Operation OnlyValue(const Script& script)
@@ -175,7 +175,7 @@ TEST_CASE("Keys")
     SECTION("create and delete, with the line they start on")
     {
         const auto script = MustParse(
-            kHeader + L"\r\n[HKEY_CURRENT_USER\\Software\\Mixed Case]\r\n\r\n[-HKEY_LOCAL_MACHINE\\Gone\\Deep]\r\n"
+            HEADER + L"\r\n[HKEY_CURRENT_USER\\Software\\Mixed Case]\r\n\r\n[-HKEY_LOCAL_MACHINE\\Gone\\Deep]\r\n"
         );
         REQUIRE(script.operations.size() == 2);
         CHECK(script.operations[0].kind == OperationKind::CreateKey);
@@ -201,19 +201,19 @@ TEST_CASE("Keys")
             std::pair<const wchar_t*, HKEY>{L"HKEY_CURRENT_CONFIG", HKEY_CURRENT_CONFIG},
             std::pair<const wchar_t*, HKEY>{L"HKCC", HKEY_CURRENT_CONFIG}
         );
-        const auto script = MustParse(kHeader + L"[" + root.first + L"\\A]\r\n");
+        const auto script = MustParse(HEADER + L"[" + root.first + L"\\A]\r\n");
         REQUIRE(script.operations.size() == 1);
         CHECK(script.operations[0].hRoot == root.second);
         CHECK(script.operations[0].path == L"A");
     }
     SECTION("a root alone has an empty path")
     {
-        const auto script = MustParse(kHeader + L"[HKLM]\r\n");
+        const auto script = MustParse(HEADER + L"[HKLM]\r\n");
         CHECK(script.operations[0].path.empty());
     }
     SECTION("a ] inside the name stays in it")
     {
-        const auto script = MustParse(kHeader + L"[HKLM\\a]b]  \r\n");
+        const auto script = MustParse(HEADER + L"[HKLM\\a]b]  \r\n");
         CHECK(script.operations[0].path == L"a]b");
     }
 }
@@ -302,7 +302,7 @@ TEST_CASE("Deleting values")
 
 TEST_CASE("Value operations carry their key")
 {
-    const auto script = MustParse(kHeader + L"[HKCU\\A]\r\n\"x\"=dword:1\r\n[HKLM\\B]\r\n\"y\"=-\r\n");
+    const auto script = MustParse(HEADER + L"[HKCU\\A]\r\n\"x\"=dword:1\r\n[HKLM\\B]\r\n\"y\"=-\r\n");
     REQUIRE(script.operations.size() == 4);
     CHECK(script.operations[1].hRoot == HKEY_CURRENT_USER);
     CHECK(script.operations[1].path == L"A");
@@ -322,20 +322,20 @@ TEST_CASE("Continuations, comments and blank lines")
     {
         Script script;
         ParseError error;
-        const auto file = Utf16File(kHeader + kKey + L"\"a\"=hex:01,\\");
+        const auto file = Utf16File(HEADER + KEY + L"\"a\"=hex:01,\\");
         CHECK(Parse(file, script, &error) == ERROR_INVALID_DATA);
     }
     SECTION("comments and blank lines are skipped anywhere between lines")
     {
         const auto script = MustParse(
-            kHeader + L"; first\r\n\r\n  ; indented\r\n[HKCU\\A]\r\n\r\n; between\r\n\"a\"=dword:1\r\n\r\n"
+            HEADER + L"; first\r\n\r\n  ; indented\r\n[HKCU\\A]\r\n\r\n; between\r\n\"a\"=dword:1\r\n\r\n"
         );
         CHECK(script.operations.size() == 2);
         CHECK(script.operations[1].line == 8);
     }
     SECTION("the last line needs no line ending")
     {
-        const auto script = MustParse(kHeader + L"[HKCU\\A]\r\n\"a\"=dword:1");
+        const auto script = MustParse(HEADER + L"[HKCU\\A]\r\n\"a\"=dword:1");
         CHECK(script.operations.size() == 2);
     }
 }
@@ -350,39 +350,39 @@ TEST_CASE("Malformed input names its line and column")
         std::size_t column;
     };
     const Case cases[] = {
-        {"unterminated key", kHeader + L"[HKEY_CURRENT_USER\\x\r\n", 2, 21},
-        {"text after a key", kHeader + L"[HKEY_CURRENT_USER]junk\r\n", 2, 20},
-        {"unknown root", kHeader + L"[BOGUS\\x]\r\n", 2, 2},
-        {"unknown root when deleting", kHeader + L"[-BOGUS\\x]\r\n", 2, 3},
-        {"deleting a root", kHeader + L"[-HKEY_CURRENT_USER]\r\n", 2, 3},
-        {"a NUL in a key path", kHeader + L"[-HKEY_CURRENT_USER\\" + std::wstring(1, L'\0') + L"x]\r\n", 2, 21},
-        {"a NUL in a value name", kHeader + kKey + L"\"a" + std::wstring(1, L'\0') + L"b\"=dword:1\r\n", 3, 3},
-        {"an empty key", kHeader + L"[]\r\n", 2, 2},
-        {"a value before any key", kHeader + L"\"a\"=\"b\"\r\n", 2, 1},
-        {"a value after a deleted key", kHeader + L"[-HKCU\\x]\r\n\"a\"=dword:1\r\n", 3, 1},
-        {"text that is no line", kHeader + kKey + L"bogus\r\n", 3, 1},
-        {"a missing equals sign", kHeader + kKey + L"\"a\" \"b\"\r\n", 3, 5},
-        {"an unterminated string", kHeader + kKey + L"\"a\"=\"unterminated\r\n", 3, 18},
-        {"an unterminated name", kHeader + kKey + L"\"abc\r\n", 3, 5},
-        {"an invalid escape", kHeader + kKey + L"\"a\"=\"bad\\q\"\r\n", 3, 9},
-        {"text after a string", kHeader + kKey + L"\"a\"=\"b\" junk\r\n", 3, 9},
-        {"text after a delete", kHeader + kKey + L"\"a\"=-x\r\n", 3, 6},
-        {"an unknown value form", kHeader + kKey + L"\"a\"=bogus\r\n", 3, 5},
-        {"a missing value", kHeader + kKey + L"\"a\"=\r\n", 3, 5},
-        {"dword without digits", kHeader + kKey + L"\"a\"=dword:\r\n", 3, 11},
-        {"dword with nine digits", kHeader + kKey + L"\"a\"=dword:123456789\r\n", 3, 19},
-        {"dword with trailing text", kHeader + kKey + L"\"a\"=dword:12zz\r\n", 3, 13},
-        {"hex with a bad byte", kHeader + kKey + L"\"a\"=hex:01,zz\r\n", 3, 12},
-        {"hex with a trailing comma", kHeader + kKey + L"\"a\"=hex:01,\r\n", 3, 12},
-        {"hex with a leading comma", kHeader + kKey + L"\"a\"=hex:,01\r\n", 3, 9},
-        {"hex with three digits", kHeader + kKey + L"\"a\"=hex:010\r\n", 3, 11},
-        {"hex without a comma", kHeader + kKey + L"\"a\"=hex:01 02\r\n", 3, 12},
-        {"hex(n) without digits", kHeader + kKey + L"\"a\"=hex(zz):\r\n", 3, 9},
-        {"hex(n) without a closing parenthesis", kHeader + kKey + L"\"a\"=hex(1:\r\n", 3, 10},
-        {"hex(n) with a huge type", kHeader + kKey + L"\"a\"=hex(123456789):\r\n", 3, 17},
-        {"hex without a colon", kHeader + kKey + L"\"a\"=hex\r\n", 3, 8},
-        {"an error on a continuation line", kHeader + kKey + L"\"a\"=hex:01,\\\r\n  zz\r\n", 4, 3},
-        {"an error after comments and blanks", kHeader + kKey + L"; c\r\n\r\n\"a\"=hex:zz\r\n", 5, 9},
+        {"unterminated key", HEADER + L"[HKEY_CURRENT_USER\\x\r\n", 2, 21},
+        {"text after a key", HEADER + L"[HKEY_CURRENT_USER]junk\r\n", 2, 20},
+        {"unknown root", HEADER + L"[BOGUS\\x]\r\n", 2, 2},
+        {"unknown root when deleting", HEADER + L"[-BOGUS\\x]\r\n", 2, 3},
+        {"deleting a root", HEADER + L"[-HKEY_CURRENT_USER]\r\n", 2, 3},
+        {"a NUL in a key path", HEADER + L"[-HKEY_CURRENT_USER\\" + std::wstring(1, L'\0') + L"x]\r\n", 2, 21},
+        {"a NUL in a value name", HEADER + KEY + L"\"a" + std::wstring(1, L'\0') + L"b\"=dword:1\r\n", 3, 3},
+        {"an empty key", HEADER + L"[]\r\n", 2, 2},
+        {"a value before any key", HEADER + L"\"a\"=\"b\"\r\n", 2, 1},
+        {"a value after a deleted key", HEADER + L"[-HKCU\\x]\r\n\"a\"=dword:1\r\n", 3, 1},
+        {"text that is no line", HEADER + KEY + L"bogus\r\n", 3, 1},
+        {"a missing equals sign", HEADER + KEY + L"\"a\" \"b\"\r\n", 3, 5},
+        {"an unterminated string", HEADER + KEY + L"\"a\"=\"unterminated\r\n", 3, 18},
+        {"an unterminated name", HEADER + KEY + L"\"abc\r\n", 3, 5},
+        {"an invalid escape", HEADER + KEY + L"\"a\"=\"bad\\q\"\r\n", 3, 9},
+        {"text after a string", HEADER + KEY + L"\"a\"=\"b\" junk\r\n", 3, 9},
+        {"text after a delete", HEADER + KEY + L"\"a\"=-x\r\n", 3, 6},
+        {"an unknown value form", HEADER + KEY + L"\"a\"=bogus\r\n", 3, 5},
+        {"a missing value", HEADER + KEY + L"\"a\"=\r\n", 3, 5},
+        {"dword without digits", HEADER + KEY + L"\"a\"=dword:\r\n", 3, 11},
+        {"dword with nine digits", HEADER + KEY + L"\"a\"=dword:123456789\r\n", 3, 19},
+        {"dword with trailing text", HEADER + KEY + L"\"a\"=dword:12zz\r\n", 3, 13},
+        {"hex with a bad byte", HEADER + KEY + L"\"a\"=hex:01,zz\r\n", 3, 12},
+        {"hex with a trailing comma", HEADER + KEY + L"\"a\"=hex:01,\r\n", 3, 12},
+        {"hex with a leading comma", HEADER + KEY + L"\"a\"=hex:,01\r\n", 3, 9},
+        {"hex with three digits", HEADER + KEY + L"\"a\"=hex:010\r\n", 3, 11},
+        {"hex without a comma", HEADER + KEY + L"\"a\"=hex:01 02\r\n", 3, 12},
+        {"hex(n) without digits", HEADER + KEY + L"\"a\"=hex(zz):\r\n", 3, 9},
+        {"hex(n) without a closing parenthesis", HEADER + KEY + L"\"a\"=hex(1:\r\n", 3, 10},
+        {"hex(n) with a huge type", HEADER + KEY + L"\"a\"=hex(123456789):\r\n", 3, 17},
+        {"hex without a colon", HEADER + KEY + L"\"a\"=hex\r\n", 3, 8},
+        {"an error on a continuation line", HEADER + KEY + L"\"a\"=hex:01,\\\r\n  zz\r\n", 4, 3},
+        {"an error after comments and blanks", HEADER + KEY + L"; c\r\n\r\n\"a\"=hex:zz\r\n", 5, 9},
     };
 
     for (const auto& c : cases)
@@ -406,7 +406,7 @@ TEST_CASE("ParseFile reads a file and reports a missing one")
     std::filesystem::create_directories(directory);
     const auto path = directory / L"a.reg";
     {
-        const auto file = Utf16File(kHeader + kKey + L"\"a\"=dword:1\r\n");
+        const auto file = Utf16File(HEADER + KEY + L"\"a\"=dword:1\r\n");
         std::FILE* pFile = nullptr;
         REQUIRE(_wfopen_s(&pFile, path.c_str(), L"wb") == 0);
         std::fwrite(file.data(), 1, file.size(), pFile);

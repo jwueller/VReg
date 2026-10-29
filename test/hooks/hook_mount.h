@@ -16,9 +16,9 @@
 namespace VReg::Test
 {
 /// The name of the value that tells the hive of one module from another's.
-inline constexpr wchar_t kModuleValue[] = L"Module";
+inline constexpr wchar_t MODULE_VALUE[] = L"Module";
 
-/// Mounts a hive whose @ref kModuleValue is @p pszModule at
+/// Mounts a hive whose @ref MODULE_VALUE is @p pszModule at
 /// `HKEY_CURRENT_USER\pszPath` in a registry over the real one, and installs
 /// the hooks over it; through an `InterceptRegistry` in front of it when
 /// @p ppIntercept asks for one. The objects are leaked: the hooks outlive the
@@ -37,7 +37,7 @@ inline LONG InstallMount(
     const auto bytes = std::as_bytes(std::span(pszModule, module.size() + 1));
     const auto stored = pHive->SetValue(
         pHive->Root(),
-        kModuleValue,
+        MODULE_VALUE,
         REG_SZ,
         bytes
     );

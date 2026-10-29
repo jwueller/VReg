@@ -17,8 +17,8 @@ using namespace VReg::Test;
 
 namespace
 {
-constexpr DWORD kName = REG_NOTIFY_CHANGE_NAME;
-constexpr DWORD kLastSet = REG_NOTIFY_CHANGE_LAST_SET;
+constexpr DWORD NAME = REG_NOTIFY_CHANGE_NAME;
+constexpr DWORD LAST_SET = REG_NOTIFY_CHANGE_LAST_SET;
 
 class Event
 {
@@ -168,7 +168,7 @@ TEST_CASE("A value write signals a last-set watch once")
     const HKEY hRoot = mount.Root();
 
     Event event;
-    REQUIRE(Watch(registry, hRoot, FALSE, kLastSet, event) == ERROR_SUCCESS);
+    REQUIRE(Watch(registry, hRoot, FALSE, LAST_SET, event) == ERROR_SUCCESS);
     CHECK_FALSE(event.IsSet());
 
     CHECK(SetDword(registry, hRoot, L"v", 1) == ERROR_SUCCESS);
@@ -178,7 +178,7 @@ TEST_CASE("A value write signals a last-set watch once")
     CHECK(SetDword(registry, hRoot, L"v", 2) == ERROR_SUCCESS);
     CHECK_FALSE(event.IsSet());
 
-    REQUIRE(Watch(registry, hRoot, FALSE, kLastSet, event) == ERROR_SUCCESS);
+    REQUIRE(Watch(registry, hRoot, FALSE, LAST_SET, event) == ERROR_SUCCESS);
     CHECK(
         registry.RegDeleteValueW(
             hRoot,
@@ -198,9 +198,9 @@ TEST_CASE("A watch fires only for the changes its filter selects")
     Event onLastSet;
     Event onAttributes;
     Event onSecurity;
-    REQUIRE(Watch(registry, hRoot, FALSE, kName, onName) == ERROR_SUCCESS);
+    REQUIRE(Watch(registry, hRoot, FALSE, NAME, onName) == ERROR_SUCCESS);
     REQUIRE(
-        Watch(registry, hRoot, FALSE, kLastSet, onLastSet) == ERROR_SUCCESS
+        Watch(registry, hRoot, FALSE, LAST_SET, onLastSet) == ERROR_SUCCESS
     );
     REQUIRE(
         Watch(
@@ -245,7 +245,7 @@ TEST_CASE("Opening an existing key or reading signals nothing")
 
     Event event;
     REQUIRE(
-        Watch(registry, hRoot, TRUE, kName | kLastSet, event) == ERROR_SUCCESS
+        Watch(registry, hRoot, TRUE, NAME | LAST_SET, event) == ERROR_SUCCESS
     );
 
     registry.RegCloseKey(
@@ -286,15 +286,15 @@ TEST_CASE("Only a subtree watch sees changes below the key")
 
     Event shallow;
     Event subtree;
-    REQUIRE(Watch(registry, hRoot, FALSE, kLastSet, shallow) == ERROR_SUCCESS);
-    REQUIRE(Watch(registry, hRoot, TRUE, kLastSet, subtree) == ERROR_SUCCESS);
+    REQUIRE(Watch(registry, hRoot, FALSE, LAST_SET, shallow) == ERROR_SUCCESS);
+    REQUIRE(Watch(registry, hRoot, TRUE, LAST_SET, subtree) == ERROR_SUCCESS);
 
     CHECK(SetDword(registry, hDeep, L"v", 1) == ERROR_SUCCESS);
     CHECK(subtree.IsSet());
     CHECK_FALSE(shallow.IsSet());
 
     subtree.Reset();
-    REQUIRE(Watch(registry, hRoot, TRUE, kName, subtree) == ERROR_SUCCESS);
+    REQUIRE(Watch(registry, hRoot, TRUE, NAME, subtree) == ERROR_SUCCESS);
     registry.RegCloseKey(
         Create(registry, hDeep, L"D")
     );
@@ -310,7 +310,7 @@ TEST_CASE("A watch on a subkey does not see its parent change")
 
     Event event;
     REQUIRE(
-        Watch(registry, hSub, TRUE, kName | kLastSet, event) == ERROR_SUCCESS
+        Watch(registry, hSub, TRUE, NAME | LAST_SET, event) == ERROR_SUCCESS
     );
     CHECK(SetDword(registry, hRoot, L"v", 1) == ERROR_SUCCESS);
     registry.RegCloseKey(
@@ -338,7 +338,7 @@ TEST_CASE("The caller may close its event after registering")
             DUPLICATE_SAME_ACCESS
         )
     );
-    REQUIRE(Watch(registry, hRoot, FALSE, kLastSet, event) == ERROR_SUCCESS);
+    REQUIRE(Watch(registry, hRoot, FALSE, LAST_SET, event) == ERROR_SUCCESS);
     CloseHandle(event.Detach());
 
     CHECK(SetDword(registry, hRoot, L"v", 1) == ERROR_SUCCESS);
@@ -355,8 +355,8 @@ TEST_CASE("Deleting a watched key signals it, and name watches on its parent")
 
     Event onSub;
     Event onParent;
-    REQUIRE(Watch(registry, hSub, FALSE, kLastSet, onSub) == ERROR_SUCCESS);
-    REQUIRE(Watch(registry, hRoot, FALSE, kName, onParent) == ERROR_SUCCESS);
+    REQUIRE(Watch(registry, hSub, FALSE, LAST_SET, onSub) == ERROR_SUCCESS);
+    REQUIRE(Watch(registry, hRoot, FALSE, NAME, onParent) == ERROR_SUCCESS);
 
     CHECK(
         registry.RegDeleteKeyExW(
@@ -370,7 +370,7 @@ TEST_CASE("Deleting a watched key signals it, and name watches on its parent")
     CHECK(onParent.IsSet());
 
     Event late;
-    CHECK(Watch(registry, hSub, FALSE, kLastSet, late) == ERROR_KEY_DELETED);
+    CHECK(Watch(registry, hSub, FALSE, LAST_SET, late) == ERROR_KEY_DELETED);
 }
 
 TEST_CASE("A frozen hive accepts a watch and never signals")
@@ -385,7 +385,7 @@ TEST_CASE("A frozen hive accepts a watch and never signals")
 
     Event event;
     CHECK(
-        Watch(registry, hRoot, TRUE, kName | kLastSet, event) == ERROR_SUCCESS
+        Watch(registry, hRoot, TRUE, NAME | LAST_SET, event) == ERROR_SUCCESS
     );
     CHECK(SetDword(registry, hRoot, L"v", 1) == ERROR_ACCESS_DENIED);
     CHECK(
@@ -407,7 +407,7 @@ TEST_CASE("Freezing a hive drops its pending watches without signaling")
 
     Event event;
     REQUIRE(
-        Watch(registry, hRoot, TRUE, kName | kLastSet, event) == ERROR_SUCCESS
+        Watch(registry, hRoot, TRUE, NAME | LAST_SET, event) == ERROR_SUCCESS
     );
     mount.Memory().Freeze();
     CHECK_FALSE(event.IsSet());
@@ -433,7 +433,7 @@ TEST_CASE("Notification arguments are validated as before")
         registry.RegNotifyChangeKeyValue(
             hRoot,
             FALSE,
-            kName,
+            NAME,
             nullptr,
             TRUE
         ) == ERROR_INVALID_PARAMETER
@@ -453,7 +453,7 @@ TEST_CASE("A synchronous call waits for a change")
             status = registry.RegNotifyChangeKeyValue(
                 hRoot,
                 FALSE,
-                kLastSet,
+                LAST_SET,
                 nullptr,
                 FALSE
             );
@@ -503,7 +503,7 @@ TEST_CASE("Through an overlay, writes signal and lower changes do not")
 
     Event event;
     REQUIRE(
-        Watch(registry, hRoot, TRUE, kName | kLastSet, event) == ERROR_SUCCESS
+        Watch(registry, hRoot, TRUE, NAME | LAST_SET, event) == ERROR_SUCCESS
     );
 
     REQUIRE(SetDword(mount.Native(), hLowerSub, L"lower", 1) == ERROR_SUCCESS);
@@ -516,14 +516,14 @@ TEST_CASE("Through an overlay, writes signal and lower changes do not")
     CHECK(event.IsSet());
 
     event.Reset();
-    REQUIRE(Watch(registry, hRoot, TRUE, kName, event) == ERROR_SUCCESS);
+    REQUIRE(Watch(registry, hRoot, TRUE, NAME, event) == ERROR_SUCCESS);
     registry.RegCloseKey(
         Create(registry, hRoot, L"New")
     );
     CHECK(event.IsSet());
 
     event.Reset();
-    REQUIRE(Watch(registry, hRoot, TRUE, kLastSet, event) == ERROR_SUCCESS);
+    REQUIRE(Watch(registry, hRoot, TRUE, LAST_SET, event) == ERROR_SUCCESS);
     CHECK(
         registry.RegDeleteValueW(
             hSub,
@@ -560,7 +560,7 @@ TEST_CASE("Opening a lower key through an overlay signals nothing")
 
     Event event;
     REQUIRE(
-        Watch(registry, hRoot, TRUE, kName | kLastSet, event) == ERROR_SUCCESS
+        Watch(registry, hRoot, TRUE, NAME | LAST_SET, event) == ERROR_SUCCESS
     );
     HKEY hSub{};
     CHECK(
@@ -623,7 +623,7 @@ TEST_CASE("Emptying a key in an overlay signals its watchers")
         ) == ERROR_SUCCESS
     );
     Event event;
-    REQUIRE(Watch(registry, hSub, FALSE, kLastSet, event) == ERROR_SUCCESS);
+    REQUIRE(Watch(registry, hSub, FALSE, LAST_SET, event) == ERROR_SUCCESS);
     CHECK(
         registry.RegDeleteTreeW(
             hSub,

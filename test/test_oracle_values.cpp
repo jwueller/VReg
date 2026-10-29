@@ -16,9 +16,9 @@ namespace
 {
 std::vector<StoredValue> WideValues()
 {
-    const wchar_t kNonAscii[] = L"a\u00e4\u20ac\u0101\u4e2d";
-    const wchar_t kMultiNonAscii[] = L"\u00e4\0\u4e2d\0";
-    const wchar_t kEmbedded[] = L"ab\0cd";
+    const wchar_t NON_ASCII[] = L"a\u00e4\u20ac\u0101\u4e2d";
+    const wchar_t MULTI_NON_ASCII[] = L"\u00e4\0\u4e2d\0";
+    const wchar_t EMBEDDED[] = L"ab\0cd";
 
     std::vector<StoredValue> values;
     values.push_back({L"None", REG_NONE, {1, 2, 3}});
@@ -38,9 +38,9 @@ std::vector<StoredValue> WideValues()
     values.push_back({L"SzOneByte", REG_SZ, {0x41}});
     values.push_back({L"SzEmpty", REG_SZ, {}});
     values.push_back({L"SzJustTerminator", REG_SZ, {0, 0}});
-    values.push_back({L"SzNonAscii", REG_SZ, BytesOf(kNonAscii, std::size(kNonAscii))});
-    values.push_back({L"SzNonAsciiNoTerminator", REG_SZ, BytesOf(kNonAscii, std::size(kNonAscii) - 1)});
-    values.push_back({L"SzEmbeddedNul", REG_SZ, BytesOf(kEmbedded, std::size(kEmbedded))});
+    values.push_back({L"SzNonAscii", REG_SZ, BytesOf(NON_ASCII, std::size(NON_ASCII))});
+    values.push_back({L"SzNonAsciiNoTerminator", REG_SZ, BytesOf(NON_ASCII, std::size(NON_ASCII) - 1)});
+    values.push_back({L"SzEmbeddedNul", REG_SZ, BytesOf(EMBEDDED, std::size(EMBEDDED))});
     values.push_back({L"Expand", REG_EXPAND_SZ, BytesOf(L"%SystemRoot%\\x", 15)});
     values.push_back({L"ExpandEmpty", REG_EXPAND_SZ, {}});
     values.push_back({L"Binary", REG_BINARY, {1, 2, 3, 4, 5}});
@@ -53,7 +53,7 @@ std::vector<StoredValue> WideValues()
     values.push_back({L"MultiNoFinalTerminator", REG_MULTI_SZ, BytesOf(L"a\0bc", 5)});
     values.push_back({L"MultiNoTerminator", REG_MULTI_SZ, BytesOf(L"abc", 3)});
     values.push_back({L"MultiEmpty", REG_MULTI_SZ, {}});
-    values.push_back({L"MultiNonAscii", REG_MULTI_SZ, BytesOf(kMultiNonAscii, std::size(kMultiNonAscii))});
+    values.push_back({L"MultiNonAscii", REG_MULTI_SZ, BytesOf(MULTI_NON_ASCII, std::size(MULTI_NON_ASCII))});
     values.push_back({L"Qword", REG_QWORD, {1, 2, 3, 4, 5, 6, 7, 8}});
     values.push_back({L"ResourceList", REG_RESOURCE_LIST, {9, 8, 7}});
     values.push_back({L"Unknown", 0x1234, {4, 3}});
@@ -301,7 +301,7 @@ struct SetInvalidArguments
             )
         );
 
-        DWORD cbData = kFillSize;
+        DWORD cbData = FILL_SIZE;
         RECORD(
             "none stored",
             api.RegQueryValueExW(
@@ -314,7 +314,7 @@ struct SetInvalidArguments
             ),
             {cbData}
         );
-        cbData = kFillSize;
+        cbData = FILL_SIZE;
         RECORD(
             "zero stored",
             api.RegQueryValueExW(
@@ -327,7 +327,7 @@ struct SetInvalidArguments
             ),
             {cbData}
         );
-        cbData = kFillSize;
+        cbData = FILL_SIZE;
         RECORD(
             "string stored",
             api.RegQueryValueExW(
@@ -340,7 +340,7 @@ struct SetInvalidArguments
             ),
             {cbData}
         );
-        cbData = kFillSize;
+        cbData = FILL_SIZE;
         RECORD(
             "string stored A",
             api.RegQueryValueExW(
@@ -363,10 +363,10 @@ struct QueryMissingAndInvalid
         QueryMatrix(api, record, hRoot, L"Missing", "missing W");
         QueryMatrix(api, record, hRoot, "Missing", "missing A");
 
-        DWORD dwType = kFillSize;
-        DWORD cbData = kFillSize;
+        DWORD dwType = FILL_SIZE;
+        DWORD cbData = FILL_SIZE;
         std::array<BYTE, 16> data;
-        data.fill(kFill);
+        data.fill(FILL);
         RECORD(
             "W reserved",
             api.RegQueryValueExW(
@@ -408,7 +408,7 @@ struct QueryMissingAndInvalid
         );
 
         cbData = 16;
-        dwType = kFillSize;
+        dwType = FILL_SIZE;
         RECORD(
             "W invalid handle",
             api.RegQueryValueExW(
@@ -495,7 +495,7 @@ struct DefaultValue
 {
     template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
     {
-        const BYTE kText[] = "text";
+        const BYTE VALUE_TEXT[] = "text";
         QueryMatrix(
             api,
             record,
@@ -542,7 +542,7 @@ struct DefaultValue
                 "",
                 0,
                 REG_SZ,
-                kText,
+                VALUE_TEXT,
                 5
             )
         );
@@ -561,7 +561,7 @@ struct DefaultValue
                 nullptr,
                 0,
                 REG_DWORD,
-                kText,
+                VALUE_TEXT,
                 4
             )
         );
@@ -827,8 +827,8 @@ struct PreExValues
 {
     template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
     {
-        const wchar_t kWide[] = L"he\u00e4llo";
-        const char kNarrow[] = "he\xe4llo";
+        const wchar_t WIDE[] = L"he\u00e4llo";
+        const char NARROW[] = "he\xe4llo";
 
         RECORD(
             "set W new sub",
@@ -836,7 +836,7 @@ struct PreExValues
                 hRoot,
                 L"Sub",
                 REG_SZ,
-                kWide,
+                WIDE,
                 0
             )
         );
@@ -846,7 +846,7 @@ struct PreExValues
                 hRoot,
                 L"Deep\\Sub",
                 REG_SZ,
-                kWide,
+                WIDE,
                 100
             )
         );
@@ -856,7 +856,7 @@ struct PreExValues
                 hRoot,
                 L"Sub2",
                 REG_SZ,
-                kWide,
+                WIDE,
                 3
             )
         );
@@ -866,7 +866,7 @@ struct PreExValues
                 hRoot,
                 "SubA",
                 REG_SZ,
-                kNarrow,
+                NARROW,
                 0
             )
         );
@@ -876,7 +876,7 @@ struct PreExValues
                 hRoot,
                 "SubA2",
                 REG_SZ,
-                kNarrow,
+                NARROW,
                 2
             )
         );
@@ -886,7 +886,7 @@ struct PreExValues
                 hRoot,
                 L"Wrong",
                 REG_DWORD,
-                kWide,
+                WIDE,
                 0
             )
         );
@@ -896,7 +896,7 @@ struct PreExValues
                 hRoot,
                 "Wrong",
                 REG_BINARY,
-                kNarrow,
+                NARROW,
                 0
             )
         );
@@ -946,7 +946,7 @@ struct PreExValues
                 nullptr,
                 L"S",
                 REG_SZ,
-                kWide,
+                WIDE,
                 0
             )
         );
@@ -956,7 +956,7 @@ struct PreExValues
                 nullptr,
                 "S",
                 REG_SZ,
-                kNarrow,
+                NARROW,
                 0
             )
         );
@@ -966,7 +966,7 @@ struct PreExValues
                 hRoot,
                 L"U\u4e2d",
                 REG_SZ,
-                kWide,
+                WIDE,
                 0
             )
         );
@@ -998,7 +998,7 @@ struct PreExValues
             for (const LONG cbBuffer : {-1l, 0l, 1l, 2l, 5l, 12l, 64l})
             {
                 std::array<wchar_t, 32> data;
-                std::memset(data.data(), kFill, sizeof(data));
+                std::memset(data.data(), FILL, sizeof(data));
                 LONG cbData = cbBuffer;
                 RECORD(
                     "query W " + label + std::format(" buffer {}", cbBuffer),
@@ -1012,7 +1012,7 @@ struct PreExValues
                     {Bytes(data)}
                 );
             }
-            LONG cbData = static_cast<LONG>(kFillSize);
+            LONG cbData = static_cast<LONG>(FILL_SIZE);
             RECORD(
                 "query W size " + label,
                 api.RegQueryValueW(
@@ -1037,7 +1037,7 @@ struct PreExValues
             for (const LONG cbBuffer : {-1l, 0l, 1l, 2l, 5l, 12l, 64l})
             {
                 std::array<char, 32> data;
-                std::memset(data.data(), kFill, sizeof(data));
+                std::memset(data.data(), FILL, sizeof(data));
                 LONG cbData2 = cbBuffer;
                 RECORD(
                     "query A " + label + std::format(" buffer {}", cbBuffer),
@@ -1051,7 +1051,7 @@ struct PreExValues
                     {Bytes(data)}
                 );
             }
-            cbData = static_cast<LONG>(kFillSize);
+            cbData = static_cast<LONG>(FILL_SIZE);
             RECORD(
                 "query A size " + label,
                 api.RegQueryValueA(
@@ -1075,7 +1075,7 @@ struct PreExValues
 
         {
             std::array<char, 8> data;
-            data.fill(kFill);
+            data.fill(FILL);
             LONG cbData = 8;
             RECORD(
                 "query A null sub",
@@ -1089,7 +1089,7 @@ struct PreExValues
                 {Bytes(data)}
             );
             std::array<wchar_t, 8> wdata;
-            std::memset(wdata.data(), kFill, sizeof(wdata));
+            std::memset(wdata.data(), FILL, sizeof(wdata));
             cbData = 16;
             RECORD(
                 "query W null sub",
@@ -1180,7 +1180,7 @@ struct PreExValues
         for (const LONG cbBuffer : {0l, 4l, 64l})
         {
             std::array<wchar_t, 32> data;
-            std::memset(data.data(), kFill, sizeof(data));
+            std::memset(data.data(), FILL, sizeof(data));
             LONG cbData = cbBuffer;
             RECORD(
                 "query typed W",
@@ -1194,7 +1194,7 @@ struct PreExValues
                 {Bytes(data)}
             );
             std::array<char, 32> adata;
-            std::memset(adata.data(), kFill, sizeof(adata));
+            std::memset(adata.data(), FILL, sizeof(adata));
             cbData = cbBuffer;
             RECORD(
                 "query typed A",
@@ -1208,7 +1208,7 @@ struct PreExValues
                 {Bytes(adata)}
             );
         }
-        LONG cbData = static_cast<LONG>(kFillSize);
+        LONG cbData = static_cast<LONG>(FILL_SIZE);
         RECORD(
             "query typed W size",
             api.RegQueryValueW(
@@ -1219,7 +1219,7 @@ struct PreExValues
             ),
             {static_cast<std::uint64_t>(cbData)}
         );
-        cbData = static_cast<LONG>(kFillSize);
+        cbData = static_cast<LONG>(FILL_SIZE);
         RECORD(
             "query typed A size",
             api.RegQueryValueA(
@@ -1704,7 +1704,7 @@ struct DeleteKeyValueForms
             )
         );
 
-        DWORD cbData = kFillSize;
+        DWORD cbData = FILL_SIZE;
         RECORD(
             "sub values gone",
             api.RegQueryValueExW(

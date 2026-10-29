@@ -405,7 +405,7 @@ std::vector<std::wstring> Snapshot(Registry& registry, const HKEY hKey)
     return lines;
 }
 
-constexpr wchar_t kMuiString[] = L"@%SystemRoot%\\system32\\shell32.dll,-21787";
+constexpr wchar_t MUI_STRING[] = L"@%SystemRoot%\\system32\\shell32.dll,-21787";
 } // namespace
 
 TEST_CASE("Upper values and keys shadow lower ones")
@@ -1224,7 +1224,7 @@ TEST_CASE("RegLoadMUIStringW forwards a lower value to the lower key")
             native,
             fx.LowerRoot(),
             L"Indirect",
-            kMuiString
+            MUI_STRING
         ) == ERROR_SUCCESS
     );
 
@@ -1261,7 +1261,7 @@ TEST_CASE("RegLoadMUIStringW forwards a lower value to the lower key")
     {
         const HKEY hSub = Create(native, fx.LowerRoot(), L"Sub");
         REQUIRE(
-            SetString(native, hSub, L"Indirect", kMuiString) == ERROR_SUCCESS
+            SetString(native, hSub, L"Indirect", MUI_STRING) == ERROR_SUCCESS
         );
         const HKEY hVirtualSub = MustOpen(reg, fx.Root(), L"Sub");
         DWORD cb = 0;
@@ -1286,7 +1286,7 @@ TEST_CASE("RegLoadMUIStringW forwards a lower value to the lower key")
     SECTION("A value the upper layer holds is a literal")
     {
         REQUIRE(
-            SetString(reg, fx.Root(), L"Indirect", kMuiString) == ERROR_SUCCESS
+            SetString(reg, fx.Root(), L"Indirect", MUI_STRING) == ERROR_SUCCESS
         );
         DWORD cb = 0;
         std::wstring text(256, L'\0');

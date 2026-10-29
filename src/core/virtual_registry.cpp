@@ -27,7 +27,7 @@ bool IsPredefinedHKey(const HKEY hKey) noexcept
 }
 
 /// The longest key name component the registry accepts, in characters.
-constexpr std::size_t kMaxKeyNameChars = 255;
+constexpr std::size_t MAX_KEY_NAME_CHARS = 255;
 
 /// Splits @p path at backslashes as the native registry does: empty
 /// components are skipped, a trailing backslash is ignored, and a leading one
@@ -48,7 +48,7 @@ LSTATUS SplitPath(
         const auto component = path.substr(start, end - start);
         if (!component.empty())
         {
-            if (component.size() > kMaxKeyNameChars)
+            if (component.size() > MAX_KEY_NAME_CHARS)
                 return ERROR_INVALID_PARAMETER;
 
             components.push_back(component);
@@ -101,7 +101,7 @@ bool IsWow6432Node(const std::wstring_view name) noexcept
     return CompareNames(name, L"WOW6432Node") == 0;
 }
 
-constexpr MountView kProcessView = sizeof(void*) == 8 ? MountView::Only64 : MountView::Only32;
+constexpr MountView PROCESS_VIEW = sizeof(void*) == 8 ? MountView::Only64 : MountView::Only32;
 
 MountView ViewFromSam(const REGSAM samDesired) noexcept
 {
@@ -110,7 +110,7 @@ MountView ViewFromSam(const REGSAM samDesired) noexcept
     if (samDesired & KEY_WOW64_32KEY)
         return MountView::Only32;
 
-    return kProcessView;
+    return PROCESS_VIEW;
 }
 
 bool Admits(const MountView mountView, const MountView callView) noexcept
@@ -161,9 +161,9 @@ std::vector<std::wstring> NativeRootPath(const HKEY hRoot)
     return {};
 }
 
-constexpr ULONG kKeyNameInformation = 3;
-constexpr LONG kStatusBufferOverflow = static_cast<LONG>(0x80000005);
-constexpr LONG kStatusBufferTooSmall = static_cast<LONG>(0xC0000023);
+constexpr ULONG KEY_NAME_INFORMATION_CLASS = 3;
+constexpr LONG NT_STATUS_BUFFER_OVERFLOW = static_cast<LONG>(0x80000005);
+constexpr LONG NT_STATUS_BUFFER_TOO_SMALL = static_cast<LONG>(0xC0000023);
 
 /// Whether @p full, with `WOW6432Node` components skipped, starts with
 /// @p mountPath; @p iRest then indexes the first component past the match and
@@ -350,14 +350,14 @@ bool VirtualRegistry::ResolveNative(
         const auto ntStatus
             = m_pfnNtQueryKey(
                 hKey,
-                kKeyNameInformation,
+                KEY_NAME_INFORMATION_CLASS,
                 buffer.data(),
                 static_cast<ULONG>(buffer.size()),
                 &cbResult
             );
         if (ntStatus >= 0)
             break;
-        if ((ntStatus != kStatusBufferOverflow && ntStatus != kStatusBufferTooSmall) || cbResult <= buffer.size())
+        if ((ntStatus != NT_STATUS_BUFFER_OVERFLOW && ntStatus != NT_STATUS_BUFFER_TOO_SMALL) || cbResult <= buffer.size())
             return false;
 
         buffer.resize(cbResult);
@@ -598,8 +598,8 @@ try
     if (!target.pNode)
         return target.status;
 
-    constexpr DWORD kKnownOptions = 0x1F;
-    if (dwOptions & ~kKnownOptions)
+    constexpr DWORD KNOWN_OPTIONS = 0x1F;
+    if (dwOptions & ~KNOWN_OPTIONS)
         return ERROR_INVALID_PARAMETER;
 
     OpenResult result;
@@ -1263,8 +1263,8 @@ try
             pcbData
         );
 
-    constexpr DWORD kBothViews = RRF_SUBKEY_WOW6464KEY | RRF_SUBKEY_WOW6432KEY;
-    if (!hkey || (pvData && !pcbData) || !(dwFlags & RRF_RT_ANY) || (dwFlags & kBothViews) == kBothViews)
+    constexpr DWORD BOTH_VIEWS = RRF_SUBKEY_WOW6464KEY | RRF_SUBKEY_WOW6432KEY;
+    if (!hkey || (pvData && !pcbData) || !(dwFlags & RRF_RT_ANY) || (dwFlags & BOTH_VIEWS) == BOTH_VIEWS)
         return ERROR_INVALID_PARAMETER;
 
     const DWORD cbBuffer = pcbData ? *pcbData : 0;
@@ -1370,7 +1370,7 @@ try
         }
     }
 
-    constexpr DWORD kTypeFlags[] = {
+    constexpr DWORD TYPE_FLAGS[] = {
         RRF_RT_REG_NONE,
         RRF_RT_REG_SZ,
         RRF_RT_REG_EXPAND_SZ,
@@ -1384,7 +1384,7 @@ try
         0,
         RRF_RT_REG_QWORD,
     };
-    const DWORD dwTypeFlag = dwType < std::size(kTypeFlags) ? kTypeFlags[dwType] : 0;
+    const DWORD dwTypeFlag = dwType < std::size(TYPE_FLAGS) ? TYPE_FLAGS[dwType] : 0;
     const bool isAllowed = dwTypeFlag ? (dwFlags & dwTypeFlag) != 0 : (dwFlags & RRF_RT_ANY) == RRF_RT_ANY;
 
     const auto& final = stages[2].empty() ? (stages[1].empty() ? stages[0] : stages[1]) : stages[2];
@@ -1453,9 +1453,9 @@ try
     if (!target.pNode)
         return target.status;
 
-    constexpr DWORD kKnownFilters = REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_ATTRIBUTES | REG_NOTIFY_CHANGE_LAST_SET
+    constexpr DWORD KNOWN_FILTERS = REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_ATTRIBUTES | REG_NOTIFY_CHANGE_LAST_SET
         | REG_NOTIFY_CHANGE_SECURITY | REG_NOTIFY_THREAD_AGNOSTIC;
-    if ((dwNotifyFilter & ~kKnownFilters) || (fAsynchronous && !hEvent))
+    if ((dwNotifyFilter & ~KNOWN_FILTERS) || (fAsynchronous && !hEvent))
         return ERROR_INVALID_PARAMETER;
 
     const auto& hive = *target.pHive;

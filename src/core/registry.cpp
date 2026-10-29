@@ -360,8 +360,8 @@ LSTATUS Registry::RegEnumKeyExA(
         [&]
         {
             const bool wantClass = lpClass || lpcchClass;
-            DWORD cchName = kInitialNameChars;
-            DWORD cchClass = wantClass ? kInitialNameChars : 0;
+            DWORD cchName = INITIAL_NAME_CHARS;
+            DWORD cchClass = wantClass ? INITIAL_NAME_CHARS : 0;
             std::wstring name;
             std::wstring className;
             FILETIME ftLastWrite{};
@@ -382,15 +382,15 @@ LSTATUS Registry::RegEnumKeyExA(
                     wantClass ? &cchClassOut : nullptr,
                     &ftLastWrite
                 );
-                if (status != ERROR_MORE_DATA || (cchName >= kMaxClassChars && cchClass >= kMaxClassChars))
+                if (status != ERROR_MORE_DATA || (cchName >= MAX_CLASS_CHARS && cchClass >= MAX_CLASS_CHARS))
                 {
                     name.resize(cchNameOut);
                     className.resize(cchClassOut);
                     break;
                 }
-                cchName = std::min(cchName * 2, kMaxClassChars);
+                cchName = std::min(cchName * 2, MAX_CLASS_CHARS);
                 if (wantClass)
-                    cchClass = std::min(cchClass * 2, kMaxClassChars);
+                    cchClass = std::min(cchClass * 2, MAX_CLASS_CHARS);
             }
             if (status != ERROR_SUCCESS)
                 return status;
@@ -559,7 +559,7 @@ LSTATUS Registry::RegQueryInfoKeyA(
     return Guard(
         [&]
         {
-            DWORD cchClass = kInitialNameChars;
+            DWORD cchClass = INITIAL_NAME_CHARS;
             DWORD cchClassOut = 0;
             std::wstring className;
             LSTATUS status;
@@ -581,12 +581,12 @@ LSTATUS Registry::RegQueryInfoKeyA(
                     lpcbSecurityDescriptor,
                     lpftLastWriteTime
                 );
-                if (status != ERROR_MORE_DATA || cchClass >= kMaxClassChars)
+                if (status != ERROR_MORE_DATA || cchClass >= MAX_CLASS_CHARS)
                 {
                     className.resize(cchClassOut);
                     break;
                 }
-                cchClass = std::min(cchClass * 2, kMaxClassChars);
+                cchClass = std::min(cchClass * 2, MAX_CLASS_CHARS);
             }
             if (status != ERROR_SUCCESS)
             {
@@ -668,8 +668,8 @@ LSTATUS Registry::RegGetValueA(
 
             // Only string values are converted; anything else, and every failure to find the value, is what the
             // wide form answers.
-            constexpr DWORD kWowFlags = RRF_SUBKEY_WOW6464KEY | RRF_SUBKEY_WOW6432KEY;
-            const DWORD dwFlagsStored = (dwFlags & kWowFlags) | RRF_RT_ANY | RRF_NOEXPAND;
+            constexpr DWORD WOW_FLAGS = RRF_SUBKEY_WOW6464KEY | RRF_SUBKEY_WOW6432KEY;
+            const DWORD dwFlagsStored = (dwFlags & WOW_FLAGS) | RRF_RT_ANY | RRF_NOEXPAND;
             DWORD dwStoredType{};
             const auto statusStoredType = RegGetValueW(
                 hkey,
@@ -685,7 +685,7 @@ LSTATUS Registry::RegGetValueA(
 
             // A value whose type the flags reject is still read and reported, with the failure status.
             const DWORD dwFlagsTyped = dwFlags & ~RRF_ZEROONFAILURE;
-            const DWORD dwFlagsAnyType = (dwFlags & (kWowFlags | RRF_NOEXPAND)) | RRF_RT_ANY;
+            const DWORD dwFlagsAnyType = (dwFlags & (WOW_FLAGS | RRF_NOEXPAND)) | RRF_RT_ANY;
             DWORD dwType = 0;
             DWORD cbQuery = 0;
             const auto status = RegGetValueW(
@@ -1206,9 +1206,10 @@ LSTATUS Registry::RegEnumKeyW(
     );
 }
 
-// Agent's choice: the subkey of SetKeyValue and DeleteKeyValue is opened with KEY_SET_VALUE, the one right the
-// call needs; the maximum allowed access, as the pre-Ex forms use, was passed over. Only a caller whose access
-// is limited to something else could tell.
+// The subkey of SetKeyValue and DeleteKeyValue is opened with KEY_SET_VALUE,
+// the one right the call needs; the maximum allowed access, as the pre-Ex
+// forms use, was passed over. Only a caller whose access is limited to
+// something else could tell.
 LSTATUS Registry::RegSetKeyValueA(
     const HKEY hKey,
     const LPCSTR lpSubKey,

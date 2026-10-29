@@ -5,9 +5,9 @@ namespace VReg
 Version GetVersion() noexcept
 {
     return {
-        .major = kVersionMajor,
-        .minor = kVersionMinor,
-        .patch = kVersionPatch,
+        .major = VREG_VERSION_MAJOR,
+        .minor = VREG_VERSION_MINOR,
+        .patch = VREG_VERSION_PATCH,
     };
 }
 } // namespace VReg

@@ -656,8 +656,8 @@ TEST_CASE("Calls outside the mounts reach the base registry")
     {
         HKEY hViaRegistry = nullptr;
         HKEY hViaNative = nullptr;
-        DWORD dwDispositionRegistry = kFillSize;
-        DWORD dwDispositionNative = kFillSize;
+        DWORD dwDispositionRegistry = FILL_SIZE;
+        DWORD dwDispositionNative = FILL_SIZE;
         REQUIRE(
             registry.RegCreateKeyExW(
                 hApp,
@@ -826,7 +826,7 @@ TEST_CASE("A handle released with its hive is invalid")
 
 namespace
 {
-constexpr bool kIs64BitProcess = sizeof(void*) == 8;
+constexpr bool IS64BIT_PROCESS = sizeof(void*) == 8;
 
 /// An `NtQueryKey` that knows a fixed set of fake handles by their native
 /// paths, for a `VirtualRegistry` whose base answers `ERROR_INVALID_HANDLE`
@@ -1267,14 +1267,14 @@ TEST_CASE("A mount answers only the calls of its view")
         CHECK(isVirtual(hSoftware, L"VRegViewTestBoth", sam64));
 
         CHECK(
-            isVirtual(hSoftware, L"VRegViewTest64", KEY_READ) == kIs64BitProcess
+            isVirtual(hSoftware, L"VRegViewTest64", KEY_READ) == IS64BIT_PROCESS
         );
         CHECK(
             isVirtual(
                 hSoftware,
                 L"VRegViewTest32",
                 KEY_READ
-            ) == !kIs64BitProcess
+            ) == !IS64BIT_PROCESS
         );
     }
 

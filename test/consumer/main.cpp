@@ -12,5 +12,5 @@ int main()
 #ifdef CONSUMER_WITH_DETOURS
     VReg::Detours::Neutralize();
 #endif
-    return (VReg::GetVersion().major == VReg::kVersionMajor && status == ERROR_INVALID_DATA) ? 0 : 1;
+    return (VReg::GetVersion().major == VReg::VREG_VERSION_MAJOR && status == ERROR_INVALID_DATA) ? 0 : 1;
 }

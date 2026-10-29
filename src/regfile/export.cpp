@@ -55,8 +55,8 @@ public:
     )
     {
         // The registry nests at most 512 levels; anything deeper is a cycle through some other registry.
-        constexpr unsigned kMaxDepth = 512;
-        if (depth > kMaxDepth)
+        constexpr unsigned MAX_DEPTH = 512;
+        if (depth > MAX_DEPTH)
             return ERROR_CANTREAD;
 
         m_records.push_back(

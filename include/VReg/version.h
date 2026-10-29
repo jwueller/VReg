@@ -2,9 +2,9 @@
 
 namespace VReg
 {
-inline constexpr unsigned kVersionMajor = 0;
-inline constexpr unsigned kVersionMinor = 2;
-inline constexpr unsigned kVersionPatch = 0;
+inline constexpr unsigned VREG_VERSION_MAJOR = 0;
+inline constexpr unsigned VREG_VERSION_MINOR = 2;
+inline constexpr unsigned VREG_VERSION_PATCH = 0;
 
 struct Version
 {

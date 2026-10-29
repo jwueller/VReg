@@ -27,13 +27,13 @@ using Clock = std::chrono::steady_clock;
 
 namespace
 {
-constexpr auto kDuration = std::chrono::seconds(2);
-constexpr auto kHangLimit = std::chrono::seconds(30);
-constexpr unsigned kKeys = 6;
-constexpr unsigned kSubKeys = 4;
-constexpr unsigned kValues = 4;
-constexpr unsigned kWriters = 4;
-constexpr unsigned kReaders = 4;
+constexpr auto DURATION = std::chrono::seconds(2);
+constexpr auto HANG_LIMIT = std::chrono::seconds(30);
+constexpr unsigned KEYS = 6;
+constexpr unsigned SUB_KEYS = 4;
+constexpr unsigned VALUES = 4;
+constexpr unsigned WRITERS = 4;
+constexpr unsigned READERS = 4;
 
 std::wstring KeyName(const unsigned i)
 {
@@ -108,9 +108,9 @@ void Judge(Shared& shared, const LSTATUS status) noexcept
 
 std::wstring RandomPath(Random& random)
 {
-    std::wstring path = KeyName(random.Next(kKeys));
+    std::wstring path = KeyName(random.Next(KEYS));
     if (random.Next(2))
-        path += L'\\' + SubName(random.Next(kSubKeys));
+        path += L'\\' + SubName(random.Next(SUB_KEYS));
     return path;
 }
 
@@ -165,7 +165,7 @@ void WriterLoop(
             if (status != ERROR_SUCCESS)
                 break;
 
-            const auto index = random.Next(kValues);
+            const auto index = random.Next(VALUES);
             const auto name = ValueName(index);
             const DWORD dwValue = ValueData(index);
             Judge(
@@ -202,7 +202,7 @@ void WriterLoop(
                 shared,
                 registry.RegDeleteValueW(
                     hKey,
-                    ValueName(random.Next(kValues)).c_str()
+                    ValueName(random.Next(VALUES)).c_str()
                 )
             );
             registry.RegCloseKey(
@@ -228,7 +228,7 @@ void WriterLoop(
                     shared,
                     registry.RegDeleteTreeW(
                         hRoot,
-                        KeyName(random.Next(kKeys)).c_str()
+                        KeyName(random.Next(KEYS)).c_str()
                     )
                 );
             break;
@@ -250,7 +250,7 @@ void ReadKey(
         DWORD dwValue{};
         DWORD cbValue = sizeof(dwValue);
         DWORD dwType{};
-        const auto index = random.Next(kValues);
+        const auto index = random.Next(VALUES);
         const auto name = ValueName(index);
         const auto status =
             registry.RegQueryValueExW(
@@ -267,7 +267,7 @@ void ReadKey(
         break;
     }
     case 1:
-        for (DWORD i = 0; i < kSubKeys + 2; ++i)
+        for (DWORD i = 0; i < SUB_KEYS + 2; ++i)
         {
             wchar_t szName[64];
             DWORD cchName = ARRAYSIZE(szName);
@@ -287,7 +287,7 @@ void ReadKey(
         }
         break;
     case 2:
-        for (DWORD i = 0; i < kValues + 2; ++i)
+        for (DWORD i = 0; i < VALUES + 2; ++i)
         {
             wchar_t szName[64];
             DWORD cchName = ARRAYSIZE(szName);
@@ -331,7 +331,7 @@ void ReadKey(
         Judge(shared, status);
         // Every name comes from a small closed set, in the upper and the lower layer alike, so a count above it
         // means an entry was counted twice.
-        if (status == ERROR_SUCCESS && (cSubKeys > kSubKeys || cValues > kValues))
+        if (status == ERROR_SUCCESS && (cSubKeys > SUB_KEYS || cValues > VALUES))
             Judge(shared, ERROR_INVALID_DATA);
         break;
     }
@@ -463,7 +463,7 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
     );
     CHECK(cSubKeys == keys.size());
 
-    for (unsigned k = 0; k < kKeys; ++k)
+    for (unsigned k = 0; k < KEYS; ++k)
     {
         HKEY hKey{};
         const auto status = registry.RegOpenKeyExW(
@@ -612,19 +612,19 @@ void RunStress(
         );
     };
 
-    for (unsigned i = 0; i < kWriters; ++i)
+    for (unsigned i = 0; i < WRITERS; ++i)
         launch([&, i] { WriterLoop(registry, hRoot, shared, 100 + i); });
-    for (unsigned i = 0; i < kReaders; ++i)
+    for (unsigned i = 0; i < READERS; ++i)
         launch([&, i] { ReaderLoop(registry, hRoot, shared, 200 + i); });
     launch([&] { WatcherLoop(registry, hRoot, shared); });
     launch([&] { ExporterLoop(registry, pszMount, shared); });
 
     const auto start = Clock::now();
     bool isFrozen = pfnFreezeMidway == nullptr;
-    while (Clock::now() - start < kDuration)
+    while (Clock::now() - start < DURATION)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        if (!isFrozen && Clock::now() - start >= kDuration / 2)
+        if (!isFrozen && Clock::now() - start >= DURATION / 2)
         {
             pfnFreezeMidway(pFreezeContext);
             isFrozen = true;
@@ -635,7 +635,7 @@ void RunStress(
     const auto stopped = Clock::now();
     while (shared.cDone.load() != threads.size())
     {
-        if (Clock::now() - stopped > kHangLimit)
+        if (Clock::now() - stopped > HANG_LIMIT)
         {
             // A thread that cannot be joined would hang the process; report and leave.
             std::fputs(
@@ -700,9 +700,9 @@ TEST_CASE("Readers and writers on a writable OverlayHive over an app hive")
     auto& native = mount.Native();
 
     // The lower layer holds names from the same closed set, so it shadows and is shadowed.
-    for (unsigned k = 0; k < kKeys; k += 2)
+    for (unsigned k = 0; k < KEYS; k += 2)
     {
-        for (unsigned s = 0; s < kSubKeys; s += 2)
+        for (unsigned s = 0; s < SUB_KEYS; s += 2)
         {
             const auto path = KeyName(k) + L'\\' + SubName(s);
             HKEY hKey{};
@@ -720,7 +720,7 @@ TEST_CASE("Readers and writers on a writable OverlayHive over an app hive")
                 )
                 == ERROR_SUCCESS
             );
-            for (unsigned v = 0; v < kValues; v += 2)
+            for (unsigned v = 0; v < VALUES; v += 2)
             {
                 const DWORD dwValue = ValueData(v);
                 const auto name = ValueName(v);

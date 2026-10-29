@@ -8,7 +8,7 @@ namespace VReg::RegFile
 {
 namespace
 {
-constexpr std::string_view kRegedit4 = "REGEDIT4";
+constexpr std::string_view REGEDIT4 = "REGEDIT4";
 
 LSTATUS Fail(
     ParseError* const pError,
@@ -88,7 +88,7 @@ LSTATUS DecodeFile(
         return Widen(CP_UTF8, file.subspan(3), text, pError);
 
     return Widen(
-        StartsWith(file, kRegedit4) ? CP_ACP : CP_UTF8,
+        StartsWith(file, REGEDIT4) ? CP_ACP : CP_UTF8,
         file,
         text,
         pError

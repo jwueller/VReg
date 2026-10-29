@@ -151,7 +151,7 @@ Recording Recorder::Take() noexcept
 
 void CheckSameRecording(const Recording& expected, const Recording& actual)
 {
-    constexpr std::size_t kMaxReported = 12;
+    constexpr std::size_t MAX_REPORTED = 12;
     std::size_t cReported = 0;
     for (std::size_t i = 0; i < expected.size() && i < actual.size(); ++i)
     {
@@ -159,7 +159,7 @@ void CheckSameRecording(const Recording& expected, const Recording& actual)
         {
             INFO("call " << i);
             CHECK(expected[i] == actual[i]);
-            if (++cReported == kMaxReported)
+            if (++cReported == MAX_REPORTED)
                 return;
         }
     }

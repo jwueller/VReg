@@ -7,6 +7,8 @@
 
 #include <VReg/handle.h>
 
+#include <winternl.h>
+
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
@@ -69,8 +71,7 @@ bool RealKeyExists(const std::wstring& name)
     std::wstring buffer = name;
     const auto cbName = static_cast<USHORT>(buffer.size() * sizeof(wchar_t));
     UnicodeString objectName{cbName, cbName, buffer.data()};
-    constexpr ULONG kObjCaseInsensitive = 0x40;
-    ObjectAttributes attributes{sizeof(ObjectAttributes), hUser, &objectName, kObjCaseInsensitive, nullptr, nullptr};
+    ObjectAttributes attributes{sizeof(ObjectAttributes), hUser, &objectName, OBJ_CASE_INSENSITIVE, nullptr, nullptr};
     HANDLE hKey{};
     const auto status = pfnNtOpenKey(&hKey, KEY_READ, &attributes);
     if (status >= 0)
@@ -89,7 +90,7 @@ std::optional<std::wstring> ReadModule(const HKEY hKey, LSTATUS& status)
     status = ::RegGetValueW(
         hKey,
         nullptr,
-        kModuleValue,
+        MODULE_VALUE,
         RRF_RT_REG_SZ,
         nullptr,
         buffer.data(),
@@ -594,7 +595,7 @@ TEST_CASE("Hooked Reg functions answer on virtual keys")
             nullptr
         ) == ERROR_SUCCESS
     );
-    CHECK(std::wstring(valueName.data()) == kModuleValue);
+    CHECK(std::wstring(valueName.data()) == MODULE_VALUE);
     cchValueName = static_cast<DWORD>(valueName.size());
     CHECK(
         ::RegEnumValueW(

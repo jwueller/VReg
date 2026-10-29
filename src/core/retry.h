@@ -10,9 +10,9 @@ namespace VReg
 // Agent's choice: names and classes are read into a buffer of 256 characters, which holds the longest key name,
 // and grow by doubling on ERROR_MORE_DATA up to the limits below. Sizing each call with a query first was passed
 // over as a second round trip for what is almost always one.
-inline constexpr DWORD kInitialNameChars = 256;
-inline constexpr DWORD kMaxClassChars = 32768;
-inline constexpr DWORD kMaxValueNameChars = 16384;
+inline constexpr DWORD INITIAL_NAME_CHARS = 256;
+inline constexpr DWORD MAX_CLASS_CHARS = 32768;
+inline constexpr DWORD MAX_VALUE_NAME_CHARS = 16384;
 
 template <class Function>
 LSTATUS Guard(Function&& function) noexcept

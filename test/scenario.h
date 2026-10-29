@@ -1,7 +1,7 @@
 #pragma once
 
 // Helpers shared by the scenario files. Writing a scenario: fill out-buffers
-// and out-sizes with `kFill` / `kFillSize` before each call so untouched
+// and out-sizes with `FILL` / `FILL_SIZE` before each call so untouched
 // outputs are recorded too; record every out-parameter; never record handle
 // values or timestamps (they differ between runs), only whether they were
 // written; close every handle opened, or the hive cannot unload.
@@ -40,8 +40,8 @@
 
 namespace VReg::Test
 {
-constexpr BYTE kFill = 0xCC;
-constexpr DWORD kFillSize = 0xCCCCCCCC;
+constexpr BYTE FILL = 0xCC;
+constexpr DWORD FILL_SIZE = 0xCCCCCCCC;
 
 /// An API as the reference for a virtual run: scenarios skip the calls whose
 /// answer virtual keys cannot match (one handle per node, no per-open access
@@ -51,9 +51,9 @@ template <class Api> struct Reduced : Api
 };
 
 /// Whether a scenario runs in the reduced form for virtual keys.
-template <class Api> inline constexpr bool kVirtualKeys = false;
-template <> inline constexpr bool kVirtualKeys<VirtualRegistry> = true;
-template <class Api> inline constexpr bool kVirtualKeys<Reduced<Api>> = true;
+template <class Api> inline constexpr bool VIRTUAL_KEYS = false;
+template <> inline constexpr bool VIRTUAL_KEYS<VirtualRegistry> = true;
+template <class Api> inline constexpr bool VIRTUAL_KEYS<Reduced<Api>> = true;
 
 /// Whether an `Ex` open or create handed back @p hParent. Native always
 /// returns a new handle, even for an empty subkey; a virtual key has one
@@ -63,7 +63,7 @@ template <class Api> bool HandedBack(
     const HKEY hParent
 ) noexcept
 {
-    if constexpr (kVirtualKeys<Api>)
+    if constexpr (VIRTUAL_KEYS<Api>)
         return false;
     else
         return hKey == hParent;
@@ -71,7 +71,7 @@ template <class Api> bool HandedBack(
 
 inline HKEY FillKey() noexcept
 {
-    return reinterpret_cast<HKEY>(static_cast<std::uintptr_t>(kFillSize));
+    return reinterpret_cast<HKEY>(static_cast<std::uintptr_t>(FILL_SIZE));
 }
 
 /// 0 if untouched, 1 if null, 2 for any other handle.
@@ -84,12 +84,12 @@ inline std::uint64_t KeyState(const HKEY hKey) noexcept
 
 inline std::uint64_t Written(const FILETIME& ft) noexcept
 {
-    return ft.dwLowDateTime != kFillSize || ft.dwHighDateTime != kFillSize;
+    return ft.dwLowDateTime != FILL_SIZE || ft.dwHighDateTime != FILL_SIZE;
 }
 
 inline FILETIME FillTime() noexcept
 {
-    return FILETIME{kFillSize, kFillSize};
+    return FILETIME{FILL_SIZE, FILL_SIZE};
 }
 
 /// Offset of @p p in @p base, or all ones for a null pointer.
@@ -229,22 +229,22 @@ void QueryMatrix(
     const std::string& label
 )
 {
-    DWORD dwType = kFillSize;
+    DWORD dwType = FILL_SIZE;
     RECORD(
         label + " type only",
         QueryEx(api, hKey, pszName, &dwType, nullptr, nullptr),
         {dwType}
     );
 
-    dwType = kFillSize;
-    DWORD cbData = kFillSize;
+    dwType = FILL_SIZE;
+    DWORD cbData = FILL_SIZE;
     RECORD(
         label + " size",
         QueryEx(api, hKey, pszName, &dwType, nullptr, &cbData),
         {dwType, cbData}
     );
 
-    cbData = kFillSize;
+    cbData = FILL_SIZE;
     RECORD(
         label + " size only",
         QueryEx(api, hKey, pszName, nullptr, nullptr, &cbData),
@@ -259,8 +259,8 @@ void QueryMatrix(
     for (const DWORD cbBuffer : {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 9u, 12u, 24u, 64u})
     {
         std::array<BYTE, 64> data;
-        data.fill(kFill);
-        dwType = kFillSize;
+        data.fill(FILL);
+        dwType = FILL_SIZE;
         cbData = cbBuffer;
         RECORD(
             label + std::format(" buffer {}", cbBuffer),
@@ -272,7 +272,7 @@ void QueryMatrix(
 
     {
         std::array<BYTE, 64> data;
-        data.fill(kFill);
+        data.fill(FILL);
         cbData = 64;
         RECORD(
             label + " no type",
@@ -281,8 +281,8 @@ void QueryMatrix(
             {Bytes(data)}
         );
 
-        dwType = kFillSize;
-        data.fill(kFill);
+        dwType = FILL_SIZE;
+        data.fill(FILL);
         RECORD(
             label + " data without size",
             QueryEx(api, hKey, pszName, &dwType, data.data(), nullptr),

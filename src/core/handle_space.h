@@ -28,20 +28,20 @@ namespace VReg
 class HandleSpace
 {
 public:
-    static constexpr std::uintptr_t kBlockSize = 4096;
-    static constexpr std::uintptr_t kBlockCount = kVirtualHKeyCount / kBlockSize;
+    static constexpr std::uintptr_t BLOCK_SIZE = 4096;
+    static constexpr std::uintptr_t BLOCK_COUNT = VREG_VIRTUAL_HKEY_COUNT / BLOCK_SIZE;
 
     /// The section's contents. Separately built copies of VReg read this
     /// layout, so it never changes; a different layout needs a different
     /// magic value and section name.
     struct Shared
     {
-        /// @ref kMagic once a copy has claimed the section; zero before.
+        /// @ref MAGIC once a copy has claimed the section; zero before.
         LONG magic;
         LONG nextBlock;
     };
 
-    static constexpr LONG kMagic = 0x56526731; // "VRg1"
+    static constexpr LONG MAGIC = 0x56526731; // "VRg1"
 
     /// Opens or creates the section @p wsName. A failure leaves the instance
     /// unusable: @ref Allocate then answers null.
@@ -74,12 +74,12 @@ public:
     [[nodiscard]] void* Find(HKEY hKey) const noexcept;
 
 private:
-    using Targets = std::array<std::atomic<void*>, kBlockSize>;
+    using Targets = std::array<std::atomic<void*>, BLOCK_SIZE>;
 
     // Two levels of block directories, filled in as blocks are reserved and
     // never freed: a lookup is two acquire loads and an index.
-    static constexpr std::uintptr_t kDirectorySize = 512;
-    using Directory = std::array<std::atomic<Targets*>, kDirectorySize>;
+    static constexpr std::uintptr_t DIRECTORY_SIZE = 512;
+    using Directory = std::array<std::atomic<Targets*>, DIRECTORY_SIZE>;
 
     [[nodiscard]] const Targets* FindBlock(std::uintptr_t block) const noexcept;
     [[nodiscard]] bool AddBlock(std::uintptr_t block) noexcept;
@@ -90,6 +90,6 @@ private:
     std::uintptr_t m_nextIndex = 0;
     std::uintptr_t m_endIndex = 0;
 
-    std::array<std::atomic<Directory*>, kBlockCount / kDirectorySize> m_directories{};
+    std::array<std::atomic<Directory*>, BLOCK_COUNT / DIRECTORY_SIZE> m_directories{};
 };
 } // namespace VReg
