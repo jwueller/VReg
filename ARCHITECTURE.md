@@ -441,7 +441,7 @@ Catch2.
 ### CI (GitHub Actions, public repository)
 
 - Windows: {x86, x64, ARM64} x {MSVC, clang-cl}, all tests; ARM64 on an
-  ARM64 runner.
+  ARM64 runner and without the hooks.
 - Wine on Ubuntu: the Windows-built x86 and x64 test binaries, all tests
   except those on a private app hive (the native oracle and every test
   against the real registry), which skip themselves there. Agent's choice: native
