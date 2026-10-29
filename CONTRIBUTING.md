@@ -1,9 +1,11 @@
 # Contributing to VReg
 
-## Design
+## Architecture
 
-The [design](./docs/specs/VReg-design.md) owns how VReg works, what is
-still missing, and where it knowingly differs from native Windows.
+[ARCHITECTURE.md](./ARCHITECTURE.md) owns how VReg is built: its
+components, handles and locking, the Detours adapter, the `.reg` format and
+the test suite. What is missing and where VReg knowingly differs from
+native Windows are in the [README](./README.md).
 
 ## Building and testing
 

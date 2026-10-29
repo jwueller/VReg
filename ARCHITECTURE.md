@@ -1,44 +1,10 @@
-# VReg design
+# VReg architecture
 
-A virtualized Windows registry library: a registry interface with the Win32
-signatures, in-memory and overlay storage mounted into a virtual namespace,
-`.reg` import/export, and an optional Detours adapter that routes a process's
-`Reg*` calls into it. The project grew out of the virtual registry in
-DirectRetrofit, its first consumer.
+How VReg is built, for contributors. What it does and how to use it is in
+the [README](./README.md), how to build, test and release it in
+[CONTRIBUTING.md](./CONTRIBUTING.md).
 
-## Goals
-
-- A core of the registry interface, its storage, the virtual namespace and
-  the handles, usable standalone as a registry that defers to an
-  underlying implementation (native or virtual), and as a pure in-memory
-  registry with no real registry behind it.
-- One virtual namespace per process that several modules contribute
-  subtrees to, each module linking the library statically; everything
-  outside the virtual subtrees passes through untouched, including real
-  values that are not overridden (MUI-resolved strings).
-- Optional auto-hooking of the process's `Reg*` calls via Detours, playing
-  nicely with other hookers of the same functions.
-- `.reg` import and export, for persistence and test fixtures.
-- Windows only; x86 and x64; runs under Wine/Proton.
-
-## Non-goals
-
-- Calls made straight to `ntdll` (`NtOpenKey` and friends); they bypass the
-  hooks.
-- Persistence beyond explicit import/export calls (no file-backed hives, no
-  automatic flush).
-- Hive *file* parsing (`.dat`, `.hiv`); the native registry is reached only
-  through its public API.
-
-## Missing
-
-- ARM64 and ARM64EC builds. Agent's choice: listed as missing rather than
-  as a non-goal, since nothing in the design rules them out.
-- Answers on virtual keys for the functions the hooks refuse there (see
-  "Coverage" below); `RegRenameKey` and `RegCopyTree` are the ones a hive
-  could answer most readily.
-
-## Architecture
+## Components
 
 ### Targets
 
@@ -130,8 +96,15 @@ buffer and ANSI/wide rules stay in `VirtualRegistry`.
   - An upper-only key ends its enumerations with `ERROR_NO_MORE_ITEMS`,
     never `ERROR_FILE_NOT_FOUND`.
   - `RegLoadMUIStringW` on a lower-backed value forwards to the lower key;
-    an upper value answers as any hive value does (see "Known divergences of
-    virtual keys").
+    an upper value answers as any hive value does.
+- A hive never resolves an `@` resource reference for `RegLoadMUIString`,
+  since that would load a module under a possibly foreign loader lock. A
+  value stored with `Hive::SetMuiTextValue` carries a mark that makes it
+  stand for the text such a reference resolves to. Agent's choice: an
+  explicit mark per value, set through the hive. A value type of our own
+  would show through `RegQueryValueEx`, and answering every plain string
+  with its text would change what unmarked values answer, which consumers
+  rely on.
 
 ## Handles, freeze and locking
 
@@ -201,9 +174,10 @@ from one namespace:
 Chosen per mount:
 
 - **Frozen**: the hive is built, then frozen (`Freeze()` on the hive) before
-  it is mounted, and is immutable from then on; every read is lock-free. Writes answer `ERROR_ACCESS_DENIED`. Opening a lower-only key
-  (nothing in the upper layer at or below it) returns the lower handle
-  itself, at no cost on keys the mount does not touch.
+  it is mounted, and is immutable from then on; every read is lock-free.
+  Writes answer `ERROR_ACCESS_DENIED`. Opening a lower-only key (nothing in
+  the upper layer at or below it) returns the lower handle itself, at no
+  cost on keys the mount does not touch.
 - **Writable**: each hive has an SRWLOCK (shared for readers, exclusive for
   writers). Every open inside the mount returns a virtual handle, creating a
   transparent node lazily, or a real handle handed out earlier would miss a
@@ -429,65 +403,13 @@ In namespace `VReg::RegFile` (`include/VReg/regfile.h`):
   broken after the first comma past column 76 with a `\` continuation and
   a two-space indent, a blank line between keys.
 
-## Errors and diagnostics
+## Errors
 
-- Every Win32-shaped entry point is `noexcept` and returns the `LSTATUS`
-  native Windows returns in the same situation; native behavior is the
-  spec. `std::bad_alloc` becomes `ERROR_OUTOFMEMORY` at that boundary.
-- Agent's choice: no logging dependency; an optional diagnostic sink (a
-  function pointer, off by default) bound by the detour-body rules. A
-  logging library dependency was passed over.
-
-### Known divergences of the ANSI adapters
-
-Measured by the oracle; each is an input no sane caller relies on.
-
-- Strings set without a terminator: native `RegSetValueExW` and
-  `RegSetValueExA` read one character past `cbData` and store an extra
-  terminator when it is zero. Ours never reads past `cbData`: the wide form
-  stores exactly the bytes given, and the ANSI form always terminates.
-- `RegGetValueA` on a string with an odd byte count: native keeps the stray
-  byte in the buffer tail.
-- `RegQueryMultipleValuesA` with a buffer that holds some narrowed values
-  but not all: native answers `ERROR_INVALID_DATA` after a partial fill; ours
-  answers `ERROR_MORE_DATA`.
-- `RegEnumValueA` with a too-small name buffer: native may write a
-  terminator past `cbData`; ours stays in bounds.
-- Null pointers on which native faults (`RegEnumKeyExA` and `RegEnumValueA`
-  names, `RegQueryMultipleValues` lists and buffers) answer an error code.
-
-### Known divergences of virtual keys
-
-Measured by running the oracle catalogue against `VirtualRegistry` over a
-`MemoryHive`; the scenarios skip exactly these calls for the virtual run
-(and for its native reference).
-
-- Access rights are per node, not per open: a key opened `KEY_READ` can
-  still be written through its handle, and `KEY_QUERY_VALUE` is never
-  checked. (A zero `samDesired` is refused on open, as native does.)
-- Handle identity: two opens of a node return the same handle, and an `Ex`
-  open or create of an empty subkey returns the parent's own handle where
-  native returns a new one.
-- `REG_OPTION_BACKUP_RESTORE` opens succeed; native needs
-  `SeBackupPrivilege` and answers `ERROR_ACCESS_DENIED` without it.
-- `REG_OPTION_CREATE_LINK` creates an ordinary key.
-- `RegQueryInfoKey` reports a security descriptor size of 0.
-- `RegLoadMUIString` answers `ERROR_INVALID_DATA` for a hive value whether
-  or not it is an `@` indirect string; resolving one would load a resource
-  module, which detour bodies may not do. A value stored with
-  `Hive::SetMuiTextValue` instead stands for the text an indirect string
-  resolves to: it answers with that text, sized and truncated as native
-  answers a resolved string, and ignores `pszDirectory` (there is no module
-  to find). Agent's choice: an explicit mark per value, set through the
-  hive. A value type of our own would show through `RegQueryValueEx`, and
-  answering every plain string with its text would change what unmarked
-  values answer, which consumers rely on.
-- Through an overlay, an entry the upper layer shadows or tombstones carries
-  the letter case of the first call that named it, not the lower key's case
-  (a name is found without regard to case, but enumerated as stored).
-- Only calls on a real handle that name a mount point's last component are
-  resolved by native path; a mount below `HKEY_CLASSES_ROOT` and the other
-  roots without a native path is not reachable through a real parent handle.
+Every Win32-shaped entry point is `noexcept` and returns the `LSTATUS`
+native Windows returns in the same situation; native behavior is the spec.
+`std::bad_alloc` becomes `ERROR_OUTOFMEMORY` at that boundary. Where VReg
+cannot match native Windows, the README lists it under "Known divergences
+from native Windows".
 
 ## Testing
 
@@ -530,31 +452,10 @@ Catch2.
 
 ## Packaging
 
-- CMake 3.25+, C++20, MSVC 2022 and clang-cl.
-- Works through `add_subdirectory`/`FetchContent` (tests build only when
-  VReg is the top-level project) and through
-  `find_package(VReg CONFIG COMPONENTS Core RegFile Detours)` after install.
 - Static libraries only. Agent's choice: each module links its own copy and
   the copies meet in the shared handle namespace, so a DLL build would buy
   nothing and need an export surface; honoring `BUILD_SHARED_LIBS` was
   passed over.
+- Tests build only when VReg is the top-level project.
 - Detours is found as the vcpkg port lays it out (header plus library, no
   CMake config).
-
-## License
-
-MIT (the maintainer's default; Detours is MIT as well). Alternatives:
-
-- BSL-1.0: no attribution required in shipped binaries, convenient for a
-  library embedded in redistributed DLLs.
-- Apache-2.0: explicit patent grant, NOTICE file.
-- 0BSD or MIT-0: no conditions at all.
-
-## Naming
-
-Spelled VReg wherever no convention forces lowercase: C++ namespace `VReg`,
-CMake package `VReg` with targets `VReg::Core`, `VReg::RegFile` and
-`VReg::Detours`. Lowercase only for the vcpkg port (`vreg`); CMake options
-are `VREG_*`. Flat functions, where any exist, are `VReg` plus the Win32 name (`VRegOpenKeyExW`), each
-reading as the virtual counterpart of its `Reg*` function.
-
