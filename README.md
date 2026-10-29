@@ -21,7 +21,9 @@ It grew out of the virtual registry in
 - **Pure in-memory mode.** With no base registry, nothing outside the
   mounted hives exists.
 - **`.reg` files.** Import and export (REGEDIT4 and version 5), including
-  deletions, for persistence and test fixtures.
+  deletions, for persistence and test fixtures. Exports match `reg export`
+  byte for byte apart from the order of values; the UTF-8 form imports
+  with `regedit /s` and `reg import` alike.
 - **Optional auto-hooking** of the process's `Reg*` calls through Microsoft
   Detours. It is safe under the loader lock, coexists with other hookers, and
   works with several modules in one process that each link VReg statically.

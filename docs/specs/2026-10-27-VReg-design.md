@@ -390,14 +390,17 @@ In namespace `VReg::RegFile` (`include/VReg/regfile.h`):
 - Byte-exact round trip: a value takes its friendly form only when that
   reproduces its bytes on re-import, otherwise `hex(n):` (a `REG_SZ` without
   terminator, with an embedded NUL or newline, or an odd byte count).
-- Formats: v5 UTF-16LE (default, regedit-compatible); v5 UTF-8 for
-  diff-friendly fixtures (whether regedit accepts it is checked in the plan,
-  else documented as fixture-only); `REGEDIT4`, where data `CP_ACP` cannot
-  represent fails with `ERROR_NO_UNICODE_TRANSLATION`.
+- Formats: v5 UTF-16LE (default, what regedit writes); v5 UTF-8 without
+  BOM for diff-friendly fixtures; `REGEDIT4`, where data `CP_ACP` cannot
+  represent fails with `ERROR_NO_UNICODE_TRANSLATION`. Windows imports the
+  UTF-8 form intact, non-BMP characters included: `regedit /s` with or
+  without BOM, `reg import` only without one (with a BOM it answers "not a
+  registry file").
 - Keys and values sorted ordinal case-insensitive. Agent's choice: stable
   fixture diffs over mirroring regedit's enumeration order.
-- Regedit's layout: CRLF, `hex:` wrapped at 80 columns with `\`
-  continuations, a blank line between keys.
+- `reg export`'s layout, byte for byte apart from the order: CRLF, hex data
+  broken after the first comma past column 76 with a `\` continuation and
+  a two-space indent, a blank line between keys.
 
 ## Errors and diagnostics
 
