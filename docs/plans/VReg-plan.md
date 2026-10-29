@@ -124,8 +124,3 @@ the `find_package` consumer.
 3. README: usage for the three configurations (overlay over native, pure in-memory, hooked), the detour-body rules, the
    documented gaps (pre-commit real handles, `ntdll` callers), the
    install-early recommendation.
-
-## After v1 (not in this plan)
-
-- DirectRetrofit migrates onto the library, in its own repository.
-- vcpkg port with a `detours` feature.

@@ -4,39 +4,39 @@ A virtualized Windows registry library: a registry interface with the Win32
 signatures, in-memory and overlay storage mounted into a virtual namespace,
 `.reg` import/export, and an optional Detours adapter that routes a process's
 `Reg*` calls into it. The project grew out of the virtual registry in
-DirectRetrofit, which becomes its first consumer.
+DirectRetrofit, its first consumer.
 
 ## Goals
 
-- Usable standalone as a registry that defers to an underlying
-  implementation (native or virtual), and as a pure in-memory registry with
-  no real registry behind it.
-- One virtual namespace per process that several modules contribute subtrees
-  to, each module linking
-  the library statically; everything outside the virtual subtrees passes
-  through untouched, including real values that are not overridden
-  (MUI-resolved strings).
+- A core of the registry interface, its storage, the virtual namespace and
+  the handles, usable standalone as a registry that defers to an
+  underlying implementation (native or virtual), and as a pure in-memory
+  registry with no real registry behind it.
+- One virtual namespace per process that several modules contribute
+  subtrees to, each module linking the library statically; everything
+  outside the virtual subtrees passes through untouched, including real
+  values that are not overridden (MUI-resolved strings).
 - Optional auto-hooking of the process's `Reg*` calls via Detours, playing
   nicely with other hookers of the same functions.
-- `.reg` files for persistence and test fixtures.
+- `.reg` import and export, for persistence and test fixtures.
 - Windows only; x86 and x64; runs under Wine/Proton.
 
-## v1 scope
+## Non-goals
 
-All four parts ship in v1: the core (interface, storage, virtual namespace,
-handles), `.reg` import/export, and the Detours adapter. DirectRetrofit
-migrating onto it is the acceptance test for the core and the adapter.
-
-## Non-goals (v1)
-
-- ARM64 and ARM64EC.
 - Calls made straight to `ntdll` (`NtOpenKey` and friends); they bypass the
   hooks.
 - Persistence beyond explicit import/export calls (no file-backed hives, no
   automatic flush).
 - Hive *file* parsing (`.dat`, `.hiv`); the native registry is reached only
   through its public API.
-- A vcpkg port; it follows v1, with a `detours` feature.
+
+## Missing
+
+- ARM64 and ARM64EC builds. Agent's choice: listed as missing rather than
+  as a non-goal, since nothing in the design rules them out.
+- Answers on virtual keys for the functions the hooks refuse there (see
+  "Coverage" below); `RegRenameKey` and `RegCopyTree` are the ones a hive
+  could answer most readily.
 
 ## Architecture
 
