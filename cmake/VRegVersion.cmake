@@ -14,9 +14,9 @@
 # from a release archive, TWEAK is 0 and the string the version alone, unless
 # a commit is given for the build metadata.
 
-# Sets VREG_VERSION_MAJOR, _MINOR, _PATCH, _TWEAK and _STRING in the caller's
-# scope for the sources at SOURCE_DIR; COMMIT, when not empty, replaces what
-# git would say.
+# Sets VREG_VERSION (the full semver string) and VREG_VERSION_MAJOR, _MINOR,
+# _PATCH and _TWEAK (its numbers) in the caller's scope for the sources at
+# SOURCE_DIR; COMMIT, when not empty, replaces what git would say.
 function(vreg_compute_version sourceDir commit)
     file(READ "${sourceDir}/vcpkg.json" manifest)
     string(JSON version GET "${manifest}" version-semver)
@@ -96,7 +96,7 @@ function(vreg_compute_version sourceDir commit)
     set(VREG_VERSION_MINOR "${minor}" PARENT_SCOPE)
     set(VREG_VERSION_PATCH "${patch}" PARENT_SCOPE)
     set(VREG_VERSION_TWEAK "${tweak}" PARENT_SCOPE)
-    set(VREG_VERSION_STRING "${text}" PARENT_SCOPE)
+    set(VREG_VERSION "${text}" PARENT_SCOPE)
 endfunction()
 
 # Run with -P: writes OUTPUT for the sources at SOURCE_DIR, rewriting it only
@@ -107,7 +107,7 @@ if(CMAKE_SCRIPT_MODE_FILE STREQUAL CMAKE_CURRENT_LIST_FILE)
     foreach(part IN ITEMS MAJOR MINOR PATCH TWEAK)
         string(APPEND header "#define VREG_VERSION_${part} ${VREG_VERSION_${part}}\n")
     endforeach()
-    string(APPEND header "#define VREG_VERSION_STRING \"${VREG_VERSION_STRING}\"\n")
+    string(APPEND header "#define VREG_VERSION \"${VREG_VERSION}\"\n")
     if(EXISTS "${OUTPUT}")
         file(READ "${OUTPUT}" old)
     endif()

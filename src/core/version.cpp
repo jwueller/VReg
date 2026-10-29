@@ -16,6 +16,6 @@ Version GetVersion() noexcept
 
 LPCSTR GetVersionString() noexcept
 {
-    return VREG_VERSION_STRING;
+    return VREG_VERSION;
 }
 } // namespace VReg
