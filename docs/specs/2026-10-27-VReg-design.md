@@ -120,7 +120,8 @@ buffer and A/W rules stay in `VirtualRegistry`.
   - An upper-only key ends its enumerations with `ERROR_NO_MORE_ITEMS`,
     never `ERROR_FILE_NOT_FOUND`.
   - `RegLoadMUIStringW` on a lower-backed value forwards to the lower key;
-    an upper value answers as any hive value does (see Deviations).
+    an upper value answers as any hive value does (see "Known divergences of
+    virtual keys").
 
 ## Handles, freeze and locking
 

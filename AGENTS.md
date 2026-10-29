@@ -1,17 +1,16 @@
 # AGENTS.md
 
-Guidance for coding agents. **Read `README.md` first**: it owns what VReg
-is, how to build and use it, and where things live. Anything a human needs
-belongs there, not here. The design is owned by `docs/specs/`, the order of
-work by `docs/plans/`.
+Guidance for coding agents. **Read [README.md](./README.md) and
+[CONTRIBUTING.md](./CONTRIBUTING.md) first**: the README owns what VReg is
+and how to use it; CONTRIBUTING owns how to build, test and release it,
+and where the design lives. Anything a human needs belongs there, not
+here. The design is owned by [docs/specs/](./docs/specs/), the order of
+work by [docs/plans/](./docs/plans/).
 
 ## Working in this repository
 
 - Commit autonomously; push only with the maintainer's sign-off. Never
   force-push or rewrite published history unless told to.
-- Tag a release only on a commit CI has passed on, the Wine jobs
-  included: push the release commit, wait for green, then tag. Local
-  test runs do not cover Wine or clang-cl.
 - Keep history to settled decisions. Unpushed commits that record churn
   (a discussion resolved before it landed, a fix to the previous commit)
   are amended or squashed, not stacked.
@@ -24,9 +23,9 @@ work by `docs/plans/`.
 - VReg grew out of DirectRetrofit, and saying so is fine. Never reference
   DirectRetrofit's internals (its paths, symbols or docs) in files or
   commit messages here.
-- Tests come first. Native Windows behavior is the spec: a scenario that
-  can run against the real registry (a private app hive) runs against it
-  too, and the virtual answer must match its status codes, sizes and bytes.
+- Tests come first, checked against native Windows as
+  [CONTRIBUTING.md](./CONTRIBUTING.md) describes: status codes, sizes and
+  bytes alike.
 
 ## Invariants that are easy to break
 
@@ -45,8 +44,8 @@ work by `docs/plans/`.
 - **Hooks are never detached**; they are neutralized through their slot.
   Nothing calls `DetourDetach`.
 - **No `std::mutex` in the library.** It locks with `SRWLOCK`
-  (`src/core/lock.h` says why); Wine's `msvcp140.dll` aborts on the
-  current `std::mutex`.
+  ([src/core/lock.h](./src/core/lock.h) says why); Wine's `msvcp140.dll`
+  aborts on the current `std::mutex`.
 
 ## Code conventions
 

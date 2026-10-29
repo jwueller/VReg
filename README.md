@@ -30,12 +30,6 @@ It grew out of the virtual registry in
 
 Windows only (x86 and x64), and runs under Wine and Proton.
 
-## Status
-
-v1 released as v0.1.0.
-- Design: `docs/specs/2026-10-27-VReg-design.md`
-- Implementation plan: `docs/plans/2026-10-27-VReg-plan.md`
-
 ## Using it
 
 CMake targets (static libraries):
@@ -68,14 +62,6 @@ the baseline:
 
 Then depend on `vreg`, or `{"name": "vreg", "features": ["detours"]}` for
 the hooks, in `vcpkg.json`. The port prints its CMake usage on install.
-
-A change to `ports/vreg` needs a new version entry (bump `version-semver`
-or `port-version` first), committed after the port change itself, since it
-records the port's git tree:
-
-```
-vcpkg x-add-version vreg --x-builtin-ports-root=ports --x-builtin-registry-versions-dir=versions
-```
 
 ### Overlay over the real registry
 
@@ -146,25 +132,14 @@ and it reaches the real registry only through the base registry, never
 `::Reg*`.
 
 Not covered: calls straight to `ntdll` (`NtOpenKey` and friends) bypass the
-hooks. Where VReg cannot match native Windows exactly, the spec lists it
-under "Known divergences".
+hooks. Where VReg cannot match native Windows exactly, the
+[design](./docs/specs/2026-10-27-VReg-design.md) lists it under "Known
+divergences".
 
-## Building
+## Contributing
 
-Needs Visual Studio 2022 or later (MSVC or clang-cl), CMake 3.25+, Ninja and
-vcpkg (`VCPKG_ROOT` set; the copy bundled with Visual Studio works). From a
-developer prompt for the target architecture:
-
-```
-cmake --preset msvc-x64
-cmake --build --preset msvc-x64-debug
-ctest --preset msvc-x64-debug
-```
-
-Presets: `{msvc,clang-cl}-{x86,x64}` to configure; append `-debug` or
-`-release` to build and test. They enable the tests and `VReg::Detours`, with
-Catch2 and Detours from vcpkg.
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 
-MIT.
+[MIT](./LICENSE).
