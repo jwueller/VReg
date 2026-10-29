@@ -1,6 +1,6 @@
 # VReg v1 implementation plan
 
-Implements `docs/specs/2026-10-27-VReg-design.md`. Each milestone ends green
+Implements [the design](../specs/VReg-design.md). Each milestone ends green
 on x86 and x64 and is committed before the next starts. Tests come first in
 every task (red, then green); "oracle" below means the native-behavior
 harness from M2.

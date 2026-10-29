@@ -136,7 +136,7 @@ and it reaches the real registry only through the base registry, never
 
 Not covered: calls straight to `ntdll` (`NtOpenKey` and friends) bypass the
 hooks. Where VReg cannot match native Windows exactly, the
-[design](./docs/specs/2026-10-27-VReg-design.md) lists it under "Known
+[design](./docs/specs/VReg-design.md) lists it under "Known
 divergences".
 
 ## Contributing

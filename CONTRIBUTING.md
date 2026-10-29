@@ -2,9 +2,9 @@
 
 ## Design
 
-- [Design](./docs/specs/2026-10-27-VReg-design.md). It also lists where VReg
+- [Design](./docs/specs/VReg-design.md). It also lists where VReg
   knowingly differs from native Windows.
-- [Implementation plan](./docs/plans/2026-10-27-VReg-plan.md)
+- [Implementation plan](./docs/plans/VReg-plan.md)
 
 ## Building and testing
 
