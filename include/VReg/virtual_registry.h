@@ -72,14 +72,28 @@ public:
 
     /// Mounts @p hive at @p path below the predefined key @p hRoot (an empty
     /// path mounts the root itself). @p hive must outlive this registry.
-    /// Answers `ERROR_INVALID_HANDLE` for a root that is not predefined,
-    /// `ERROR_BAD_PATHNAME` for a malformed path and `ERROR_ALREADY_EXISTS`
-    /// for a path already mounted. @p view limits the calls the mount answers
-    /// to those of one registry view.
+    /// Answers @ref ERROR_INVALID_HANDLE for a root that is not predefined,
+    /// @ref ERROR_BAD_PATHNAME for a malformed path and
+    /// @ref ERROR_ALREADY_EXISTS for a path already mounted. @p view limits
+    /// the calls the mount answers to those of one registry view.
     LSTATUS Mount(
         HKEY hRoot,
         std::wstring_view path,
         Hive& hive,
+        MountView view = MountView::Both
+    ) noexcept;
+
+    /// @ref Mount for reading only: this registry calls only the const
+    /// members of @p hive and answers every write through the mount
+    /// @ref ERROR_ACCESS_DENIED, as a frozen hive does, while the hive itself
+    /// stays writable to whoever holds it non-const. One hive is mounted
+    /// either way within a registry, never both, since its handles belong to
+    /// its nodes and not to a mount: mounting it the other way answers
+    /// @ref ERROR_INVALID_PARAMETER.
+    LSTATUS Mount(
+        HKEY hRoot,
+        std::wstring_view path,
+        const Hive& hive,
         MountView view = MountView::Both
     ) noexcept;
 
@@ -216,7 +230,9 @@ private:
     {
         HKEY hRoot;
         std::vector<std::wstring> path;
-        Hive* pHive;
+        const Hive* pHive;
+        /// @ref pHive for writing; null for a read-only mount.
+        Hive* pWritable;
         MountView view;
         /// The native key path as components without `WOW6432Node`; empty
         /// when the mount has none.
@@ -233,6 +249,10 @@ private:
     {
         /// The node, when the key is inside a mount.
         Node* pNode = nullptr;
+        /// The hive of @ref pNode, and the same hive for writing when it is
+        /// mounted writable here.
+        const Hive* pHive = nullptr;
+        Hive* pWritable = nullptr;
         /// The components below @ref pNode still to walk.
         std::vector<std::wstring_view> rest;
         /// Whether the call goes to the base registry, because the key is
@@ -244,7 +264,16 @@ private:
     };
 
     [[nodiscard]] const MountTable& Mounts() const noexcept;
-    [[nodiscard]] bool IsMounted(const Hive* pHive) const noexcept;
+    /// A mount of @p pHive here; null when it is not mounted.
+    [[nodiscard]] const MountPoint* MountOf(const Hive* pHive) const noexcept;
+
+    LSTATUS MountHive(
+        HKEY hRoot,
+        std::wstring_view path,
+        const Hive& hive,
+        Hive* pWritable,
+        MountView view
+    ) noexcept;
 
     /// Resolves @p hKey and @p subKey (null or empty for the key itself).
     /// @p samDesired supplies the registry view of the call.

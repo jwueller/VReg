@@ -65,7 +65,7 @@ public:
     virtual void Freeze() noexcept = 0;
     [[nodiscard]] virtual bool IsFrozen() const noexcept = 0;
 
-    [[nodiscard]] virtual Node* Root() noexcept = 0;
+    [[nodiscard]] virtual Node* Root() const noexcept = 0;
 
     /// The virtual handle of @p pNode.
     [[nodiscard]] static HKEY HandleOf(const Node* pNode) noexcept;
@@ -79,7 +79,7 @@ public:
         KeyPath path,
         REGSAM samDesired,
         OpenResult& result
-    ) noexcept = 0;
+    ) const noexcept = 0;
 
     /// On a frozen hive an existing key opens as with @ref OpenKey, and a
     /// missing one answers @ref ERROR_ACCESS_DENIED.
@@ -183,11 +183,11 @@ public:
         bool isSubtree,
         DWORD dwFilter,
         HANDLE hEvent
-    ) noexcept = 0;
+    ) const noexcept = 0;
 
     /// The registry below this hive, which answers the handles in
     /// @ref OpenResult::hLower; null for a hive with nothing below it.
-    [[nodiscard]] virtual Registry* Lower() noexcept;
+    [[nodiscard]] virtual Registry* Lower() const noexcept;
 
     /// A key of @ref Lower holding value @p name of @p pNode, when that value
     /// shows through from below; null (and success) when the hive holds it
@@ -196,6 +196,6 @@ public:
         Node* pNode,
         std::wstring_view name,
         HKEY& hLower
-    ) noexcept;
+    ) const noexcept;
 };
 } // namespace VReg

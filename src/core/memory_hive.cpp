@@ -40,7 +40,7 @@ bool MemoryHive::IsFrozen() const noexcept
     return m_pTree->IsFrozen();
 }
 
-Node* MemoryHive::Root() noexcept
+Node* MemoryHive::Root() const noexcept
 {
     return m_pTree->Root();
 }
@@ -50,7 +50,7 @@ LSTATUS MemoryHive::OpenKey(
     const KeyPath path,
     const REGSAM samDesired,
     OpenResult& result
-) noexcept
+) const noexcept
 {
     (void)samDesired;
 
@@ -406,7 +406,7 @@ LSTATUS MemoryHive::Watch(
     const bool isSubtree,
     const DWORD dwFilter,
     const HANDLE hEvent
-) noexcept
+) const noexcept
 {
     return m_pTree->Watch(*pNode, isSubtree, dwFilter, hEvent);
 }

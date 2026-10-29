@@ -213,6 +213,13 @@ Chosen per mount:
   lock, so taking it inside a detour body under a foreign loader lock is
   safe.
 
+Independently of both, a `VirtualRegistry` mounts a hive passed as
+`const Hive&` read-only: it calls only the hive's const members, and every
+write through it answers `ERROR_ACCESS_DENIED` as on a frozen hive, while
+whoever holds the hive non-const can still write it (and the mount sees
+those writes, under the lock). Handles belong to nodes, not mounts, so one
+registry mounts a hive either read-only or writable, never both.
+
 ### Change notification
 
 `RegNotifyChangeKeyValue` on a virtual key registers a one-shot watch on the

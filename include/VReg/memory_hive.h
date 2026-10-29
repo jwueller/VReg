@@ -23,14 +23,14 @@ public:
 
     void Freeze() noexcept override;
     [[nodiscard]] bool IsFrozen() const noexcept override;
-    [[nodiscard]] Node* Root() noexcept override;
+    [[nodiscard]] Node* Root() const noexcept override;
 
     LSTATUS OpenKey(
         Node* pParent,
         KeyPath path,
         REGSAM samDesired,
         OpenResult& result
-    ) noexcept override;
+    ) const noexcept override;
 
     LSTATUS CreateKey(
         Node* pParent,
@@ -98,7 +98,7 @@ public:
         bool isSubtree,
         DWORD dwFilter,
         HANDLE hEvent
-    ) noexcept override;
+    ) const noexcept override;
 
 private:
     LSTATUS StoreValue(

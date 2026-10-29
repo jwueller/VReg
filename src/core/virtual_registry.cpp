@@ -218,6 +218,27 @@ LSTATUS VirtualRegistry::Mount(
     Hive& hive,
     const MountView view
 ) noexcept
+{
+    return MountHive(hRoot, path, hive, &hive, view);
+}
+
+LSTATUS VirtualRegistry::Mount(
+    const HKEY hRoot,
+    const std::wstring_view path,
+    const Hive& hive,
+    const MountView view
+) noexcept
+{
+    return MountHive(hRoot, path, hive, nullptr, view);
+}
+
+LSTATUS VirtualRegistry::MountHive(
+    const HKEY hRoot,
+    const std::wstring_view path,
+    const Hive& hive,
+    Hive* const pWritable,
+    const MountView view
+) noexcept
 try
 {
     if (!IsPredefinedHKey(hRoot))
@@ -231,6 +252,7 @@ try
         .hRoot = hRoot,
         .path = {components.begin(), components.end()},
         .pHive = &hive,
+        .pWritable = pWritable,
         .view = view,
         .nativePath = NativeRootPath(hRoot),
     };
@@ -248,6 +270,12 @@ try
     auto* const pNew = new MountTable(pOld ? *pOld : MountTable{});
     for (const auto& existing : pNew->mounts)
     {
+        if (existing.pHive == &hive && !existing.pWritable != !pWritable)
+        {
+            delete pNew;
+            return ERROR_INVALID_PARAMETER;
+        }
+
         if (existing.hRoot == hRoot && std::ranges::equal(
             existing.path,
             mount.path,
@@ -280,12 +308,13 @@ const VirtualRegistry::MountTable& VirtualRegistry::Mounts() const noexcept
     return pMounts ? *pMounts : s_empty;
 }
 
-bool VirtualRegistry::IsMounted(const Hive* const pHive) const noexcept
+const VirtualRegistry::MountPoint* VirtualRegistry::MountOf(
+    const Hive* const pHive
+) const noexcept
 {
-    return std::ranges::any_of(
-        Mounts().mounts,
-        [&](const MountPoint& mount) { return mount.pHive == pHive; }
-    );
+    const auto& mounts = Mounts().mounts;
+    const auto it = std::ranges::find(mounts, pHive, &MountPoint::pHive);
+    return it == mounts.end() ? nullptr : &*it;
 }
 
 bool VirtualRegistry::ResolveNative(
@@ -378,6 +407,8 @@ bool VirtualRegistry::ResolveNative(
         return false;
 
     target.pNode = pBest->pHive->Root();
+    target.pHive = pBest->pHive;
+    target.pWritable = pBest->pWritable;
     target.rest.assign(
         full.begin() + static_cast<std::ptrdiff_t>(iBestRest),
         full.end()
@@ -399,11 +430,13 @@ VirtualRegistry::Target VirtualRegistry::Resolve(
 
     if (auto* const pNode = Hive::NodeOf(hKey))
     {
-        if (IsMounted(Hive::HiveOf(pNode)))
+        if (const auto* const pMount = MountOf(Hive::HiveOf(pNode)))
         {
             if (isSplit)
             {
                 target.pNode = pNode;
+                target.pHive = pMount->pHive;
+                target.pWritable = pMount->pWritable;
                 target.rest = std::move(components);
             }
             else
@@ -447,6 +480,8 @@ VirtualRegistry::Target VirtualRegistry::Resolve(
         if (pBest)
         {
             target.pNode = pBest->pHive->Root();
+            target.pHive = pBest->pHive;
+            target.pWritable = pBest->pWritable;
             target.rest.assign(
                 components.begin() + pBest->path.size(),
                 components.end()
@@ -504,7 +539,7 @@ try
         return ERROR_ACCESS_DENIED;
 
     OpenResult result;
-    const auto status = Hive::HiveOf(target.pNode)->OpenKey(
+    const auto status = target.pHive->OpenKey(
         target.pNode,
         target.rest,
         samDesired,
@@ -568,16 +603,25 @@ try
         return ERROR_INVALID_PARAMETER;
 
     OpenResult result;
-    DWORD dwDisposition = 0;
-    const auto status = Hive::HiveOf(target.pNode)->CreateKey(
-        target.pNode,
-        target.rest,
-        View(lpClass),
-        dwOptions,
-        samDesired,
-        result,
-        dwDisposition
-    );
+    DWORD dwDisposition = REG_OPENED_EXISTING_KEY;
+    const auto status = target.pWritable
+                            ? target.pWritable->CreateKey(
+                                  target.pNode,
+                                  target.rest,
+                                  View(lpClass),
+                                  dwOptions,
+                                  samDesired,
+                                  result,
+                                  dwDisposition
+                              )
+                            : target.pHive->OpenKey(
+                                  target.pNode,
+                                  target.rest,
+                                  samDesired,
+                                  result
+                              );
+    if (status == ERROR_FILE_NOT_FOUND && !target.pWritable)
+        return ERROR_ACCESS_DENIED;
     if (status != ERROR_SUCCESS)
         return status;
 
@@ -639,7 +683,7 @@ try
 
     DWORD dwType{};
     std::vector<std::byte> value;
-    const auto status = Hive::HiveOf(target.pNode)->QueryValue(
+    const auto status = target.pHive->QueryValue(
         target.pNode,
         View(lpValueName),
         dwType,
@@ -701,7 +745,10 @@ try
     if (!lpData && cbData)
         return ERROR_NOACCESS;
 
-    return Hive::HiveOf(target.pNode)->SetValue(
+    if (!target.pWritable)
+        return ERROR_ACCESS_DENIED;
+
+    return target.pWritable->SetValue(
         target.pNode,
         View(lpValueName),
         dwType,
@@ -729,7 +776,10 @@ try
     if (!target.pNode)
         return target.status;
 
-    return Hive::HiveOf(target.pNode)->DeleteValue(
+    if (!target.pWritable)
+        return ERROR_ACCESS_DENIED;
+
+    return target.pWritable->DeleteValue(
         target.pNode,
         View(lpValueName)
     );
@@ -761,7 +811,10 @@ try
     if (!target.pNode)
         return target.status;
 
-    return Hive::HiveOf(target.pNode)->DeleteKey(target.pNode, target.rest);
+    if (!target.pWritable)
+        return ERROR_ACCESS_DENIED;
+
+    return target.pWritable->DeleteKey(target.pNode, target.rest);
 }
 catch (const std::bad_alloc&)
 {
@@ -784,7 +837,7 @@ try
     if (!target.pNode)
         return target.status;
 
-    auto* const pHive = Hive::HiveOf(target.pNode);
+    const auto* const pHive = target.pHive;
     OpenResult result;
     const auto opened = pHive->OpenKey(
         target.pNode,
@@ -804,11 +857,14 @@ try
         return ERROR_ACCESS_DENIED;
     }
 
-    const auto status = pHive->DeleteTree(result.pNode);
+    if (!target.pWritable)
+        return ERROR_ACCESS_DENIED;
+
+    const auto status = target.pWritable->DeleteTree(result.pNode);
     if (status != ERROR_SUCCESS || target.rest.empty())
         return status;
 
-    return pHive->DeleteKey(target.pNode, target.rest);
+    return target.pWritable->DeleteKey(target.pNode, target.rest);
 }
 catch (const std::bad_alloc&)
 {
@@ -855,7 +911,7 @@ try
     std::wstring name;
     std::wstring className;
     FILETIME lastWrite{};
-    const auto status = Hive::HiveOf(target.pNode)->EnumKey(
+    const auto status = target.pHive->EnumKey(
         target.pNode,
         dwIndex,
         name,
@@ -933,7 +989,7 @@ try
     std::wstring name;
     DWORD dwType{};
     std::vector<std::byte> value;
-    const auto status = Hive::HiveOf(target.pNode)->EnumValue(
+    const auto status = target.pHive->EnumValue(
         target.pNode,
         dwIndex,
         name,
@@ -1020,7 +1076,7 @@ try
         return target.status;
 
     KeyInfo info;
-    const auto status = Hive::HiveOf(target.pNode)->QueryInfo(
+    const auto status = target.pHive->QueryInfo(
         target.pNode,
         info
     );
@@ -1107,7 +1163,7 @@ try
         || (cbOutBuf % sizeof(wchar_t)) != 0 || (!pszOutBuf && cbOutBuf != 0))
         return ERROR_INVALID_PARAMETER;
 
-    auto* const pHive = Hive::HiveOf(target.pNode);
+    const auto* const pHive = target.pHive;
     HKEY hLower{};
     const auto opened = pHive->OpenLowerValueKey(
         target.pNode,
@@ -1222,7 +1278,7 @@ try
     if (!target.pNode)
         return fail(target.status);
 
-    auto* const pHive = Hive::HiveOf(target.pNode);
+    const auto* const pHive = target.pHive;
     auto* pNode = target.pNode;
     if (!target.rest.empty())
     {
@@ -1402,7 +1458,7 @@ try
     if ((dwNotifyFilter & ~kKnownFilters) || (fAsynchronous && !hEvent))
         return ERROR_INVALID_PARAMETER;
 
-    auto& hive = *Hive::HiveOf(target.pNode);
+    const auto& hive = *target.pHive;
     if (fAsynchronous)
         return hive.Watch(
             target.pNode,
@@ -1450,7 +1506,7 @@ try
     if (!target.pNode)
         return target.status;
 
-    return Hive::HiveOf(target.pNode)->CheckKey(target.pNode);
+    return target.pHive->CheckKey(target.pNode);
 }
 catch (const std::bad_alloc&)
 {

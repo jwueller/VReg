@@ -199,12 +199,12 @@ bool OverlayHive::IsFrozen() const noexcept
     return m_pTree->IsFrozen();
 }
 
-Node* OverlayHive::Root() noexcept
+Node* OverlayHive::Root() const noexcept
 {
     return m_pTree->Root();
 }
 
-Registry* OverlayHive::Lower() noexcept
+Registry* OverlayHive::Lower() const noexcept
 {
     return &m_lower;
 }
@@ -301,7 +301,7 @@ LSTATUS OverlayHive::OpenKey(
     const KeyPath path,
     const REGSAM samDesired,
     OpenResult& result
-) noexcept
+) const noexcept
 try
 {
     Node* pCurrent = pParent;
@@ -1252,7 +1252,7 @@ LSTATUS OverlayHive::Watch(
     const bool isSubtree,
     const DWORD dwFilter,
     const HANDLE hEvent
-) noexcept
+) const noexcept
 {
     return m_pTree->Watch(*pNode, isSubtree, dwFilter, hEvent);
 }
@@ -1261,7 +1261,7 @@ LSTATUS OverlayHive::OpenLowerValueKey(
     Node* const pNode,
     const std::wstring_view name,
     HKEY& hLower
-) noexcept
+) const noexcept
 try
 {
     hLower = nullptr;

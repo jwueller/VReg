@@ -76,14 +76,14 @@ public:
 
     void Freeze() noexcept override;
     [[nodiscard]] bool IsFrozen() const noexcept override;
-    [[nodiscard]] Node* Root() noexcept override;
+    [[nodiscard]] Node* Root() const noexcept override;
 
     LSTATUS OpenKey(
         Node* pParent,
         KeyPath path,
         REGSAM samDesired,
         OpenResult& result
-    ) noexcept override;
+    ) const noexcept override;
 
     LSTATUS CreateKey(
         Node* pParent,
@@ -153,7 +153,7 @@ public:
         bool isSubtree,
         DWORD dwFilter,
         HANDLE hEvent
-    ) noexcept override;
+    ) const noexcept override;
 
     /**
      * @brief Lists the upper layer: what the hive holds itself, as opposed to what shows through from below.
@@ -164,13 +164,13 @@ public:
      */
     LSTATUS SnapshotUpper(std::vector<UpperRecord>& records) const noexcept;
 
-    [[nodiscard]] Registry* Lower() noexcept override;
+    [[nodiscard]] Registry* Lower() const noexcept override;
 
     LSTATUS OpenLowerValueKey(
         Node* pNode,
         std::wstring_view name,
         HKEY& hLower
-    ) noexcept override;
+    ) const noexcept override;
 
 private:
     /// Whether a node's lower key shows through, and its path; read under

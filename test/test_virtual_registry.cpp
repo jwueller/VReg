@@ -338,6 +338,92 @@ TEST_CASE("A value marked as MUI text loads as its text until written again")
     CHECK(text == L"Text");
 }
 
+TEST_CASE("A hive mounted read-only answers reads and refuses writes")
+{
+    MemoryHive hive;
+    const HKEY hRoot = Hive::HandleOf(hive.Root());
+    {
+        VirtualRegistry writer;
+        REQUIRE(writer.Mount(HKEY_CURRENT_USER, L"Test", hive) == ERROR_SUCCESS);
+        REQUIRE(SetDword(writer, CreateKey(writer, hRoot, L"Sub"), L"v", 7) == ERROR_SUCCESS);
+    }
+
+    VirtualRegistry registry;
+    const Hive& readOnly = hive;
+    REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"Test", readOnly) == ERROR_SUCCESS);
+
+    const HKEY hSub = OpenKey(registry, HKEY_CURRENT_USER, L"Test\\Sub");
+    LSTATUS status = ERROR_SUCCESS;
+    CHECK(QueryDword(registry, hSub, L"v", status) == 7);
+    CHECK(status == ERROR_SUCCESS);
+
+    HKEY hKey = nullptr;
+    DWORD dwDisposition = 0;
+    CHECK(
+        registry.RegCreateKeyExW(
+            hRoot,
+            L"Sub",
+            0,
+            nullptr,
+            0,
+            KEY_ALL_ACCESS,
+            nullptr,
+            &hKey,
+            &dwDisposition
+        ) == ERROR_SUCCESS
+    );
+    CHECK(hKey == hSub);
+    CHECK(dwDisposition == REG_OPENED_EXISTING_KEY);
+    CHECK(
+        registry.RegCreateKeyExW(
+            hRoot,
+            L"New",
+            0,
+            nullptr,
+            0,
+            KEY_ALL_ACCESS,
+            nullptr,
+            &hKey,
+            &dwDisposition
+        ) == ERROR_ACCESS_DENIED
+    );
+    CHECK(SetDword(registry, hSub, L"v", 8) == ERROR_ACCESS_DENIED);
+    CHECK(
+        registry.RegDeleteValueW(
+            hSub,
+            L"v"
+        ) == ERROR_ACCESS_DENIED
+    );
+    CHECK(
+        registry.RegDeleteKeyExW(
+            hRoot,
+            L"Sub",
+            0,
+            0
+        ) == ERROR_ACCESS_DENIED
+    );
+    CHECK(
+        registry.RegDeleteTreeW(
+            hRoot,
+            L"Sub"
+        ) == ERROR_ACCESS_DENIED
+    );
+
+    // Read-only through this registry only: the hive itself stays writable.
+    const DWORD dwNine = 9;
+    REQUIRE(
+        hive.SetValue(
+            Hive::NodeOf(hSub),
+            L"v",
+            REG_DWORD,
+            std::as_bytes(std::span(&dwNine, 1))
+        ) == ERROR_SUCCESS
+    );
+    CHECK(QueryDword(registry, hSub, L"v", status) == 9);
+
+    CHECK(registry.Mount(HKEY_CURRENT_USER, L"Other", hive) == ERROR_INVALID_PARAMETER);
+}
+
 TEST_CASE("Mount rejects what cannot be mounted")
 {
     MemoryHive hive;

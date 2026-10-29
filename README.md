@@ -109,7 +109,8 @@ VReg::Detours::Install(*registry, *native);
 
 From then on the process's own `Reg*` calls see the mount. A frozen hive is
 read-only and its readers take no lock; leave it writable to let the process
-write into it.
+write into it. Mounting a `const Hive&` makes the mount read-only while the
+hive stays writable to whoever holds it.
 
 - **Install early**, before other code hooks the registry functions, where
   you can. Later hookers chain on top and work, but a key handle opened

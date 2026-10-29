@@ -59,7 +59,7 @@ Hive* Hive::HiveOf(const Node* const pNode) noexcept
     return pNode->pHive;
 }
 
-Registry* Hive::Lower() noexcept
+Registry* Hive::Lower() const noexcept
 {
     return nullptr;
 }
@@ -68,7 +68,7 @@ LSTATUS Hive::OpenLowerValueKey(
     Node* const pNode,
     const std::wstring_view name,
     HKEY& hLower
-) noexcept
+) const noexcept
 {
     (void)pNode;
     (void)name;
