@@ -1,4 +1,4 @@
-#include <VReg/VReg.h>
+#include <VReg/core.h>
 #include <VReg/regfile.h>
 
 #ifdef CONSUMER_WITH_DETOURS
@@ -12,5 +12,5 @@ int main()
 #ifdef CONSUMER_WITH_DETOURS
     VReg::Detours::Neutralize();
 #endif
-    return (VReg::GetVersion().major == VReg::VREG_VERSION_MAJOR && status == ERROR_INVALID_DATA) ? 0 : 1;
+    return (VReg::GetVersion().wMajor == VReg::VREG_VERSION_MAJOR && status == ERROR_INVALID_DATA) ? 0 : 1;
 }
