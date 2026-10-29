@@ -87,6 +87,32 @@ bool IsOwned(const T& value) noexcept
     return false;
 }
 
+/// Whether a @ref RegOpenKeyTransactedW call names no transaction, which it
+/// answers with @ref ERROR_INVALID_TRANSACTION. The hook answers that
+/// itself: on ARM64 the function reaches that answer through a branch back
+/// into its first 12 bytes, which the hook's jump overwrites.
+///
+/// Agent's choice: answered on every architecture rather than on ARM64
+/// alone, since the native answer is the same everywhere and one path is
+/// simpler.
+bool IsUntransacted(
+    const HKEY hKey,
+    const LPCWSTR pszSubKey,
+    const DWORD ulOptions,
+    const REGSAM samDesired,
+    const PHKEY phkResult,
+    const HANDLE hTransaction,
+    const PVOID pExtendedParemeter
+) noexcept
+{
+    (void)hKey;
+    (void)pszSubKey;
+    (void)ulOptions;
+    (void)samDesired;
+    (void)phkResult;
+    return !pExtendedParemeter && (!hTransaction || hTransaction == INVALID_HANDLE_VALUE);
+}
+
 template <class Function, std::size_t Index>
 struct Refused;
 
@@ -99,6 +125,12 @@ struct Refused<LSTATUS(APIENTRY*)(Args...), Index>
     {
         if ((IsOwned(args) || ...))
             return ERROR_NOT_SUPPORTED;
+
+        if constexpr (Index == kRegOpenKeyTransactedW)
+        {
+            if (IsUntransacted(args...))
+                return ERROR_INVALID_TRANSACTION;
+        }
 
         const auto pfnNext = reinterpret_cast<LSTATUS(APIENTRY*)(Args...)>(g_refusedTargets[Index]);
         return pfnNext(args...);

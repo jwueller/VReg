@@ -962,6 +962,28 @@ TEST_CASE("Refused functions answer not supported on virtual keys and pass real 
     CHECK(!RealKeyExists(name));
 }
 
+TEST_CASE("RegOpenKeyTransactedW answers an invalid transaction on real keys without one")
+{
+    const auto name = MountName(L"Exe");
+    REQUIRE(InstallMount(name.c_str(), L"Exe") == NO_ERROR);
+
+    for (const HANDLE hTransaction : {HANDLE{}, INVALID_HANDLE_VALUE})
+    {
+        HKEY hKey{};
+        CHECK(
+            ::RegOpenKeyTransactedW(
+                HKEY_CURRENT_USER,
+                L"Software",
+                0,
+                KEY_READ,
+                &hKey,
+                hTransaction,
+                nullptr
+            ) == ERROR_INVALID_TRANSACTION
+        );
+    }
+}
+
 TEST_CASE("RegLoadMUIStringA answers not implemented on virtual keys")
 {
     const auto name = MountName(L"Exe");
