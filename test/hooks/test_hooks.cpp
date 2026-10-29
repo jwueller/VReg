@@ -7,6 +7,7 @@
 
 #include <VReg/handle.h>
 
+#include <ktmw32.h>
 #include <winternl.h>
 
 #include <catch2/catch_test_macros.hpp>
@@ -987,6 +988,104 @@ TEST_CASE("RegOpenKeyTransactedW answers an invalid transaction on real keys wit
             ) == ERROR_INVALID_TRANSACTION
         );
     }
+}
+
+TEST_CASE("Transacted functions answer not supported through a mount path and pass real ones through")
+{
+    const auto hAdvapi32 = GetModuleHandleW(L"advapi32.dll");
+    for (const char* const pszName : {"RegCreateKeyTransactedW", "RegOpenKeyTransactedW", "RegDeleteKeyTransactedW"})
+    {
+        if (!GetProcAddress(hAdvapi32, pszName))
+            SKIP("advapi32 does not export the transacted functions");
+    }
+
+    const auto name = MountName(L"Exe");
+    REQUIRE(InstallMount(name.c_str(), L"Exe") == NO_ERROR);
+    const HANDLE hTransaction = CreateTransaction(nullptr, nullptr, 0, 0, 0, 0, nullptr);
+    REQUIRE(hTransaction != INVALID_HANDLE_VALUE);
+
+    const auto inside = name + L"\\Inside";
+    HKEY hKey{};
+    CHECK(
+        ::RegCreateKeyTransactedW(
+            HKEY_CURRENT_USER,
+            inside.c_str(),
+            0,
+            nullptr,
+            0,
+            KEY_ALL_ACCESS,
+            nullptr,
+            &hKey,
+            nullptr,
+            hTransaction,
+            nullptr
+        ) == ERROR_NOT_SUPPORTED
+    );
+    std::string insideAnsi;
+    for (const wchar_t ch : inside)
+        insideAnsi += static_cast<char>(ch);
+    CHECK(
+        ::RegCreateKeyTransactedA(
+            HKEY_CURRENT_USER,
+            insideAnsi.c_str(),
+            0,
+            nullptr,
+            0,
+            KEY_ALL_ACCESS,
+            nullptr,
+            &hKey,
+            nullptr,
+            hTransaction,
+            nullptr
+        ) == ERROR_NOT_SUPPORTED
+    );
+    CHECK(
+        ::RegOpenKeyTransactedW(
+            HKEY_CURRENT_USER,
+            name.c_str(),
+            0,
+            KEY_READ,
+            &hKey,
+            hTransaction,
+            nullptr
+        ) == ERROR_NOT_SUPPORTED
+    );
+    CHECK(
+        ::RegDeleteKeyTransactedW(
+            HKEY_CURRENT_USER,
+            inside.c_str(),
+            0,
+            0,
+            hTransaction,
+            nullptr
+        ) == ERROR_NOT_SUPPORTED
+    );
+    CHECK(!RealKeyExists(name));
+
+    const auto real = MountName(L"Real");
+    REQUIRE(
+        ::RegCreateKeyTransactedW(
+            HKEY_CURRENT_USER,
+            real.c_str(),
+            0,
+            nullptr,
+            0,
+            KEY_ALL_ACCESS,
+            nullptr,
+            &hKey,
+            nullptr,
+            hTransaction,
+            nullptr
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        ::RegCloseKey(
+            hKey
+        ) == ERROR_SUCCESS
+    );
+    CHECK(RollbackTransaction(hTransaction));
+    CHECK(CloseHandle(hTransaction));
+    CHECK(!RealKeyExists(real));
 }
 
 TEST_CASE("RegLoadMUIStringA answers not implemented on virtual keys")

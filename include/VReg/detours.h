@@ -16,8 +16,9 @@ class Registry;
  *  handle reaching an unhooked one would fail as invalid. Most are answered
  *  by the registry; the rest (save, restore, load, security, rename, copy,
  *  transacted forms, reflection, predefined-key overrides) answer
- *  @ref ERROR_NOT_SUPPORTED for a virtual handle of this copy and pass
- *  everything else on.
+ *  @ref ERROR_NOT_SUPPORTED for a virtual handle of this copy (the
+ *  transacted forms also for a path into a mount) and pass everything else
+ *  on.
  *
  *  Each hook is a small thunk outside the module image that jumps through a
  *  slot. The hooks are never detached: @ref Neutralize points every slot at

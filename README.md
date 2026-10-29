@@ -225,6 +225,9 @@ unchanged on a real one. They are hooked but not part of `Registry`.
 - [`RegOpenKeyTransactedA`][RegOpenKeyTransactedA], [`RegOpenKeyTransactedW`][RegOpenKeyTransactedW]
 - [`RegDeleteKeyTransactedA`][RegDeleteKeyTransactedA], [`RegDeleteKeyTransactedW`][RegDeleteKeyTransactedW]
 
+They also answer `ERROR_NOT_SUPPORTED` on a real key whose subkey path
+leads into a mount.
+
 #### Reflection and overrides
 
 - [`RegDisableReflectionKey`][RegDisableReflectionKey]
@@ -402,6 +405,13 @@ Measured by running the oracle catalogue against `VirtualRegistry` over a
 - Only calls on a real handle that name a mount point's last component are
   resolved by native path; a mount below `HKEY_CLASSES_ROOT` and the other
   roots without a native path is not reachable through a real parent handle.
+
+### Transactions
+
+Mounts take no part in Kernel Transaction Manager transactions. A
+transacted create, open or delete answers `ERROR_NOT_SUPPORTED` where native
+would act inside the transaction: on a virtual key, and on a real key whose
+subkey path leads into a mount.
 
 ## Contributing
 

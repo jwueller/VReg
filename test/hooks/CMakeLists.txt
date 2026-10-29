@@ -11,7 +11,7 @@ foreach(_module A B)
 endforeach()
 
 add_executable(VReg_HookTests ../no_dialogs.cpp ../oracle.cpp test_hooks.cpp)
-target_link_libraries(VReg_HookTests PRIVATE VReg::Core VReg::Detours VReg_BuildSettings Catch2::Catch2WithMain)
+target_link_libraries(VReg_HookTests PRIVATE VReg::Core VReg::Detours VReg_BuildSettings Catch2::Catch2WithMain ktmw32)
 target_include_directories(VReg_HookTests PRIVATE ${PROJECT_SOURCE_DIR}/src)
 set_target_properties(VReg_HookTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${_dir})
 add_dependencies(VReg_HookTests VReg_HookModuleA VReg_HookModuleB)

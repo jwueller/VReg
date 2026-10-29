@@ -3,8 +3,10 @@
 #include <VReg/native_registry.h>
 #include <VReg/registry.h>
 
+#include "core/ansi.h"
 #include "core/export_table.h"
 #include "core/handle_space.h"
+#include "core/status.h"
 
 #include <detours/detours.h>
 
@@ -13,6 +15,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <string>
+#include <string_view>
 
 namespace VReg::Detours
 {
@@ -113,6 +117,141 @@ bool IsUntransacted(
     return !pExtendedParemeter && (!hTransaction || hTransaction == INVALID_HANDLE_VALUE);
 }
 
+/**
+ * @brief @ref ERROR_NOT_SUPPORTED when @p hKey plus @p pszSubKey lies in a
+ *  mount of @ref g_pRegistry, as a transacted call on a virtual handle
+ *  answers; @ref ERROR_SUCCESS to pass the call on.
+ *
+ *  The registry is asked only through its `Reg*` surface, so a wrapper in
+ *  front of it needs nothing more: each prefix of the path, the key itself
+ *  included, is opened, and the path is in a mount when one of them opens as
+ *  a virtual handle of this copy. Every prefix is tried because the real keys
+ *  above a mount point need not exist.
+ *
+ *  It probes by opening rather than through a query beside
+ *  @ref Registry, which a wrapper would have to forward and which would add a
+ *  member outside the Win32 family. Opening is read-only, and a deprecated
+ *  API can afford one open per path component.
+ */
+LSTATUS RefuseMountPath(const HKEY hKey, const LPCWSTR pszSubKey, const REGSAM samDesired) noexcept
+try
+{
+    auto* const pRegistry = g_pRegistry.load(std::memory_order_acquire);
+    const std::wstring_view subKey = pszSubKey ? pszSubKey : L"";
+    for (std::size_t end = 0; end <= subKey.size(); ++end)
+    {
+        if (end != subKey.size() && subKey[end] != L'\\')
+            continue;
+
+        const std::wstring prefix(subKey.substr(0, end));
+        HKEY hProbe{};
+        const auto status = pRegistry->RegOpenKeyExW(
+            hKey,
+            prefix.c_str(),
+            0,
+            KEY_QUERY_VALUE | (samDesired & KEY_WOW64_RES),
+            &hProbe
+        );
+        if (status != ERROR_SUCCESS)
+            continue;
+
+        const bool isVirtual = IsOwned(hProbe);
+        // An empty path may answer hKey itself rather than a new handle.
+        if (hProbe != hKey)
+        {
+            pRegistry->RegCloseKey(
+                hProbe
+            );
+        }
+        if (isVirtual)
+            return ERROR_NOT_SUPPORTED;
+    }
+    return ERROR_SUCCESS;
+}
+catch (...)
+{
+    return StatusFromException();
+}
+
+LSTATUS RefuseMountPath(const HKEY hKey, const LPCSTR pszSubKey, const REGSAM samDesired) noexcept
+try
+{
+    const WideArg subKey(pszSubKey);
+    return RefuseMountPath(hKey, subKey.Get(), samDesired);
+}
+catch (...)
+{
+    return StatusFromException();
+}
+
+/// @ref RefuseMountPath for the arguments of @ref RegCreateKeyTransactedW.
+template <class String, class Class>
+LSTATUS RefuseMountPath(
+    const HKEY hKey,
+    const String lpSubKey,
+    const DWORD Reserved,
+    const Class lpClass,
+    const DWORD dwOptions,
+    const REGSAM samDesired,
+    const LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+    const PHKEY phkResult,
+    const LPDWORD lpdwDisposition,
+    const HANDLE hTransaction,
+    const PVOID pExtendedParemeter
+) noexcept
+{
+    (void)Reserved;
+    (void)lpClass;
+    (void)dwOptions;
+    (void)lpSecurityAttributes;
+    (void)phkResult;
+    (void)lpdwDisposition;
+    (void)hTransaction;
+    (void)pExtendedParemeter;
+    return RefuseMountPath(hKey, lpSubKey, samDesired);
+}
+
+/// @ref RefuseMountPath for the arguments of @ref RegOpenKeyTransactedW.
+template <class String>
+LSTATUS RefuseMountPath(
+    const HKEY hKey,
+    const String lpSubKey,
+    const DWORD ulOptions,
+    const REGSAM samDesired,
+    const PHKEY phkResult,
+    const HANDLE hTransaction,
+    const PVOID pExtendedParemeter
+) noexcept
+{
+    (void)ulOptions;
+    (void)phkResult;
+    (void)hTransaction;
+    (void)pExtendedParemeter;
+    return RefuseMountPath(hKey, lpSubKey, samDesired);
+}
+
+/// @ref RefuseMountPath for the arguments of @ref RegDeleteKeyTransactedW.
+template <class String>
+LSTATUS RefuseMountPath(
+    const HKEY hKey,
+    const String lpSubKey,
+    const REGSAM samDesired,
+    const DWORD Reserved,
+    const HANDLE hTransaction,
+    const PVOID pExtendedParemeter
+) noexcept
+{
+    (void)Reserved;
+    (void)hTransaction;
+    (void)pExtendedParemeter;
+    return RefuseMountPath(hKey, lpSubKey, samDesired);
+}
+
+constexpr bool IsTransacted(const std::size_t index) noexcept
+{
+    return index >= kRegCreateKeyTransactedA && index <= kRegDeleteKeyTransactedW;
+}
+
 template <class Function, std::size_t Index>
 struct Refused;
 
@@ -125,6 +264,13 @@ struct Refused<LSTATUS(APIENTRY*)(Args...), Index>
     {
         if ((IsOwned(args) || ...))
             return ERROR_NOT_SUPPORTED;
+
+        if constexpr (IsTransacted(Index))
+        {
+            const auto status = RefuseMountPath(args...);
+            if (status != ERROR_SUCCESS)
+                return status;
+        }
 
         if constexpr (Index == kRegOpenKeyTransactedW)
         {
