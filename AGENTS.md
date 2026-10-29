@@ -4,8 +4,9 @@ Guidance for coding agents. **Read [README.md](./README.md) and
 [CONTRIBUTING.md](./CONTRIBUTING.md) first**: the README owns what VReg is
 and how to use it; CONTRIBUTING owns how to build, test and release it,
 and where the design lives. Anything a human needs belongs there, not
-here. The design is owned by [docs/specs/](./docs/specs/), the order of
-work by [docs/plans/](./docs/plans/).
+here. The design is owned by [docs/specs/](./docs/specs/). A plan for
+unfinished work goes in `docs/plans/` and is deleted once the work is done;
+git keeps how it got there.
 
 ## Working in this repository
 

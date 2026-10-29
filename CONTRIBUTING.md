@@ -2,9 +2,8 @@
 
 ## Design
 
-- [Design](./docs/specs/VReg-design.md). It also lists where VReg
-  knowingly differs from native Windows.
-- [Implementation plan](./docs/plans/VReg-plan.md)
+The [design](./docs/specs/VReg-design.md) owns how VReg works, what is
+still missing, and where it knowingly differs from native Windows.
 
 ## Building and testing
 
