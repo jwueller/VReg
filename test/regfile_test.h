@@ -3,6 +3,7 @@
 // Shared pieces of the .reg tests.
 
 #include <VReg/native_registry.h>
+#include <VReg/owned_values.h>
 #include <VReg/regfile.h>
 
 #include "oracle.h"
@@ -78,7 +79,7 @@ public:
     {
     }
 
-    LSTATUS OpenKeyExW(
+    LSTATUS RegOpenKeyExW(
         HKEY hKey,
         LPCWSTR lpSubKey,
         DWORD ulOptions,
@@ -86,7 +87,7 @@ public:
         PHKEY phkResult
     ) noexcept override
     {
-        return m_native.OpenKeyExW(
+        return m_native.RegOpenKeyExW(
             Map(hKey),
             lpSubKey,
             ulOptions,
@@ -95,7 +96,7 @@ public:
         );
     }
 
-    LSTATUS CreateKeyExW(
+    LSTATUS RegCreateKeyExW(
         HKEY hKey,
         LPCWSTR lpSubKey,
         DWORD Reserved,
@@ -107,7 +108,7 @@ public:
         LPDWORD lpdwDisposition
     ) noexcept override
     {
-        return m_native.CreateKeyExW(
+        return m_native.RegCreateKeyExW(
             Map(hKey),
             lpSubKey,
             Reserved,
@@ -120,23 +121,23 @@ public:
         );
     }
 
-    LSTATUS CloseKey(HKEY hKey) noexcept override
+    LSTATUS RegCloseKey(HKEY hKey) noexcept override
     {
-        return m_native.CloseKey(
+        return m_native.RegCloseKey(
             hKey
         );
     }
 
-    LSTATUS QueryValueExW(
+    LSTATUS RegQueryValueExW(
         HKEY hKey,
         LPCWSTR lpValueName,
         LPDWORD lpReserved,
         LPDWORD lpType,
         LPBYTE lpData,
         LPDWORD lpcbData
-    ) noexcept override
+    ) const noexcept override
     {
-        return m_native.QueryValueExW(
+        return m_native.RegQueryValueExW(
             hKey,
             lpValueName,
             lpReserved,
@@ -146,7 +147,7 @@ public:
         );
     }
 
-    LSTATUS SetValueExW(
+    LSTATUS RegSetValueExW(
         HKEY hKey,
         LPCWSTR lpValueName,
         DWORD Reserved,
@@ -155,7 +156,7 @@ public:
         DWORD cbData
     ) noexcept override
     {
-        return m_native.SetValueExW(
+        return m_native.RegSetValueExW(
             hKey,
             lpValueName,
             Reserved,
@@ -165,22 +166,22 @@ public:
         );
     }
 
-    LSTATUS DeleteValueW(HKEY hKey, LPCWSTR lpValueName) noexcept override
+    LSTATUS RegDeleteValueW(HKEY hKey, LPCWSTR lpValueName) noexcept override
     {
-        return m_native.DeleteValueW(
+        return m_native.RegDeleteValueW(
             hKey,
             lpValueName
         );
     }
 
-    LSTATUS DeleteKeyExW(
+    LSTATUS RegDeleteKeyExW(
         HKEY hKey,
         LPCWSTR lpSubKey,
         REGSAM samDesired,
         DWORD Reserved
     ) noexcept override
     {
-        return m_native.DeleteKeyExW(
+        return m_native.RegDeleteKeyExW(
             Map(hKey),
             lpSubKey,
             samDesired,
@@ -188,15 +189,15 @@ public:
         );
     }
 
-    LSTATUS DeleteTreeW(HKEY hKey, LPCWSTR lpSubKey) noexcept override
+    LSTATUS RegDeleteTreeW(HKEY hKey, LPCWSTR lpSubKey) noexcept override
     {
-        return m_native.DeleteTreeW(
+        return m_native.RegDeleteTreeW(
             Map(hKey),
             lpSubKey
         );
     }
 
-    LSTATUS EnumKeyExW(
+    LSTATUS RegEnumKeyExW(
         HKEY hKey,
         DWORD dwIndex,
         LPWSTR lpName,
@@ -205,9 +206,9 @@ public:
         LPWSTR lpClass,
         LPDWORD lpcchClass,
         PFILETIME lpftLastWriteTime
-    ) noexcept override
+    ) const noexcept override
     {
-        return m_native.EnumKeyExW(
+        return m_native.RegEnumKeyExW(
             Map(hKey),
             dwIndex,
             lpName,
@@ -219,7 +220,7 @@ public:
         );
     }
 
-    LSTATUS EnumValueW(
+    LSTATUS RegEnumValueW(
         HKEY hKey,
         DWORD dwIndex,
         LPWSTR lpValueName,
@@ -228,9 +229,9 @@ public:
         LPDWORD lpType,
         LPBYTE lpData,
         LPDWORD lpcbData
-    ) noexcept override
+    ) const noexcept override
     {
-        return m_native.EnumValueW(
+        return m_native.RegEnumValueW(
             Map(hKey),
             dwIndex,
             lpValueName,
@@ -242,7 +243,7 @@ public:
         );
     }
 
-    LSTATUS QueryInfoKeyW(
+    LSTATUS RegQueryInfoKeyW(
         HKEY hKey,
         LPWSTR lpClass,
         LPDWORD lpcchClass,
@@ -255,9 +256,9 @@ public:
         LPDWORD lpcbMaxValueLen,
         LPDWORD lpcbSecurityDescriptor,
         PFILETIME lpftLastWriteTime
-    ) noexcept override
+    ) const noexcept override
     {
-        return m_native.QueryInfoKeyW(
+        return m_native.RegQueryInfoKeyW(
             Map(hKey),
             lpClass,
             lpcchClass,
@@ -273,7 +274,7 @@ public:
         );
     }
 
-    LSTATUS LoadMUIStringW(
+    LSTATUS RegLoadMUIStringW(
         HKEY hKey,
         LPCWSTR pszValue,
         LPWSTR pszOutBuf,
@@ -281,9 +282,9 @@ public:
         LPDWORD pcbData,
         DWORD Flags,
         LPCWSTR pszDirectory
-    ) noexcept override
+    ) const noexcept override
     {
-        return m_native.LoadMUIStringW(
+        return m_native.RegLoadMUIStringW(
             Map(hKey),
             pszValue,
             pszOutBuf,
@@ -294,7 +295,7 @@ public:
         );
     }
 
-    LSTATUS GetValueW(
+    LSTATUS RegGetValueW(
         HKEY hkey,
         LPCWSTR lpSubKey,
         LPCWSTR lpValue,
@@ -302,9 +303,9 @@ public:
         LPDWORD pdwType,
         PVOID pvData,
         LPDWORD pcbData
-    ) noexcept override
+    ) const noexcept override
     {
-        return m_native.GetValueW(
+        return m_native.RegGetValueW(
             Map(hkey),
             lpSubKey,
             lpValue,
@@ -315,7 +316,7 @@ public:
         );
     }
 
-    LSTATUS NotifyChangeKeyValue(
+    LSTATUS RegNotifyChangeKeyValue(
         HKEY hKey,
         BOOL bWatchSubtree,
         DWORD dwNotifyFilter,
@@ -323,7 +324,7 @@ public:
         BOOL fAsynchronous
     ) noexcept override
     {
-        return m_native.NotifyChangeKeyValue(
+        return m_native.RegNotifyChangeKeyValue(
             Map(hKey),
             bWatchSubtree,
             dwNotifyFilter,
@@ -332,9 +333,9 @@ public:
         );
     }
 
-    LSTATUS FlushKey(HKEY hKey) noexcept override
+    LSTATUS RegFlushKey(HKEY hKey) noexcept override
     {
-        return m_native.FlushKey(
+        return m_native.RegFlushKey(
             Map(hKey)
         );
     }
@@ -367,7 +368,7 @@ inline HKEY MustOpen(
 {
     HKEY hKey{};
     REQUIRE(
-        registry.OpenKeyExW(
+        registry.RegOpenKeyExW(
             HKEY_CURRENT_USER,
             pszPath,
             0,
@@ -390,7 +391,7 @@ inline void MustSet(
     HKEY hKey{};
     REQUIRE(
         registry
-            .CreateKeyExW(
+            .RegCreateKeyExW(
                 HKEY_CURRENT_USER,
                 pszPath,
                 0,
@@ -408,7 +409,7 @@ inline void MustSet(
     std::vector<std::byte> padded(data);
     padded.insert(padded.end(), 4, std::byte{0x11});
     REQUIRE(
-        registry.SetValueExW(
+        registry.RegSetValueExW(
             hKey,
             pszName,
             0,
@@ -417,7 +418,7 @@ inline void MustSet(
             static_cast<DWORD>(data.size())
         ) == ERROR_SUCCESS
     );
-    registry.CloseKey(
+    registry.RegCloseKey(
         hKey
     );
 }
@@ -432,14 +433,15 @@ inline RegValue MustGet(
     const HKEY hKey = MustOpen(registry, pszPath);
     RegValue value;
     REQUIRE(
-        registry.QueryValue(
+        QueryValue(
+            registry,
             hKey,
             pszName,
             &value.dwType,
             value.data
         ) == ERROR_SUCCESS
     );
-    registry.CloseKey(
+    registry.RegCloseKey(
         hKey
     );
     return value;

@@ -131,7 +131,7 @@ void CloseUnlessParent(
         return;
     RECORD(
         label + " close",
-        api.CloseKey(
+        api.RegCloseKey(
             hKey
         )
     );
@@ -158,7 +158,7 @@ template <class Api> LSTATUS SetStored(
     auto guarded = value.data;
     guarded.insert(guarded.end(), 4, BYTE{0x58});
     return api
-        .SetValueExW(
+        .RegSetValueExW(
             hKey,
             value.name.c_str(),
             0,
@@ -187,7 +187,7 @@ LSTATUS QueryEx(
     LPDWORD pcbData
 )
 {
-    return api.QueryValueExW(
+    return api.RegQueryValueExW(
         hKey,
         pszName,
         nullptr,
@@ -207,7 +207,7 @@ LSTATUS QueryEx(
     LPDWORD pcbData
 )
 {
-    return api.QueryValueExA(
+    return api.RegQueryValueExA(
         hKey,
         pszName,
         nullptr,

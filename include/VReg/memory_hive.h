@@ -50,7 +50,7 @@ public:
         std::wstring_view name,
         DWORD& dwType,
         std::vector<std::byte>& data
-    ) noexcept override;
+    ) const noexcept override;
 
     LSTATUS SetValue(
         Node* pNode,
@@ -71,7 +71,7 @@ public:
         Node* pNode,
         std::wstring_view name,
         std::wstring& text
-    ) noexcept override;
+    ) const noexcept override;
 
     LSTATUS EnumKey(
         Node* pNode,
@@ -79,7 +79,7 @@ public:
         std::wstring& name,
         std::wstring& className,
         FILETIME& lastWrite
-    ) noexcept
+    ) const noexcept
         override;
 
     LSTATUS EnumValue(
@@ -88,10 +88,10 @@ public:
         std::wstring& name,
         DWORD& dwType,
         std::vector<std::byte>& data
-    ) noexcept
+    ) const noexcept
         override;
-    LSTATUS QueryInfo(Node* pNode, KeyInfo& info) noexcept override;
-    LSTATUS CheckKey(Node* pNode) noexcept override;
+    LSTATUS QueryInfo(Node* pNode, KeyInfo& info) const noexcept override;
+    LSTATUS CheckKey(Node* pNode) const noexcept override;
 
     LSTATUS Watch(
         Node* pNode,

@@ -76,7 +76,7 @@ TEST_CASE("Export lays a snapshot out the way regedit does")
     {
         HKEY hKey{};
         REQUIRE(
-            registry.CreateKeyExW(
+            registry.RegCreateKeyExW(
                 HKEY_CURRENT_USER,
                 L"Software\\VRegTest\\NoValues",
                 0,
@@ -88,7 +88,7 @@ TEST_CASE("Export lays a snapshot out the way regedit does")
                 nullptr
             ) == ERROR_SUCCESS
         );
-        registry.CloseKey(
+        registry.RegCloseKey(
             hKey
         );
     }

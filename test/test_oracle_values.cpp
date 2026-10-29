@@ -113,7 +113,7 @@ struct SetAnsiAndQueryEveryType
             const std::string label = item.name;
             RECORD(
                 label + " set",
-                api.SetValueExA(
+                api.RegSetValueExA(
                     hRoot,
                     item.name,
                     0,
@@ -137,7 +137,7 @@ struct SetInvalidArguments
 
         RECORD(
             "W no data nonzero size",
-            api.SetValueExW(
+            api.RegSetValueExW(
                 hRoot,
                 L"A",
                 0,
@@ -148,7 +148,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "W no data zero size",
-            api.SetValueExW(
+            api.RegSetValueExW(
                 hRoot,
                 L"B",
                 0,
@@ -159,7 +159,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "W string no data zero size",
-            api.SetValueExW(
+            api.RegSetValueExW(
                 hRoot,
                 L"C",
                 0,
@@ -170,7 +170,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "W reserved",
-            api.SetValueExW(
+            api.RegSetValueExW(
                 hRoot,
                 L"D",
                 7,
@@ -181,7 +181,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "W invalid handle",
-            api.SetValueExW(
+            api.RegSetValueExW(
                 nullptr,
                 L"E",
                 0,
@@ -192,7 +192,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "A no data nonzero size",
-            api.SetValueExA(
+            api.RegSetValueExA(
                 hRoot,
                 "A2",
                 0,
@@ -203,7 +203,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "A no data zero size",
-            api.SetValueExA(
+            api.RegSetValueExA(
                 hRoot,
                 "B2",
                 0,
@@ -214,7 +214,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "A string no data zero size",
-            api.SetValueExA(
+            api.RegSetValueExA(
                 hRoot,
                 "C2",
                 0,
@@ -225,7 +225,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "A string no data nonzero size",
-            api.SetValueExA(
+            api.RegSetValueExA(
                 hRoot,
                 "D2",
                 0,
@@ -236,7 +236,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "A reserved",
-            api.SetValueExA(
+            api.RegSetValueExA(
                 hRoot,
                 "E2",
                 7,
@@ -247,7 +247,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "A reserved string",
-            api.SetValueExA(
+            api.RegSetValueExA(
                 hRoot,
                 "F2",
                 7,
@@ -258,7 +258,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "A invalid handle",
-            api.SetValueExA(
+            api.RegSetValueExA(
                 nullptr,
                 "G2",
                 0,
@@ -269,7 +269,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "A invalid handle string",
-            api.SetValueExA(
+            api.RegSetValueExA(
                 nullptr,
                 "H2",
                 0,
@@ -280,7 +280,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "A long name",
-            api.SetValueExA(
+            api.RegSetValueExA(
                 hRoot,
                 std::string(300, 'n').c_str(),
                 0,
@@ -291,7 +291,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "W long name",
-            api.SetValueExW(
+            api.RegSetValueExW(
                 hRoot,
                 std::wstring(300, L'n').c_str(),
                 0,
@@ -304,7 +304,7 @@ struct SetInvalidArguments
         DWORD cbData = kFillSize;
         RECORD(
             "none stored",
-            api.QueryValueExW(
+            api.RegQueryValueExW(
                 hRoot,
                 L"A",
                 nullptr,
@@ -317,7 +317,7 @@ struct SetInvalidArguments
         cbData = kFillSize;
         RECORD(
             "zero stored",
-            api.QueryValueExW(
+            api.RegQueryValueExW(
                 hRoot,
                 L"B",
                 nullptr,
@@ -330,7 +330,7 @@ struct SetInvalidArguments
         cbData = kFillSize;
         RECORD(
             "string stored",
-            api.QueryValueExW(
+            api.RegQueryValueExW(
                 hRoot,
                 L"C",
                 nullptr,
@@ -343,7 +343,7 @@ struct SetInvalidArguments
         cbData = kFillSize;
         RECORD(
             "string stored A",
-            api.QueryValueExW(
+            api.RegQueryValueExW(
                 hRoot,
                 L"C2",
                 nullptr,
@@ -369,7 +369,7 @@ struct QueryMissingAndInvalid
         data.fill(kFill);
         RECORD(
             "W reserved",
-            api.QueryValueExW(
+            api.RegQueryValueExW(
                 hRoot,
                 L"Missing",
                 &cbData,
@@ -384,7 +384,7 @@ struct QueryMissingAndInvalid
         const DWORD reserved = 5;
         RECORD(
             "W reserved set",
-            api.QueryValueExW(
+            api.RegQueryValueExW(
                 hRoot,
                 L"Missing",
                 const_cast<LPDWORD>(&reserved),
@@ -396,7 +396,7 @@ struct QueryMissingAndInvalid
         );
         RECORD(
             "A reserved set",
-            api.QueryValueExA(
+            api.RegQueryValueExA(
                 hRoot,
                 "Missing",
                 const_cast<LPDWORD>(&reserved),
@@ -411,7 +411,7 @@ struct QueryMissingAndInvalid
         dwType = kFillSize;
         RECORD(
             "W invalid handle",
-            api.QueryValueExW(
+            api.RegQueryValueExW(
                 nullptr,
                 L"Missing",
                 nullptr,
@@ -423,7 +423,7 @@ struct QueryMissingAndInvalid
         );
         RECORD(
             "A invalid handle",
-            api.QueryValueExA(
+            api.RegQueryValueExA(
                 nullptr,
                 "Missing",
                 nullptr,
@@ -435,7 +435,7 @@ struct QueryMissingAndInvalid
         );
         RECORD(
             "W invalid handle, reserved",
-            api.QueryValueExW(
+            api.RegQueryValueExW(
                 nullptr,
                 L"Missing",
                 const_cast<LPDWORD>(&reserved),
@@ -446,7 +446,7 @@ struct QueryMissingAndInvalid
         );
         RECORD(
             "A invalid handle, reserved",
-            api.QueryValueExA(
+            api.RegQueryValueExA(
                 nullptr,
                 "Missing",
                 const_cast<LPDWORD>(&reserved),
@@ -457,7 +457,7 @@ struct QueryMissingAndInvalid
         );
         RECORD(
             "A invalid handle, data without size",
-            api.QueryValueExA(
+            api.RegQueryValueExA(
                 nullptr,
                 "Missing",
                 nullptr,
@@ -468,7 +468,7 @@ struct QueryMissingAndInvalid
         );
         RECORD(
             "W missing, data without size",
-            api.QueryValueExW(
+            api.RegQueryValueExW(
                 hRoot,
                 L"Missing",
                 nullptr,
@@ -479,7 +479,7 @@ struct QueryMissingAndInvalid
         );
         RECORD(
             "A missing, data without size",
-            api.QueryValueExA(
+            api.RegQueryValueExA(
                 hRoot,
                 "Missing",
                 nullptr,
@@ -515,7 +515,7 @@ struct DefaultValue
 
         RECORD(
             "set null W",
-            api.SetValueExW(
+            api.RegSetValueExW(
                 hRoot,
                 nullptr,
                 0,
@@ -537,7 +537,7 @@ struct DefaultValue
 
         RECORD(
             "set empty A",
-            api.SetValueExA(
+            api.RegSetValueExA(
                 hRoot,
                 "",
                 0,
@@ -556,7 +556,7 @@ struct DefaultValue
 
         RECORD(
             "set null A",
-            api.SetValueExA(
+            api.RegSetValueExA(
                 hRoot,
                 nullptr,
                 0,
@@ -569,21 +569,21 @@ struct DefaultValue
 
         RECORD(
             "delete empty A",
-            api.DeleteValueA(
+            api.RegDeleteValueA(
                 hRoot,
                 ""
             )
         );
         RECORD(
             "delete empty A again",
-            api.DeleteValueA(
+            api.RegDeleteValueA(
                 hRoot,
                 ""
             )
         );
         RECORD(
             "set again",
-            api.SetValueExW(
+            api.RegSetValueExW(
                 hRoot,
                 L"",
                 0,
@@ -594,21 +594,21 @@ struct DefaultValue
         );
         RECORD(
             "delete null W",
-            api.DeleteValueW(
+            api.RegDeleteValueW(
                 hRoot,
                 nullptr
             )
         );
         RECORD(
             "delete null W again",
-            api.DeleteValueW(
+            api.RegDeleteValueW(
                 hRoot,
                 nullptr
             )
         );
         RECORD(
             "set again",
-            api.SetValueExW(
+            api.RegSetValueExW(
                 hRoot,
                 L"",
                 0,
@@ -619,7 +619,7 @@ struct DefaultValue
         );
         RECORD(
             "delete null A",
-            api.DeleteValueA(
+            api.RegDeleteValueA(
                 hRoot,
                 nullptr
             )
@@ -634,7 +634,7 @@ struct NonAsciiNames
         const BYTE data[4] = {1, 2, 3, 4};
         RECORD(
             "set W",
-            api.SetValueExW(
+            api.RegSetValueExW(
                 hRoot,
                 L"n\u00e4me\u20ac",
                 0,
@@ -648,7 +648,7 @@ struct NonAsciiNames
 
         RECORD(
             "set A",
-            api.SetValueExA(
+            api.RegSetValueExA(
                 hRoot,
                 "caf\xe9",
                 0,
@@ -661,7 +661,7 @@ struct NonAsciiNames
 
         RECORD(
             "set W unrepresentable",
-            api.SetValueExW(
+            api.RegSetValueExW(
                 hRoot,
                 L"x\u4e2d",
                 0,
@@ -675,7 +675,7 @@ struct NonAsciiNames
 
         RECORD(
             "set W best fit",
-            api.SetValueExW(
+            api.RegSetValueExW(
                 hRoot,
                 L"b\u0101",
                 0,
@@ -688,35 +688,35 @@ struct NonAsciiNames
 
         RECORD(
             "delete A",
-            api.DeleteValueA(
+            api.RegDeleteValueA(
                 hRoot,
                 "n\xe4me\x80"
             )
         );
         RECORD(
             "delete A again",
-            api.DeleteValueA(
+            api.RegDeleteValueA(
                 hRoot,
                 "n\xe4me\x80"
             )
         );
         RECORD(
             "delete W",
-            api.DeleteValueW(
+            api.RegDeleteValueW(
                 hRoot,
                 L"caf\u00e9"
             )
         );
         RECORD(
             "delete A unrepresentable",
-            api.DeleteValueA(
+            api.RegDeleteValueA(
                 hRoot,
                 "x?"
             )
         );
         RECORD(
             "delete W unrepresentable",
-            api.DeleteValueW(
+            api.RegDeleteValueW(
                 hRoot,
                 L"x\u4e2d"
             )
@@ -724,7 +724,7 @@ struct NonAsciiNames
 
         RECORD(
             "set A empty-ish",
-            api.SetValueExA(
+            api.RegSetValueExA(
                 hRoot,
                 "\x80",
                 0,
@@ -744,21 +744,21 @@ struct DeleteValues
         const BYTE data[4] = {1, 2, 3, 4};
         RECORD(
             "delete missing W",
-            api.DeleteValueW(
+            api.RegDeleteValueW(
                 hRoot,
                 L"Missing"
             )
         );
         RECORD(
             "delete missing A",
-            api.DeleteValueA(
+            api.RegDeleteValueA(
                 hRoot,
                 "Missing"
             )
         );
         RECORD(
             "set",
-            api.SetValueExW(
+            api.RegSetValueExW(
                 hRoot,
                 L"V",
                 0,
@@ -769,21 +769,21 @@ struct DeleteValues
         );
         RECORD(
             "delete W",
-            api.DeleteValueW(
+            api.RegDeleteValueW(
                 hRoot,
                 L"v"
             )
         );
         RECORD(
             "delete W again",
-            api.DeleteValueW(
+            api.RegDeleteValueW(
                 hRoot,
                 L"v"
             )
         );
         RECORD(
             "set",
-            api.SetValueExW(
+            api.RegSetValueExW(
                 hRoot,
                 L"V",
                 0,
@@ -794,28 +794,28 @@ struct DeleteValues
         );
         RECORD(
             "delete A",
-            api.DeleteValueA(
+            api.RegDeleteValueA(
                 hRoot,
                 "V"
             )
         );
         RECORD(
             "delete A again",
-            api.DeleteValueA(
+            api.RegDeleteValueA(
                 hRoot,
                 "V"
             )
         );
         RECORD(
             "delete W invalid handle",
-            api.DeleteValueW(
+            api.RegDeleteValueW(
                 nullptr,
                 L"V"
             )
         );
         RECORD(
             "delete A invalid handle",
-            api.DeleteValueA(
+            api.RegDeleteValueA(
                 nullptr,
                 "V"
             )
@@ -832,7 +832,7 @@ struct PreExValues
 
         RECORD(
             "set W new sub",
-            api.SetValueW(
+            api.RegSetValueW(
                 hRoot,
                 L"Sub",
                 REG_SZ,
@@ -842,7 +842,7 @@ struct PreExValues
         );
         RECORD(
             "set W new nested",
-            api.SetValueW(
+            api.RegSetValueW(
                 hRoot,
                 L"Deep\\Sub",
                 REG_SZ,
@@ -852,7 +852,7 @@ struct PreExValues
         );
         RECORD(
             "set W cb small",
-            api.SetValueW(
+            api.RegSetValueW(
                 hRoot,
                 L"Sub2",
                 REG_SZ,
@@ -862,7 +862,7 @@ struct PreExValues
         );
         RECORD(
             "set A new sub",
-            api.SetValueA(
+            api.RegSetValueA(
                 hRoot,
                 "SubA",
                 REG_SZ,
@@ -872,7 +872,7 @@ struct PreExValues
         );
         RECORD(
             "set A cb small",
-            api.SetValueA(
+            api.RegSetValueA(
                 hRoot,
                 "SubA2",
                 REG_SZ,
@@ -882,7 +882,7 @@ struct PreExValues
         );
         RECORD(
             "set W wrong type",
-            api.SetValueW(
+            api.RegSetValueW(
                 hRoot,
                 L"Wrong",
                 REG_DWORD,
@@ -892,7 +892,7 @@ struct PreExValues
         );
         RECORD(
             "set A wrong type",
-            api.SetValueA(
+            api.RegSetValueA(
                 hRoot,
                 "Wrong",
                 REG_BINARY,
@@ -902,7 +902,7 @@ struct PreExValues
         );
         RECORD(
             "set W null data",
-            api.SetValueW(
+            api.RegSetValueW(
                 hRoot,
                 L"NullData",
                 REG_SZ,
@@ -912,7 +912,7 @@ struct PreExValues
         );
         RECORD(
             "set A null data",
-            api.SetValueA(
+            api.RegSetValueA(
                 hRoot,
                 "NullDataA",
                 REG_SZ,
@@ -922,7 +922,7 @@ struct PreExValues
         );
         RECORD(
             "set W null sub",
-            api.SetValueW(
+            api.RegSetValueW(
                 hRoot,
                 nullptr,
                 REG_SZ,
@@ -932,7 +932,7 @@ struct PreExValues
         );
         RECORD(
             "set A empty sub",
-            api.SetValueA(
+            api.RegSetValueA(
                 hRoot,
                 "",
                 REG_SZ,
@@ -942,7 +942,7 @@ struct PreExValues
         );
         RECORD(
             "set W invalid handle",
-            api.SetValueW(
+            api.RegSetValueW(
                 nullptr,
                 L"S",
                 REG_SZ,
@@ -952,7 +952,7 @@ struct PreExValues
         );
         RECORD(
             "set A invalid handle",
-            api.SetValueA(
+            api.RegSetValueA(
                 nullptr,
                 "S",
                 REG_SZ,
@@ -962,7 +962,7 @@ struct PreExValues
         );
         RECORD(
             "set W unrepresentable",
-            api.SetValueW(
+            api.RegSetValueW(
                 hRoot,
                 L"U\u4e2d",
                 REG_SZ,
@@ -972,7 +972,7 @@ struct PreExValues
         );
         RECORD(
             "set W unicode data",
-            api.SetValueW(
+            api.RegSetValueW(
                 hRoot,
                 L"UD",
                 REG_SZ,
@@ -982,7 +982,7 @@ struct PreExValues
         );
         RECORD(
             "set A empty string",
-            api.SetValueA(
+            api.RegSetValueA(
                 hRoot,
                 "Empty",
                 REG_SZ,
@@ -1002,7 +1002,7 @@ struct PreExValues
                 LONG cbData = cbBuffer;
                 RECORD(
                     "query W " + label + std::format(" buffer {}", cbBuffer),
-                    api.QueryValueW(
+                    api.RegQueryValueW(
                         hRoot,
                         pszSub,
                         data.data(),
@@ -1015,7 +1015,7 @@ struct PreExValues
             LONG cbData = static_cast<LONG>(kFillSize);
             RECORD(
                 "query W size " + label,
-                api.QueryValueW(
+                api.RegQueryValueW(
                     hRoot,
                     pszSub,
                     nullptr,
@@ -1025,7 +1025,7 @@ struct PreExValues
             );
             RECORD(
                 "query W no size " + label,
-                api.QueryValueW(
+                api.RegQueryValueW(
                     hRoot,
                     pszSub,
                     nullptr,
@@ -1041,7 +1041,7 @@ struct PreExValues
                 LONG cbData2 = cbBuffer;
                 RECORD(
                     "query A " + label + std::format(" buffer {}", cbBuffer),
-                    api.QueryValueA(
+                    api.RegQueryValueA(
                         hRoot,
                         narrow.c_str(),
                         data.data(),
@@ -1054,7 +1054,7 @@ struct PreExValues
             cbData = static_cast<LONG>(kFillSize);
             RECORD(
                 "query A size " + label,
-                api.QueryValueA(
+                api.RegQueryValueA(
                     hRoot,
                     narrow.c_str(),
                     nullptr,
@@ -1064,7 +1064,7 @@ struct PreExValues
             );
             RECORD(
                 "query A no size " + label,
-                api.QueryValueA(
+                api.RegQueryValueA(
                     hRoot,
                     narrow.c_str(),
                     nullptr,
@@ -1079,7 +1079,7 @@ struct PreExValues
             LONG cbData = 8;
             RECORD(
                 "query A null sub",
-                api.QueryValueA(
+                api.RegQueryValueA(
                     hRoot,
                     nullptr,
                     data.data(),
@@ -1093,7 +1093,7 @@ struct PreExValues
             cbData = 16;
             RECORD(
                 "query W null sub",
-                api.QueryValueW(
+                api.RegQueryValueW(
                     hRoot,
                     nullptr,
                     wdata.data(),
@@ -1104,7 +1104,7 @@ struct PreExValues
             );
             RECORD(
                 "query W data without size",
-                api.QueryValueW(
+                api.RegQueryValueW(
                     hRoot,
                     L"Sub",
                     wdata.data(),
@@ -1113,7 +1113,7 @@ struct PreExValues
             );
             RECORD(
                 "query A data without size",
-                api.QueryValueA(
+                api.RegQueryValueA(
                     hRoot,
                     "Sub",
                     data.data(),
@@ -1123,7 +1123,7 @@ struct PreExValues
             cbData = 16;
             RECORD(
                 "query W invalid handle",
-                api.QueryValueW(
+                api.RegQueryValueW(
                     nullptr,
                     L"Sub",
                     wdata.data(),
@@ -1133,7 +1133,7 @@ struct PreExValues
             );
             RECORD(
                 "query A invalid handle",
-                api.QueryValueA(
+                api.RegQueryValueA(
                     nullptr,
                     "Sub",
                     data.data(),
@@ -1147,7 +1147,7 @@ struct PreExValues
         HKEY hSub{};
         RECORD(
             "create typed",
-            api.CreateKeyExW(
+            api.RegCreateKeyExW(
                 hRoot,
                 L"Typed",
                 0,
@@ -1162,7 +1162,7 @@ struct PreExValues
         const DWORD dwValue = 7;
         RECORD(
             "set typed",
-            api.SetValueExW(
+            api.RegSetValueExW(
                 hSub,
                 nullptr,
                 0,
@@ -1173,7 +1173,7 @@ struct PreExValues
         );
         RECORD(
             "close typed",
-            api.CloseKey(
+            api.RegCloseKey(
                 hSub
             )
         );
@@ -1184,7 +1184,7 @@ struct PreExValues
             LONG cbData = cbBuffer;
             RECORD(
                 "query typed W",
-                api.QueryValueW(
+                api.RegQueryValueW(
                     hRoot,
                     L"Typed",
                     data.data(),
@@ -1198,7 +1198,7 @@ struct PreExValues
             cbData = cbBuffer;
             RECORD(
                 "query typed A",
-                api.QueryValueA(
+                api.RegQueryValueA(
                     hRoot,
                     "Typed",
                     adata.data(),
@@ -1211,7 +1211,7 @@ struct PreExValues
         LONG cbData = static_cast<LONG>(kFillSize);
         RECORD(
             "query typed W size",
-            api.QueryValueW(
+            api.RegQueryValueW(
                 hRoot,
                 L"Typed",
                 nullptr,
@@ -1222,7 +1222,7 @@ struct PreExValues
         cbData = static_cast<LONG>(kFillSize);
         RECORD(
             "query typed A size",
-            api.QueryValueA(
+            api.RegQueryValueA(
                 hRoot,
                 "Typed",
                 nullptr,
@@ -1241,7 +1241,7 @@ struct SetKeyValueForms
 
         RECORD(
             "W creates subkey",
-            api.SetKeyValueW(
+            api.RegSetKeyValueW(
                 hRoot,
                 L"New\\Sub",
                 L"v",
@@ -1253,7 +1253,7 @@ struct SetKeyValueForms
         QueryMatrix(api, record, hRoot, L"New\\Sub", "W subkey as value");
         RECORD(
             "A creates subkey",
-            api.SetKeyValueA(
+            api.RegSetKeyValueA(
                 hRoot,
                 "NewA\\Sub",
                 "v",
@@ -1264,7 +1264,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "W null sub",
-            api.SetKeyValueW(
+            api.RegSetKeyValueW(
                 hRoot,
                 nullptr,
                 L"rootv",
@@ -1275,7 +1275,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "W empty sub",
-            api.SetKeyValueW(
+            api.RegSetKeyValueW(
                 hRoot,
                 L"",
                 L"rootv2",
@@ -1286,7 +1286,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "A null sub",
-            api.SetKeyValueA(
+            api.RegSetKeyValueA(
                 hRoot,
                 nullptr,
                 "rootva",
@@ -1297,7 +1297,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "A empty sub",
-            api.SetKeyValueA(
+            api.RegSetKeyValueA(
                 hRoot,
                 "",
                 "rootva2",
@@ -1308,7 +1308,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "W null name",
-            api.SetKeyValueW(
+            api.RegSetKeyValueW(
                 hRoot,
                 L"New",
                 nullptr,
@@ -1319,7 +1319,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "A null name",
-            api.SetKeyValueA(
+            api.RegSetKeyValueA(
                 hRoot,
                 "NewA",
                 nullptr,
@@ -1330,7 +1330,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "W no terminator",
-            api.SetKeyValueW(
+            api.RegSetKeyValueW(
                 hRoot,
                 L"NoTerm",
                 L"v",
@@ -1341,7 +1341,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "A no terminator",
-            api.SetKeyValueA(
+            api.RegSetKeyValueA(
                 hRoot,
                 "NoTermA",
                 "v",
@@ -1352,7 +1352,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "W no data",
-            api.SetKeyValueW(
+            api.RegSetKeyValueW(
                 hRoot,
                 L"NoData",
                 L"v",
@@ -1363,7 +1363,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "A no data",
-            api.SetKeyValueA(
+            api.RegSetKeyValueA(
                 hRoot,
                 "NoDataA",
                 "v",
@@ -1374,7 +1374,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "W bad data",
-            api.SetKeyValueW(
+            api.RegSetKeyValueW(
                 hRoot,
                 L"BadData",
                 L"v",
@@ -1385,7 +1385,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "A bad data",
-            api.SetKeyValueA(
+            api.RegSetKeyValueA(
                 hRoot,
                 "BadDataA",
                 "v",
@@ -1396,7 +1396,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "W invalid handle",
-            api.SetKeyValueW(
+            api.RegSetKeyValueW(
                 nullptr,
                 L"X",
                 L"v",
@@ -1407,7 +1407,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "A invalid handle",
-            api.SetKeyValueA(
+            api.RegSetKeyValueA(
                 nullptr,
                 "X",
                 "v",
@@ -1418,7 +1418,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "W invalid handle no sub",
-            api.SetKeyValueW(
+            api.RegSetKeyValueW(
                 nullptr,
                 nullptr,
                 L"v",
@@ -1429,7 +1429,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "A invalid handle no sub",
-            api.SetKeyValueA(
+            api.RegSetKeyValueA(
                 nullptr,
                 nullptr,
                 "v",
@@ -1440,7 +1440,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "W unrepresentable",
-            api.SetKeyValueW(
+            api.RegSetKeyValueW(
                 hRoot,
                 L"U\u4e2d",
                 L"v\u4e2d",
@@ -1451,7 +1451,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "A multi",
-            api.SetKeyValueA(
+            api.RegSetKeyValueA(
                 hRoot,
                 "MultiA",
                 "m",
@@ -1462,7 +1462,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "W reg link",
-            api.SetKeyValueW(
+            api.RegSetKeyValueW(
                 hRoot,
                 L"LinkW",
                 L"m",
@@ -1488,7 +1488,7 @@ struct SetKeyValueForms
         {
             const auto label = Narrow(pszSub);
             HKEY hKey{};
-            const auto status = api.OpenKeyExW(
+            const auto status = api.RegOpenKeyExW(
                 hRoot,
                 pszSub,
                 0,
@@ -1510,7 +1510,7 @@ struct SetKeyValueForms
                 );
             RECORD(
                 "close " + label,
-                api.CloseKey(
+                api.RegCloseKey(
                     hKey
                 )
             );
@@ -1529,7 +1529,7 @@ struct DeleteKeyValueForms
         const BYTE data[4] = {1, 2, 3, 4};
         RECORD(
             "set sub",
-            api.SetKeyValueW(
+            api.RegSetKeyValueW(
                 hRoot,
                 L"Sub",
                 L"v",
@@ -1540,7 +1540,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "set sub 2",
-            api.SetKeyValueW(
+            api.RegSetKeyValueW(
                 hRoot,
                 L"Sub",
                 L"w",
@@ -1551,7 +1551,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "set sub 3",
-            api.SetKeyValueW(
+            api.RegSetKeyValueW(
                 hRoot,
                 L"Sub",
                 nullptr,
@@ -1562,7 +1562,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "set root",
-            api.SetKeyValueW(
+            api.RegSetKeyValueW(
                 hRoot,
                 nullptr,
                 L"v",
@@ -1573,7 +1573,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "set root 2",
-            api.SetKeyValueW(
+            api.RegSetKeyValueW(
                 hRoot,
                 nullptr,
                 L"w",
@@ -1585,7 +1585,7 @@ struct DeleteKeyValueForms
 
         RECORD(
             "W missing sub",
-            api.DeleteKeyValueW(
+            api.RegDeleteKeyValueW(
                 hRoot,
                 L"Nope",
                 L"v"
@@ -1593,7 +1593,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "A missing sub",
-            api.DeleteKeyValueA(
+            api.RegDeleteKeyValueA(
                 hRoot,
                 "Nope",
                 "v"
@@ -1601,7 +1601,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "W missing value",
-            api.DeleteKeyValueW(
+            api.RegDeleteKeyValueW(
                 hRoot,
                 L"Sub",
                 L"nope"
@@ -1609,7 +1609,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "A missing value",
-            api.DeleteKeyValueA(
+            api.RegDeleteKeyValueA(
                 hRoot,
                 "Sub",
                 "nope"
@@ -1617,7 +1617,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "W delete",
-            api.DeleteKeyValueW(
+            api.RegDeleteKeyValueW(
                 hRoot,
                 L"Sub",
                 L"v"
@@ -1625,7 +1625,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "W delete again",
-            api.DeleteKeyValueW(
+            api.RegDeleteKeyValueW(
                 hRoot,
                 L"Sub",
                 L"v"
@@ -1633,7 +1633,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "A delete",
-            api.DeleteKeyValueA(
+            api.RegDeleteKeyValueA(
                 hRoot,
                 "Sub",
                 "w"
@@ -1641,7 +1641,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "W delete default",
-            api.DeleteKeyValueW(
+            api.RegDeleteKeyValueW(
                 hRoot,
                 L"Sub",
                 nullptr
@@ -1649,7 +1649,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "W delete root null sub",
-            api.DeleteKeyValueW(
+            api.RegDeleteKeyValueW(
                 hRoot,
                 nullptr,
                 L"v"
@@ -1657,7 +1657,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "A delete root empty sub",
-            api.DeleteKeyValueA(
+            api.RegDeleteKeyValueA(
                 hRoot,
                 "",
                 "w"
@@ -1665,7 +1665,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "W delete root again",
-            api.DeleteKeyValueW(
+            api.RegDeleteKeyValueW(
                 hRoot,
                 nullptr,
                 L"v"
@@ -1673,7 +1673,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "W invalid handle",
-            api.DeleteKeyValueW(
+            api.RegDeleteKeyValueW(
                 nullptr,
                 L"Sub",
                 L"v"
@@ -1681,7 +1681,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "A invalid handle",
-            api.DeleteKeyValueA(
+            api.RegDeleteKeyValueA(
                 nullptr,
                 "Sub",
                 "v"
@@ -1689,7 +1689,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "W invalid handle no sub",
-            api.DeleteKeyValueW(
+            api.RegDeleteKeyValueW(
                 nullptr,
                 nullptr,
                 L"v"
@@ -1697,7 +1697,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "A invalid handle no sub",
-            api.DeleteKeyValueA(
+            api.RegDeleteKeyValueA(
                 nullptr,
                 nullptr,
                 "v"
@@ -1707,7 +1707,7 @@ struct DeleteKeyValueForms
         DWORD cbData = kFillSize;
         RECORD(
             "sub values gone",
-            api.QueryValueExW(
+            api.RegQueryValueExW(
                 hRoot,
                 L"v",
                 nullptr,

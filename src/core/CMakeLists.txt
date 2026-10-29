@@ -8,6 +8,7 @@ target_sources(
         handle_space.cpp
         memory_hive.cpp
         native_registry.cpp
+        owned_values.cpp
         overlay_hive.cpp
         registry.cpp
         tree.cpp

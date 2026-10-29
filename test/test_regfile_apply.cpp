@@ -14,7 +14,7 @@ const std::wstring kHeader = L"Windows Registry Editor Version 5.00\r\n";
 bool KeyExists(Registry& registry, const wchar_t* const pszPath)
 {
     HKEY hKey{};
-    const auto status = registry.OpenKeyExW(
+    const auto status = registry.RegOpenKeyExW(
         HKEY_CURRENT_USER,
         pszPath,
         0,
@@ -22,7 +22,7 @@ bool KeyExists(Registry& registry, const wchar_t* const pszPath)
         &hKey
     );
     if (status == ERROR_SUCCESS)
-        registry.CloseKey(
+        registry.RegCloseKey(
             hKey
         );
     return status == ERROR_SUCCESS;
@@ -108,7 +108,7 @@ TEST_CASE("Apply deletes values and keys")
         const HKEY hKey = MustOpen(registry, L"T");
         DWORD dwType{};
         CHECK(
-            registry.QueryValueExW(
+            registry.RegQueryValueExW(
                 hKey,
                 L"a",
                 nullptr,
@@ -118,7 +118,7 @@ TEST_CASE("Apply deletes values and keys")
             ) == ERROR_FILE_NOT_FOUND
         );
         CHECK(
-            registry.QueryValueExW(
+            registry.RegQueryValueExW(
                 hKey,
                 L"",
                 nullptr,
@@ -128,7 +128,7 @@ TEST_CASE("Apply deletes values and keys")
             ) == ERROR_FILE_NOT_FOUND
         );
         CHECK(
-            registry.QueryValueExW(
+            registry.RegQueryValueExW(
                 hKey,
                 L"b",
                 nullptr,
@@ -137,7 +137,7 @@ TEST_CASE("Apply deletes values and keys")
                 nullptr
             ) == ERROR_SUCCESS
         );
-        registry.CloseKey(
+        registry.RegCloseKey(
             hKey
         );
     }
@@ -199,7 +199,7 @@ TEST_CASE("Delete then create replaces a key")
     CheckValue(registry, L"T", L"z", REG_DWORD, DwordBytes(2));
     const HKEY hKey = MustOpen(registry, L"T");
     CHECK(
-        registry.QueryValueExW(
+        registry.RegQueryValueExW(
             hKey,
             L"y",
             nullptr,
@@ -208,7 +208,7 @@ TEST_CASE("Delete then create replaces a key")
             nullptr
         ) == ERROR_FILE_NOT_FOUND
     );
-    registry.CloseKey(
+    registry.RegCloseKey(
         hKey
     );
 }

@@ -28,7 +28,7 @@ LSTATUS EnumKeyEx(
     PFILETIME pft
 )
 {
-    return api.EnumKeyExW(
+    return api.RegEnumKeyExW(
         hKey,
         dwIndex,
         pszName,
@@ -53,7 +53,7 @@ LSTATUS EnumKeyEx(
     PFILETIME pft
 )
 {
-    return api.EnumKeyExA(
+    return api.RegEnumKeyExA(
         hKey,
         dwIndex,
         pszName,
@@ -78,7 +78,7 @@ LSTATUS EnumValueEx(
     LPDWORD pcbData
 )
 {
-    return api.EnumValueW(
+    return api.RegEnumValueW(
         hKey,
         dwIndex,
         pszName,
@@ -103,7 +103,7 @@ LSTATUS EnumValueEx(
     LPDWORD pcbData
 )
 {
-    return api.EnumValueA(
+    return api.RegEnumValueA(
         hKey,
         dwIndex,
         pszName,
@@ -132,7 +132,7 @@ LSTATUS QueryInfo(
     PFILETIME pft
 )
 {
-    return api.QueryInfoKeyW(
+    return api.RegQueryInfoKeyW(
         hKey,
         pszClass,
         pcchClass,
@@ -165,7 +165,7 @@ LSTATUS QueryInfo(
     PFILETIME pft
 )
 {
-    return api.QueryInfoKeyA(
+    return api.RegQueryInfoKeyA(
         hKey,
         pszClass,
         pcchClass,
@@ -194,7 +194,7 @@ HKEY CreateWithClass(
     std::wstring cls = pszClass ? pszClass : L"";
     RECORD(
         "create " + Narrow(pszName),
-        api.CreateKeyExW(
+        api.RegCreateKeyExW(
             hParent,
             pszName,
             0,
@@ -233,7 +233,7 @@ template <class Api> void PopulateKeys(
         );
         RECORD(
             "close",
-            api.CloseKey(
+            api.RegCloseKey(
                 hKey
             )
         );
@@ -418,7 +418,7 @@ struct EnumerateKeysPreEx
                 std::memset(wname.data(), kFill, sizeof(wname));
                 RECORD(
                     std::format("W index {} size {}", dwIndex, cchName),
-                    api.EnumKeyW(
+                    api.RegEnumKeyW(
                         hRoot,
                         dwIndex,
                         wname.data(),
@@ -431,7 +431,7 @@ struct EnumerateKeysPreEx
                 std::memset(name.data(), kFill, sizeof(name));
                 RECORD(
                     std::format("A index {} size {}", dwIndex, cchName),
-                    api.EnumKeyA(
+                    api.RegEnumKeyA(
                         hRoot,
                         dwIndex,
                         name.data(),
@@ -444,7 +444,7 @@ struct EnumerateKeysPreEx
         }
         RECORD(
             "W no name",
-            api.EnumKeyW(
+            api.RegEnumKeyW(
                 hRoot,
                 0,
                 nullptr,
@@ -453,7 +453,7 @@ struct EnumerateKeysPreEx
         );
         RECORD(
             "A no name",
-            api.EnumKeyA(
+            api.RegEnumKeyA(
                 hRoot,
                 0,
                 nullptr,
@@ -464,7 +464,7 @@ struct EnumerateKeysPreEx
         char name[8];
         RECORD(
             "W invalid handle",
-            api.EnumKeyW(
+            api.RegEnumKeyW(
                 nullptr,
                 0,
                 wname,
@@ -473,7 +473,7 @@ struct EnumerateKeysPreEx
         );
         RECORD(
             "A invalid handle",
-            api.EnumKeyA(
+            api.RegEnumKeyA(
                 nullptr,
                 0,
                 name,
@@ -861,7 +861,7 @@ struct QueryInfoKeyForms
             HKEY hKey{};
             RECORD(
                 "open",
-                api.OpenKeyExW(
+                api.RegOpenKeyExW(
                     hRoot,
                     pszName,
                     0,
@@ -873,7 +873,7 @@ struct QueryInfoKeyForms
             QueryInfoMatrix<Api, char>(api, record, hKey, "sub A");
             RECORD(
                 "close",
-                api.CloseKey(
+                api.RegCloseKey(
                     hKey
                 )
             );
@@ -885,7 +885,7 @@ struct QueryInfoKeyForms
             HKEY hKey{};
             RECORD(
                 "open for write only",
-                api.OpenKeyExW(
+                api.RegOpenKeyExW(
                     hRoot,
                     L"Alpha",
                     0,
@@ -897,7 +897,7 @@ struct QueryInfoKeyForms
             QueryInfoMatrix<Api, char>(api, record, hKey, "write only A");
             RECORD(
                 "close",
-                api.CloseKey(
+                api.RegCloseKey(
                     hKey
                 )
             );
@@ -917,7 +917,7 @@ struct EnumerateWhileChanging
         {
             name.fill(L'\0');
             DWORD cchName = 64;
-            const auto status = api.EnumKeyExW(
+            const auto status = api.RegEnumKeyExW(
                 hRoot,
                 dwIndex,
                 name.data(),
@@ -931,7 +931,7 @@ struct EnumerateWhileChanging
             if (status == ERROR_SUCCESS)
                 RECORD(
                     "delete enumerated",
-                    api.DeleteKeyExW(
+                    api.RegDeleteKeyExW(
                         hRoot,
                         name.data(),
                         0,
@@ -944,7 +944,7 @@ struct EnumerateWhileChanging
         {
             name.fill(L'\0');
             DWORD cchName = 64;
-            const auto status = api.EnumValueW(
+            const auto status = api.RegEnumValueW(
                 hRoot,
                 dwIndex,
                 name.data(),
@@ -958,7 +958,7 @@ struct EnumerateWhileChanging
             if (status == ERROR_SUCCESS)
                 RECORD(
                     "delete enumerated",
-                    api.DeleteValueW(
+                    api.RegDeleteValueW(
                         hRoot,
                         name.data()
                     )
@@ -971,7 +971,7 @@ struct EnumerateWhileChanging
             DWORD cchName = 64;
             RECORD(
                 "enum key after",
-                api.EnumKeyExW(
+                api.RegEnumKeyExW(
                     hRoot,
                     dwIndex,
                     name.data(),

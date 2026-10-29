@@ -4,6 +4,7 @@
 #include <VReg/handle.h>
 #include <VReg/memory_hive.h>
 #include <VReg/native_registry.h>
+#include <VReg/owned_values.h>
 #include <VReg/virtual_registry.h>
 
 #include <catch2/catch_test_macros.hpp>
@@ -26,7 +27,7 @@ HKEY CreateKey(
 {
     HKEY hKey{};
     REQUIRE(
-        registry.CreateKeyExW(
+        registry.RegCreateKeyExW(
             hParent,
             pszPath,
             0,
@@ -49,7 +50,7 @@ HKEY OpenKey(
 {
     HKEY hKey{};
     REQUIRE(
-        registry.OpenKeyExW(
+        registry.RegOpenKeyExW(
             hParent,
             pszPath,
             0,
@@ -67,7 +68,7 @@ LSTATUS SetDword(
     const DWORD dwValue
 )
 {
-    return registry.SetValueExW(
+    return registry.RegSetValueExW(
         hKey,
         pszName,
         0,
@@ -86,7 +87,7 @@ DWORD QueryDword(
 {
     DWORD dwValue = 0;
     DWORD cbValue = sizeof(dwValue);
-    status = registry.QueryValueExW(
+    status = registry.RegQueryValueExW(
         hKey,
         pszName,
         nullptr,
@@ -122,7 +123,7 @@ TEST_CASE("A node has one handle however it is reached")
     CHECK(hViaPath == hCreated);
     CHECK(OpenKey(registry, HKEY_CURRENT_USER, L"Test") == hRoot);
     CHECK(
-        registry.CloseKey(
+        registry.RegCloseKey(
             hCreated
         ) == ERROR_SUCCESS
     );
@@ -141,7 +142,7 @@ TEST_CASE("A deleted node and its children answer ERROR_KEY_DELETED")
     REQUIRE(SetDword(registry, hChild, L"v", 1) == ERROR_SUCCESS);
 
     REQUIRE(
-        registry.DeleteTreeW(
+        registry.RegDeleteTreeW(
             hRoot,
             L"Parent"
         ) == ERROR_SUCCESS
@@ -154,14 +155,14 @@ TEST_CASE("A deleted node and its children answer ERROR_KEY_DELETED")
     CHECK(status == ERROR_KEY_DELETED);
     CHECK(SetDword(registry, hChild, L"v", 2) == ERROR_KEY_DELETED);
     CHECK(
-        registry.FlushKey(
+        registry.RegFlushKey(
             hChild
         ) == ERROR_KEY_DELETED
     );
 
     HKEY hKey = nullptr;
     CHECK(
-        registry.OpenKeyExW(
+        registry.RegOpenKeyExW(
             hParent,
             L"Child",
             0,
@@ -170,7 +171,7 @@ TEST_CASE("A deleted node and its children answer ERROR_KEY_DELETED")
         ) == ERROR_KEY_DELETED
     );
     CHECK(
-        registry.OpenKeyExW(
+        registry.RegOpenKeyExW(
             hRoot,
             L"Parent",
             0,
@@ -179,7 +180,7 @@ TEST_CASE("A deleted node and its children answer ERROR_KEY_DELETED")
         ) == ERROR_FILE_NOT_FOUND
     );
     CHECK(
-        registry.CloseKey(
+        registry.RegCloseKey(
             hChild
         ) == ERROR_SUCCESS
     );
@@ -207,7 +208,7 @@ TEST_CASE("A frozen hive refuses writes and still answers reads")
     std::array<wchar_t, 8> name{};
     DWORD cchName = static_cast<DWORD>(name.size());
     CHECK(
-        registry.EnumKeyExW(
+        registry.RegEnumKeyExW(
             hRoot,
             0,
             name.data(),
@@ -223,7 +224,7 @@ TEST_CASE("A frozen hive refuses writes and still answers reads")
     HKEY hKey = nullptr;
     DWORD dwDisposition = 0;
     CHECK(
-        registry.CreateKeyExW(
+        registry.RegCreateKeyExW(
             hRoot,
             L"New",
             0,
@@ -237,13 +238,13 @@ TEST_CASE("A frozen hive refuses writes and still answers reads")
     );
     CHECK(SetDword(registry, hSub, L"v", 8) == ERROR_ACCESS_DENIED);
     CHECK(
-        registry.DeleteValueW(
+        registry.RegDeleteValueW(
             hSub,
             L"v"
         ) == ERROR_ACCESS_DENIED
     );
     CHECK(
-        registry.DeleteKeyExW(
+        registry.RegDeleteKeyExW(
             hRoot,
             L"Sub",
             0,
@@ -251,7 +252,7 @@ TEST_CASE("A frozen hive refuses writes and still answers reads")
         ) == ERROR_ACCESS_DENIED
     );
     CHECK(
-        registry.DeleteTreeW(
+        registry.RegDeleteTreeW(
             hRoot,
             L"Sub"
         ) == ERROR_ACCESS_DENIED
@@ -272,7 +273,8 @@ TEST_CASE("A value marked as MUI text loads as its text until written again")
 
     std::wstring text;
     CHECK(
-        registry.LoadMUIString(
+        LoadMUIString(
+            registry,
             hSub,
             L"Name",
             0,
@@ -286,7 +288,7 @@ TEST_CASE("A value marked as MUI text loads as its text until written again")
     std::array<wchar_t, 8> data{};
     DWORD cbData = sizeof(data);
     CHECK(
-        registry.QueryValueExW(
+        registry.RegQueryValueExW(
             hSub,
             L"Name",
             nullptr,
@@ -300,7 +302,7 @@ TEST_CASE("A value marked as MUI text loads as its text until written again")
     CHECK(std::wstring(data.data()) == L"Text");
 
     CHECK(
-        registry.SetValueExW(
+        registry.RegSetValueExW(
             hSub,
             L"Name",
             0,
@@ -310,7 +312,8 @@ TEST_CASE("A value marked as MUI text loads as its text until written again")
         ) == ERROR_SUCCESS
     );
     CHECK(
-        registry.LoadMUIString(
+        LoadMUIString(
+            registry,
             hSub,
             L"Name",
             0,
@@ -323,7 +326,8 @@ TEST_CASE("A value marked as MUI text loads as its text until written again")
     hive.Freeze();
     CHECK(hive.SetMuiTextValue(pSub, L"Name", L"Other") == ERROR_ACCESS_DENIED);
     CHECK(
-        registry.LoadMUIString(
+        LoadMUIString(
+            registry,
             hSub,
             L"Name",
             0,
@@ -426,7 +430,7 @@ TEST_CASE("Pure in-memory configuration")
 
     HKEY hKey = nullptr;
     CHECK(
-        registry.OpenKeyExW(
+        registry.RegOpenKeyExW(
             HKEY_LOCAL_MACHINE,
             L"Software\\Missing",
             0,
@@ -435,7 +439,7 @@ TEST_CASE("Pure in-memory configuration")
         ) == ERROR_FILE_NOT_FOUND
     );
     CHECK(
-        registry.OpenKeyExW(
+        registry.RegOpenKeyExW(
             HKEY_USERS,
             L".DEFAULT",
             0,
@@ -444,7 +448,7 @@ TEST_CASE("Pure in-memory configuration")
         ) == ERROR_FILE_NOT_FOUND
     );
     CHECK(
-        registry.OpenKeyExW(
+        registry.RegOpenKeyExW(
             HKEY_USERS,
             nullptr,
             0,
@@ -453,7 +457,7 @@ TEST_CASE("Pure in-memory configuration")
         ) == ERROR_FILE_NOT_FOUND
     );
     CHECK(
-        registry.CreateKeyExW(
+        registry.RegCreateKeyExW(
             HKEY_USERS,
             L"S-1",
             0,
@@ -466,7 +470,7 @@ TEST_CASE("Pure in-memory configuration")
         ) == ERROR_FILE_NOT_FOUND
     );
     CHECK(
-        registry.OpenKeyExW(
+        registry.RegOpenKeyExW(
             nullptr,
             L"Software",
             0,
@@ -475,7 +479,7 @@ TEST_CASE("Pure in-memory configuration")
         ) == ERROR_INVALID_HANDLE
     );
     CHECK(
-        registry.CloseKey(
+        registry.RegCloseKey(
             HKEY_LOCAL_MACHINE
         ) == ERROR_SUCCESS
     );
@@ -518,7 +522,7 @@ TEST_CASE("The longest mount prefix wins")
 
     HKEY hMissing = nullptr;
     CHECK(
-        registry.OpenKeyExW(
+        registry.RegOpenKeyExW(
             hOuterRoot,
             L"Deep",
             0,
@@ -536,7 +540,7 @@ TEST_CASE("The longest mount prefix wins")
 
     HKEY hKey = nullptr;
     CHECK(
-        registry.OpenKeyExW(
+        registry.RegOpenKeyExW(
             hInnerRoot,
             L"Other",
             0,
@@ -569,7 +573,7 @@ TEST_CASE("Calls outside the mounts reach the base registry")
         DWORD dwDispositionRegistry = kFillSize;
         DWORD dwDispositionNative = kFillSize;
         REQUIRE(
-            registry.CreateKeyExW(
+            registry.RegCreateKeyExW(
                 hApp,
                 L"A\\B",
                 0,
@@ -582,7 +586,7 @@ TEST_CASE("Calls outside the mounts reach the base registry")
             ) == ERROR_SUCCESS
         );
         REQUIRE(
-            native.CreateKeyExW(
+            native.RegCreateKeyExW(
                 hApp,
                 L"A\\B",
                 0,
@@ -607,7 +611,7 @@ TEST_CASE("Calls outside the mounts reach the base registry")
         std::array<BYTE, 2> data{};
         DWORD cbViaRegistry = static_cast<DWORD>(data.size());
         DWORD cbViaNative = static_cast<DWORD>(data.size());
-        const auto statusRegistry = registry.QueryValueExW(
+        const auto statusRegistry = registry.RegQueryValueExW(
             hViaRegistry,
             L"v",
             nullptr,
@@ -615,7 +619,7 @@ TEST_CASE("Calls outside the mounts reach the base registry")
             data.data(),
             &cbViaRegistry
         );
-        const auto statusNative = native.QueryValueExW(
+        const auto statusNative = native.RegQueryValueExW(
             hViaNative,
             L"v",
             nullptr,
@@ -629,13 +633,13 @@ TEST_CASE("Calls outside the mounts reach the base registry")
 
         HKEY hMissing = nullptr;
         CHECK(
-            registry.OpenKeyExW(
+            registry.RegOpenKeyExW(
                 hApp,
                 L"Missing",
                 0,
                 KEY_READ,
                 &hMissing
-            ) == native.OpenKeyExW(
+            ) == native.RegOpenKeyExW(
                 hApp,
                 L"Missing",
                 0,
@@ -645,12 +649,12 @@ TEST_CASE("Calls outside the mounts reach the base registry")
         );
 
         CHECK(
-            registry.CloseKey(
+            registry.RegCloseKey(
                 hViaRegistry
             ) == ERROR_SUCCESS
         );
         CHECK(
-            native.CloseKey(
+            native.RegCloseKey(
                 hViaNative
             ) == ERROR_SUCCESS
         );
@@ -660,7 +664,7 @@ TEST_CASE("Calls outside the mounts reach the base registry")
     {
         HKEY hReal = nullptr;
         CHECK(
-            registry.OpenKeyExW(
+            registry.RegOpenKeyExW(
                 HKEY_CURRENT_USER,
                 L"Software",
                 0,
@@ -670,14 +674,14 @@ TEST_CASE("Calls outside the mounts reach the base registry")
         );
         CHECK_FALSE(IsVirtualHKey(hReal));
         CHECK(
-            registry.CloseKey(
+            registry.RegCloseKey(
                 hReal
             ) == ERROR_SUCCESS
         );
 
         HKEY hVirtual = nullptr;
         CHECK(
-            registry.CreateKeyExW(
+            registry.RegCreateKeyExW(
                 HKEY_CURRENT_USER,
                 L"VRegTestMount\\Key",
                 0,
@@ -692,7 +696,7 @@ TEST_CASE("Calls outside the mounts reach the base registry")
         );
         CHECK(IsVirtualHKey(hVirtual));
         CHECK(
-            native.OpenKeyExW(
+            native.RegOpenKeyExW(
                 HKEY_CURRENT_USER,
                 L"VRegTestMount",
                 0,
@@ -728,7 +732,7 @@ TEST_CASE("A handle released with its hive is invalid")
     QueryDword(registry, hChild, L"v", status);
     CHECK(status == ERROR_INVALID_HANDLE);
     CHECK(
-        registry.CloseKey(
+        registry.RegCloseKey(
             hChild
         ) == ERROR_INVALID_HANDLE
     );
@@ -797,7 +801,7 @@ LSTATUS OpenVia(
 )
 {
     hKey = nullptr;
-    return registry.OpenKeyExW(
+    return registry.RegOpenKeyExW(
         hParent,
         pszPath,
         0,
@@ -874,7 +878,7 @@ TEST_CASE("A real parent handle is resolved by its native path")
         HKEY hCreated = nullptr;
         DWORD dwDisposition = 0;
         CHECK(
-            registry.CreateKeyExW(
+            registry.RegCreateKeyExW(
                 hParent,
                 L"App\\New",
                 0,
@@ -890,7 +894,7 @@ TEST_CASE("A real parent handle is resolved by its native path")
         CHECK(IsVirtualHKey(hCreated));
         CHECK(dwDisposition == REG_CREATED_NEW_KEY);
         CHECK(
-            registry.DeleteKeyExW(
+            registry.RegDeleteKeyExW(
                 hParent,
                 L"App\\New",
                 0,
@@ -1255,7 +1259,7 @@ TEST_CASE("A real key above a mount reaches it through the real NtQueryKey")
 
     HKEY hKey = nullptr;
     CHECK(
-        registry.OpenKeyExW(
+        registry.RegOpenKeyExW(
             hCurrentUser,
             (name + L"\\x").c_str(),
             0,
@@ -1265,7 +1269,7 @@ TEST_CASE("A real key above a mount reaches it through the real NtQueryKey")
     );
     CHECK(hKey == hSub);
     CHECK(
-        registry.OpenKeyExW(
+        registry.RegOpenKeyExW(
             hCurrentUser,
             name.c_str(),
             0,
@@ -1276,7 +1280,7 @@ TEST_CASE("A real key above a mount reaches it through the real NtQueryKey")
     CHECK(hKey == Hive::HandleOf(hive.Root()));
 
     CHECK(
-        registry.OpenKeyExW(
+        registry.RegOpenKeyExW(
             hCurrentUser,
             L"Software",
             0,
@@ -1286,7 +1290,7 @@ TEST_CASE("A real key above a mount reaches it through the real NtQueryKey")
     );
     CHECK_FALSE(IsVirtualHKey(hKey));
     CHECK(
-        registry.CloseKey(
+        registry.RegCloseKey(
             hKey
         ) == ERROR_SUCCESS
     );

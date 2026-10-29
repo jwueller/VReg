@@ -19,7 +19,7 @@ public:
     ~KeyHandle()
     {
         if (m_hKey)
-            m_registry.CloseKey(
+            m_registry.RegCloseKey(
                 m_hKey
             );
     }
@@ -67,7 +67,7 @@ LSTATUS Perform(
     case OperationKind::CreateKey:
     {
         KeyHandle key(registry);
-        return registry.CreateKeyExW(
+        return registry.RegCreateKeyExW(
             operation.hRoot,
             pszPath,
             0,
@@ -82,7 +82,7 @@ LSTATUS Perform(
     case OperationKind::DeleteKey:
     {
         const auto status = NotFoundIsFine(
-            registry.DeleteTreeW(
+            registry.RegDeleteTreeW(
                 operation.hRoot,
                 pszPath
             )
@@ -90,7 +90,7 @@ LSTATUS Perform(
         if (status != ERROR_SUCCESS)
             return status;
         return NotFoundIsFine(
-            registry.DeleteKeyExW(
+            registry.RegDeleteKeyExW(
                 operation.hRoot,
                 pszPath,
                 0,
@@ -103,7 +103,7 @@ LSTATUS Perform(
         if (operation.data.size() > std::numeric_limits<DWORD>::max())
             return ERROR_INVALID_PARAMETER;
         KeyHandle key(registry);
-        const auto status = registry.OpenKeyExW(
+        const auto status = registry.RegOpenKeyExW(
             operation.hRoot,
             pszPath,
             0,
@@ -134,7 +134,7 @@ LSTATUS Perform(
             {
                 return ERROR_OUTOFMEMORY;
             }
-            return registry.SetValueExW(
+            return registry.RegSetValueExW(
                 key.Get(),
                 operation.name.c_str(),
                 0,
@@ -143,7 +143,7 @@ LSTATUS Perform(
                 static_cast<DWORD>(data.size())
             );
         }
-        return registry.SetValueExW(
+        return registry.RegSetValueExW(
             key.Get(),
             operation.name.c_str(),
             0,
@@ -155,7 +155,7 @@ LSTATUS Perform(
     case OperationKind::DeleteValue:
     {
         KeyHandle key(registry);
-        const auto status = registry.OpenKeyExW(
+        const auto status = registry.RegOpenKeyExW(
             operation.hRoot,
             pszPath,
             0,
@@ -165,7 +165,7 @@ LSTATUS Perform(
         if (status != ERROR_SUCCESS)
             return NotFoundIsFine(status);
         return NotFoundIsFine(
-            registry.DeleteValueW(
+            registry.RegDeleteValueW(
                 key.Get(),
                 operation.name.c_str()
             )

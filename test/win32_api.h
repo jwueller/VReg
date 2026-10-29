@@ -9,7 +9,7 @@ namespace VReg::Test
 /// alike.
 struct Win32Api
 {
-    LSTATUS OpenKeyExW(
+    LSTATUS RegOpenKeyExW(
         HKEY hKey,
         LPCWSTR lpSubKey,
         DWORD ulOptions,
@@ -26,7 +26,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS CreateKeyExW(
+    LSTATUS RegCreateKeyExW(
         HKEY hKey,
         LPCWSTR lpSubKey,
         DWORD Reserved,
@@ -51,7 +51,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS CloseKey(
+    LSTATUS RegCloseKey(
         HKEY hKey
     )
     {
@@ -60,7 +60,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS QueryValueExW(
+    LSTATUS RegQueryValueExW(
         HKEY hKey,
         LPCWSTR lpValueName,
         LPDWORD lpReserved,
@@ -79,7 +79,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS SetValueExW(
+    LSTATUS RegSetValueExW(
         HKEY hKey,
         LPCWSTR lpValueName,
         DWORD Reserved,
@@ -98,7 +98,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS DeleteValueW(
+    LSTATUS RegDeleteValueW(
         HKEY hKey,
         LPCWSTR lpValueName
     )
@@ -109,7 +109,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS DeleteKeyExW(
+    LSTATUS RegDeleteKeyExW(
         HKEY hKey,
         LPCWSTR lpSubKey,
         REGSAM samDesired,
@@ -124,7 +124,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS DeleteTreeW(
+    LSTATUS RegDeleteTreeW(
         HKEY hKey,
         LPCWSTR lpSubKey
     )
@@ -135,7 +135,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS EnumKeyExW(
+    LSTATUS RegEnumKeyExW(
         HKEY hKey,
         DWORD dwIndex,
         LPWSTR lpName,
@@ -158,7 +158,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS EnumValueW(
+    LSTATUS RegEnumValueW(
         HKEY hKey,
         DWORD dwIndex,
         LPWSTR lpValueName,
@@ -181,7 +181,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS QueryInfoKeyW(
+    LSTATUS RegQueryInfoKeyW(
         HKEY hKey,
         LPWSTR lpClass,
         LPDWORD lpcchClass,
@@ -212,7 +212,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS LoadMUIStringW(
+    LSTATUS RegLoadMUIStringW(
         HKEY hKey,
         LPCWSTR pszValue,
         LPWSTR pszOutBuf,
@@ -233,7 +233,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS GetValueW(
+    LSTATUS RegGetValueW(
         HKEY hkey,
         LPCWSTR lpSubKey,
         LPCWSTR lpValue,
@@ -254,7 +254,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS NotifyChangeKeyValue(
+    LSTATUS RegNotifyChangeKeyValue(
         HKEY hKey,
         BOOL bWatchSubtree,
         DWORD dwNotifyFilter,
@@ -271,7 +271,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS FlushKey(
+    LSTATUS RegFlushKey(
         HKEY hKey
     )
     {
@@ -280,7 +280,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS OpenKeyExA(
+    LSTATUS RegOpenKeyExA(
         HKEY hKey,
         LPCSTR lpSubKey,
         DWORD ulOptions,
@@ -297,7 +297,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS CreateKeyExA(
+    LSTATUS RegCreateKeyExA(
         HKEY hKey,
         LPCSTR lpSubKey,
         DWORD Reserved,
@@ -322,7 +322,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS QueryValueExA(
+    LSTATUS RegQueryValueExA(
         HKEY hKey,
         LPCSTR lpValueName,
         LPDWORD lpReserved,
@@ -341,7 +341,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS SetValueExA(
+    LSTATUS RegSetValueExA(
         HKEY hKey,
         LPCSTR lpValueName,
         DWORD Reserved,
@@ -360,7 +360,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS DeleteValueA(
+    LSTATUS RegDeleteValueA(
         HKEY hKey,
         LPCSTR lpValueName
     )
@@ -371,7 +371,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS DeleteKeyExA(
+    LSTATUS RegDeleteKeyExA(
         HKEY hKey,
         LPCSTR lpSubKey,
         REGSAM samDesired,
@@ -386,7 +386,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS DeleteTreeA(
+    LSTATUS RegDeleteTreeA(
         HKEY hKey,
         LPCSTR lpSubKey
     )
@@ -397,7 +397,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS EnumKeyExA(
+    LSTATUS RegEnumKeyExA(
         HKEY hKey,
         DWORD dwIndex,
         LPSTR lpName,
@@ -420,7 +420,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS EnumValueA(
+    LSTATUS RegEnumValueA(
         HKEY hKey,
         DWORD dwIndex,
         LPSTR lpValueName,
@@ -443,7 +443,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS QueryInfoKeyA(
+    LSTATUS RegQueryInfoKeyA(
         HKEY hKey,
         LPSTR lpClass,
         LPDWORD lpcchClass,
@@ -474,7 +474,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS LoadMUIStringA(
+    LSTATUS RegLoadMUIStringA(
         HKEY hKey,
         LPCSTR pszValue,
         LPSTR pszOutBuf,
@@ -495,7 +495,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS GetValueA(
+    LSTATUS RegGetValueA(
         HKEY hkey,
         LPCSTR lpSubKey,
         LPCSTR lpValue,
@@ -516,7 +516,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS OpenKeyA(
+    LSTATUS RegOpenKeyA(
         HKEY hKey,
         LPCSTR lpSubKey,
         PHKEY phkResult
@@ -529,7 +529,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS OpenKeyW(
+    LSTATUS RegOpenKeyW(
         HKEY hKey,
         LPCWSTR lpSubKey,
         PHKEY phkResult
@@ -542,7 +542,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS CreateKeyA(
+    LSTATUS RegCreateKeyA(
         HKEY hKey,
         LPCSTR lpSubKey,
         PHKEY phkResult
@@ -555,7 +555,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS CreateKeyW(
+    LSTATUS RegCreateKeyW(
         HKEY hKey,
         LPCWSTR lpSubKey,
         PHKEY phkResult
@@ -568,7 +568,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS QueryValueA(
+    LSTATUS RegQueryValueA(
         HKEY hKey,
         LPCSTR lpSubKey,
         LPSTR lpData,
@@ -583,7 +583,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS QueryValueW(
+    LSTATUS RegQueryValueW(
         HKEY hKey,
         LPCWSTR lpSubKey,
         LPWSTR lpData,
@@ -598,7 +598,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS SetValueA(
+    LSTATUS RegSetValueA(
         HKEY hKey,
         LPCSTR lpSubKey,
         DWORD dwType,
@@ -615,7 +615,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS SetValueW(
+    LSTATUS RegSetValueW(
         HKEY hKey,
         LPCWSTR lpSubKey,
         DWORD dwType,
@@ -632,7 +632,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS DeleteKeyA(
+    LSTATUS RegDeleteKeyA(
         HKEY hKey,
         LPCSTR lpSubKey
     )
@@ -643,7 +643,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS DeleteKeyW(
+    LSTATUS RegDeleteKeyW(
         HKEY hKey,
         LPCWSTR lpSubKey
     )
@@ -654,7 +654,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS EnumKeyA(
+    LSTATUS RegEnumKeyA(
         HKEY hKey,
         DWORD dwIndex,
         LPSTR lpName,
@@ -669,7 +669,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS EnumKeyW(
+    LSTATUS RegEnumKeyW(
         HKEY hKey,
         DWORD dwIndex,
         LPWSTR lpName,
@@ -684,7 +684,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS SetKeyValueA(
+    LSTATUS RegSetKeyValueA(
         HKEY hKey,
         LPCSTR lpSubKey,
         LPCSTR lpValueName,
@@ -703,7 +703,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS SetKeyValueW(
+    LSTATUS RegSetKeyValueW(
         HKEY hKey,
         LPCWSTR lpSubKey,
         LPCWSTR lpValueName,
@@ -722,7 +722,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS DeleteKeyValueA(
+    LSTATUS RegDeleteKeyValueA(
         HKEY hKey,
         LPCSTR lpSubKey,
         LPCSTR lpValueName
@@ -735,7 +735,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS DeleteKeyValueW(
+    LSTATUS RegDeleteKeyValueW(
         HKEY hKey,
         LPCWSTR lpSubKey,
         LPCWSTR lpValueName
@@ -748,7 +748,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS QueryMultipleValuesA(
+    LSTATUS RegQueryMultipleValuesA(
         HKEY hKey,
         PVALENTA val_list,
         DWORD num_vals,
@@ -765,7 +765,7 @@ struct Win32Api
         );
     }
 
-    LSTATUS QueryMultipleValuesW(
+    LSTATUS RegQueryMultipleValuesW(
         HKEY hKey,
         PVALENTW val_list,
         DWORD num_vals,

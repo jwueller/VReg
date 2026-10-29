@@ -47,7 +47,7 @@ LSTATUS GetEx(
     LPDWORD pcbData
 )
 {
-    return api.GetValueW(
+    return api.RegGetValueW(
         hKey,
         pszSub,
         pszValue,
@@ -71,7 +71,7 @@ GetEx(
     LPDWORD pcbData
 )
 {
-    return api.GetValueA(
+    return api.RegGetValueA(
         hKey,
         pszSub,
         pszValue,
@@ -293,7 +293,7 @@ struct GetValueSubKeyAndName
     {
         RECORD(
             "set sub",
-            api.SetKeyValueW(
+            api.RegSetKeyValueW(
                 hRoot,
                 L"Sub\\Deep",
                 L"v",
@@ -304,7 +304,7 @@ struct GetValueSubKeyAndName
         );
         RECORD(
             "set sub default",
-            api.SetKeyValueW(
+            api.RegSetKeyValueW(
                 hRoot,
                 L"Sub",
                 nullptr,
@@ -315,7 +315,7 @@ struct GetValueSubKeyAndName
         );
         RECORD(
             "set root default",
-            api.SetKeyValueW(
+            api.RegSetKeyValueW(
                 hRoot,
                 nullptr,
                 nullptr,
@@ -326,7 +326,7 @@ struct GetValueSubKeyAndName
         );
         RECORD(
             "set non-ASCII",
-            api.SetKeyValueW(
+            api.RegSetKeyValueW(
                 hRoot,
                 L"S\u00e4b",
                 L"v\u20ac",
@@ -337,7 +337,7 @@ struct GetValueSubKeyAndName
         );
         RECORD(
             "set 32",
-            api.SetKeyValueW(
+            api.RegSetKeyValueW(
                 hRoot,
                 L"Sub",
                 L"v32",
@@ -377,7 +377,7 @@ struct GetValueSubKeyAndName
                     DWORD cbData = sizeof(data);
                     RECORD(
                         label + std::format(" W {:#x}", dwFlags),
-                        api.GetValueW(
+                        api.RegGetValueW(
                             hRoot,
                             pszSub,
                             pszValue,
@@ -396,7 +396,7 @@ struct GetValueSubKeyAndName
                     cbData = sizeof(adata);
                     RECORD(
                         label + std::format(" A {:#x}", dwFlags),
-                        api.GetValueA(
+                        api.RegGetValueA(
                             hRoot,
                             pszNarrow,
                             pszNarrowValue,
@@ -416,7 +416,7 @@ struct GetValueSubKeyAndName
         std::array<BYTE, 8> data;
         RECORD(
             "W invalid handle",
-            api.GetValueW(
+            api.RegGetValueW(
                 nullptr,
                 nullptr,
                 L"v",
@@ -429,7 +429,7 @@ struct GetValueSubKeyAndName
         );
         RECORD(
             "A invalid handle",
-            api.GetValueA(
+            api.RegGetValueA(
                 nullptr,
                 nullptr,
                 "v",
@@ -442,7 +442,7 @@ struct GetValueSubKeyAndName
         );
         RECORD(
             "W invalid handle with sub",
-            api.GetValueW(
+            api.RegGetValueW(
                 nullptr,
                 L"Sub",
                 L"v",
@@ -455,7 +455,7 @@ struct GetValueSubKeyAndName
         );
         RECORD(
             "A invalid handle with sub",
-            api.GetValueA(
+            api.RegGetValueA(
                 nullptr,
                 "Sub",
                 "v",
@@ -536,7 +536,7 @@ struct LoadMUIStringForms
                     DWORD cbData = kFillSize;
                     RECORD(
                         "muiW " + label + std::format(" flags {} buffer {}", dwFlags, cbBuffer),
-                        api.LoadMUIStringW(
+                        api.RegLoadMUIStringW(
                             hRoot,
                             pszName,
                             data.data(),
@@ -553,7 +553,7 @@ struct LoadMUIStringForms
                 DWORD cbData = kFillSize;
                 RECORD(
                     "muiW size " + label + std::format(" flags {}", dwFlags),
-                    api.LoadMUIStringW(
+                    api.RegLoadMUIStringW(
                         hRoot,
                         pszName,
                         nullptr,
@@ -567,7 +567,7 @@ struct LoadMUIStringForms
                 cbData = kFillSize;
                 RECORD(
                     "muiW null buffer " + label + std::format(" flags {}", dwFlags),
-                    api.LoadMUIStringW(
+                    api.RegLoadMUIStringW(
                         hRoot,
                         pszName,
                         nullptr,
@@ -582,7 +582,7 @@ struct LoadMUIStringForms
                 std::memset(data.data(), kFill, sizeof(data));
                 RECORD(
                     "muiW no size " + label + std::format(" flags {}", dwFlags),
-                    api.LoadMUIStringW(
+                    api.RegLoadMUIStringW(
                         hRoot,
                         pszName,
                         data.data(),
@@ -605,7 +605,7 @@ struct LoadMUIStringForms
             {
                 RECORD(
                     "muiW directory " + label,
-                    api.LoadMUIStringW(
+                    api.RegLoadMUIStringW(
                         hRoot,
                         pszName,
                         data.data(),
@@ -625,7 +625,7 @@ struct LoadMUIStringForms
             cbData = kFillSize;
             RECORD(
                 "muiA " + label,
-                api.LoadMUIStringA(
+                api.RegLoadMUIStringA(
                     hRoot,
                     narrow.c_str(),
                     adata.data(),
@@ -640,7 +640,7 @@ struct LoadMUIStringForms
             cbData = kFillSize;
             RECORD(
                 "muiA size " + label,
-                api.LoadMUIStringA(
+                api.RegLoadMUIStringA(
                     hRoot,
                     narrow.c_str(),
                     nullptr,
@@ -653,7 +653,7 @@ struct LoadMUIStringForms
             );
             RECORD(
                 "muiA no size " + label,
-                api.LoadMUIStringA(
+                api.RegLoadMUIStringA(
                     hRoot,
                     narrow.c_str(),
                     adata.data(),
@@ -668,7 +668,7 @@ struct LoadMUIStringForms
         std::array<char, 8> adata;
         RECORD(
             "muiA null value",
-            api.LoadMUIStringA(
+            api.RegLoadMUIStringA(
                 hRoot,
                 nullptr,
                 adata.data(),
@@ -680,7 +680,7 @@ struct LoadMUIStringForms
         );
         RECORD(
             "muiA invalid handle",
-            api.LoadMUIStringA(
+            api.RegLoadMUIStringA(
                 nullptr,
                 "Plain",
                 adata.data(),
@@ -692,7 +692,7 @@ struct LoadMUIStringForms
         );
         RECORD(
             "muiA bad flags",
-            api.LoadMUIStringA(
+            api.RegLoadMUIStringA(
                 hRoot,
                 "Plain",
                 adata.data(),
@@ -707,7 +707,7 @@ struct LoadMUIStringForms
         DWORD cbData = kFillSize;
         RECORD(
             "muiW null value",
-            api.LoadMUIStringW(
+            api.RegLoadMUIStringW(
                 hRoot,
                 nullptr,
                 wdata.data(),
@@ -720,7 +720,7 @@ struct LoadMUIStringForms
         );
         RECORD(
             "muiW invalid handle",
-            api.LoadMUIStringW(
+            api.RegLoadMUIStringW(
                 nullptr,
                 L"Plain",
                 wdata.data(),
@@ -733,7 +733,7 @@ struct LoadMUIStringForms
         );
         RECORD(
             "muiW bad flags",
-            api.LoadMUIStringW(
+            api.RegLoadMUIStringW(
                 hRoot,
                 L"Plain",
                 wdata.data(),
@@ -757,7 +757,7 @@ LSTATUS QueryMultiple(
     LPDWORD pcbTotal
 )
 {
-    return api.QueryMultipleValuesW(
+    return api.RegQueryMultipleValuesW(
         hKey,
         pEntries,
         cEntries,
@@ -776,7 +776,7 @@ LSTATUS QueryMultiple(
     LPDWORD pcbTotal
 )
 {
-    return api.QueryMultipleValuesA(
+    return api.RegQueryMultipleValuesA(
         hKey,
         pEntries,
         cEntries,
@@ -879,7 +879,7 @@ struct QueryMultipleValuesForms
         const DWORD dword = 0x12345678;
         RECORD(
             "set a",
-            api.SetValueExW(
+            api.RegSetValueExW(
                 hRoot,
                 L"a",
                 0,
@@ -890,7 +890,7 @@ struct QueryMultipleValuesForms
         );
         RECORD(
             "set b",
-            api.SetValueExW(
+            api.RegSetValueExW(
                 hRoot,
                 L"b",
                 0,
@@ -901,7 +901,7 @@ struct QueryMultipleValuesForms
         );
         RECORD(
             "set c",
-            api.SetValueExW(
+            api.RegSetValueExW(
                 hRoot,
                 L"c",
                 0,
@@ -912,7 +912,7 @@ struct QueryMultipleValuesForms
         );
         RECORD(
             "set d",
-            api.SetValueExW(
+            api.RegSetValueExW(
                 hRoot,
                 L"d",
                 0,
@@ -923,7 +923,7 @@ struct QueryMultipleValuesForms
         );
         RECORD(
             "set e",
-            api.SetValueExW(
+            api.RegSetValueExW(
                 hRoot,
                 L"e",
                 0,
@@ -934,7 +934,7 @@ struct QueryMultipleValuesForms
         );
         RECORD(
             "set default",
-            api.SetValueExW(
+            api.RegSetValueExW(
                 hRoot,
                 nullptr,
                 0,
@@ -969,7 +969,7 @@ struct QueryMultipleValuesForms
         buffer.fill(kFill);
         RECORD(
             "W no entries",
-            api.QueryMultipleValuesW(
+            api.RegQueryMultipleValuesW(
                 hRoot,
                 &wide,
                 0,
@@ -982,7 +982,7 @@ struct QueryMultipleValuesForms
         cbTotal = 64;
         RECORD(
             "A no entries",
-            api.QueryMultipleValuesA(
+            api.RegQueryMultipleValuesA(
                 hRoot,
                 &narrow,
                 0,
@@ -995,7 +995,7 @@ struct QueryMultipleValuesForms
         cbTotal = 64;
         RECORD(
             "W invalid handle",
-            api.QueryMultipleValuesW(
+            api.RegQueryMultipleValuesW(
                 nullptr,
                 &wide,
                 1,
@@ -1007,7 +1007,7 @@ struct QueryMultipleValuesForms
         cbTotal = 64;
         RECORD(
             "A invalid handle",
-            api.QueryMultipleValuesA(
+            api.RegQueryMultipleValuesA(
                 nullptr,
                 &narrow,
                 1,

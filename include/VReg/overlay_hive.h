@@ -102,7 +102,7 @@ public:
         std::wstring_view name,
         DWORD& dwType,
         std::vector<std::byte>& data
-    ) noexcept
+    ) const noexcept
         override;
 
     LSTATUS SetValue(
@@ -125,7 +125,7 @@ public:
         Node* pNode,
         std::wstring_view name,
         std::wstring& text
-    ) noexcept override;
+    ) const noexcept override;
 
     LSTATUS EnumKey(
         Node* pNode,
@@ -133,7 +133,7 @@ public:
         std::wstring& name,
         std::wstring& className,
         FILETIME& lastWrite
-    ) noexcept
+    ) const noexcept
         override;
 
     LSTATUS EnumValue(
@@ -142,10 +142,10 @@ public:
         std::wstring& name,
         DWORD& dwType,
         std::vector<std::byte>& data
-    ) noexcept
+    ) const noexcept
         override;
-    LSTATUS QueryInfo(Node* pNode, KeyInfo& info) noexcept override;
-    LSTATUS CheckKey(Node* pNode) noexcept override;
+    LSTATUS QueryInfo(Node* pNode, KeyInfo& info) const noexcept override;
+    LSTATUS CheckKey(Node* pNode) const noexcept override;
 
     LSTATUS Watch(
         Node* pNode,
@@ -194,13 +194,13 @@ private:
         const std::wstring& path,
         REGSAM samDesired,
         HKEY& hKey
-    ) noexcept;
+    ) const noexcept;
 
     /// The class of the lower key at @p path; empty when there is none.
     LSTATUS QueryLowerClass(
         const std::wstring& path,
         std::wstring& className
-    ) noexcept;
+    ) const noexcept;
 
     Registry& m_lower;
     HKEY m_hLowerRoot;

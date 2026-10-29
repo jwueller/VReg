@@ -21,11 +21,11 @@ public:
     {
     }
 
-    /// Calls named here (`OpenKeyExW`, ...) answer the status instead of being forwarded.
+    /// Calls named here (`RegOpenKeyExW`, ...) answer the status instead of being forwarded.
     std::map<std::string, LSTATUS> failures;
     std::function<void(const std::string&)> onCall;
 
-    LSTATUS OpenKeyExW(
+    LSTATUS RegOpenKeyExW(
         HKEY hKey,
         LPCWSTR lpSubKey,
         DWORD ulOptions,
@@ -33,9 +33,9 @@ public:
         PHKEY phkResult
     ) noexcept override
     {
-        if (const auto status = Enter("OpenKeyExW"))
+        if (const auto status = Enter("RegOpenKeyExW"))
             return *status;
-        return m_inner.OpenKeyExW(
+        return m_inner.RegOpenKeyExW(
             hKey,
             lpSubKey,
             ulOptions,
@@ -44,7 +44,7 @@ public:
         );
     }
 
-    LSTATUS CreateKeyExW(
+    LSTATUS RegCreateKeyExW(
         HKEY hKey,
         LPCWSTR lpSubKey,
         DWORD Reserved,
@@ -56,9 +56,9 @@ public:
         LPDWORD lpdwDisposition
     ) noexcept override
     {
-        if (const auto status = Enter("CreateKeyExW"))
+        if (const auto status = Enter("RegCreateKeyExW"))
             return *status;
-        return m_inner.CreateKeyExW(
+        return m_inner.RegCreateKeyExW(
             hKey,
             lpSubKey,
             Reserved,
@@ -71,25 +71,25 @@ public:
         );
     }
 
-    LSTATUS CloseKey(HKEY hKey) noexcept override
+    LSTATUS RegCloseKey(HKEY hKey) noexcept override
     {
-        return m_inner.CloseKey(
+        return m_inner.RegCloseKey(
             hKey
         );
     }
 
-    LSTATUS QueryValueExW(
+    LSTATUS RegQueryValueExW(
         HKEY hKey,
         LPCWSTR lpValueName,
         LPDWORD lpReserved,
         LPDWORD lpType,
         LPBYTE lpData,
         LPDWORD lpcbData
-    ) noexcept override
+    ) const noexcept override
     {
-        if (const auto status = Enter("QueryValueExW"))
+        if (const auto status = Enter("RegQueryValueExW"))
             return *status;
-        return m_inner.QueryValueExW(
+        return m_inner.RegQueryValueExW(
             hKey,
             lpValueName,
             lpReserved,
@@ -99,7 +99,7 @@ public:
         );
     }
 
-    LSTATUS SetValueExW(
+    LSTATUS RegSetValueExW(
         HKEY hKey,
         LPCWSTR lpValueName,
         DWORD Reserved,
@@ -108,9 +108,9 @@ public:
         DWORD cbData
     ) noexcept override
     {
-        if (const auto status = Enter("SetValueExW"))
+        if (const auto status = Enter("RegSetValueExW"))
             return *status;
-        return m_inner.SetValueExW(
+        return m_inner.RegSetValueExW(
             hKey,
             lpValueName,
             Reserved,
@@ -120,26 +120,26 @@ public:
         );
     }
 
-    LSTATUS DeleteValueW(HKEY hKey, LPCWSTR lpValueName) noexcept override
+    LSTATUS RegDeleteValueW(HKEY hKey, LPCWSTR lpValueName) noexcept override
     {
-        if (const auto status = Enter("DeleteValueW"))
+        if (const auto status = Enter("RegDeleteValueW"))
             return *status;
-        return m_inner.DeleteValueW(
+        return m_inner.RegDeleteValueW(
             hKey,
             lpValueName
         );
     }
 
-    LSTATUS DeleteKeyExW(
+    LSTATUS RegDeleteKeyExW(
         HKEY hKey,
         LPCWSTR lpSubKey,
         REGSAM samDesired,
         DWORD Reserved
     ) noexcept override
     {
-        if (const auto status = Enter("DeleteKeyExW"))
+        if (const auto status = Enter("RegDeleteKeyExW"))
             return *status;
-        return m_inner.DeleteKeyExW(
+        return m_inner.RegDeleteKeyExW(
             hKey,
             lpSubKey,
             samDesired,
@@ -147,17 +147,17 @@ public:
         );
     }
 
-    LSTATUS DeleteTreeW(HKEY hKey, LPCWSTR lpSubKey) noexcept override
+    LSTATUS RegDeleteTreeW(HKEY hKey, LPCWSTR lpSubKey) noexcept override
     {
-        if (const auto status = Enter("DeleteTreeW"))
+        if (const auto status = Enter("RegDeleteTreeW"))
             return *status;
-        return m_inner.DeleteTreeW(
+        return m_inner.RegDeleteTreeW(
             hKey,
             lpSubKey
         );
     }
 
-    LSTATUS EnumKeyExW(
+    LSTATUS RegEnumKeyExW(
         HKEY hKey,
         DWORD dwIndex,
         LPWSTR lpName,
@@ -166,11 +166,11 @@ public:
         LPWSTR lpClass,
         LPDWORD lpcchClass,
         PFILETIME lpftLastWriteTime
-    ) noexcept override
+    ) const noexcept override
     {
-        if (const auto status = Enter("EnumKeyExW"))
+        if (const auto status = Enter("RegEnumKeyExW"))
             return *status;
-        return m_inner.EnumKeyExW(
+        return m_inner.RegEnumKeyExW(
             hKey,
             dwIndex,
             lpName,
@@ -182,7 +182,7 @@ public:
         );
     }
 
-    LSTATUS EnumValueW(
+    LSTATUS RegEnumValueW(
         HKEY hKey,
         DWORD dwIndex,
         LPWSTR lpValueName,
@@ -191,11 +191,11 @@ public:
         LPDWORD lpType,
         LPBYTE lpData,
         LPDWORD lpcbData
-    ) noexcept override
+    ) const noexcept override
     {
-        if (const auto status = Enter("EnumValueW"))
+        if (const auto status = Enter("RegEnumValueW"))
             return *status;
-        return m_inner.EnumValueW(
+        return m_inner.RegEnumValueW(
             hKey,
             dwIndex,
             lpValueName,
@@ -207,7 +207,7 @@ public:
         );
     }
 
-    LSTATUS QueryInfoKeyW(
+    LSTATUS RegQueryInfoKeyW(
         HKEY hKey,
         LPWSTR lpClass,
         LPDWORD lpcchClass,
@@ -220,11 +220,11 @@ public:
         LPDWORD lpcbMaxValueLen,
         LPDWORD lpcbSecurityDescriptor,
         PFILETIME lpftLastWriteTime
-    ) noexcept override
+    ) const noexcept override
     {
-        if (const auto status = Enter("QueryInfoKeyW"))
+        if (const auto status = Enter("RegQueryInfoKeyW"))
             return *status;
-        return m_inner.QueryInfoKeyW(
+        return m_inner.RegQueryInfoKeyW(
             hKey,
             lpClass,
             lpcchClass,
@@ -240,7 +240,7 @@ public:
         );
     }
 
-    LSTATUS LoadMUIStringW(
+    LSTATUS RegLoadMUIStringW(
         HKEY hKey,
         LPCWSTR pszValue,
         LPWSTR pszOutBuf,
@@ -248,11 +248,11 @@ public:
         LPDWORD pcbData,
         DWORD Flags,
         LPCWSTR pszDirectory
-    ) noexcept override
+    ) const noexcept override
     {
-        if (const auto status = Enter("LoadMUIStringW"))
+        if (const auto status = Enter("RegLoadMUIStringW"))
             return *status;
-        return m_inner.LoadMUIStringW(
+        return m_inner.RegLoadMUIStringW(
             hKey,
             pszValue,
             pszOutBuf,
@@ -263,7 +263,7 @@ public:
         );
     }
 
-    LSTATUS GetValueW(
+    LSTATUS RegGetValueW(
         HKEY hkey,
         LPCWSTR lpSubKey,
         LPCWSTR lpValue,
@@ -271,11 +271,11 @@ public:
         LPDWORD pdwType,
         PVOID pvData,
         LPDWORD pcbData
-    ) noexcept override
+    ) const noexcept override
     {
-        if (const auto status = Enter("GetValueW"))
+        if (const auto status = Enter("RegGetValueW"))
             return *status;
-        return m_inner.GetValueW(
+        return m_inner.RegGetValueW(
             hkey,
             lpSubKey,
             lpValue,
@@ -286,7 +286,7 @@ public:
         );
     }
 
-    LSTATUS GetValueA(
+    LSTATUS RegGetValueA(
         HKEY hkey,
         LPCSTR lpSubKey,
         LPCSTR lpValue,
@@ -294,11 +294,11 @@ public:
         LPDWORD pdwType,
         PVOID pvData,
         LPDWORD pcbData
-    ) noexcept override
+    ) const noexcept override
     {
-        if (const auto status = Enter("GetValueA"))
+        if (const auto status = Enter("RegGetValueA"))
             return *status;
-        return m_inner.GetValueA(
+        return m_inner.RegGetValueA(
             hkey,
             lpSubKey,
             lpValue,
@@ -309,7 +309,7 @@ public:
         );
     }
 
-    LSTATUS NotifyChangeKeyValue(
+    LSTATUS RegNotifyChangeKeyValue(
         HKEY hKey,
         BOOL bWatchSubtree,
         DWORD dwNotifyFilter,
@@ -317,9 +317,9 @@ public:
         BOOL fAsynchronous
     ) noexcept override
     {
-        if (const auto status = Enter("NotifyChangeKeyValue"))
+        if (const auto status = Enter("RegNotifyChangeKeyValue"))
             return *status;
-        return m_inner.NotifyChangeKeyValue(
+        return m_inner.RegNotifyChangeKeyValue(
             hKey,
             bWatchSubtree,
             dwNotifyFilter,
@@ -328,17 +328,17 @@ public:
         );
     }
 
-    LSTATUS FlushKey(HKEY hKey) noexcept override
+    LSTATUS RegFlushKey(HKEY hKey) noexcept override
     {
-        if (const auto status = Enter("FlushKey"))
+        if (const auto status = Enter("RegFlushKey"))
             return *status;
-        return m_inner.FlushKey(
+        return m_inner.RegFlushKey(
             hKey
         );
     }
 
 private:
-    std::optional<LSTATUS> Enter(const char* const pszName)
+    std::optional<LSTATUS> Enter(const char* const pszName) const
     {
         if (onCall)
             onCall(pszName);

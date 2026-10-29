@@ -57,6 +57,10 @@ the API it reimplements. Change them freely before the first release.
 - Namespace `VReg`, bodies not indented. Types and functions PascalCase;
   members `m_`, globals `g_`, Hungarian prefixes like the Win32 API beside
   them. Flat functions are `VReg` plus the Win32 name.
+- `Registry` members are the Win32 functions, `Reg` prefix included, and
+  only their A and W names exist: a neutral name (`RegOpenKeyEx`) is a
+  `winreg.h` macro. Nothing else joins the class; helpers over it are free
+  functions.
 - Win32-shaped entry points are `noexcept` and return `LSTATUS`.
 - Conversions that return their result are named `YFromX`.
 - Parameter names are never omitted or commented out; an unused one is

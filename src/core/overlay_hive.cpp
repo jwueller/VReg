@@ -1,5 +1,6 @@
 #include <VReg/overlay_hive.h>
 
+#include <VReg/owned_values.h>
 #include <VReg/registry.h>
 
 #include "tree.h"
@@ -134,7 +135,7 @@ public:
     ~LowerKey()
     {
         if (m_hKey)
-            m_registry.CloseKey(
+            m_registry.RegCloseKey(
                 m_hKey
             );
     }
@@ -237,9 +238,9 @@ LSTATUS OverlayHive::OpenLower(
     const std::wstring& path,
     const REGSAM samDesired,
     HKEY& hKey
-) noexcept
+) const noexcept
 {
-    return m_lower.OpenKeyExW(
+    return m_lower.RegOpenKeyExW(
         m_hLowerRoot,
         path.empty() ? nullptr : path.c_str(),
         0,
@@ -251,7 +252,7 @@ LSTATUS OverlayHive::OpenLower(
 LSTATUS OverlayHive::QueryLowerClass(
     const std::wstring& path,
     std::wstring& className
-) noexcept
+) const noexcept
 try
 {
     className.clear();
@@ -264,7 +265,7 @@ try
     for (;;)
     {
         DWORD cchClass = static_cast<DWORD>(buffer.size());
-        const auto status = m_lower.QueryInfoKeyW(
+        const auto status = m_lower.RegQueryInfoKeyW(
             lowerKey.Get(),
             buffer.data(),
             &cchClass,
@@ -579,7 +580,7 @@ try
         for (DWORD i = 0; hasLower && view.isVisible; ++i)
         {
             std::wstring name;
-            const auto enumStatus = m_lower.EnumKey(lowerKey.Get(), i, name);
+            const auto enumStatus = VReg::EnumKey(m_lower, lowerKey.Get(), i, name);
             if (enumStatus == ERROR_NO_MORE_ITEMS)
                 break;
             if (enumStatus != ERROR_SUCCESS)
@@ -642,7 +643,7 @@ LSTATUS OverlayHive::QueryValue(
     const std::wstring_view name,
     DWORD& dwType,
     std::vector<std::byte>& data
-) noexcept
+) const noexcept
 try
 {
     LowerView view;
@@ -677,7 +678,7 @@ try
         return status;
 
     const std::wstring valueName(name);
-    return m_lower.QueryValue(lowerKey.Get(), valueName.c_str(), &dwType, data);
+    return VReg::QueryValue(m_lower, lowerKey.Get(), valueName.c_str(), &dwType, data);
 }
 catch (const std::bad_alloc&)
 {
@@ -712,7 +713,7 @@ LSTATUS OverlayHive::QueryMuiText(
     Node* const pNode,
     const std::wstring_view name,
     std::wstring& text
-) noexcept
+) const noexcept
 try
 {
     {
@@ -813,7 +814,7 @@ try
         if (status == ERROR_SUCCESS)
         {
             const std::wstring valueName(name);
-            const auto queryStatus = m_lower.QueryValueExW(
+            const auto queryStatus = m_lower.RegQueryValueExW(
                 lowerKey.Get(),
                 valueName.c_str(),
                 nullptr,
@@ -868,7 +869,7 @@ LSTATUS OverlayHive::EnumKey(
     std::wstring& name,
     std::wstring& className,
     FILETIME& lastWrite
-) noexcept
+) const noexcept
 try
 {
     std::vector<std::wstring> shadowed;
@@ -926,7 +927,7 @@ try
         return opened == ERROR_FILE_NOT_FOUND ? ERROR_NO_MORE_ITEMS : opened;
 
     DWORD cchMaxClass = 0;
-    const auto queried = m_lower.QueryInfoKeyW(
+    const auto queried = m_lower.RegQueryInfoKeyW(
         lowerKey.Get(),
         nullptr,
         nullptr,
@@ -952,7 +953,7 @@ try
         DWORD cchName = static_cast<DWORD>(nameBuffer.size());
         DWORD cchClass = static_cast<DWORD>(classBuffer.size());
         FILETIME ft{};
-        const auto status = m_lower.EnumKeyExW(
+        const auto status = m_lower.RegEnumKeyExW(
             lowerKey.Get(),
             i,
             nameBuffer.data(),
@@ -986,7 +987,7 @@ LSTATUS OverlayHive::EnumValue(
     std::wstring& name,
     DWORD& dwType,
     std::vector<std::byte>& data
-) noexcept
+) const noexcept
 try
 {
     std::vector<std::wstring> shadowed;
@@ -1032,7 +1033,8 @@ try
         std::wstring lowerName;
         DWORD dwLowerType{};
         std::vector<std::byte> lowerData;
-        const auto status = m_lower.EnumValue(
+        const auto status = VReg::EnumValue(
+            m_lower,
             lowerKey.Get(),
             i,
             lowerName,
@@ -1056,7 +1058,7 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS OverlayHive::QueryInfo(Node* const pNode, KeyInfo& info) noexcept
+LSTATUS OverlayHive::QueryInfo(Node* const pNode, KeyInfo& info) const noexcept
 try
 {
     std::vector<std::wstring> shadowedKeys;
@@ -1132,7 +1134,7 @@ try
             for (;;)
             {
                 DWORD cchClass = static_cast<DWORD>(classBuffer.size());
-                const auto infoStatus = m_lower.QueryInfoKeyW(
+                const auto infoStatus = m_lower.RegQueryInfoKeyW(
                     lowerKey.Get(),
                     classBuffer.data(),
                     &cchClass,
@@ -1162,7 +1164,7 @@ try
             for (const auto& name : shadowedKeys)
             {
                 LowerKey child(m_lower);
-                const auto childStatus = m_lower.OpenKeyExW(
+                const auto childStatus = m_lower.RegOpenKeyExW(
                     lowerKey.Get(),
                     name.c_str(),
                     0,
@@ -1177,7 +1179,7 @@ try
 
             for (const auto& name : shadowedValues)
             {
-                const auto valueStatus = m_lower.QueryValueExW(
+                const auto valueStatus = m_lower.RegQueryValueExW(
                     lowerKey.Get(),
                     name.c_str(),
                     nullptr,
@@ -1239,7 +1241,7 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS OverlayHive::CheckKey(Node* const pNode) noexcept
+LSTATUS OverlayHive::CheckKey(Node* const pNode) const noexcept
 {
     Tree::ReadLock lock(*m_pTree);
     return pNode->isDeleted ? ERROR_KEY_DELETED : ERROR_SUCCESS;
@@ -1287,7 +1289,7 @@ try
         return opened == ERROR_FILE_NOT_FOUND ? ERROR_SUCCESS : opened;
 
     const std::wstring valueName(name);
-    const auto status = m_lower.QueryValueExW(
+    const auto status = m_lower.RegQueryValueExW(
         lowerKey.Get(),
         valueName.c_str(),
         nullptr,

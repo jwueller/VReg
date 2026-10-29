@@ -103,7 +103,7 @@ public:
         std::wstring_view name,
         DWORD& dwType,
         std::vector<std::byte>& data
-    ) noexcept = 0;
+    ) const noexcept = 0;
 
     virtual LSTATUS SetValue(
         Node* pNode,
@@ -139,7 +139,7 @@ public:
         Node* pNode,
         std::wstring_view name,
         std::wstring& text
-    ) noexcept = 0;
+    ) const noexcept = 0;
 
     virtual LSTATUS EnumKey(
         Node* pNode,
@@ -147,7 +147,7 @@ public:
         std::wstring& name,
         std::wstring& className,
         FILETIME& lastWrite
-    ) noexcept = 0;
+    ) const noexcept = 0;
 
     virtual LSTATUS EnumValue(
         Node* pNode,
@@ -155,12 +155,12 @@ public:
         std::wstring& name,
         DWORD& dwType,
         std::vector<std::byte>& data
-    ) noexcept = 0;
+    ) const noexcept = 0;
 
-    virtual LSTATUS QueryInfo(Node* pNode, KeyInfo& info) noexcept = 0;
-    /// What `FlushKey` on @p pNode needs from the hive: success, or
+    virtual LSTATUS QueryInfo(Node* pNode, KeyInfo& info) const noexcept = 0;
+    /// What `RegFlushKey` on @p pNode needs from the hive: success, or
     /// `ERROR_KEY_DELETED`.
-    virtual LSTATUS CheckKey(Node* pNode) noexcept = 0;
+    virtual LSTATUS CheckKey(Node* pNode) const noexcept = 0;
 
     /**
      * @brief Registers a one-shot change notification on @p pNode.

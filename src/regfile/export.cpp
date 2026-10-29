@@ -1,6 +1,7 @@
 #include <VReg/regfile.h>
 
 #include <VReg/overlay_hive.h>
+#include <VReg/owned_values.h>
 
 #include "text.h"
 #include "writer.h"
@@ -78,7 +79,8 @@ public:
                 .dwType = 0,
                 .data = {}
             };
-            const auto status = m_registry.EnumValue(
+            const auto status = EnumValue(
+                m_registry,
                 hKey,
                 dwIndex,
                 value.name,
@@ -99,7 +101,8 @@ public:
         for (DWORD dwIndex = 0;; ++dwIndex)
         {
             std::wstring name;
-            const auto status = m_registry.EnumKey(
+            const auto status = EnumKey(
+                m_registry,
                 hKey,
                 dwIndex,
                 name
@@ -116,7 +119,7 @@ public:
             HKEY hSubkey{};
             // A symbolic link is exported as the key it is (its SymbolicLinkValue), never followed: following one
             // can leave the subtree or loop.
-            const auto opened = m_registry.OpenKeyExW(
+            const auto opened = m_registry.RegOpenKeyExW(
                 hKey,
                 subkey.c_str(),
                 REG_OPTION_OPEN_LINK,
@@ -130,7 +133,7 @@ public:
                 fullName + L'\\' + subkey,
                 depth + 1
             );
-            m_registry.CloseKey(
+            m_registry.RegCloseKey(
                 hSubkey
             );
             if (status != ERROR_SUCCESS)
@@ -166,7 +169,7 @@ LSTATUS ExportSnapshot(
     {
         const std::wstring subkey(path);
         HKEY hKey{};
-        const auto opened = registry.OpenKeyExW(
+        const auto opened = registry.RegOpenKeyExW(
             hRoot,
             subkey.c_str(),
             0,
@@ -181,7 +184,7 @@ LSTATUS ExportSnapshot(
             fullName.append(L"\\").append(path);
         SnapshotWalker walker(registry);
         const auto walked = walker.Walk(hKey, fullName);
-        registry.CloseKey(
+        registry.RegCloseKey(
             hKey
         );
         if (walked != ERROR_SUCCESS)

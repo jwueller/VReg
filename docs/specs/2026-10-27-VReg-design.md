@@ -70,9 +70,18 @@ it.
   call from a W call; it forwards an A form it overrides to the A form of
   the registry it wraps. The W pre-`Ex` forms and conveniences stay
   non-virtual.
-- Modern overloads returning owned values (`std::wstring`,
-  `std::vector<std::byte>`) are non-virtual helpers on top. The original
-  Win32 signatures stay the primary surface.
+- Members carry their Win32 names, `Reg` prefix included (`RegOpenKeyExW`),
+  so the `UNICODE` selector macros of `winreg.h` (`RegOpenKeyEx`) pick the
+  A or W member as they pick the function. Only A and W names are
+  declared: a member with the neutral name would be renamed by the macro.
+- Queries are `const` members: they change nothing the registry answers
+  afterwards. Opening a key is not a query, since it hands out a handle the
+  caller owns; neither is pre-`Ex` `RegQueryValue`, which opens and closes
+  a subkey.
+- `Registry` holds the Win32 surface and nothing else. The reads that size
+  and fill a `std::wstring` or `std::vector<std::byte>` themselves are free
+  functions over a `const Registry&` (`owned_values.h`), without the `Reg`
+  prefix, which would collide with Win32 macros such as `RegQueryValue`.
 
 Implementations:
 

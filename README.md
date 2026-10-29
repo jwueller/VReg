@@ -10,9 +10,12 @@ It grew out of the virtual registry in
 
 ## What it does
 
-- **Win32-shaped interface.** `Registry` has the `Reg*` signatures (A and W,
-  `Ex` and pre-`Ex`), with owned-value overloads on top. Native, virtual and
-  in-memory registries are interchangeable behind it.
+- **Win32-shaped interface.** `Registry` has the `Reg*` functions as
+  members, names and signatures alike (A and W, `Ex` and pre-`Ex`), so the
+  `UNICODE` macros select among them as among the functions. Native,
+  virtual and in-memory registries are interchangeable behind it. Reads
+  into a `std::wstring` or `std::vector<std::byte>` are free functions on
+  top.
 - **Hives mounted into a virtual namespace.** A `VirtualRegistry` mounts
   in-memory or overlay hives at registry paths and passes everything else to
   a base registry (usually the real one). An overlay hive adds, overrides
@@ -75,7 +78,7 @@ VReg::VirtualRegistry registry(&native);
 registry.Mount(HKEY_CURRENT_USER, L"Software\\Vendor\\Game", overlay);
 
 const DWORD dwOne = 1;
-registry.SetKeyValueW(HKEY_CURRENT_USER, L"Software\\Vendor\\Game", L"Windowed", REG_DWORD, &dwOne, sizeof(dwOne));
+registry.RegSetKeyValueW(HKEY_CURRENT_USER, L"Software\\Vendor\\Game", L"Windowed", REG_DWORD, &dwOne, sizeof(dwOne));
 ```
 
 Writes stay in memory. `VReg::RegFile::ExportDelta` saves them as a `.reg`

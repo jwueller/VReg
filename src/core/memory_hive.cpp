@@ -171,7 +171,7 @@ LSTATUS MemoryHive::QueryValue(
     const std::wstring_view name,
     DWORD& dwType,
     std::vector<std::byte>& data
-) noexcept
+) const noexcept
 try
 {
     Tree::ReadLock lock(*m_pTree);
@@ -219,7 +219,7 @@ LSTATUS MemoryHive::QueryMuiText(
     Node* const pNode,
     const std::wstring_view name,
     std::wstring& text
-) noexcept
+) const noexcept
 try
 {
     Tree::ReadLock lock(*m_pTree);
@@ -304,7 +304,7 @@ LSTATUS MemoryHive::EnumKey(
     std::wstring& name,
     std::wstring& className,
     FILETIME& lastWrite
-) noexcept
+) const noexcept
 try
 {
     Tree::ReadLock lock(*m_pTree);
@@ -331,7 +331,7 @@ LSTATUS MemoryHive::EnumValue(
     std::wstring& name,
     DWORD& dwType,
     std::vector<std::byte>& data
-) noexcept
+) const noexcept
 try
 {
     Tree::ReadLock lock(*m_pTree);
@@ -352,7 +352,7 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS MemoryHive::QueryInfo(Node* const pNode, KeyInfo& info) noexcept
+LSTATUS MemoryHive::QueryInfo(Node* const pNode, KeyInfo& info) const noexcept
 try
 {
     Tree::ReadLock lock(*m_pTree);
@@ -395,7 +395,7 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS MemoryHive::CheckKey(Node* const pNode) noexcept
+LSTATUS MemoryHive::CheckKey(Node* const pNode) const noexcept
 {
     Tree::ReadLock lock(*m_pTree);
     return pNode->isDeleted ? ERROR_KEY_DELETED : ERROR_SUCCESS;

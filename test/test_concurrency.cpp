@@ -132,7 +132,7 @@ void WriterLoop(
         {
             HKEY hKey{};
             const auto status =
-                registry.CreateKeyExW(
+                registry.RegCreateKeyExW(
                     hRoot,
                     path.c_str(),
                     0,
@@ -145,7 +145,7 @@ void WriterLoop(
                 );
             Judge(shared, status);
             if (status == ERROR_SUCCESS)
-                registry.CloseKey(
+                registry.RegCloseKey(
                     hKey
                 );
             break;
@@ -154,7 +154,7 @@ void WriterLoop(
         case 3:
         {
             HKEY hKey{};
-            const auto status = registry.OpenKeyExW(
+            const auto status = registry.RegOpenKeyExW(
                 hRoot,
                 path.c_str(),
                 0,
@@ -170,7 +170,7 @@ void WriterLoop(
             const DWORD dwValue = ValueData(index);
             Judge(
                 shared,
-                registry.SetValueExW(
+                registry.RegSetValueExW(
                     hKey,
                     name.c_str(),
                     0,
@@ -179,7 +179,7 @@ void WriterLoop(
                     sizeof(dwValue)
                 )
             );
-            registry.CloseKey(
+            registry.RegCloseKey(
                 hKey
             );
             break;
@@ -187,7 +187,7 @@ void WriterLoop(
         case 4:
         {
             HKEY hKey{};
-            const auto status = registry.OpenKeyExW(
+            const auto status = registry.RegOpenKeyExW(
                 hRoot,
                 path.c_str(),
                 0,
@@ -200,12 +200,12 @@ void WriterLoop(
 
             Judge(
                 shared,
-                registry.DeleteValueW(
+                registry.RegDeleteValueW(
                     hKey,
                     ValueName(random.Next(kValues)).c_str()
                 )
             );
-            registry.CloseKey(
+            registry.RegCloseKey(
                 hKey
             );
             break;
@@ -213,7 +213,7 @@ void WriterLoop(
         case 5:
             Judge(
                 shared,
-                registry.DeleteKeyExW(
+                registry.RegDeleteKeyExW(
                     hRoot,
                     path.c_str(),
                     0,
@@ -226,7 +226,7 @@ void WriterLoop(
             if (random.Next(8) == 0)
                 Judge(
                     shared,
-                    registry.DeleteTreeW(
+                    registry.RegDeleteTreeW(
                         hRoot,
                         KeyName(random.Next(kKeys)).c_str()
                     )
@@ -253,7 +253,7 @@ void ReadKey(
         const auto index = random.Next(kValues);
         const auto name = ValueName(index);
         const auto status =
-            registry.QueryValueExW(
+            registry.RegQueryValueExW(
                 hKey,
                 name.c_str(),
                 nullptr,
@@ -271,7 +271,7 @@ void ReadKey(
         {
             wchar_t szName[64];
             DWORD cchName = ARRAYSIZE(szName);
-            const auto status = registry.EnumKeyExW(
+            const auto status = registry.RegEnumKeyExW(
                 hKey,
                 i,
                 szName,
@@ -295,7 +295,7 @@ void ReadKey(
             BYTE data[16];
             DWORD cbData = sizeof(data);
             const auto status =
-                registry.EnumValueW(
+                registry.RegEnumValueW(
                     hKey,
                     i,
                     szName,
@@ -314,7 +314,7 @@ void ReadKey(
     {
         DWORD cSubKeys{};
         DWORD cValues{};
-        const auto status = registry.QueryInfoKeyW(
+        const auto status = registry.RegQueryInfoKeyW(
             hKey,
             nullptr,
             nullptr,
@@ -350,7 +350,7 @@ void ReaderLoop(
     {
         const auto path = RandomPath(random);
         HKEY hKey{};
-        const auto status = registry.OpenKeyExW(
+        const auto status = registry.RegOpenKeyExW(
             hRoot,
             path.c_str(),
             0,
@@ -365,7 +365,7 @@ void ReaderLoop(
         for (int i = 0; i < 4; ++i)
             ReadKey(registry, hKey, shared, random);
 
-        registry.CloseKey(
+        registry.RegCloseKey(
             hKey
         );
     }
@@ -379,7 +379,7 @@ void WatcherLoop(Registry& registry, const HKEY hRoot, Shared& shared)
     {
         ResetEvent(hEvent);
         const auto status =
-            registry.NotifyChangeKeyValue(
+            registry.RegNotifyChangeKeyValue(
                 hRoot,
                 TRUE,
                 REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_LAST_SET,
@@ -427,7 +427,7 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
     {
         wchar_t szName[64];
         DWORD cchName = ARRAYSIZE(szName);
-        const auto status = registry.EnumKeyExW(
+        const auto status = registry.RegEnumKeyExW(
             hRoot,
             i,
             szName,
@@ -445,7 +445,7 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
 
     DWORD cSubKeys{};
     REQUIRE(
-        registry.QueryInfoKeyW(
+        registry.RegQueryInfoKeyW(
             hRoot,
             nullptr,
             nullptr,
@@ -466,7 +466,7 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
     for (unsigned k = 0; k < kKeys; ++k)
     {
         HKEY hKey{};
-        const auto status = registry.OpenKeyExW(
+        const auto status = registry.RegOpenKeyExW(
             hRoot,
             KeyName(k).c_str(),
             0,
@@ -482,7 +482,7 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
         {
             wchar_t szName[64];
             DWORD cchName = ARRAYSIZE(szName);
-            const auto enumStatus = registry.EnumKeyExW(
+            const auto enumStatus = registry.RegEnumKeyExW(
                 hKey,
                 i,
                 szName,
@@ -506,7 +506,7 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
             DWORD dwType{};
             DWORD dwValue{};
             DWORD cbValue = sizeof(dwValue);
-            const auto enumStatus = registry.EnumValueW(
+            const auto enumStatus = registry.RegEnumValueW(
                 hKey,
                 i,
                 szName,
@@ -530,7 +530,7 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
         DWORD cSubs{};
         DWORD cVals{};
         REQUIRE(
-            registry.QueryInfoKeyW(
+            registry.RegQueryInfoKeyW(
                 hKey,
                 nullptr,
                 nullptr,
@@ -553,7 +553,7 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
         {
             HKEY hSub{};
             CHECK(
-                registry.OpenKeyExW(
+                registry.RegOpenKeyExW(
                     hKey,
                     name.c_str(),
                     0,
@@ -561,7 +561,7 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
                     &hSub
                 ) == ERROR_SUCCESS
             );
-            registry.CloseKey(
+            registry.RegCloseKey(
                 hSub
             );
         }
@@ -571,7 +571,7 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
             DWORD dwValue{};
             DWORD cbValue = sizeof(dwValue);
             CHECK(
-                registry.QueryValueExW(
+                registry.RegQueryValueExW(
                     hKey,
                     name.c_str(),
                     nullptr,
@@ -583,7 +583,7 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
             );
         }
 
-        registry.CloseKey(
+        registry.RegCloseKey(
             hKey
         );
     }
@@ -707,7 +707,7 @@ TEST_CASE("Readers and writers on a writable OverlayHive over an app hive")
             const auto path = KeyName(k) + L'\\' + SubName(s);
             HKEY hKey{};
             REQUIRE(
-                native.CreateKeyExW(
+                native.RegCreateKeyExW(
                     mount.LowerRoot(),
                     path.c_str(),
                     0,
@@ -725,7 +725,7 @@ TEST_CASE("Readers and writers on a writable OverlayHive over an app hive")
                 const DWORD dwValue = ValueData(v);
                 const auto name = ValueName(v);
                 REQUIRE(
-                    native.SetValueExW(
+                    native.RegSetValueExW(
                         hKey,
                         name.c_str(),
                         0,
@@ -736,7 +736,7 @@ TEST_CASE("Readers and writers on a writable OverlayHive over an app hive")
                     == ERROR_SUCCESS
                 );
             }
-            native.CloseKey(
+            native.RegCloseKey(
                 hKey
             );
         }

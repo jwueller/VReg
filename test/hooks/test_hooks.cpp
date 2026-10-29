@@ -1013,7 +1013,7 @@ TEST_CASE("The hooks call through the registry handed to Install")
     pIntercept->onCall = [&](const std::string& call) { calls.push_back(call); };
     CHECK(ReadMountModule(name) == L"Exe");
 
-    pIntercept->failures["GetValueW"] = ERROR_ACCESS_DENIED;
+    pIntercept->failures["RegGetValueW"] = ERROR_ACCESS_DENIED;
     const HKEY hRoot = OpenMount(name);
     LSTATUS status{};
     CHECK(!ReadModule(hRoot, status));
@@ -1036,9 +1036,9 @@ TEST_CASE("The hooks call through the registry handed to Install")
     CHECK(std::string(module.data()) == "Exe");
 
     pIntercept->onCall = nullptr;
-    CHECK(std::ranges::count(calls, "OpenKeyExW") == 2);
-    CHECK(std::ranges::count(calls, "GetValueW") == 2);
-    CHECK(std::ranges::count(calls, "GetValueA") == 1);
+    CHECK(std::ranges::count(calls, "RegOpenKeyExW") == 2);
+    CHECK(std::ranges::count(calls, "RegGetValueW") == 2);
+    CHECK(std::ranges::count(calls, "RegGetValueA") == 1);
 }
 
 TEST_CASE("Neutralize removes the mount and leaves real keys working")

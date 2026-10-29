@@ -474,7 +474,7 @@ VirtualRegistry::Target VirtualRegistry::Resolve(
     return target;
 }
 
-LSTATUS VirtualRegistry::OpenKeyExW(
+LSTATUS VirtualRegistry::RegOpenKeyExW(
     const HKEY hKey,
     const LPCWSTR lpSubKey,
     const DWORD ulOptions,
@@ -485,7 +485,7 @@ try
 {
     const auto target = Resolve(hKey, View(lpSubKey), samDesired);
     if (target.isBase)
-        return m_pBase->OpenKeyExW(
+        return m_pBase->RegOpenKeyExW(
             hKey,
             lpSubKey,
             ulOptions,
@@ -521,7 +521,7 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS VirtualRegistry::CreateKeyExW(
+LSTATUS VirtualRegistry::RegCreateKeyExW(
     const HKEY hKey,
     const LPCWSTR lpSubKey,
     const DWORD Reserved,
@@ -537,7 +537,7 @@ try
     const auto target = Resolve(hKey, View(lpSubKey), samDesired);
     if (target.isBase)
     {
-        return m_pBase->CreateKeyExW(
+        return m_pBase->RegCreateKeyExW(
             hKey,
             lpSubKey,
             Reserved,
@@ -591,7 +591,7 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS VirtualRegistry::CloseKey(
+LSTATUS VirtualRegistry::RegCloseKey(
     const HKEY hKey
 ) noexcept
 {
@@ -601,24 +601,24 @@ LSTATUS VirtualRegistry::CloseKey(
     if (HandleSpace::Process().Owns(hKey) || !m_pBase)
         return ERROR_INVALID_HANDLE;
 
-    return m_pBase->CloseKey(
+    return m_pBase->RegCloseKey(
         hKey
     );
 }
 
-LSTATUS VirtualRegistry::QueryValueExW(
+LSTATUS VirtualRegistry::RegQueryValueExW(
     const HKEY hKey,
     const LPCWSTR lpValueName,
     const LPDWORD lpReserved,
     const LPDWORD lpType,
     const LPBYTE lpData,
     const LPDWORD lpcbData
-) noexcept
+) const noexcept
 try
 {
     const auto target = Resolve(hKey, {});
     if (target.isBase)
-        return m_pBase->QueryValueExW(
+        return m_pBase->RegQueryValueExW(
             hKey,
             lpValueName,
             lpReserved,
@@ -672,7 +672,7 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS VirtualRegistry::SetValueExW(
+LSTATUS VirtualRegistry::RegSetValueExW(
     const HKEY hKey,
     const LPCWSTR lpValueName,
     const DWORD Reserved,
@@ -684,7 +684,7 @@ try
 {
     const auto target = Resolve(hKey, {});
     if (target.isBase)
-        return m_pBase->SetValueExW(
+        return m_pBase->RegSetValueExW(
             hKey,
             lpValueName,
             Reserved,
@@ -713,7 +713,7 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS VirtualRegistry::DeleteValueW(
+LSTATUS VirtualRegistry::RegDeleteValueW(
     const HKEY hKey,
     const LPCWSTR lpValueName
 ) noexcept
@@ -721,7 +721,7 @@ try
 {
     const auto target = Resolve(hKey, {});
     if (target.isBase)
-        return m_pBase->DeleteValueW(
+        return m_pBase->RegDeleteValueW(
             hKey,
             lpValueName
         );
@@ -739,7 +739,7 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS VirtualRegistry::DeleteKeyExW(
+LSTATUS VirtualRegistry::RegDeleteKeyExW(
     const HKEY hKey,
     const LPCWSTR lpSubKey,
     const REGSAM samDesired,
@@ -749,7 +749,7 @@ try
 {
     const auto target = Resolve(hKey, View(lpSubKey), samDesired);
     if (target.isBase)
-        return m_pBase->DeleteKeyExW(
+        return m_pBase->RegDeleteKeyExW(
             hKey,
             lpSubKey,
             samDesired,
@@ -768,7 +768,7 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS VirtualRegistry::DeleteTreeW(
+LSTATUS VirtualRegistry::RegDeleteTreeW(
     const HKEY hKey,
     const LPCWSTR lpSubKey
 ) noexcept
@@ -776,7 +776,7 @@ try
 {
     const auto target = Resolve(hKey, View(lpSubKey));
     if (target.isBase)
-        return m_pBase->DeleteTreeW(
+        return m_pBase->RegDeleteTreeW(
             hKey,
             lpSubKey
         );
@@ -798,7 +798,7 @@ try
     // Only a frozen hive hands out lower keys, and it refuses every write.
     if (result.hLower)
     {
-        pHive->Lower()->CloseKey(
+        pHive->Lower()->RegCloseKey(
             result.hLower
         );
         return ERROR_ACCESS_DENIED;
@@ -815,7 +815,7 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS VirtualRegistry::EnumKeyExW(
+LSTATUS VirtualRegistry::RegEnumKeyExW(
     const HKEY hKey,
     const DWORD dwIndex,
     const LPWSTR lpName,
@@ -824,14 +824,14 @@ LSTATUS VirtualRegistry::EnumKeyExW(
     const LPWSTR lpClass,
     const LPDWORD lpcchClass,
     const PFILETIME lpftLastWriteTime
-) noexcept
+) const noexcept
 try
 {
     const auto target = Resolve(hKey, {});
     if (target.isBase)
     {
         return m_pBase
-            ->EnumKeyExW(
+            ->RegEnumKeyExW(
                 hKey,
                 dwIndex,
                 lpName,
@@ -892,7 +892,7 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS VirtualRegistry::EnumValueW(
+LSTATUS VirtualRegistry::RegEnumValueW(
     const HKEY hKey,
     const DWORD dwIndex,
     const LPWSTR lpValueName,
@@ -901,14 +901,14 @@ LSTATUS VirtualRegistry::EnumValueW(
     const LPDWORD lpType,
     const LPBYTE lpData,
     const LPDWORD lpcbData
-) noexcept
+) const noexcept
 try
 {
     const auto target = Resolve(hKey, {});
     if (target.isBase)
     {
         return m_pBase
-            ->EnumValueW(
+            ->RegEnumValueW(
                 hKey,
                 dwIndex,
                 lpValueName,
@@ -979,7 +979,7 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS VirtualRegistry::QueryInfoKeyW(
+LSTATUS VirtualRegistry::RegQueryInfoKeyW(
     const HKEY hKey,
     const LPWSTR lpClass,
     const LPDWORD lpcchClass,
@@ -992,13 +992,13 @@ LSTATUS VirtualRegistry::QueryInfoKeyW(
     const LPDWORD lpcbMaxValueLen,
     const LPDWORD lpcbSecurityDescriptor,
     const PFILETIME lpftLastWriteTime
-) noexcept
+) const noexcept
 try
 {
     const auto target = Resolve(hKey, {});
     if (target.isBase)
     {
-        return m_pBase->QueryInfoKeyW(
+        return m_pBase->RegQueryInfoKeyW(
             hKey,
             lpClass,
             lpcchClass,
@@ -1075,7 +1075,7 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS VirtualRegistry::LoadMUIStringW(
+LSTATUS VirtualRegistry::RegLoadMUIStringW(
     const HKEY hKey,
     const LPCWSTR pszValue,
     const LPWSTR pszOutBuf,
@@ -1083,12 +1083,12 @@ LSTATUS VirtualRegistry::LoadMUIStringW(
     const LPDWORD pcbData,
     const DWORD Flags,
     const LPCWSTR pszDirectory
-) noexcept
+) const noexcept
 try
 {
     const auto target = Resolve(hKey, {});
     if (target.isBase)
-        return m_pBase->LoadMUIStringW(
+        return m_pBase->RegLoadMUIStringW(
             hKey,
             pszValue,
             pszOutBuf,
@@ -1123,7 +1123,7 @@ try
     if (hLower)
     {
         auto* const pLower = pHive->Lower();
-        const auto status = pLower->LoadMUIStringW(
+        const auto status = pLower->RegLoadMUIStringW(
             hLower,
             pszValue,
             pszOutBuf,
@@ -1132,7 +1132,7 @@ try
             Flags,
             pszDirectory
         );
-        pLower->CloseKey(
+        pLower->RegCloseKey(
             hLower
         );
         return status;
@@ -1178,7 +1178,7 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS VirtualRegistry::GetValueW(
+LSTATUS VirtualRegistry::RegGetValueW(
     const HKEY hkey,
     const LPCWSTR lpSubKey,
     const LPCWSTR lpValue,
@@ -1186,7 +1186,7 @@ LSTATUS VirtualRegistry::GetValueW(
     const LPDWORD pdwType,
     const PVOID pvData,
     const LPDWORD pcbData
-) noexcept
+) const noexcept
 try
 {
     const auto target = Resolve(
@@ -1197,7 +1197,7 @@ try
                                                                          : 0)
     );
     if (target.isBase)
-        return m_pBase->GetValueW(
+        return m_pBase->RegGetValueW(
             hkey,
             lpSubKey,
             lpValue,
@@ -1239,7 +1239,7 @@ try
         if (result.hLower)
         {
             auto* const pLower = pHive->Lower();
-            const auto status = pLower->GetValueW(
+            const auto status = pLower->RegGetValueW(
                 result.hLower,
                 nullptr,
                 lpValue,
@@ -1248,7 +1248,7 @@ try
                 pvData,
                 pcbData
             );
-            pLower->CloseKey(
+            pLower->RegCloseKey(
                 result.hLower
             );
             return status;
@@ -1375,7 +1375,7 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS VirtualRegistry::NotifyChangeKeyValue(
+LSTATUS VirtualRegistry::RegNotifyChangeKeyValue(
     const HKEY hKey,
     const BOOL bWatchSubtree,
     const DWORD dwNotifyFilter,
@@ -1386,7 +1386,7 @@ try
 {
     const auto target = Resolve(hKey, {});
     if (target.isBase)
-        return m_pBase->NotifyChangeKeyValue(
+        return m_pBase->RegNotifyChangeKeyValue(
             hKey,
             bWatchSubtree,
             dwNotifyFilter,
@@ -1436,14 +1436,14 @@ catch (const std::bad_alloc&)
     return ERROR_OUTOFMEMORY;
 }
 
-LSTATUS VirtualRegistry::FlushKey(
+LSTATUS VirtualRegistry::RegFlushKey(
     const HKEY hKey
 ) noexcept
 try
 {
     const auto target = Resolve(hKey, {});
     if (target.isBase)
-        return m_pBase->FlushKey(
+        return m_pBase->RegFlushKey(
             hKey
         );
 
