@@ -1,6 +1,6 @@
 # Settings every VReg library and test target builds with. They stay PRIVATE:
 # a consumer's own macros (UNICODE or not) and warning levels are its business,
-# so the public headers must compile under either.
+# so the public headers must compile under either; test/headers checks that.
 add_library(VReg_BuildSettings INTERFACE)
 target_compile_features(VReg_BuildSettings INTERFACE cxx_std_20)
 target_compile_definitions(

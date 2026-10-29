@@ -50,3 +50,5 @@ add_test(
 if(TARGET VReg_Detours)
     add_subdirectory(hooks)
 endif()
+
+add_subdirectory(headers)
