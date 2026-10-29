@@ -32,7 +32,7 @@ Windows only (x86 and x64), and runs under Wine and Proton.
 
 ## Status
 
-Feature-complete for v1, not yet released.
+v1 released as v0.1.0.
 - Design: `docs/specs/2026-10-27-VReg-design.md`
 - Implementation plan: `docs/plans/2026-10-27-VReg-plan.md`
 
@@ -46,6 +46,36 @@ CMake targets (static libraries):
 
 Consume it through `add_subdirectory`/`FetchContent`, or install it and use
 `find_package(VReg CONFIG COMPONENTS Core RegFile Detours)`.
+
+### Through vcpkg
+
+This repository is a vcpkg registry. Add it to the consumer's
+`vcpkg-configuration.json`, with a VReg commit (the latest on `master`) as
+the baseline:
+
+```json
+{
+  "registries": [
+    {
+      "kind": "git",
+      "repository": "https://github.com/jwueller/VReg",
+      "baseline": "<VReg commit>",
+      "packages": ["vreg"]
+    }
+  ]
+}
+```
+
+Then depend on `vreg`, or `{"name": "vreg", "features": ["detours"]}` for
+the hooks, in `vcpkg.json`. The port prints its CMake usage on install.
+
+A change to `ports/vreg` needs a new version entry (bump `version-semver`
+or `port-version` first), committed after the port change itself, since it
+records the port's git tree:
+
+```
+vcpkg x-add-version vreg --x-builtin-ports-root=ports --x-builtin-registry-versions-dir=versions
+```
 
 ### Overlay over the real registry
 
