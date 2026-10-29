@@ -49,8 +49,8 @@ using NtQueryKeyFunction = LONG(NTAPI*)(
  *  @ref HKEY_CURRENT_USER have a native path.
  *
  *  This class owns the caller-buffer rules (sizes in characters or bytes,
- *  terminators, @ref ERROR_MORE_DATA) for every hive; the A forms come from
- *  @ref Registry over these W forms.
+ *  terminators, @ref ERROR_MORE_DATA) for every hive; the ANSI forms come from
+ *  @ref Registry over these wide forms.
  *
  *  Mounting publishes a new mount table with one atomic store, and old tables
  *  are never freed, so calls in flight never take a lock to read it.

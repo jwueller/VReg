@@ -95,7 +95,7 @@ LSTATUS Registry::RegOpenKeyExA(
                 samDesired,
                 phkResult
             );
-            // The native A form leaves the result alone for an invalid handle; the W form nulls it.
+            // The native ANSI form leaves the result alone for an invalid handle; the wide form nulls it.
             if (status == ERROR_INVALID_HANDLE && phkResult)
                 *phkResult = hPrevious;
             return status;

@@ -39,8 +39,8 @@ the `find_package` consumer.
 
 ## M2 -- `Registry` interface, `NativeRegistry`, oracle harness
 
-1. `Registry` with the W virtuals listed in the spec; the A and pre-`Ex`
-   forms as adapters (`CP_ACP`), the A forms virtual; the owned-value reads
+1. `Registry` with the wide virtuals listed in the spec; the ANSI and pre-`Ex`
+   forms as adapters (`CP_ACP`), the ANSI forms virtual; the owned-value reads
    as free functions beside it.
 2. `NativeRegistry` with its pointer table, resolved from the
    `KernelBase.dll` export table (`advapi32.dll` for the pre-`Ex` forms),
@@ -50,7 +50,7 @@ the `find_package` consumer.
    there, recording each call's status, out-sizes and bytes.
 4. Scenario catalogue, run against `NativeRegistry` only for now: open,
    create, set and query every value type, buffer too small, null buffers,
-   `ERROR_MORE_DATA` sizes, A and W, enumeration to `ERROR_NO_MORE_ITEMS`,
+   `ERROR_MORE_DATA` sizes, ANSI and wide, enumeration to `ERROR_NO_MORE_ITEMS`,
    `QueryInfoKey` with each out-parameter null, delete key, value and tree.
 
 ## M3 -- `MemoryHive` and `VirtualRegistry`
@@ -58,7 +58,7 @@ the `find_package` consumer.
 1. `Hive` interface; `MemoryHive` (nodes, values, ordinal case-insensitive
    names, one handle per node, deleted nodes answering `ERROR_KEY_DELETED`).
 2. `VirtualRegistry`: mount table (copy-on-write, atomic publish), optional
-   base, the caller-buffer and A/W rules.
+   base, the caller-buffer and ANSI/wide rules.
 3. Run the M2 scenario catalogue against `VirtualRegistry` over a
    `MemoryHive` and require identical recordings to native.
 4. Pure in-memory configuration (no base, `HKLM` and `HKCU` mounted):

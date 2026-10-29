@@ -796,7 +796,7 @@ void MultipleMatrix(
 {
     for (const int cbTotal : {-1, 0, 1, 4, 8, 12, 16, 20, 24, 32, 40, 48, 128, 256})
     {
-        // The native A function faults on a null buffer, and answers `ERROR_INVALID_DATA` after filling some
+        // The native ANSI function faults on a null buffer, and answers `ERROR_INVALID_DATA` after filling some
         // of the entries when the buffer holds the first values but not all of them.
         if constexpr (std::is_same_v<Char, char>)
         {

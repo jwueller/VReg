@@ -46,11 +46,11 @@ struct OpenResult
  * @brief Storage for one subtree of a virtual namespace: a tree with one
  *  anonymous root, mounted at a path by @ref VirtualRegistry.
  *
- *  The interface is node-level with owned values. Caller buffers, A and W,
- *  and handles stay in @ref VirtualRegistry, once for every hive. Every member
- *  answers the @ref LSTATUS the native registry answers for the same operation;
- *  a call on a deleted node answers @ref ERROR_KEY_DELETED, and a write to a
- *  frozen hive @ref ERROR_ACCESS_DENIED.
+ *  The interface is node-level with owned values. Caller buffers, ANSI and
+ *  wide, and handles stay in @ref VirtualRegistry, once for every hive.
+ *  Every member answers the @ref LSTATUS the native registry answers for the
+ *  same operation; a call on a deleted node answers @ref ERROR_KEY_DELETED,
+ *  and a write to a frozen hive @ref ERROR_ACCESS_DENIED.
  *
  *  Each node has exactly one virtual handle, issued when the node is created
  *  (@ref HandleOf).

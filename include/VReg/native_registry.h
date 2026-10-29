@@ -17,7 +17,7 @@ namespace VReg
  *  lock.
  *
  *  The table holds every function the @ref Registry surface mirrors, A and
- *  pre-`Ex` forms included, although only the virtual W forms are called
+ *  pre-`Ex` forms included, although only the virtual wide forms are called
  *  through it: the hooks attach to these fields, so once the hooks are
  *  committed the fields hold the trampolines and this registry is the one
  *  below them.

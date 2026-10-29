@@ -53,35 +53,36 @@ The handle layer lives in `VReg::Core` rather than in a target of its own: every
 non-native implementation hands out handles, so none of them exists without
 it.
 
-### `Registry`: the Win32-shaped interface
+### `Registry`: the `Reg*` function family
 
 - Virtual methods with the `Reg*ExW` signatures: open, create, close, query
   value, set value, delete value, delete key, delete tree, enumerate keys
   and values, query info, load MUI string, get value, notify, flush.
-- The A forms and the pre-`Ex` forms (`RegOpenKeyA`, `RegEnumKeyW`, ...) are
-  implemented once over the W virtuals, widening and narrowing through
+- The ANSI forms and the pre-`Ex` forms (`RegOpenKeyA`, `RegEnumKeyW`, ...) are
+  implemented once over the wide virtuals, widening and narrowing through
   `CP_ACP` in both directions (ANSI callers use the system code page; UTF-8
   there corrupts non-ASCII names and data).
 - `RegSetKeyValue`, `RegDeleteKeyValue` and `RegQueryMultipleValues`
-  (A and W) are built from the virtuals as Win32 builds them; they are
+  (ANSI and wide) are built from the virtuals as Win32 builds them; they are
   hooked, so every `Registry` must answer them.
-- Every A form is virtual, with that implementation as its default, so a
-  wrapper in front of a registry (one that traces each call) can tell an A
-  call from a W call; it forwards an A form it overrides to the A form of
-  the registry it wraps. The W pre-`Ex` forms and conveniences stay
-  non-virtual.
+- Every ANSI form is virtual, with that implementation as its default, so a
+  wrapper in front of a registry (one that traces each call) can tell an
+  ANSI call from a wide call; it forwards an ANSI form it overrides to the
+  ANSI form of the registry it wraps. The wide pre-`Ex` forms and
+  conveniences stay non-virtual.
 - Members carry their Win32 names, `Reg` prefix included (`RegOpenKeyExW`),
   so the `UNICODE` selector macros of `winreg.h` (`RegOpenKeyEx`) pick the
-  A or W member as they pick the function. Only A and W names are
+  ANSI or wide member as they pick the function. Only ANSI and wide names are
   declared: a member with the neutral name would be renamed by the macro.
 - Queries are `const` members: they change nothing the registry answers
   afterwards. Opening a key is not a query, since it hands out a handle the
   caller owns; neither is pre-`Ex` `RegQueryValue`, which opens and closes
   a subkey.
-- `Registry` holds the Win32 surface and nothing else. The reads that size
-  and fill a `std::wstring` or `std::vector<std::byte>` themselves are free
-  functions over a `const Registry&` (`owned_values.h`), without the `Reg`
-  prefix, which would collide with Win32 macros such as `RegQueryValue`.
+- `Registry` holds the `Reg*` function family and nothing else. The reads
+  that size and fill a `std::wstring` or `std::vector<std::byte>` themselves
+  are free functions over a `const Registry&` (`owned_values.h`), without the
+  `Reg` prefix, which would collide with Win32 macros such as
+  `RegQueryValue`.
 
 Implementations:
 
@@ -93,7 +94,7 @@ Implementations:
   they hold the trampolines.
 - `VirtualRegistry`: a mount table of hives plus an optional base
   `Registry`. Paths outside every mount go to the base; with no base they
-  answer `ERROR_FILE_NOT_FOUND`. It owns the A/W and caller-buffer rules
+  answer `ERROR_FILE_NOT_FOUND`. It owns the ANSI/wide and caller-buffer rules
   (sizes in characters vs bytes, terminators, `ERROR_MORE_DATA`), once, for
   every hive.
   - Overlay over native: base = native, overlay hives mounted where keys
@@ -105,7 +106,7 @@ Implementations:
 
 A tree with one anonymous root, mounted at a path; several can be mounted at
 once, as with `RegLoadKey`. The interface is node-level with owned values;
-buffer and A/W rules stay in `VirtualRegistry`.
+buffer and ANSI/wide rules stay in `VirtualRegistry`.
 
 - `MemoryHive`: starts empty.
 - `OverlayHive(lower: Registry&, lower root: HKEY, lower path)`: reads its
@@ -304,8 +305,8 @@ reaching an unhooked API fails as an invalid handle. Targets resolve from
 the `KernelBase.dll` export table, falling back to `advapi32.dll` for the
 pre-`Ex` forms.
 
-- **Emulated**: open and create (Ex and pre-Ex, A and W), close, query value
-  (Ex and pre-Ex), set value (Ex and pre-Ex), `RegGetValue` (with `RRF_*`
+- **Emulated**: open and create (Ex and pre-Ex, ANSI and wide), close, query
+  value (Ex and pre-Ex), set value (Ex and pre-Ex), `RegGetValue` (with `RRF_*`
   filtering and `REG_EXPAND_SZ` expansion), `RegSetKeyValue`, delete key
   (and Ex), delete value, `RegDeleteKeyValue`, `RegDeleteTree`, enumerate
   keys and values (Ex and pre-Ex), `RegQueryInfoKey`,
@@ -435,14 +436,14 @@ In namespace `VReg::RegFile` (`include/VReg/regfile.h`):
   function pointer, off by default) bound by the detour-body rules. A
   logging library dependency was passed over.
 
-### Known divergences of the A adapters
+### Known divergences of the ANSI adapters
 
 Measured by the oracle; each is an input no sane caller relies on.
 
 - Strings set without a terminator: native `RegSetValueExW` and
   `RegSetValueExA` read one character past `cbData` and store an extra
-  terminator when it is zero. Ours never reads past `cbData`: the W form
-  stores exactly the bytes given, and the A form always terminates.
+  terminator when it is zero. Ours never reads past `cbData`: the wide form
+  stores exactly the bytes given, and the ANSI form always terminates.
 - `RegGetValueA` on a string with an odd byte count: native keeps the stray
   byte in the buffer tail.
 - `RegQueryMultipleValuesA` with a buffer that holds some narrowed values
@@ -493,7 +494,7 @@ Catch2.
 - **Native oracle**: each scenario runs against `NativeRegistry` on a
   private app hive (`RegLoadAppKey` on a temp file: real, no admin, no
   machine state) and against a `VirtualRegistry` over a `MemoryHive`;
-  statuses, sizes and bytes must match. Covers A/W, buffer sizes and
+  statuses, sizes and bytes must match. Covers ANSI/wide, buffer sizes and
   `ERROR_MORE_DATA`.
 - **Ported unit tests**: overlay shadowing, enumeration index shifting,
   `QueryInfoKey` counts and failure cases, ancestor handles, native-path

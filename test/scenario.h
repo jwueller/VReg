@@ -146,7 +146,7 @@ struct StoredValue
 };
 
 /// Sets @p value. The bytes just past an unterminated string are set to a
-/// nonzero guard: the native W function reads one wide character past the
+/// nonzero guard: the native wide function reads one wide character past the
 /// data to decide whether the string is terminated, so what follows the
 /// buffer would otherwise decide what is stored.
 template <class Api> LSTATUS SetStored(

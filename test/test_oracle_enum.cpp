@@ -305,7 +305,7 @@ void EnumKeyMatrix(
         {},
         {Bytes(name)}
     );
-    // The native A functions fault on a null name.
+    // The native ANSI functions fault on a null name.
     if constexpr (std::is_same_v<Char, wchar_t>)
     {
         RECORD(

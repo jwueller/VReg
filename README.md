@@ -10,12 +10,12 @@ It grew out of the virtual registry in
 
 ## What it does
 
-- **Win32-shaped interface.** `Registry` has the `Reg*` functions as
-  members, names and signatures alike (A and W, `Ex` and pre-`Ex`), so the
-  `UNICODE` macros select among them as among the functions. Native,
-  virtual and in-memory registries are interchangeable behind it. Reads
-  into a `std::wstring` or `std::vector<std::byte>` are free functions on
-  top.
+- **The Win32 `Reg*` function family as an interface.** `Registry` has
+  every member of the family, names and signatures alike (ANSI and wide,
+  `Ex` and pre-`Ex`), so the `UNICODE` macros select among its members as
+  among the functions. Native, virtual and in-memory registries are
+  interchangeable behind it. Reads into a `std::wstring` or
+  `std::vector<std::byte>` are free functions on top.
 - **Hives mounted into a virtual namespace.** A `VirtualRegistry` mounts
   in-memory or overlay hives at registry paths and passes everything else to
   a base registry (usually the real one). An overlay hive adds, overrides
