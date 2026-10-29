@@ -10,7 +10,7 @@
 
 namespace
 {
-const bool g_dialogsDisabled = []
+const bool g_dialogsDisabled = []() noexcept
 {
     SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
     _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
