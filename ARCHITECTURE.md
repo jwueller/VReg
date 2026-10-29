@@ -457,10 +457,11 @@ Catch2.
 
 ## Packaging
 
-- Static libraries only. Agent's choice: each module links its own copy and
-  the copies meet in the shared handle namespace, so a DLL build would buy
-  nothing and need an export surface; honoring `BUILD_SHARED_LIBS` was
-  passed over.
+- Static libraries only: each module links its own copy and the copies meet
+  in the shared handle namespace, so a DLL would buy nothing. It would also
+  tie every consumer to the DLL's compiler and CRT through the C++ API, and
+  two modules shipping different builds of it would collide on its name. A
+  DLL would only make sense behind a C API.
 - Tests build only when VReg is the top-level project.
 - Detours is found as the vcpkg port lays it out (header plus library, no
   CMake config).
