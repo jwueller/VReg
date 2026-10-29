@@ -10,8 +10,8 @@ namespace VReg::RegFile
 {
 namespace
 {
-// Agent's choice: Wine regedit's wrapping (break after the comma that reaches this column, continuation lines
-// indented by two spaces), not yet checked byte for byte against Windows regedit.
+// Windows `reg export` breaks after the first comma past this column and indents continuation lines by two
+// spaces. Wine regedit breaks at the column itself, which differs when a line ends exactly there.
 constexpr std::size_t kHexWrapColumn = 76;
 constexpr const wchar_t* kNewline = L"\r\n";
 
@@ -66,7 +66,7 @@ void AppendHex(std::wstring& out, const Record& record, std::size_t column)
         if (i + 1 == record.data.size())
             break;
         out.push_back(L',');
-        if (++column >= kHexWrapColumn)
+        if (++column > kHexWrapColumn)
         {
             out.append(L"\\\r\n  ");
             column = 2;

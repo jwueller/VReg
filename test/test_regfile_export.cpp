@@ -123,6 +123,7 @@ TEST_CASE("Export wraps hex data the way regedit does")
     MustSet(registry, L"W", L"Wrap", REG_BINARY, Sequence(0, 60));
     MustSet(registry, L"W", L"", REG_BINARY, Sequence(0, 30));
     MustSet(registry, L"W", L"Edge", REG_BINARY, Sequence(0, 23));
+    MustSet(registry, L"W", L"Edge76", REG_BINARY, Sequence(0, 23));
     MustSet(registry, L"W", L"Last", REG_BINARY, Sequence(0, 22));
 
     const std::wstring expected = kHeader +
@@ -130,6 +131,8 @@ TEST_CASE("Export wraps hex data the way regedit does")
         L"@=hex:00,01,02,03,04,05,06,07,08,09,0a,0b,0c,0d,0e,0f,10,11,12,13,14,15,16,17,\\\r\n"
         L"  18,19,1a,1b,1c,1d\r\n"
         L"\"Edge\"=hex:00,01,02,03,04,05,06,07,08,09,0a,0b,0c,0d,0e,0f,10,11,12,13,14,15,\\\r\n"
+        L"  16\r\n"
+        L"\"Edge76\"=hex:00,01,02,03,04,05,06,07,08,09,0a,0b,0c,0d,0e,0f,10,11,12,13,14,15,\\\r\n"
         L"  16\r\n"
         L"\"Last\"=hex:00,01,02,03,04,05,06,07,08,09,0a,0b,0c,0d,0e,0f,10,11,12,13,14,15\r\n"
         L"\"Wrap\"=hex:00,01,02,03,04,05,06,07,08,09,0a,0b,0c,0d,0e,0f,10,11,12,13,14,15,\\\r\n"
