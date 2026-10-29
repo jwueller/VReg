@@ -964,6 +964,11 @@ TEST_CASE("Refused functions answer not supported on virtual keys and pass real 
 
 TEST_CASE("RegOpenKeyTransactedW answers an invalid transaction on real keys without one")
 {
+    // Wine does not export it; its loader binds the import to a stub that
+    // aborts the process.
+    if (!GetProcAddress(GetModuleHandleW(L"advapi32.dll"), "RegOpenKeyTransactedW"))
+        SKIP("advapi32 does not export RegOpenKeyTransactedW");
+
     const auto name = MountName(L"Exe");
     REQUIRE(InstallMount(name.c_str(), L"Exe") == NO_ERROR);
 
