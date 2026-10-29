@@ -17,12 +17,15 @@
     },
     {"name": "x86", "hidden": true, "architecture": {"value": "x86", "strategy": "external"}, "cacheVariables": {"VCPKG_TARGET_TRIPLET": "x86-windows"}},
     {"name": "x64", "hidden": true, "architecture": {"value": "x64", "strategy": "external"}, "cacheVariables": {"VCPKG_TARGET_TRIPLET": "x64-windows"}},
+    {"name": "arm64", "hidden": true, "architecture": {"value": "arm64", "strategy": "external"}, "cacheVariables": {"VCPKG_TARGET_TRIPLET": "arm64-windows"}},
     {"name": "msvc", "hidden": true, "cacheVariables": {"CMAKE_CXX_COMPILER": "cl"}},
     {"name": "clang-cl", "hidden": true, "cacheVariables": {"CMAKE_CXX_COMPILER": "clang-cl"}},
     {"name": "msvc-x86", "inherits": ["base", "x86", "msvc"]},
     {"name": "msvc-x64", "inherits": ["base", "x64", "msvc"]},
     {"name": "clang-cl-x86", "inherits": ["base", "x86", "clang-cl"], "cacheVariables": {"CMAKE_CXX_COMPILER_TARGET": "i686-pc-windows-msvc"}},
-    {"name": "clang-cl-x64", "inherits": ["base", "x64", "clang-cl"]}
+    {"name": "clang-cl-x64", "inherits": ["base", "x64", "clang-cl"]},
+    {"name": "msvc-arm64", "inherits": ["base", "arm64", "msvc"]},
+    {"name": "clang-cl-arm64", "inherits": ["base", "arm64", "clang-cl"], "cacheVariables": {"CMAKE_CXX_COMPILER_TARGET": "aarch64-pc-windows-msvc"}}
   ],
   "buildPresets": [
     {"name": "msvc-x86-debug", "configurePreset": "msvc-x86", "configuration": "Debug"},
@@ -32,7 +35,11 @@
     {"name": "clang-cl-x86-debug", "configurePreset": "clang-cl-x86", "configuration": "Debug"},
     {"name": "clang-cl-x86-release", "configurePreset": "clang-cl-x86", "configuration": "Release"},
     {"name": "clang-cl-x64-debug", "configurePreset": "clang-cl-x64", "configuration": "Debug"},
-    {"name": "clang-cl-x64-release", "configurePreset": "clang-cl-x64", "configuration": "Release"}
+    {"name": "clang-cl-x64-release", "configurePreset": "clang-cl-x64", "configuration": "Release"},
+    {"name": "msvc-arm64-debug", "configurePreset": "msvc-arm64", "configuration": "Debug"},
+    {"name": "msvc-arm64-release", "configurePreset": "msvc-arm64", "configuration": "Release"},
+    {"name": "clang-cl-arm64-debug", "configurePreset": "clang-cl-arm64", "configuration": "Debug"},
+    {"name": "clang-cl-arm64-release", "configurePreset": "clang-cl-arm64", "configuration": "Release"}
   ],
   "testPresets": [
     {"name": "base", "hidden": true, "output": {"outputOnFailure": true}},
@@ -43,6 +50,10 @@
     {"name": "clang-cl-x86-debug", "inherits": "base", "configurePreset": "clang-cl-x86", "configuration": "Debug"},
     {"name": "clang-cl-x86-release", "inherits": "base", "configurePreset": "clang-cl-x86", "configuration": "Release"},
     {"name": "clang-cl-x64-debug", "inherits": "base", "configurePreset": "clang-cl-x64", "configuration": "Debug"},
-    {"name": "clang-cl-x64-release", "inherits": "base", "configurePreset": "clang-cl-x64", "configuration": "Release"}
+    {"name": "clang-cl-x64-release", "inherits": "base", "configurePreset": "clang-cl-x64", "configuration": "Release"},
+    {"name": "msvc-arm64-debug", "inherits": "base", "configurePreset": "msvc-arm64", "configuration": "Debug"},
+    {"name": "msvc-arm64-release", "inherits": "base", "configurePreset": "msvc-arm64", "configuration": "Release"},
+    {"name": "clang-cl-arm64-debug", "inherits": "base", "configurePreset": "clang-cl-arm64", "configuration": "Debug"},
+    {"name": "clang-cl-arm64-release", "inherits": "base", "configurePreset": "clang-cl-arm64", "configuration": "Release"}
   ]
 }

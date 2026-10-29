@@ -19,7 +19,7 @@ cmake --build --preset msvc-x64-debug
 ctest --preset msvc-x64-debug
 ```
 
-Presets: `{msvc,clang-cl}-{x86,x64}` to configure; append `-debug` or
+Presets: `{msvc,clang-cl}-{x86,x64,arm64}` to configure; append `-debug` or
 `-release` to build and test. They enable the tests and `VReg::Detours`, with
 Catch2 and Detours from vcpkg.
 

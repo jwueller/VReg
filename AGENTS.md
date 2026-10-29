@@ -53,8 +53,8 @@ work is done; git keeps how it got there.
 Agent's choice: these follow Win32 naming, because the library sits beside
 the API it reimplements. Change them freely before the first release.
 
-- C++20, MSVC and clang-cl, x86 and x64. `WIN32_LEAN_AND_MEAN`, `NOMINMAX`
-  and `UNICODE` everywhere.
+- C++20, MSVC and clang-cl, x86, x64 and ARM64. `WIN32_LEAN_AND_MEAN`,
+  `NOMINMAX` and `UNICODE` everywhere.
 - Namespace `VReg`, bodies not indented. Types and functions PascalCase;
   members `m_`, globals `g_`, Hungarian prefixes like the Win32 API beside
   them. Flat functions are `VReg` plus the Win32 name.

@@ -7,12 +7,13 @@ on:
 jobs:
   windows:
     name: Windows ${{ matrix.compiler }} ${{ matrix.arch }}
-    runs-on: windows-2025
+    # ARM64 builds and tests natively on an ARM64 runner.
+    runs-on: ${{ matrix.arch == 'arm64' && 'windows-11-arm' || 'windows-2025' }}
     strategy:
       fail-fast: false
       matrix:
         compiler: [msvc, clang-cl]
-        arch: [x86, x64]
+        arch: [x86, x64, arm64]
     env:
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-cache
     steps:
@@ -33,7 +34,7 @@ jobs:
           Get-ChildItem env: | ForEach-Object { $before[$_.Name] = $_.Value }
           $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath
           Import-Module "$vs\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
-          Enter-VsDevShell -VsInstallPath $vs -SkipAutomaticLocation -DevCmdArguments "-arch=${{ matrix.arch }} -host_arch=amd64"
+          Enter-VsDevShell -VsInstallPath $vs -SkipAutomaticLocation -DevCmdArguments "-arch=${{ matrix.arch }} -host_arch=${{ matrix.arch == 'arm64' && 'arm64' || 'amd64' }}"
           Get-ChildItem env: |
               Where-Object { $before[$_.Name] -ne $_.Value } |
               ForEach-Object { "$($_.Name)=$($_.Value)" } |
@@ -58,7 +59,7 @@ jobs:
 
       # The Wine job runs these binaries; only one compiler's are needed.
       - name: Upload the test binaries
-        if: matrix.compiler == 'msvc'
+        if: matrix.compiler == 'msvc' && matrix.arch != 'arm64'
         uses: actions/upload-artifact@v7
         with:
           name: tests-${{ matrix.arch }}

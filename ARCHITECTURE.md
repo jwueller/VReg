@@ -432,7 +432,7 @@ Catch2.
 - **`.reg`**: byte-exact round trips, deltas with tombstones and opaque keys,
   parse errors with line and column; an opt-in regedit compatibility check
   on HKCU.
-- **Hooks**: a separate test process (x86 and x64) installs the hooks and
+- **Hooks**: a separate test process (every architecture) installs the hooks and
   calls the real `Reg*` APIs; it loads two DLLs that each link the library
   statically, covering the shared handle namespace, chaining and
   neutralize-on-unload.
@@ -440,7 +440,8 @@ Catch2.
 
 ### CI (GitHub Actions, public repository)
 
-- Windows: {x86, x64} x {MSVC, clang-cl}, all tests.
+- Windows: {x86, x64, ARM64} x {MSVC, clang-cl}, all tests; ARM64 on an
+  ARM64 runner.
 - Wine on Ubuntu: the Windows-built x86 and x64 test binaries, all tests
   except those on a private app hive (the native oracle and every test
   against the real registry), which skip themselves there. Agent's choice: native

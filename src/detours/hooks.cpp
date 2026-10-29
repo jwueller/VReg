@@ -109,9 +109,10 @@ struct Refused<LSTATUS(APIENTRY*)(Args...), Index>
  * @brief The thunks every hook detours to: `jmp [slot]`, in memory outside
  *  any module image so they outlive the module that made them.
  *
- *  Code and slots sit on two pages of one allocation, so an x64 thunk can
- *  reach its slot RIP-relative. The memory is leaked on purpose: another
- *  hooker's trampoline may jump into a thunk after this module is gone.
+ *  Code and slots sit on two pages of one allocation, so an x64 or ARM64
+ *  thunk can reach its slot PC-relative. The memory is leaked on purpose:
+ *  another hooker's trampoline may jump into a thunk after this module is
+ *  gone.
  */
 class Thunks
 {
@@ -138,6 +139,16 @@ public:
         auto* const ppSlot = Slot(index);
         *ppSlot = pTarget;
 
+#if defined(_M_ARM64EC)
+#error "ARM64EC is not supported: its x64 and native callers need hooks of their own."
+#elif defined(_M_ARM64)
+        // ldr x16, slot (PC-relative, in words); br x16.
+        const auto offset = reinterpret_cast<std::intptr_t>(ppSlot) - reinterpret_cast<std::intptr_t>(pbCode);
+        const auto ldr = 0x58000010u | (static_cast<std::uint32_t>(offset / 4) << 5);
+        const auto br = 0xD61F0200u;
+        std::memcpy(pbCode, &ldr, sizeof(ldr));
+        std::memcpy(pbCode + 4, &br, sizeof(br));
+#else
         // jmp qword/dword ptr [slot]: RIP-relative on x64, absolute on x86.
         pbCode[0] = std::byte{0xFF};
         pbCode[1] = std::byte{0x25};
@@ -149,6 +160,7 @@ public:
 #else
         const auto address = reinterpret_cast<std::uint32_t>(ppSlot);
         std::memcpy(pbCode + 2, &address, sizeof(address));
+#endif
 #endif
         return pbCode;
     }

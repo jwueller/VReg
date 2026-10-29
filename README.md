@@ -31,7 +31,7 @@ It grew out of the virtual registry in
   Detours. It is safe under the loader lock, coexists with other hookers, and
   works with several modules in one process that each link VReg statically.
 
-Windows only (x86 and x64), and runs under Wine and Proton.
+Windows only (x86, x64 and ARM64), and runs under Wine and Proton.
 
 ## Using it
 
@@ -334,8 +334,10 @@ for any real key, so nothing below `HKEY_CLASSES_ROOT` is reachable through
 
 ### Missing
 
-- ARM64 and ARM64EC builds. Agent's choice: listed as missing rather than
-  as a non-goal, since nothing in the architecture rules them out.
+- ARM64EC builds. Its emulated x64 callers and native callers reach the
+  `Reg*` functions through separate entry points, which would each need
+  hooks. Agent's choice: listed as missing rather than as a non-goal, since
+  nothing rules it out; no consumer needs it yet.
 - Answers on virtual keys for the functions the hooks refuse there (see
   "Refused on virtual keys" above); `RegRenameKey` and `RegCopyTree` are
   the ones a hive could answer most readily.
