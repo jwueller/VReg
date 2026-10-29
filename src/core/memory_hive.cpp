@@ -1,5 +1,6 @@
 #include <VReg/memory_hive.h>
 
+#include "status.h"
 #include "tree.h"
 
 #include <algorithm>
@@ -123,9 +124,9 @@ try
     result = {.pNode = pCurrent, .hLower = nullptr};
     return ERROR_SUCCESS;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS MemoryHive::DeleteKey(Node* const pParent, const KeyPath path) noexcept
@@ -186,9 +187,9 @@ try
     data = pValue->data;
     return ERROR_SUCCESS;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS MemoryHive::SetValue(
@@ -210,9 +211,9 @@ try
 {
     return StoreValue(pNode, name, REG_SZ, StringData(text), true);
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS MemoryHive::QueryMuiText(
@@ -232,9 +233,9 @@ try
 
     return MuiTextOf(*pValue, text);
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS MemoryHive::StoreValue(
@@ -271,9 +272,9 @@ try
     Tree::Notify(*pNode, REG_NOTIFY_CHANGE_LAST_SET);
     return ERROR_SUCCESS;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS MemoryHive::DeleteValue(
@@ -320,9 +321,9 @@ try
     lastWrite = pChild->lastWrite;
     return ERROR_SUCCESS;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS MemoryHive::EnumValue(
@@ -347,9 +348,9 @@ try
     data = value.data;
     return ERROR_SUCCESS;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS MemoryHive::QueryInfo(Node* const pNode, KeyInfo& info) const noexcept
@@ -390,9 +391,9 @@ try
     info.lastWrite = pNode->lastWrite;
     return ERROR_SUCCESS;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS MemoryHive::CheckKey(Node* const pNode) const noexcept

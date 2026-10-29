@@ -1,5 +1,7 @@
 #include <VReg/regfile.h>
 
+#include "core/status.h"
+
 #include <limits>
 #include <new>
 
@@ -130,9 +132,9 @@ LSTATUS Perform(
                 padded = data;
                 padded.insert(padded.end(), 4, std::byte{0x11});
             }
-            catch (const std::bad_alloc&)
+            catch (...)
             {
-                return ERROR_OUTOFMEMORY;
+                return StatusFromException();
             }
             return registry.RegSetValueExW(
                 key.Get(),

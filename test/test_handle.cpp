@@ -79,8 +79,8 @@ TEST_CASE("Real and predefined handles are never virtual")
 TEST_CASE("Copies sharing a section hand out disjoint handles and own only theirs")
 {
     const auto wsName = UniqueSectionName(L"disjoint");
-    HandleSpace first(wsName);
-    HandleSpace second(wsName);
+    HandleSpace first(wsName.c_str());
+    HandleSpace second(wsName.c_str());
     REQUIRE(first.IsUsable());
     REQUIRE(second.IsUsable());
 
@@ -115,7 +115,7 @@ TEST_CASE("A section claimed with a different layout makes the space unusable")
     const auto wsName = UniqueSectionName(L"foreign");
     MapRaw(wsName)->magic = 0x12345678;
 
-    HandleSpace space(wsName);
+    HandleSpace space(wsName.c_str());
     CHECK_FALSE(space.IsUsable());
     CHECK(space.Allocate(&space) == nullptr);
 }
@@ -127,7 +127,7 @@ TEST_CASE("Allocation fails once the namespace is exhausted")
     pShared->magic = HandleSpace::MAGIC;
     pShared->nextBlock = static_cast<LONG>(HandleSpace::BLOCK_COUNT - 1);
 
-    HandleSpace space(wsName);
+    HandleSpace space(wsName.c_str());
     REQUIRE(space.IsUsable());
     for (std::uintptr_t i = 0; i < HandleSpace::BLOCK_SIZE; ++i)
         REQUIRE(IsVirtualHKey(space.Allocate(&space)));

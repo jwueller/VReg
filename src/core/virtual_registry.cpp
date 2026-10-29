@@ -5,6 +5,7 @@
 #include "export_table.h"
 #include "handle_space.h"
 #include "lock.h"
+#include "status.h"
 #include "tree.h"
 
 #include <algorithm>
@@ -296,9 +297,9 @@ try
     m_pMounts.store(pNew, std::memory_order_release);
     return ERROR_SUCCESS;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 const VirtualRegistry::MountTable& VirtualRegistry::Mounts() const noexcept
@@ -551,9 +552,9 @@ try
     *phkResult = result.hLower ? result.hLower : Hive::HandleOf(result.pNode);
     return ERROR_SUCCESS;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS VirtualRegistry::RegCreateKeyExW(
@@ -630,9 +631,9 @@ try
         *lpdwDisposition = dwDisposition;
     return ERROR_SUCCESS;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS VirtualRegistry::RegCloseKey(
@@ -711,9 +712,9 @@ try
     CopyValue(lpData, cbBuffer, dwType, value);
     return ERROR_SUCCESS;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS VirtualRegistry::RegSetValueExW(
@@ -755,9 +756,9 @@ try
         AsBytes(lpData, cbData)
     );
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS VirtualRegistry::RegDeleteValueW(
@@ -784,9 +785,9 @@ try
         View(lpValueName)
     );
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS VirtualRegistry::RegDeleteKeyExW(
@@ -816,9 +817,9 @@ try
 
     return target.pWritable->DeleteKey(target.pNode, target.rest);
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS VirtualRegistry::RegDeleteTreeW(
@@ -866,9 +867,9 @@ try
 
     return target.pWritable->DeleteKey(target.pNode, target.rest);
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS VirtualRegistry::RegEnumKeyExW(
@@ -943,9 +944,9 @@ try
 
     return ERROR_SUCCESS;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS VirtualRegistry::RegEnumValueW(
@@ -1030,9 +1031,9 @@ try
         CopyValue(lpData, cbDataBuffer, dwType, value);
     return ERROR_SUCCESS;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS VirtualRegistry::RegQueryInfoKeyW(
@@ -1126,9 +1127,9 @@ try
         *lpcchClass = 0;
     return ERROR_SUCCESS;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS VirtualRegistry::RegLoadMUIStringW(
@@ -1229,9 +1230,9 @@ try
     std::memcpy(pszOutBuf, text.c_str(), cbText);
     return ERROR_SUCCESS;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS VirtualRegistry::RegGetValueW(
@@ -1426,9 +1427,9 @@ try
         status = ERROR_MORE_DATA;
     return status == ERROR_SUCCESS ? status : fail(status);
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS VirtualRegistry::RegNotifyChangeKeyValue(
@@ -1487,9 +1488,9 @@ try
     CloseHandle(hOwn);
     return status;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS VirtualRegistry::RegFlushKey(
@@ -1508,8 +1509,8 @@ try
 
     return target.pHive->CheckKey(target.pNode);
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 } // namespace VReg

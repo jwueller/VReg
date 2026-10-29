@@ -12,7 +12,8 @@
         "VCPKG_MANIFEST_FEATURES": "tests;detours",
         "VREG_WITH_DETOURS": "ON",
         "VREG_BUILD_TESTS": "ON",
-        "CMAKE_CONFIGURATION_TYPES": "Debug;Release"
+        "CMAKE_CONFIGURATION_TYPES": "Debug;Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     },
     {"name": "x86", "hidden": true, "architecture": {"value": "x86", "strategy": "external"}, "cacheVariables": {"VCPKG_TARGET_TRIPLET": "x86-windows"}},

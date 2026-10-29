@@ -3,6 +3,7 @@
 #include <VReg/owned_values.h>
 #include <VReg/registry.h>
 
+#include "status.h"
 #include "tree.h"
 
 #include <algorithm>
@@ -291,9 +292,9 @@ try
         return ERROR_SUCCESS;
     }
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS OverlayHive::OpenKey(
@@ -380,9 +381,9 @@ try
     result = {.pNode = pCurrent, .hLower = nullptr};
     return ERROR_SUCCESS;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS OverlayHive::CreateKey(
@@ -516,9 +517,9 @@ try
     result = {.pNode = pCurrent, .hLower = nullptr};
     return ERROR_SUCCESS;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS OverlayHive::DeleteKey(Node* const pParent, const KeyPath path) noexcept
@@ -611,9 +612,9 @@ try
     Materialize(parent);
     return ERROR_SUCCESS;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS OverlayHive::DeleteTree(Node* const pNode) noexcept
@@ -680,9 +681,9 @@ try
     const std::wstring valueName(name);
     return VReg::QueryValue(m_lower, lowerKey.Get(), valueName.c_str(), &dwType, data);
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS OverlayHive::SetValue(
@@ -704,9 +705,9 @@ try
 {
     return StoreValue(pNode, name, REG_SZ, StringData(text), true);
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS OverlayHive::QueryMuiText(
@@ -730,9 +731,9 @@ try
     const auto status = QueryValue(pNode, name, dwType, data);
     return status == ERROR_SUCCESS ? ERROR_INVALID_DATA : status;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS OverlayHive::StoreValue(
@@ -770,9 +771,9 @@ try
     Tree::Notify(*pNode, REG_NOTIFY_CHANGE_LAST_SET);
     return ERROR_SUCCESS;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS OverlayHive::DeleteValue(
@@ -858,9 +859,9 @@ try
     Tree::Notify(*pNode, REG_NOTIFY_CHANGE_LAST_SET);
     return ERROR_SUCCESS;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS OverlayHive::EnumKey(
@@ -976,9 +977,9 @@ try
         return ERROR_SUCCESS;
     }
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS OverlayHive::EnumValue(
@@ -1053,9 +1054,9 @@ try
         return ERROR_SUCCESS;
     }
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS OverlayHive::QueryInfo(Node* const pNode, KeyInfo& info) const noexcept
@@ -1218,9 +1219,9 @@ try
     info = std::move(result);
     return ERROR_SUCCESS;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS OverlayHive::SnapshotUpper(std::vector<UpperRecord>& records) const noexcept
@@ -1236,9 +1237,9 @@ try
     records = std::move(result);
     return ERROR_SUCCESS;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 
 LSTATUS OverlayHive::CheckKey(Node* const pNode) const noexcept
@@ -1305,8 +1306,8 @@ try
     hLower = lowerKey.Release();
     return ERROR_SUCCESS;
 }
-catch (const std::bad_alloc&)
+catch (...)
 {
-    return ERROR_OUTOFMEMORY;
+    return StatusFromException();
 }
 } // namespace VReg

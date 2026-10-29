@@ -3,6 +3,7 @@
 #include <VReg/overlay_hive.h>
 #include <VReg/owned_values.h>
 
+#include "core/status.h"
 #include "text.h"
 #include "writer.h"
 
@@ -200,9 +201,9 @@ LSTATUS ExportSnapshot(
         file = std::move(bytes);
         return ERROR_SUCCESS;
     }
-    catch (const std::bad_alloc&)
+    catch (...)
     {
-        return ERROR_OUTOFMEMORY;
+        return StatusFromException();
     }
 }
 
@@ -286,9 +287,9 @@ LSTATUS ExportDelta(
         file = std::move(bytes);
         return ERROR_SUCCESS;
     }
-    catch (const std::bad_alloc&)
+    catch (...)
     {
-        return ERROR_OUTOFMEMORY;
+        return StatusFromException();
     }
 }
 
@@ -314,9 +315,9 @@ LSTATUS ExportDeltaToFile(
             return status;
         return WriteWholeFile(fileName, file);
     }
-    catch (const std::bad_alloc&)
+    catch (...)
     {
-        return ERROR_OUTOFMEMORY;
+        return StatusFromException();
     }
 }
 
@@ -342,9 +343,9 @@ LSTATUS ExportSnapshotToFile(
             return status;
         return WriteWholeFile(fileName, file);
     }
-    catch (const std::bad_alloc&)
+    catch (...)
     {
-        return ERROR_OUTOFMEMORY;
+        return StatusFromException();
     }
 }
 } // namespace VReg::RegFile

@@ -52,6 +52,18 @@ jobs:
           cmake --build --preset ${{ matrix.compiler }}-${{ matrix.arch }}-debug
           cmake --build --preset ${{ matrix.compiler }}-${{ matrix.arch }}-release
 
+      # .clang-tidy lists the checks; one compiler and architecture suffice.
+      - name: clang-tidy
+        if: matrix.compiler == 'clang-cl' && matrix.arch == 'x64'
+        shell: pwsh
+        run: |
+          $failed = $false
+          foreach ($file in git ls-files 'src/*.cpp') {
+            clang-tidy -p out/build/clang-cl-x64 --quiet $file
+            if ($LASTEXITCODE -ne 0) { $failed = $true }
+          }
+          if ($failed) { exit 1 }
+
       - name: Test
         run: |
           ctest --preset ${{ matrix.compiler }}-${{ matrix.arch }}-debug

@@ -4,6 +4,7 @@
 
 #include "ansi.h"
 #include "retry.h"
+#include "status.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -82,25 +83,25 @@ LSTATUS Registry::RegOpenKeyExA(
     const REGSAM samDesired,
     const PHKEY phkResult
 ) noexcept
+try
 {
-    return Guard(
-        [&]
-        {
-            const WideArg subKey(lpSubKey);
-            const HKEY hPrevious = phkResult ? *phkResult : nullptr;
-            const auto status = RegOpenKeyExW(
-                hKey,
-                subKey.Get(),
-                ulOptions,
-                samDesired,
-                phkResult
-            );
-            // The native ANSI form leaves the result alone for an invalid handle; the wide form nulls it.
-            if (status == ERROR_INVALID_HANDLE && phkResult)
-                *phkResult = hPrevious;
-            return status;
-        }
+    const WideArg subKey(lpSubKey);
+    const HKEY hPrevious = phkResult ? *phkResult : nullptr;
+    const auto status = RegOpenKeyExW(
+        hKey,
+        subKey.Get(),
+        ulOptions,
+        samDesired,
+        phkResult
     );
+    // The native ANSI form leaves the result alone for an invalid handle; the wide form nulls it.
+    if (status == ERROR_INVALID_HANDLE && phkResult)
+        *phkResult = hPrevious;
+    return status;
+}
+catch (...)
+{
+    return StatusFromException();
 }
 
 LSTATUS Registry::RegCreateKeyExA(
@@ -114,29 +115,29 @@ LSTATUS Registry::RegCreateKeyExA(
     const PHKEY phkResult,
     const LPDWORD lpdwDisposition
 ) noexcept
+try
 {
-    return Guard(
-        [&]
-        {
-            const WideArg subKey(lpSubKey);
-            WideArg className(lpClass);
-            const HKEY hPrevious = phkResult ? *phkResult : nullptr;
-            const auto status = RegCreateKeyExW(
-                hKey,
-                subKey.Get(),
-                Reserved,
-                className.GetMutable(),
-                dwOptions,
-                samDesired,
-                lpSecurityAttributes,
-                phkResult,
-                lpdwDisposition
-            );
-            if (status == ERROR_INVALID_HANDLE && phkResult)
-                *phkResult = hPrevious;
-            return status;
-        }
+    const WideArg subKey(lpSubKey);
+    WideArg className(lpClass);
+    const HKEY hPrevious = phkResult ? *phkResult : nullptr;
+    const auto status = RegCreateKeyExW(
+        hKey,
+        subKey.Get(),
+        Reserved,
+        className.GetMutable(),
+        dwOptions,
+        samDesired,
+        lpSecurityAttributes,
+        phkResult,
+        lpdwDisposition
     );
+    if (status == ERROR_INVALID_HANDLE && phkResult)
+        *phkResult = hPrevious;
+    return status;
+}
+catch (...)
+{
+    return StatusFromException();
 }
 
 LSTATUS Registry::RegQueryValueExA(
@@ -147,99 +148,99 @@ LSTATUS Registry::RegQueryValueExA(
     const LPBYTE lpData,
     const LPDWORD lpcbData
 ) const noexcept
+try
 {
     if ((lpData && !lpcbData) || lpReserved)
         return ERROR_INVALID_PARAMETER;
 
-    return Guard(
-        [&]
-        {
-            const WideArg valueName(lpValueName);
-            if (!lpData && !lpcbData)
-                return RegQueryValueExW(
-                    hKey,
-                    valueName.Get(),
-                    nullptr,
-                    lpType,
-                    nullptr,
-                    nullptr
-                );
+    const WideArg valueName(lpValueName);
+    if (!lpData && !lpcbData)
+        return RegQueryValueExW(
+            hKey,
+            valueName.Get(),
+            nullptr,
+            lpType,
+            nullptr,
+            nullptr
+        );
 
-            DWORD dwType = lpType ? *lpType : 0;
-            DWORD cbSize = (!lpData && lpcbData) ? *lpcbData : 0;
-            const auto sized = RegQueryValueExW(
-                hKey,
-                valueName.Get(),
-                nullptr,
-                &dwType,
-                nullptr,
-                &cbSize
-            );
-            if (sized != ERROR_SUCCESS)
-            {
-                if (lpType)
-                    *lpType = dwType;
-                if (!lpData && lpcbData)
-                    *lpcbData = cbSize;
-                return sized;
-            }
-
-            if (!IsStringType(dwType))
-                return RegQueryValueExW(
-                    hKey,
-                    valueName.Get(),
-                    nullptr,
-                    lpType,
-                    lpData,
-                    lpcbData
-                );
-
-            std::vector<std::byte> value;
-            const auto read = QueryValue(
-                *this,
-                hKey,
-                valueName.Get(),
-                &dwType,
-                value
-            );
-            if (read != ERROR_SUCCESS)
-                return read;
-
-            const auto text = AnsiFromWide(
-                reinterpret_cast<const wchar_t*>(value.data()),
-                value.size() / sizeof(wchar_t)
-            );
-            const auto cbText = static_cast<DWORD>(text.size());
-            LSTATUS status = ERROR_SUCCESS;
-            if (lpData)
-            {
-                if (cbText > *lpcbData)
-                {
-                    status = ERROR_MORE_DATA;
-                }
-                else
-                {
-                    // Native reads the wide data into the caller's buffer when it fits there and narrows it in
-                    // place, so the bytes past the text are the tail of the wide data; it also terminates text
-                    // that has no terminator if there is room.
-                    if (value.size() <= *lpcbData)
-                        std::memcpy(lpData, value.data(), value.size());
-                    if (cbText > 0)
-                    {
-                        std::memcpy(lpData, text.data(), cbText);
-                        if (cbText < *lpcbData && lpData[cbText - 1] != 0)
-                            lpData[cbText] = 0;
-                    }
-                }
-            }
-
-            if (lpType)
-                *lpType = dwType;
-            if (lpcbData)
-                *lpcbData = cbText;
-            return status;
-        }
+    DWORD dwType = lpType ? *lpType : 0;
+    DWORD cbSize = (!lpData && lpcbData) ? *lpcbData : 0;
+    const auto sized = RegQueryValueExW(
+        hKey,
+        valueName.Get(),
+        nullptr,
+        &dwType,
+        nullptr,
+        &cbSize
     );
+    if (sized != ERROR_SUCCESS)
+    {
+        if (lpType)
+            *lpType = dwType;
+        if (!lpData && lpcbData)
+            *lpcbData = cbSize;
+        return sized;
+    }
+
+    if (!IsStringType(dwType))
+        return RegQueryValueExW(
+            hKey,
+            valueName.Get(),
+            nullptr,
+            lpType,
+            lpData,
+            lpcbData
+        );
+
+    std::vector<std::byte> value;
+    const auto read = QueryValue(
+        *this,
+        hKey,
+        valueName.Get(),
+        &dwType,
+        value
+    );
+    if (read != ERROR_SUCCESS)
+        return read;
+
+    const auto text = AnsiFromWide(
+        reinterpret_cast<const wchar_t*>(value.data()),
+        value.size() / sizeof(wchar_t)
+    );
+    const auto cbText = static_cast<DWORD>(text.size());
+    LSTATUS status = ERROR_SUCCESS;
+    if (lpData)
+    {
+        if (cbText > *lpcbData)
+        {
+            status = ERROR_MORE_DATA;
+        }
+        else
+        {
+            // Native reads the wide data into the caller's buffer when it fits there and narrows it in
+            // place, so the bytes past the text are the tail of the wide data; it also terminates text
+            // that has no terminator if there is room.
+            if (value.size() <= *lpcbData)
+                std::memcpy(lpData, value.data(), value.size());
+            if (cbText > 0)
+            {
+                std::memcpy(lpData, text.data(), cbText);
+                if (cbText < *lpcbData && lpData[cbText - 1] != 0)
+                    lpData[cbText] = 0;
+            }
+        }
+    }
+
+    if (lpType)
+        *lpType = dwType;
+    if (lpcbData)
+        *lpcbData = cbText;
+    return status;
+}
+catch (...)
+{
+    return StatusFromException();
 }
 
 LSTATUS Registry::RegSetValueExA(
@@ -250,58 +251,58 @@ LSTATUS Registry::RegSetValueExA(
     const BYTE* const lpData,
     const DWORD cbData
 ) noexcept
+try
 {
-    return Guard(
-        [&]
-        {
-            const WideArg valueName(lpValueName);
-            if (!IsStringType(dwType) || !lpData)
-                return RegSetValueExW(
-                    hKey,
-                    valueName.Get(),
-                    Reserved,
-                    dwType,
-                    lpData,
-                    cbData
-                );
+    const WideArg valueName(lpValueName);
+    if (!IsStringType(dwType) || !lpData)
+        return RegSetValueExW(
+            hKey,
+            valueName.Get(),
+            Reserved,
+            dwType,
+            lpData,
+            cbData
+        );
 
-            auto text = WideFromAnsi(
-                reinterpret_cast<const char*>(lpData),
-                cbData
-            );
-            // Native reads the byte after unterminated data and keeps it as the terminator when it is zero, which it
-            // nearly always is. Agent's choice: always terminate, so no byte past cbData is ever read; reading it,
-            // as native does, can fault at the end of a page.
-            if (!text.empty() && text.back() != L'\0')
-                text.push_back(L'\0');
-
-            return RegSetValueExW(
-                hKey,
-                valueName.Get(),
-                Reserved,
-                dwType,
-                reinterpret_cast<const BYTE*>(text.data()),
-                static_cast<DWORD>(text.size() * sizeof(wchar_t))
-            );
-        }
+    auto text = WideFromAnsi(
+        reinterpret_cast<const char*>(lpData),
+        cbData
     );
+    // Native reads the byte after unterminated data and keeps it as the terminator when it is zero, which it
+    // nearly always is. Agent's choice: always terminate, so no byte past cbData is ever read; reading it,
+    // as native does, can fault at the end of a page.
+    if (!text.empty() && text.back() != L'\0')
+        text.push_back(L'\0');
+
+    return RegSetValueExW(
+        hKey,
+        valueName.Get(),
+        Reserved,
+        dwType,
+        reinterpret_cast<const BYTE*>(text.data()),
+        static_cast<DWORD>(text.size() * sizeof(wchar_t))
+    );
+}
+catch (...)
+{
+    return StatusFromException();
 }
 
 LSTATUS Registry::RegDeleteValueA(
     const HKEY hKey,
     const LPCSTR lpValueName
 ) noexcept
+try
 {
-    return Guard(
-        [&]
-        {
-            const WideArg valueName(lpValueName);
-            return RegDeleteValueW(
-                hKey,
-                valueName.Get()
-            );
-        }
+    const WideArg valueName(lpValueName);
+    return RegDeleteValueW(
+        hKey,
+        valueName.Get()
     );
+}
+catch (...)
+{
+    return StatusFromException();
 }
 
 LSTATUS Registry::RegDeleteKeyExA(
@@ -310,36 +311,36 @@ LSTATUS Registry::RegDeleteKeyExA(
     const REGSAM samDesired,
     const DWORD Reserved
 ) noexcept
+try
 {
-    return Guard(
-        [&]
-        {
-            const WideArg subKey(lpSubKey);
-            return RegDeleteKeyExW(
-                hKey,
-                subKey.Get(),
-                samDesired,
-                Reserved
-            );
-        }
+    const WideArg subKey(lpSubKey);
+    return RegDeleteKeyExW(
+        hKey,
+        subKey.Get(),
+        samDesired,
+        Reserved
     );
+}
+catch (...)
+{
+    return StatusFromException();
 }
 
 LSTATUS Registry::RegDeleteTreeA(
     const HKEY hKey,
     const LPCSTR lpSubKey
 ) noexcept
+try
 {
-    return Guard(
-        [&]
-        {
-            const WideArg subKey(lpSubKey);
-            return RegDeleteTreeW(
-                hKey,
-                subKey.Get()
-            );
-        }
+    const WideArg subKey(lpSubKey);
+    return RegDeleteTreeW(
+        hKey,
+        subKey.Get()
     );
+}
+catch (...)
+{
+    return StatusFromException();
 }
 
 LSTATUS Registry::RegEnumKeyExA(
@@ -352,75 +353,75 @@ LSTATUS Registry::RegEnumKeyExA(
     const LPDWORD lpcchClass,
     const PFILETIME lpftLastWriteTime
 ) const noexcept
+try
 {
     if (!lpcchName || (lpClass && !lpcchClass))
         return ERROR_INVALID_PARAMETER;
 
-    return Guard(
-        [&]
+    const bool wantClass = lpClass || lpcchClass;
+    DWORD cchName = INITIAL_NAME_CHARS;
+    DWORD cchClass = wantClass ? INITIAL_NAME_CHARS : 0;
+    std::wstring name;
+    std::wstring className;
+    FILETIME ftLastWrite{};
+    LSTATUS status;
+    for (;;)
+    {
+        name.assign(cchName, L'\0');
+        className.assign(cchClass, L'\0');
+        DWORD cchNameOut = cchName;
+        DWORD cchClassOut = cchClass;
+        status = RegEnumKeyExW(
+            hKey,
+            dwIndex,
+            name.data(),
+            &cchNameOut,
+            lpReserved,
+            wantClass ? className.data() : nullptr,
+            wantClass ? &cchClassOut : nullptr,
+            &ftLastWrite
+        );
+        if (status != ERROR_MORE_DATA || (cchName >= MAX_CLASS_CHARS && cchClass >= MAX_CLASS_CHARS))
         {
-            const bool wantClass = lpClass || lpcchClass;
-            DWORD cchName = INITIAL_NAME_CHARS;
-            DWORD cchClass = wantClass ? INITIAL_NAME_CHARS : 0;
-            std::wstring name;
-            std::wstring className;
-            FILETIME ftLastWrite{};
-            LSTATUS status;
-            for (;;)
-            {
-                name.assign(cchName, L'\0');
-                className.assign(cchClass, L'\0');
-                DWORD cchNameOut = cchName;
-                DWORD cchClassOut = cchClass;
-                status = RegEnumKeyExW(
-                    hKey,
-                    dwIndex,
-                    name.data(),
-                    &cchNameOut,
-                    lpReserved,
-                    wantClass ? className.data() : nullptr,
-                    wantClass ? &cchClassOut : nullptr,
-                    &ftLastWrite
-                );
-                if (status != ERROR_MORE_DATA || (cchName >= MAX_CLASS_CHARS && cchClass >= MAX_CLASS_CHARS))
-                {
-                    name.resize(cchNameOut);
-                    className.resize(cchClassOut);
-                    break;
-                }
-                cchName = std::min(cchName * 2, MAX_CLASS_CHARS);
-                if (wantClass)
-                    cchClass = std::min(cchClass * 2, MAX_CLASS_CHARS);
-            }
-            if (status != ERROR_SUCCESS)
-                return status;
-
-            if (lpftLastWriteTime)
-                *lpftLastWriteTime = ftLastWrite;
-
-            const auto nameA = AnsiFromWide(name.data(), name.size());
-            if (!CopyAnsiName(nameA, lpName, *lpcchName))
-                return ERROR_MORE_DATA;
-            *lpcchName = static_cast<DWORD>(nameA.size());
-
-            if (lpcchClass && !lpClass)
-            {
-                *lpcchClass = 0;
-            }
-            else if (lpcchClass)
-            {
-                const auto classA = AnsiFromWide(
-                    className.data(),
-                    className.size()
-                );
-                if (!CopyAnsiClass(classA, lpClass, *lpcchClass))
-                    return ERROR_MORE_DATA;
-                *lpcchClass = static_cast<DWORD>(classA.size());
-            }
-
-            return static_cast<LSTATUS>(ERROR_SUCCESS);
+            name.resize(cchNameOut);
+            className.resize(cchClassOut);
+            break;
         }
-    );
+        cchName = std::min(cchName * 2, MAX_CLASS_CHARS);
+        if (wantClass)
+            cchClass = std::min(cchClass * 2, MAX_CLASS_CHARS);
+    }
+    if (status != ERROR_SUCCESS)
+        return status;
+
+    if (lpftLastWriteTime)
+        *lpftLastWriteTime = ftLastWrite;
+
+    const auto nameA = AnsiFromWide(name.data(), name.size());
+    if (!CopyAnsiName(nameA, lpName, *lpcchName))
+        return ERROR_MORE_DATA;
+    *lpcchName = static_cast<DWORD>(nameA.size());
+
+    if (lpcchClass && !lpClass)
+    {
+        *lpcchClass = 0;
+    }
+    else if (lpcchClass)
+    {
+        const auto classA = AnsiFromWide(
+            className.data(),
+            className.size()
+        );
+        if (!CopyAnsiClass(classA, lpClass, *lpcchClass))
+            return ERROR_MORE_DATA;
+        *lpcchClass = static_cast<DWORD>(classA.size());
+    }
+
+    return static_cast<LSTATUS>(ERROR_SUCCESS);
+}
+catch (...)
+{
+    return StatusFromException();
 }
 
 LSTATUS Registry::RegEnumValueA(
@@ -433,87 +434,87 @@ LSTATUS Registry::RegEnumValueA(
     const LPBYTE lpData,
     const LPDWORD lpcbData
 ) const noexcept
+try
 {
     if (!lpValueName || !lpcchValueName || (lpData && !lpcbData) || lpReserved)
         return ERROR_INVALID_PARAMETER;
 
-    return Guard(
-        [&]
-        {
-            std::wstring name;
-            DWORD dwType{};
-            std::vector<std::byte> value;
-            const auto status = EnumValue(
-                *this,
-                hKey,
-                dwIndex,
-                name,
-                &dwType,
-                lpcbData ? &value : nullptr
-            );
-            if (status != ERROR_SUCCESS)
-                return status;
-
-            const auto nameA = AnsiFromWide(name.data(), name.size());
-            const bool isString = IsStringType(dwType);
-            std::string text;
-            DWORD cbValue = static_cast<DWORD>(value.size());
-            if (lpcbData && isString)
-            {
-                text = AnsiFromWide(
-                    reinterpret_cast<const wchar_t*>(value.data()),
-                    value.size() / sizeof(wchar_t)
-                );
-                cbValue = static_cast<DWORD>(text.size());
-            }
-
-            // Native reports the type and size even when the call goes on to fail.
-            if (lpType)
-                *lpType = dwType;
-            const DWORD cbBuffer = lpcbData ? *lpcbData : 0;
-            if (lpcbData)
-                *lpcbData = cbValue;
-            if (lpData && cbValue > cbBuffer)
-                return ERROR_MORE_DATA;
-
-            if (nameA.size() > *lpcchValueName)
-            {
-                // Native terminates the text in the caller's buffer here, and writes nothing else.
-                if (lpData && isString && cbValue > 0 && cbValue < cbBuffer)
-                    lpData[cbValue] = 0;
-                return ERROR_MORE_DATA;
-            }
-
-            const bool nameFits = CopyAnsiName(
-                nameA,
-                lpValueName,
-                *lpcchValueName
-            );
-            if (lpData)
-            {
-                if (isString)
-                {
-                    if (value.size() <= cbBuffer)
-                        std::memcpy(lpData, value.data(), value.size());
-                    if (cbValue > 0)
-                    {
-                        std::memcpy(lpData, text.data(), cbValue);
-                        if (cbValue < cbBuffer && lpData[cbValue - 1] != 0)
-                            lpData[cbValue] = 0;
-                    }
-                }
-                else
-                {
-                    std::memcpy(lpData, value.data(), cbValue);
-                }
-            }
-
-            if (!nameFits)
-                return ERROR_MORE_DATA;
-            *lpcchValueName = static_cast<DWORD>(nameA.size());
-            return static_cast<LSTATUS>(ERROR_SUCCESS);
-        }
+    std::wstring name;
+    DWORD dwType{};
+    std::vector<std::byte> value;
+    const auto status = EnumValue(
+        *this,
+        hKey,
+        dwIndex,
+        name,
+        &dwType,
+        lpcbData ? &value : nullptr
     );
+    if (status != ERROR_SUCCESS)
+        return status;
+
+    const auto nameA = AnsiFromWide(name.data(), name.size());
+    const bool isString = IsStringType(dwType);
+    std::string text;
+    DWORD cbValue = static_cast<DWORD>(value.size());
+    if (lpcbData && isString)
+    {
+        text = AnsiFromWide(
+            reinterpret_cast<const wchar_t*>(value.data()),
+            value.size() / sizeof(wchar_t)
+        );
+        cbValue = static_cast<DWORD>(text.size());
+    }
+
+    // Native reports the type and size even when the call goes on to fail.
+    if (lpType)
+        *lpType = dwType;
+    const DWORD cbBuffer = lpcbData ? *lpcbData : 0;
+    if (lpcbData)
+        *lpcbData = cbValue;
+    if (lpData && cbValue > cbBuffer)
+        return ERROR_MORE_DATA;
+
+    if (nameA.size() > *lpcchValueName)
+    {
+        // Native terminates the text in the caller's buffer here, and writes nothing else.
+        if (lpData && isString && cbValue > 0 && cbValue < cbBuffer)
+            lpData[cbValue] = 0;
+        return ERROR_MORE_DATA;
+    }
+
+    const bool nameFits = CopyAnsiName(
+        nameA,
+        lpValueName,
+        *lpcchValueName
+    );
+    if (lpData)
+    {
+        if (isString)
+        {
+            if (value.size() <= cbBuffer)
+                std::memcpy(lpData, value.data(), value.size());
+            if (cbValue > 0)
+            {
+                std::memcpy(lpData, text.data(), cbValue);
+                if (cbValue < cbBuffer && lpData[cbValue - 1] != 0)
+                    lpData[cbValue] = 0;
+            }
+        }
+        else
+        {
+            std::memcpy(lpData, value.data(), cbValue);
+        }
+    }
+
+    if (!nameFits)
+        return ERROR_MORE_DATA;
+    *lpcchValueName = static_cast<DWORD>(nameA.size());
+    return static_cast<LSTATUS>(ERROR_SUCCESS);
+}
+catch (...)
+{
+    return StatusFromException();
 }
 
 LSTATUS Registry::RegQueryInfoKeyA(
@@ -530,6 +531,7 @@ LSTATUS Registry::RegQueryInfoKeyA(
     const LPDWORD lpcbSecurityDescriptor,
     const PFILETIME lpftLastWriteTime
 ) const noexcept
+try
 {
     if (lpClass && !lpcchClass)
         return ERROR_INVALID_PARAMETER;
@@ -556,63 +558,62 @@ LSTATUS Registry::RegQueryInfoKeyA(
         );
     }
 
-    return Guard(
-        [&]
+    DWORD cchClass = INITIAL_NAME_CHARS;
+    DWORD cchClassOut = 0;
+    std::wstring className;
+    LSTATUS status;
+    for (;;)
+    {
+        className.assign(cchClass, L'\0');
+        cchClassOut = cchClass;
+        status = RegQueryInfoKeyW(
+            hKey,
+            className.data(),
+            &cchClassOut,
+            lpReserved,
+            lpcSubKeys,
+            lpcbMaxSubKeyLen,
+            lpcbMaxClassLen,
+            lpcValues,
+            lpcbMaxValueNameLen,
+            lpcbMaxValueLen,
+            lpcbSecurityDescriptor,
+            lpftLastWriteTime
+        );
+        if (status != ERROR_MORE_DATA || cchClass >= MAX_CLASS_CHARS)
         {
-            DWORD cchClass = INITIAL_NAME_CHARS;
-            DWORD cchClassOut = 0;
-            std::wstring className;
-            LSTATUS status;
-            for (;;)
-            {
-                className.assign(cchClass, L'\0');
-                cchClassOut = cchClass;
-                status = RegQueryInfoKeyW(
-                    hKey,
-                    className.data(),
-                    &cchClassOut,
-                    lpReserved,
-                    lpcSubKeys,
-                    lpcbMaxSubKeyLen,
-                    lpcbMaxClassLen,
-                    lpcValues,
-                    lpcbMaxValueNameLen,
-                    lpcbMaxValueLen,
-                    lpcbSecurityDescriptor,
-                    lpftLastWriteTime
-                );
-                if (status != ERROR_MORE_DATA || cchClass >= MAX_CLASS_CHARS)
-                {
-                    className.resize(cchClassOut);
-                    break;
-                }
-                cchClass = std::min(cchClass * 2, MAX_CLASS_CHARS);
-            }
-            if (status != ERROR_SUCCESS)
-            {
-                if (cchClassOut != cchClass)
-                    *lpcchClass = cchClassOut;
-                return status;
-            }
-
-            const auto classA = AnsiFromWide(
-                className.data(),
-                className.size()
-            );
-            if (wantClassLength)
-            {
-                *lpcchClass = static_cast<DWORD>(classA.size());
-                return static_cast<LSTATUS>(ERROR_SUCCESS);
-            }
-            if (!CopyAnsiClass(classA, lpClass, *lpcchClass))
-            {
-                *lpcchClass -= 1;
-                return ERROR_MORE_DATA;
-            }
-            *lpcchClass = static_cast<DWORD>(classA.size());
-            return static_cast<LSTATUS>(ERROR_SUCCESS);
+            className.resize(cchClassOut);
+            break;
         }
+        cchClass = std::min(cchClass * 2, MAX_CLASS_CHARS);
+    }
+    if (status != ERROR_SUCCESS)
+    {
+        if (cchClassOut != cchClass)
+            *lpcchClass = cchClassOut;
+        return status;
+    }
+
+    const auto classA = AnsiFromWide(
+        className.data(),
+        className.size()
     );
+    if (wantClassLength)
+    {
+        *lpcchClass = static_cast<DWORD>(classA.size());
+        return static_cast<LSTATUS>(ERROR_SUCCESS);
+    }
+    if (!CopyAnsiClass(classA, lpClass, *lpcchClass))
+    {
+        *lpcchClass -= 1;
+        return ERROR_MORE_DATA;
+    }
+    *lpcchClass = static_cast<DWORD>(classA.size());
+    return static_cast<LSTATUS>(ERROR_SUCCESS);
+}
+catch (...)
+{
+    return StatusFromException();
 }
 
 LSTATUS Registry::RegLoadMUIStringA(
@@ -644,230 +645,230 @@ LSTATUS Registry::RegGetValueA(
     const PVOID pvData,
     const LPDWORD pcbData
 ) const noexcept
+try
 {
     if (pvData && !pcbData)
         return ERROR_INVALID_PARAMETER;
 
-    return Guard(
-        [&]
+    const WideArg subKey(lpSubKey);
+    const WideArg value(lpValue);
+    const auto forwardToWide = [&]
+    {
+        return RegGetValueW(
+            hkey,
+            subKey.Get(),
+            value.Get(),
+            dwFlags,
+            pdwType,
+            pvData,
+            pcbData
+        );
+    };
+
+    // Only string values are converted; anything else, and every failure to find the value, is what the
+    // wide form answers.
+    constexpr DWORD WOW_FLAGS = RRF_SUBKEY_WOW6464KEY | RRF_SUBKEY_WOW6432KEY;
+    const DWORD dwFlagsStored = (dwFlags & WOW_FLAGS) | RRF_RT_ANY | RRF_NOEXPAND;
+    DWORD dwStoredType{};
+    const auto statusStoredType = RegGetValueW(
+        hkey,
+        subKey.Get(),
+        value.Get(),
+        dwFlagsStored,
+        &dwStoredType,
+        nullptr,
+        nullptr
+    );
+    if (statusStoredType != ERROR_SUCCESS || !IsStringType(dwStoredType))
+        return forwardToWide();
+
+    // A value whose type the flags reject is still read and reported, with the failure status.
+    const DWORD dwFlagsTyped = dwFlags & ~RRF_ZEROONFAILURE;
+    const DWORD dwFlagsAnyType = (dwFlags & (WOW_FLAGS | RRF_NOEXPAND)) | RRF_RT_ANY;
+    DWORD dwType = 0;
+    DWORD cbQuery = 0;
+    const auto status = RegGetValueW(
+        hkey,
+        subKey.Get(),
+        value.Get(),
+        dwFlagsTyped,
+        &dwType,
+        nullptr,
+        &cbQuery
+    );
+    const bool isMismatch = status == ERROR_UNSUPPORTED_TYPE;
+    if (status != ERROR_SUCCESS && !isMismatch)
+        return forwardToWide();
+    const DWORD dwFlagsRead = isMismatch ? dwFlagsAnyType : dwFlagsTyped;
+    if (isMismatch)
+        RegGetValueW(
+            hkey,
+            subKey.Get(),
+            value.Get(),
+            dwFlagsAnyType,
+            &dwType,
+            nullptr,
+            &cbQuery
+        );
+
+    std::vector<std::byte> data;
+    const auto statusRead = GetValue(
+        *this,
+        hkey,
+        subKey.Get(),
+        value.Get(),
+        dwFlagsRead,
+        &dwType,
+        data
+    );
+    if (statusRead != ERROR_SUCCESS)
+        return statusRead;
+
+    const bool isExpanded = dwStoredType == REG_EXPAND_SZ && !(dwFlags & RRF_NOEXPAND);
+    std::vector<std::byte> stored;
+    DWORD cbStoredRaw = 0;
+    if (isExpanded)
+    {
+        DWORD dwReadType{};
+        DWORD cbStoredQuery = 0;
+        const auto statusStored = GetValue(
+            *this,
+            hkey,
+            subKey.Get(),
+            value.Get(),
+            dwFlagsStored,
+            &dwReadType,
+            stored
+        );
+        if (statusStored != ERROR_SUCCESS)
+            return statusStored;
+        RegGetValueW(
+            hkey,
+            subKey.Get(),
+            value.Get(),
+            dwFlagsStored,
+            &dwReadType,
+            nullptr,
+            &cbStoredQuery
+        );
+        cbStoredRaw = cbStoredQuery - std::min<DWORD>(cbStoredQuery, 2);
+    }
+
+    const auto text
+        = AnsiFromWide(
+            reinterpret_cast<const wchar_t*>(data.data()),
+            data.size() / sizeof(wchar_t)
+        );
+    const auto cbText = static_cast<DWORD>(text.size());
+    // What a call that cannot return the text reports as its size: room for the terminator the wide
+    // form reserves; for an expanded value, the larger of the unexpanded text and the expansion, and
+    // a character more when the expansion is the larger.
+    DWORD cbReported
+        = cbText + (cbQuery > data.size() ? static_cast<DWORD>((cbQuery - data.size()) / sizeof(wchar_t)) : 0);
+    if (isExpanded)
+    {
+        const auto storedChars = reinterpret_cast<const wchar_t*>(stored.data());
+        const auto cbRawText
+            = static_cast<DWORD>(
+                AnsiFromWide(
+                    storedChars,
+                    cbStoredRaw / sizeof(wchar_t)
+                ).size()
+            );
+        const auto ibNul = text.find('\0');
+        const DWORD cbExpanded = ibNul == std::string::npos ? cbText : static_cast<DWORD>(ibNul + 1);
+        cbReported = std::max(
+            cbRawText,
+            cbExpanded
+        ) + (cbExpanded > cbRawText ? 1 : 0);
+    }
+    const DWORD cbBuffer = pcbData ? *pcbData : 0;
+    const DWORD cbNeeded = isExpanded ? cbText + 1 : cbText;
+    const LSTATUS statusMismatch = isMismatch ? status : static_cast<LSTATUS>(ERROR_SUCCESS);
+
+    if (pdwType)
+        *pdwType = dwType;
+
+    if (!pvData)
+    {
+        if (pcbData)
+            *pcbData = cbReported;
+        return statusMismatch;
+    }
+
+    if (cbBuffer < cbNeeded)
+    {
+        *pcbData = cbReported;
+        if (isExpanded)
         {
-            const WideArg subKey(lpSubKey);
-            const WideArg value(lpValue);
-            const auto forwardToWide = [&]
-            {
-                return RegGetValueW(
-                    hkey,
-                    subKey.Get(),
-                    value.Get(),
-                    dwFlags,
-                    pdwType,
-                    pvData,
-                    pcbData
-                );
-            };
-
-            // Only string values are converted; anything else, and every failure to find the value, is what the
-            // wide form answers.
-            constexpr DWORD WOW_FLAGS = RRF_SUBKEY_WOW6464KEY | RRF_SUBKEY_WOW6432KEY;
-            const DWORD dwFlagsStored = (dwFlags & WOW_FLAGS) | RRF_RT_ANY | RRF_NOEXPAND;
-            DWORD dwStoredType{};
-            const auto statusStoredType = RegGetValueW(
-                hkey,
-                subKey.Get(),
-                value.Get(),
-                dwFlagsStored,
-                &dwStoredType,
-                nullptr,
-                nullptr
+            // Native copies the unexpanded text, then clears its first character.
+            const auto storedText = AnsiFromWide(
+                reinterpret_cast<const wchar_t*>(stored.data()),
+                stored.size() / sizeof(wchar_t)
             );
-            if (statusStoredType != ERROR_SUCCESS || !IsStringType(dwStoredType))
-                return forwardToWide();
-
-            // A value whose type the flags reject is still read and reported, with the failure status.
-            const DWORD dwFlagsTyped = dwFlags & ~RRF_ZEROONFAILURE;
-            const DWORD dwFlagsAnyType = (dwFlags & (WOW_FLAGS | RRF_NOEXPAND)) | RRF_RT_ANY;
-            DWORD dwType = 0;
-            DWORD cbQuery = 0;
-            const auto status = RegGetValueW(
-                hkey,
-                subKey.Get(),
-                value.Get(),
-                dwFlagsTyped,
-                &dwType,
-                nullptr,
-                &cbQuery
-            );
-            const bool isMismatch = status == ERROR_UNSUPPORTED_TYPE;
-            if (status != ERROR_SUCCESS && !isMismatch)
-                return forwardToWide();
-            const DWORD dwFlagsRead = isMismatch ? dwFlagsAnyType : dwFlagsTyped;
-            if (isMismatch)
-                RegGetValueW(
-                    hkey,
-                    subKey.Get(),
-                    value.Get(),
-                    dwFlagsAnyType,
-                    &dwType,
-                    nullptr,
-                    &cbQuery
-                );
-
-            std::vector<std::byte> data;
-            const auto statusRead = GetValue(
-                *this,
-                hkey,
-                subKey.Get(),
-                value.Get(),
-                dwFlagsRead,
-                &dwType,
-                data
-            );
-            if (statusRead != ERROR_SUCCESS)
-                return statusRead;
-
-            const bool isExpanded = dwStoredType == REG_EXPAND_SZ && !(dwFlags & RRF_NOEXPAND);
-            std::vector<std::byte> stored;
-            DWORD cbStoredRaw = 0;
-            if (isExpanded)
-            {
-                DWORD dwReadType{};
-                DWORD cbStoredQuery = 0;
-                const auto statusStored = GetValue(
-                    *this,
-                    hkey,
-                    subKey.Get(),
-                    value.Get(),
-                    dwFlagsStored,
-                    &dwReadType,
-                    stored
-                );
-                if (statusStored != ERROR_SUCCESS)
-                    return statusStored;
-                RegGetValueW(
-                    hkey,
-                    subKey.Get(),
-                    value.Get(),
-                    dwFlagsStored,
-                    &dwReadType,
-                    nullptr,
-                    &cbStoredQuery
-                );
-                cbStoredRaw = cbStoredQuery - std::min<DWORD>(cbStoredQuery, 2);
-            }
-
-            const auto text
-                = AnsiFromWide(
-                    reinterpret_cast<const wchar_t*>(data.data()),
-                    data.size() / sizeof(wchar_t)
-                );
-            const auto cbText = static_cast<DWORD>(text.size());
-            // What a call that cannot return the text reports as its size: room for the terminator the wide
-            // form reserves; for an expanded value, the larger of the unexpanded text and the expansion, and
-            // a character more when the expansion is the larger.
-            DWORD cbReported
-                = cbText + (cbQuery > data.size() ? static_cast<DWORD>((cbQuery - data.size()) / sizeof(wchar_t)) : 0);
-            if (isExpanded)
-            {
-                const auto storedChars = reinterpret_cast<const wchar_t*>(stored.data());
-                const auto cbRawText
-                    = static_cast<DWORD>(
-                        AnsiFromWide(
-                            storedChars,
-                            cbStoredRaw / sizeof(wchar_t)
-                        ).size()
-                    );
-                const auto ibNul = text.find('\0');
-                const DWORD cbExpanded = ibNul == std::string::npos ? cbText : static_cast<DWORD>(ibNul + 1);
-                cbReported = std::max(
-                    cbRawText,
-                    cbExpanded
-                ) + (cbExpanded > cbRawText ? 1 : 0);
-            }
-            const DWORD cbBuffer = pcbData ? *pcbData : 0;
-            const DWORD cbNeeded = isExpanded ? cbText + 1 : cbText;
-            const LSTATUS statusMismatch = isMismatch ? status : static_cast<LSTATUS>(ERROR_SUCCESS);
-
-            if (pdwType)
-                *pdwType = dwType;
-
-            if (!pvData)
-            {
-                if (pcbData)
-                    *pcbData = cbReported;
-                return statusMismatch;
-            }
-
-            if (cbBuffer < cbNeeded)
-            {
-                *pcbData = cbReported;
-                if (isExpanded)
-                {
-                    // Native copies the unexpanded text, then clears its first character.
-                    const auto storedText = AnsiFromWide(
-                        reinterpret_cast<const wchar_t*>(stored.data()),
-                        stored.size() / sizeof(wchar_t)
-                    );
-                    if (!storedText.empty() && storedText.size() <= cbBuffer)
-                    {
-                        if (cbStoredRaw <= cbBuffer)
-                            std::memcpy(
-                                pvData,
-                                stored.data(),
-                                std::min<std::size_t>(
-                                    cbStoredRaw,
-                                    stored.size()
-                                )
-                            );
-                        std::memcpy(
-                            pvData,
-                            storedText.data(),
-                            storedText.size()
-                        );
-                        *static_cast<char*>(pvData) = '\0';
-                        *pcbData = cbNeeded;
-                    }
-                }
-                if ((dwFlags & RRF_ZEROONFAILURE) && cbBuffer > 0)
-                    std::memset(pvData, 0, cbBuffer);
-                return isMismatch ? status : ERROR_MORE_DATA;
-            }
-
-            // Native reads the stored wide data into the caller's buffer when it fits there and narrows it in
-            // place, so the bytes past the text are the tail of the stored data. The wide form reports two bytes
-            // (four for a multi-string) more than are stored.
-            auto* const pbData = static_cast<BYTE*>(pvData);
-            if (isExpanded)
+            if (!storedText.empty() && storedText.size() <= cbBuffer)
             {
                 if (cbStoredRaw <= cbBuffer)
                     std::memcpy(
-                        pbData,
+                        pvData,
                         stored.data(),
-                        std::min<std::size_t>(cbStoredRaw, stored.size())
+                        std::min<std::size_t>(
+                            cbStoredRaw,
+                            stored.size()
+                        )
                     );
+                std::memcpy(
+                    pvData,
+                    storedText.data(),
+                    storedText.size()
+                );
+                *static_cast<char*>(pvData) = '\0';
+                *pcbData = cbNeeded;
             }
-            else
-            {
-                const DWORD cbStored = cbQuery - std::min<DWORD>(cbQuery, dwType == REG_MULTI_SZ ? 4 : 2);
-                if (cbStored <= cbBuffer)
-                    std::memcpy(
-                        pbData,
-                        data.data(),
-                        std::min<std::size_t>(cbStored, data.size())
-                    );
-            }
-            if (cbText > 0)
-            {
-                std::memcpy(pbData, text.data(), cbText);
-                if (cbText < cbBuffer && pbData[cbText - 1] != 0)
-                    pbData[cbText] = 0;
-            }
-            *pcbData = cbText;
-
-            if (isMismatch && (dwFlags & RRF_ZEROONFAILURE) && cbBuffer > 0)
-                std::memset(pvData, 0, cbBuffer);
-            return statusMismatch;
         }
-    );
+        if ((dwFlags & RRF_ZEROONFAILURE) && cbBuffer > 0)
+            std::memset(pvData, 0, cbBuffer);
+        return isMismatch ? status : ERROR_MORE_DATA;
+    }
+
+    // Native reads the stored wide data into the caller's buffer when it fits there and narrows it in
+    // place, so the bytes past the text are the tail of the stored data. The wide form reports two bytes
+    // (four for a multi-string) more than are stored.
+    auto* const pbData = static_cast<BYTE*>(pvData);
+    if (isExpanded)
+    {
+        if (cbStoredRaw <= cbBuffer)
+            std::memcpy(
+                pbData,
+                stored.data(),
+                std::min<std::size_t>(cbStoredRaw, stored.size())
+            );
+    }
+    else
+    {
+        const DWORD cbStored = cbQuery - std::min<DWORD>(cbQuery, dwType == REG_MULTI_SZ ? 4 : 2);
+        if (cbStored <= cbBuffer)
+            std::memcpy(
+                pbData,
+                data.data(),
+                std::min<std::size_t>(cbStored, data.size())
+            );
+    }
+    if (cbText > 0)
+    {
+        std::memcpy(pbData, text.data(), cbText);
+        if (cbText < cbBuffer && pbData[cbText - 1] != 0)
+            pbData[cbText] = 0;
+    }
+    *pcbData = cbText;
+
+    if (isMismatch && (dwFlags & RRF_ZEROONFAILURE) && cbBuffer > 0)
+        std::memset(pvData, 0, cbBuffer);
+    return statusMismatch;
+}
+catch (...)
+{
+    return StatusFromException();
 }
 
 LSTATUS Registry::RegOpenKeyA(
@@ -1380,6 +1381,7 @@ LSTATUS Registry::RegQueryMultipleValuesW(
     const LPWSTR lpValueBuf,
     const LPDWORD ldwTotsize
 ) const noexcept
+try
 {
     if (!val_list || !ldwTotsize)
         return ERROR_INVALID_PARAMETER;
@@ -1389,78 +1391,77 @@ LSTATUS Registry::RegQueryMultipleValuesW(
     if (!lpValueBuf)
         return ERROR_NOACCESS;
 
-    return Guard(
-        [&]
+    auto* const pbBuffer = reinterpret_cast<BYTE*>(lpValueBuf);
+    std::vector<PlacedValue> placed(num_vals);
+    for (DWORD i = 0; i < num_vals; ++i)
+    {
+        const auto status = RegQueryValueExW(
+            hKey,
+            val_list[i].ve_valuename,
+            nullptr,
+            nullptr,
+            nullptr,
+            &placed[i].cbValue
+        );
+        if (status != ERROR_SUCCESS)
         {
-            auto* const pbBuffer = reinterpret_cast<BYTE*>(lpValueBuf);
-            std::vector<PlacedValue> placed(num_vals);
-            for (DWORD i = 0; i < num_vals; ++i)
-            {
-                const auto status = RegQueryValueExW(
-                    hKey,
-                    val_list[i].ve_valuename,
-                    nullptr,
-                    nullptr,
-                    nullptr,
-                    &placed[i].cbValue
-                );
-                if (status != ERROR_SUCCESS)
-                {
-                    if (status == ERROR_INVALID_HANDLE)
-                        *ldwTotsize = cbBuffer;
-                    return status;
-                }
-            }
-
-            DWORD cbEnd = 0;
-            bool isComplete = true;
-            for (DWORD i = 0; i < num_vals; ++i)
-            {
-                const DWORD cbValue = placed[i].cbValue;
-                const DWORD ibValue = i == 0 ? 0 : AlignedToDword(cbEnd);
-                if (ibValue > cbEnd && cbEnd < cbBuffer)
-                    std::memset(
-                        pbBuffer + cbEnd,
-                        0,
-                        std::min(ibValue, cbBuffer) - cbEnd
-                    );
-
-                placed[i].ibValue = ibValue;
-                if (ibValue + cbValue <= cbBuffer)
-                {
-                    DWORD cbRead = cbValue;
-                    const auto status = RegQueryValueExW(
-                        hKey,
-                        val_list[i].ve_valuename,
-                        nullptr,
-                        &placed[i].dwType,
-                        pbBuffer + ibValue,
-                        &cbRead
-                    );
-                    if (status != ERROR_SUCCESS)
-                        return status;
-                    placed[i].cbValue = cbRead;
-                }
-                else
-                {
-                    isComplete = false;
-                }
-                cbEnd = ibValue + cbValue;
-            }
-
-            *ldwTotsize = cbEnd;
-            if (!isComplete)
-                return ERROR_MORE_DATA;
-
-            for (DWORD i = 0; i < num_vals; ++i)
-            {
-                val_list[i].ve_valuelen = placed[i].cbValue;
-                val_list[i].ve_type = placed[i].dwType;
-                val_list[i].ve_valueptr = reinterpret_cast<DWORD_PTR>(pbBuffer + placed[i].ibValue);
-            }
-            return static_cast<LSTATUS>(ERROR_SUCCESS);
+            if (status == ERROR_INVALID_HANDLE)
+                *ldwTotsize = cbBuffer;
+            return status;
         }
-    );
+    }
+
+    DWORD cbEnd = 0;
+    bool isComplete = true;
+    for (DWORD i = 0; i < num_vals; ++i)
+    {
+        const DWORD cbValue = placed[i].cbValue;
+        const DWORD ibValue = i == 0 ? 0 : AlignedToDword(cbEnd);
+        if (ibValue > cbEnd && cbEnd < cbBuffer)
+            std::memset(
+                pbBuffer + cbEnd,
+                0,
+                std::min(ibValue, cbBuffer) - cbEnd
+            );
+
+        placed[i].ibValue = ibValue;
+        if (ibValue + cbValue <= cbBuffer)
+        {
+            DWORD cbRead = cbValue;
+            const auto status = RegQueryValueExW(
+                hKey,
+                val_list[i].ve_valuename,
+                nullptr,
+                &placed[i].dwType,
+                pbBuffer + ibValue,
+                &cbRead
+            );
+            if (status != ERROR_SUCCESS)
+                return status;
+            placed[i].cbValue = cbRead;
+        }
+        else
+        {
+            isComplete = false;
+        }
+        cbEnd = ibValue + cbValue;
+    }
+
+    *ldwTotsize = cbEnd;
+    if (!isComplete)
+        return ERROR_MORE_DATA;
+
+    for (DWORD i = 0; i < num_vals; ++i)
+    {
+        val_list[i].ve_valuelen = placed[i].cbValue;
+        val_list[i].ve_type = placed[i].dwType;
+        val_list[i].ve_valueptr = reinterpret_cast<DWORD_PTR>(pbBuffer + placed[i].ibValue);
+    }
+    return static_cast<LSTATUS>(ERROR_SUCCESS);
+}
+catch (...)
+{
+    return StatusFromException();
 }
 
 /// Places the narrowed values like the wide form places the stored ones, but
@@ -1473,83 +1474,83 @@ LSTATUS Registry::RegQueryMultipleValuesA(
     const LPSTR lpValueBuf,
     const LPDWORD ldwTotsize
 ) const noexcept
+try
 {
     if (!val_list || !ldwTotsize)
         return ERROR_INVALID_PARAMETER;
     if (!lpValueBuf)
         return ERROR_NOACCESS;
 
-    return Guard(
-        [&]
+    const DWORD cbBuffer = *ldwTotsize;
+    auto* const pbBuffer = reinterpret_cast<BYTE*>(lpValueBuf);
+    std::vector<PlacedValue> placed(num_vals);
+    DWORD cbEnd = 0;
+    for (DWORD i = 0; i < num_vals; ++i)
+    {
+        const auto status = RegQueryValueExA(
+            hKey,
+            val_list[i].ve_valuename,
+            nullptr,
+            nullptr,
+            nullptr,
+            &placed[i].cbValue
+        );
+        if (status != ERROR_SUCCESS)
+            return status;
+        placed[i].ibValue = i == 0 ? 0 : AlignedToDword(cbEnd);
+        cbEnd = placed[i].ibValue + placed[i].cbValue;
+    }
+
+    if (cbEnd > cbBuffer)
+    {
+        DWORD cbWideEnd = 0;
+        for (DWORD i = 0; i < num_vals; ++i)
         {
-            const DWORD cbBuffer = *ldwTotsize;
-            auto* const pbBuffer = reinterpret_cast<BYTE*>(lpValueBuf);
-            std::vector<PlacedValue> placed(num_vals);
-            DWORD cbEnd = 0;
-            for (DWORD i = 0; i < num_vals; ++i)
-            {
-                const auto status = RegQueryValueExA(
-                    hKey,
-                    val_list[i].ve_valuename,
-                    nullptr,
-                    nullptr,
-                    nullptr,
-                    &placed[i].cbValue
-                );
-                if (status != ERROR_SUCCESS)
-                    return status;
-                placed[i].ibValue = i == 0 ? 0 : AlignedToDword(cbEnd);
-                cbEnd = placed[i].ibValue + placed[i].cbValue;
-            }
-
-            if (cbEnd > cbBuffer)
-            {
-                DWORD cbWideEnd = 0;
-                for (DWORD i = 0; i < num_vals; ++i)
-                {
-                    const WideArg name(val_list[i].ve_valuename);
-                    DWORD cbWide = 0;
-                    const auto status = RegQueryValueExW(
-                        hKey,
-                        name.Get(),
-                        nullptr,
-                        nullptr,
-                        nullptr,
-                        &cbWide
-                    );
-                    if (status != ERROR_SUCCESS)
-                        return status;
-                    cbWideEnd = (i == 0 ? 0 : AlignedToDword(cbWideEnd)) + cbWide;
-                }
-                *ldwTotsize = cbWideEnd;
-                return ERROR_MORE_DATA;
-            }
-
-            for (DWORD i = 0; i < num_vals; ++i)
-            {
-                DWORD cbRead = placed[i].cbValue;
-                const auto status = RegQueryValueExA(
-                    hKey,
-                    val_list[i].ve_valuename,
-                    nullptr,
-                    &placed[i].dwType,
-                    pbBuffer + placed[i].ibValue,
-                    &cbRead
-                );
-                if (status != ERROR_SUCCESS)
-                    return status;
-                placed[i].cbValue = cbRead;
-            }
-
-            for (DWORD i = 0; i < num_vals; ++i)
-            {
-                val_list[i].ve_valuelen = placed[i].cbValue;
-                val_list[i].ve_type = placed[i].dwType;
-                val_list[i].ve_valueptr = reinterpret_cast<DWORD_PTR>(pbBuffer + placed[i].ibValue);
-            }
-            *ldwTotsize = AlignedToDword(cbEnd);
-            return static_cast<LSTATUS>(ERROR_SUCCESS);
+            const WideArg name(val_list[i].ve_valuename);
+            DWORD cbWide = 0;
+            const auto status = RegQueryValueExW(
+                hKey,
+                name.Get(),
+                nullptr,
+                nullptr,
+                nullptr,
+                &cbWide
+            );
+            if (status != ERROR_SUCCESS)
+                return status;
+            cbWideEnd = (i == 0 ? 0 : AlignedToDword(cbWideEnd)) + cbWide;
         }
-    );
+        *ldwTotsize = cbWideEnd;
+        return ERROR_MORE_DATA;
+    }
+
+    for (DWORD i = 0; i < num_vals; ++i)
+    {
+        DWORD cbRead = placed[i].cbValue;
+        const auto status = RegQueryValueExA(
+            hKey,
+            val_list[i].ve_valuename,
+            nullptr,
+            &placed[i].dwType,
+            pbBuffer + placed[i].ibValue,
+            &cbRead
+        );
+        if (status != ERROR_SUCCESS)
+            return status;
+        placed[i].cbValue = cbRead;
+    }
+
+    for (DWORD i = 0; i < num_vals; ++i)
+    {
+        val_list[i].ve_valuelen = placed[i].cbValue;
+        val_list[i].ve_type = placed[i].dwType;
+        val_list[i].ve_valueptr = reinterpret_cast<DWORD_PTR>(pbBuffer + placed[i].ibValue);
+    }
+    *ldwTotsize = AlignedToDword(cbEnd);
+    return static_cast<LSTATUS>(ERROR_SUCCESS);
+}
+catch (...)
+{
+    return StatusFromException();
 }
 } // namespace VReg

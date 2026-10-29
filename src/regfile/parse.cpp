@@ -1,5 +1,6 @@
 #include <VReg/regfile.h>
 
+#include "core/status.h"
 #include "text.h"
 
 #include <cstring>
@@ -502,9 +503,9 @@ LSTATUS Parse(
         script = std::move(parsed);
         return ERROR_SUCCESS;
     }
-    catch (const std::bad_alloc&)
+    catch (...)
     {
-        return ERROR_OUTOFMEMORY;
+        return StatusFromException();
     }
 }
 
@@ -522,9 +523,9 @@ LSTATUS ParseFile(
             return status;
         return Parse(file, script, pError);
     }
-    catch (const std::bad_alloc&)
+    catch (...)
     {
-        return ERROR_OUTOFMEMORY;
+        return StatusFromException();
     }
 }
 } // namespace VReg::RegFile

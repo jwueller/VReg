@@ -7,7 +7,6 @@
 #include <array>
 #include <atomic>
 #include <cstdint>
-#include <string_view>
 
 namespace VReg
 {
@@ -43,9 +42,9 @@ public:
 
     static constexpr LONG MAGIC = 0x56526731; // "VRg1"
 
-    /// Opens or creates the section @p wsName. A failure leaves the instance
+    /// Opens or creates the section @p pszName. A failure leaves the instance
     /// unusable: @ref Allocate then answers null.
-    explicit HandleSpace(std::wstring_view wsName) noexcept;
+    explicit HandleSpace(LPCWSTR pszName) noexcept;
 
     HandleSpace(const HandleSpace&) = delete;
     HandleSpace& operator=(const HandleSpace&) = delete;

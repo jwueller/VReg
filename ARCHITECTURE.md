@@ -407,9 +407,13 @@ In namespace `VReg::RegFile` (`include/VReg/regfile.h`):
 
 Every Win32-shaped entry point is `noexcept` and returns the `LSTATUS`
 native Windows returns in the same situation; native behavior is the spec.
-`std::bad_alloc` becomes `ERROR_OUTOFMEMORY` at that boundary. Where VReg
-cannot match native Windows, the README lists it under "Known divergences
-from native Windows".
+Each one that can allocate is a function-try-block ending in
+`catch (...) { return StatusFromException(); }` (`src/core/status.h`),
+which turns a failed allocation into `ERROR_OUTOFMEMORY` and lets any other
+exception terminate. clang-tidy's `bugprone-exception-escape` runs in CI and
+fails on an entry point an exception can escape. Where VReg cannot match
+native Windows, the README lists it under "Known divergences from native
+Windows".
 
 ## Testing
 

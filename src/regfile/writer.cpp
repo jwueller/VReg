@@ -1,5 +1,6 @@
 #include "writer.h"
 
+#include "core/status.h"
 #include "text.h"
 
 #include <cstdio>
@@ -147,9 +148,9 @@ LSTATUS WriteRecords(
 
         return EncodeFile(out, format, file);
     }
-    catch (const std::bad_alloc&)
+    catch (...)
     {
-        return ERROR_OUTOFMEMORY;
+        return StatusFromException();
     }
 }
 } // namespace VReg::RegFile

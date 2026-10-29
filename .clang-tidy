@@ -1,0 +1,4 @@
+# The checks CI enforces on the library sources; see CONTRIBUTING.md.
+Checks: '-*,bugprone-exception-escape,bugprone-throwing-static-initialization'
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*[/\\](include|src)[/\\].*'

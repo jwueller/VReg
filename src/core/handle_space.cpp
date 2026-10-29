@@ -4,14 +4,11 @@
 
 #include <cwchar>
 #include <new>
-#include <string>
 
 namespace VReg
 {
-HandleSpace::HandleSpace(const std::wstring_view wsName) noexcept
+HandleSpace::HandleSpace(const LPCWSTR pszName) noexcept
 {
-    const std::wstring wsNameZ(wsName);
-
     // Pagefile-backed: the pages start zero-filled, which is the unclaimed
     // state. Open-or-create is atomic, so racing copies get the same section.
     const auto hSection = CreateFileMappingW(
@@ -20,7 +17,7 @@ HandleSpace::HandleSpace(const std::wstring_view wsName) noexcept
         PAGE_READWRITE,
         0,
         sizeof(Shared),
-        wsNameZ.c_str()
+        pszName
     );
     if (!hSection)
         return;

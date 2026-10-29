@@ -9,3 +9,5 @@ target_sources(
         writer.cpp
 )
 target_link_libraries(VReg_RegFile PUBLIC VReg::Core)
+# The entry points share core's exception boundary (core/status.h).
+target_include_directories(VReg_RegFile PRIVATE ${PROJECT_SOURCE_DIR}/src)
