@@ -30,16 +30,32 @@ function(vreg_compute_version sourceDir commit)
     set(text "${version}")
     set(metadata "${commit}")
 
+    # Only a checkout of these sources counts: unpacked from an archive into
+    # some other repository (vcpkg's buildtrees inside a vcpkg clone, say),
+    # git would answer for that repository instead.
     find_package(Git QUIET)
+    set(isCheckout 1)
     if(NOT commit AND GIT_FOUND)
         execute_process(
-            COMMAND "${GIT_EXECUTABLE}" rev-parse --is-shallow-repository
+            COMMAND "${GIT_EXECUTABLE}" rev-parse --show-toplevel --is-shallow-repository
             WORKING_DIRECTORY "${sourceDir}"
-            OUTPUT_VARIABLE shallow
+            OUTPUT_VARIABLE answers
             RESULT_VARIABLE isCheckout
             OUTPUT_STRIP_TRAILING_WHITESPACE
             ERROR_QUIET
         )
+        if(isCheckout EQUAL 0)
+            string(REPLACE "\n" ";" answers "${answers}")
+            list(GET answers 0 topLevel)
+            list(GET answers 1 shallow)
+            file(REAL_PATH "${topLevel}" topLevel)
+            file(REAL_PATH "${sourceDir}" sourceRoot)
+            string(TOLOWER "${topLevel}" topLevel)
+            string(TOLOWER "${sourceRoot}" sourceRoot)
+            if(NOT topLevel STREQUAL sourceRoot)
+                set(isCheckout 1)
+            endif()
+        endif()
     endif()
     if(NOT commit AND GIT_FOUND AND isCheckout EQUAL 0)
         if(shallow STREQUAL "true")
