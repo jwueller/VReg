@@ -1,6 +1,6 @@
 {
   "name": "vreg",
-  "version-semver": "0.1.0",
+  "version-semver": "0.2.0",
   "description": "A virtualized Windows registry: the Win32 Reg* interface over in-memory and overlay hives, .reg import and export, and optional Detours hooks",
   "homepage": "https://github.com/jwueller/VReg",
   "license": "MIT",
