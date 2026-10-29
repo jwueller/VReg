@@ -1,22 +1,28 @@
 cmake_minimum_required(VERSION 3.25)
 
-# Agent's choice: the public header owns the version and CMake reads it, so the
-# header needs no generating and its siblings include it relatively. Passed
-# over: configuring it into the build tree, which only angle-bracket includes
-# through an extra include directory can reach.
-file(STRINGS include/VReg/version.h vreg_version_lines REGEX "VREG_VERSION_(MAJOR|MINOR|PATCH) = [0-9]+;")
-foreach(line IN LISTS vreg_version_lines)
-    string(REGEX MATCH "VREG_VERSION_([A-Z]+) = ([0-9]+);" _ "${line}")
-    set(vreg_version_${CMAKE_MATCH_1} ${CMAKE_MATCH_2})
-endforeach()
-
 project(
     VReg
-    VERSION ${vreg_version_MAJOR}.${vreg_version_MINOR}.${vreg_version_PATCH}
     DESCRIPTION "A virtualized Windows registry"
     HOMEPAGE_URL "https://github.com/jwueller/VReg"
     LANGUAGES CXX
 )
+
+# vcpkg.json owns the version; cmake/VRegVersion.cmake derives the rest.
+# PROJECT_VERSION_MAJOR to _TWEAK are numeric (TWEAK counts the commits), and
+# PROJECT_VERSION is the full semver string (0.3.0-preview.5+<commit>).
+set(VREG_SOURCE_COMMIT "" CACHE STRING "The commit to report for a build outside a git checkout")
+if(NOT VREG_SOURCE_COMMIT MATCHES "^([0-9A-Za-z-]+([.][0-9A-Za-z-]+)*)?$")
+    message(FATAL_ERROR "VREG_SOURCE_COMMIT is not semver build metadata: ${VREG_SOURCE_COMMIT}")
+endif()
+include(cmake/VRegVersion.cmake)
+vreg_compute_version("${PROJECT_SOURCE_DIR}" "${VREG_SOURCE_COMMIT}")
+foreach(part IN ITEMS MAJOR MINOR PATCH TWEAK)
+    set(PROJECT_VERSION_${part} "${VREG_VERSION_${part}}")
+    set(VReg_VERSION_${part} "${VREG_VERSION_${part}}")
+endforeach()
+set(PROJECT_VERSION "${VREG_VERSION_STRING}")
+set(VReg_VERSION "${VREG_VERSION_STRING}")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/vcpkg.json)
 
 if(NOT WIN32)
     message(FATAL_ERROR "VReg targets Windows only.")

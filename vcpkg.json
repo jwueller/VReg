@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
   "name": "vreg",
-  "version-semver": "0.2.0",
+  "version-semver": "0.3.0",
   "description": "A virtualized Windows registry",
   "homepage": "https://github.com/jwueller/VReg",
   "license": "MIT",

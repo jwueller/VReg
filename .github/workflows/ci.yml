@@ -17,7 +17,11 @@ jobs:
     env:
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-cache
     steps:
+      # The whole history, so the version string can count the commits since
+      # the last release tag.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Restore vcpkg binary cache
         uses: actions/cache@v6
@@ -80,6 +84,42 @@ jobs:
             out/build/${{ matrix.compiler }}-${{ matrix.arch }}/test/Release/*.dll
             out/build/${{ matrix.compiler }}-${{ matrix.arch }}/test/hooks/Release/*.exe
             out/build/${{ matrix.compiler }}-${{ matrix.arch }}/test/hooks/Release/*.dll
+
+  # vcpkg.json owns the version; these are the copies that must agree with it
+  # (CONTRIBUTING.md, "Releasing").
+  versions:
+    name: Versions
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: A release tag names the version
+        if: github.ref_type == 'tag'
+        run: |
+          version=$(jq -r '."version-semver"' vcpkg.json)
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "The tag $GITHUB_REF_NAME does not name vcpkg.json's version $version."
+            exit 1
+          fi
+
+      - name: The port names a tagged release
+        run: |
+          version=$(jq -r '."version-semver"' ports/vreg/vcpkg.json)
+          if ! git rev-parse -q --verify "refs/tags/v$version" > /dev/null; then
+            echo "The port names $version, but no tag v$version exists."
+            exit 1
+          fi
+
+      - name: The version database matches the port
+        run: |
+          "$VCPKG_INSTALLATION_ROOT/vcpkg" x-add-version vreg \
+            --x-builtin-ports-root=ports --x-builtin-registry-versions-dir=versions
+          if ! git diff --exit-code -- versions; then
+            echo "The port changed without its version entry: run the x-add-version above."
+            exit 1
+          fi
 
   wine:
     name: Wine ${{ matrix.arch }}

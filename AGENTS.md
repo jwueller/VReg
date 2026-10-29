@@ -59,7 +59,7 @@ the API it reimplements. Change them freely before the first release.
   members `m_`, globals `g_`, Hungarian prefixes like the Win32 API beside
   them. Flat functions are `VReg` plus the Win32 name.
 - Constants are ALL_CAPS like the Win32 ones beside them; public ones carry
-  `VREG_` (`VREG_VERSION_MAJOR`). Macros ignore namespaces, so a name a
+  `VREG_` (`VREG_VIRTUAL_HKEY_BASE`). Macros ignore namespaces, so a name a
   Windows header already defines (`TEXT`, `NO_DATA`) is taken by it: pick
   another, or use the Win32 constant itself.
 - `Registry` members are the Win32 `Reg*` function family, `Reg` prefix

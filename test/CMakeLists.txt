@@ -26,7 +26,15 @@ add_executable(
 )
 target_link_libraries(VReg_Tests PRIVATE VReg::RegFile VReg::Core VReg_BuildSettings Catch2::Catch2WithMain Shlwapi)
 # The tests reach internal headers as well as the public ones.
-target_include_directories(VReg_Tests PRIVATE ${PROJECT_SOURCE_DIR}/src)# A hung test fails instead of stalling an unattended run.
+target_include_directories(VReg_Tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# What GetVersion() must report.
+target_compile_definitions(
+    VReg_Tests
+    PRIVATE
+        VREG_TEST_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
+        VREG_TEST_VERSION_MINOR=${PROJECT_VERSION_MINOR}
+        VREG_TEST_VERSION_PATCH=${PROJECT_VERSION_PATCH}
+)# A hung test fails instead of stalling an unattended run.
 catch_discover_tests(VReg_Tests PROPERTIES TIMEOUT 120)
 
 # Installs this build into a scratch prefix and builds `consumer/` against it
