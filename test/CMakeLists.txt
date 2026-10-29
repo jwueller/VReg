@@ -27,7 +27,7 @@ add_executable(
 target_link_libraries(VReg_Tests PRIVATE VReg::RegFile VReg::Core VReg_BuildSettings Catch2::Catch2WithMain Shlwapi)
 # The tests reach internal headers as well as the public ones.
 target_include_directories(VReg_Tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
-# What GetVersion() must report.
+# What GetFileVersion() must report.
 target_compile_definitions(
     VReg_Tests
     PRIVATE

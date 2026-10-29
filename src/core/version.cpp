@@ -4,7 +4,7 @@
 
 namespace VReg
 {
-Version GetVersion() noexcept
+FileVersion GetFileVersion() noexcept
 {
     return {
         .wRevision = VREG_VERSION_TWEAK,
@@ -14,7 +14,7 @@ Version GetVersion() noexcept
     };
 }
 
-LPCSTR GetVersionString() noexcept
+LPCSTR GetVersion() noexcept
 {
     return VREG_VERSION;
 }

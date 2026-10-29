@@ -12,7 +12,7 @@ int main()
 #ifdef CONSUMER_WITH_DETOURS
     VReg::Detours::Neutralize();
 #endif
-    const auto version = VReg::GetVersion();
+    const auto version = VReg::GetFileVersion();
     const bool isFound = version.wMajor == CONSUMER_VERSION_MAJOR && version.wMinor == CONSUMER_VERSION_MINOR
                          && version.wPatch == CONSUMER_VERSION_PATCH;
     return (isFound && status == ERROR_INVALID_DATA) ? 0 : 1;

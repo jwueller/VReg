@@ -20,7 +20,7 @@ namespace VReg
  *  orders every build. Each part fits a 16-bit field of a version resource
  *  (@ref VS_FIXEDFILEINFO).
  */
-struct Version
+struct FileVersion
 {
     WORD wRevision;
     WORD wPatch;
@@ -28,13 +28,13 @@ struct Version
     WORD wMajor;
 
     [[nodiscard]] friend constexpr bool operator==(
-        const Version& left,
-        const Version& right
+        const FileVersion& left,
+        const FileVersion& right
     ) noexcept = default;
 
     [[nodiscard]] friend constexpr std::strong_ordering operator<=>(
-        const Version& left,
-        const Version& right
+        const FileVersion& left,
+        const FileVersion& right
     ) noexcept
     {
         return std::bit_cast<ULONGLONG>(left) <=> std::bit_cast<ULONGLONG>(right);
@@ -45,7 +45,7 @@ struct Version
 // is; a big-endian one would have to reverse it.
 static_assert(
     std::bit_cast<ULONGLONG>(
-        Version{
+        FileVersion{
             .wRevision = 4,
             .wPatch = 3,
             .wMinor = 2,
@@ -56,19 +56,19 @@ static_assert(
 );
 
 /// The version of the copy of VReg linked into the calling module, which can
-/// differ from the copies other modules in the same process link. Its
-/// revision is 0 for a build outside a git checkout. At build time,
-/// `find_package(VReg)` reports the same major, minor and patch.
-[[nodiscard]] Version GetVersion() noexcept;
-
-/// The version of the linked copy as a semver string, with the full git
-/// commit it was built from as build metadata. The released commit, built
-/// unchanged, is the version @ref GetVersion reports
+/// differ from the copies other modules in the same process link: a semver
+/// string with the full git commit it was built from as build metadata. The
+/// released commit, built unchanged, is the release
 /// (`0.3.0+0123456789abcdef0123456789abcdef01234567`); any other build is a
 /// preview of it that counts the commits since the last release and marks
 /// local changes (`0.3.0-preview.5+0123...4567-dirty`), so previews sort
 /// below their release. A build outside a git checkout, as from a release
 /// archive, is the version alone unless the `VREG_SOURCE_COMMIT` CMake
 /// variable gives the commit.
-[[nodiscard]] LPCSTR GetVersionString() noexcept;
+[[nodiscard]] LPCSTR GetVersion() noexcept;
+
+/// The numbers of @ref GetVersion, for comparing builds and for version
+/// resources; its revision is 0 for a build outside a git checkout. At build
+/// time, `find_package(VReg)` reports the same major, minor and patch.
+[[nodiscard]] FileVersion GetFileVersion() noexcept;
 } // namespace VReg

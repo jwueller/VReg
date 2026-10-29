@@ -1,7 +1,7 @@
 # The version of the sources at a directory, computed the same way when CMake
 # configures (include this file, then call vreg_compute_version) and on every
-# build (run it with -P, which writes the header GetVersion() and
-# GetVersionString() report from, so a commit made since configuring cannot
+# build (run it with -P, which writes the header GetFileVersion() and
+# GetVersion() report from, so a commit made since configuring cannot
 # leave them stale).
 #
 # vcpkg.json owns MAJOR.MINOR.PATCH: the version under development, which its
