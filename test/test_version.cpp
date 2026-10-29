@@ -37,7 +37,11 @@ TEST_CASE("A version lies in memory as its packed four-part number")
     constexpr VReg::Version version{.wRevision = 4, .wPatch = 3, .wMinor = 2, .wMajor = 1};
 
     STATIC_CHECK(std::bit_cast<ULONGLONG>(version) == MAKEDLLVERULL(1, 2, 3, 4));
-    STATIC_CHECK(VReg::Version{.wMajor = 1} > VReg::Version{.wPatch = 9, .wMinor = 9});
-    STATIC_CHECK(VReg::Version{.wPatch = 1} < VReg::Version{.wMinor = 1});
+    constexpr VReg::Version major{.wRevision = 0, .wPatch = 0, .wMinor = 0, .wMajor = 1};
+    constexpr VReg::Version minors{.wRevision = 9, .wPatch = 9, .wMinor = 9, .wMajor = 0};
+    constexpr VReg::Version patch{.wRevision = 0, .wPatch = 1, .wMinor = 0, .wMajor = 0};
+    constexpr VReg::Version minor{.wRevision = 0, .wPatch = 0, .wMinor = 1, .wMajor = 0};
+    STATIC_CHECK(major > minors);
+    STATIC_CHECK(patch < minor);
     STATIC_CHECK(version == version);
 }

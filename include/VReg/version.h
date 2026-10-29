@@ -41,7 +41,19 @@ struct Version
     }
 };
 
-static_assert(sizeof(Version) == sizeof(ULONGLONG));
+// The field order holds for a little-endian target, which every Windows one
+// is; a big-endian one would have to reverse it.
+static_assert(
+    std::bit_cast<ULONGLONG>(
+        Version{
+            .wRevision = 4,
+            .wPatch = 3,
+            .wMinor = 2,
+            .wMajor = 1,
+        }
+    )
+    == 0x0001'0002'0003'0004
+);
 
 /// The version of the copy of VReg linked into the calling module, which can
 /// differ from the copies other modules in the same process link. Its
