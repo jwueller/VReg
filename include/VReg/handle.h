@@ -13,7 +13,7 @@ namespace VReg
 /// never a real key.
 ///
 /// The range stays 31-bit on x64 too, so code that truncates an HKEY to a
-/// `DWORD` keeps a working handle.
+/// @ref DWORD keeps a working handle.
 inline constexpr std::uintptr_t kVirtualHKeyBase = 0x7FFFFFFF;
 
 /// One more than the highest index @ref VirtualHKeyFromIndex accepts.

@@ -22,8 +22,8 @@ enum class MountView
     Only32,
 };
 
-/// `NtQueryKey`, the one `ntdll` function a `VirtualRegistry` uses to find the
-/// native path of a real key.
+/// @ref NtQueryKey, the one `ntdll` function a @ref VirtualRegistry uses to
+/// find the native path of a real key.
 using NtQueryKeyFunction = LONG(NTAPI*)(
     HANDLE hKey,
     ULONG keyInformationClass,
@@ -39,17 +39,17 @@ using NtQueryKeyFunction = LONG(NTAPI*)(
  *  A call lands in a hive when its key is a virtual handle of a mounted hive,
  *  or a predefined root plus a path at or below a mount point. Everything
  *  else goes to the base registry; with no base it answers
- *  `ERROR_FILE_NOT_FOUND` (or `ERROR_INVALID_HANDLE` for a handle that was
- *  never valid).
+ *  @ref ERROR_FILE_NOT_FOUND (or @ref ERROR_INVALID_HANDLE for a handle that
+ *  was never valid).
  *
  *  With a base, a call on a real key handle whose subkey path names a mount
  *  point's last component is resolved by the key's native path
- *  (`NtQueryKey`), so a handle opened above a mount reaches it. Only mounts
- *  below `HKEY_LOCAL_MACHINE`, `HKEY_USERS` and `HKEY_CURRENT_USER` have a
- *  native path.
+ *  (@ref NtQueryKey), so a handle opened above a mount reaches it. Only
+ *  mounts below @ref HKEY_LOCAL_MACHINE, @ref HKEY_USERS and
+ *  @ref HKEY_CURRENT_USER have a native path.
  *
  *  This class owns the caller-buffer rules (sizes in characters or bytes,
- *  terminators, `ERROR_MORE_DATA`) for every hive; the A forms come from
+ *  terminators, @ref ERROR_MORE_DATA) for every hive; the A forms come from
  *  @ref Registry over these W forms.
  *
  *  Mounting publishes a new mount table with one atomic store, and old tables

@@ -36,7 +36,7 @@ struct Record
 };
 
 /// Lays out @p records as a regedit-style file in @p format.
-/// Answers `ERROR_NO_UNICODE_TRANSLATION` or `ERROR_INVALID_NAME` as @ref ExportSnapshot documents.
+/// Answers @ref ERROR_NO_UNICODE_TRANSLATION or @ref ERROR_INVALID_NAME as @ref ExportSnapshot documents.
 LSTATUS WriteRecords(
     std::span<const Record> records,
     Format format,

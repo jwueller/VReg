@@ -32,7 +32,7 @@ struct UpperRecord
     /// A key or value of the lower layer that is deleted here.
     bool isTombstone = false;
     /// Keys only: the key hides everything the lower key of this path holds (it was deleted and created again, or
-    /// emptied by `RegDeleteTree`).
+    /// emptied by @ref Registry::RegDeleteTreeW).
     bool isOpaque = false;
 };
 
@@ -42,16 +42,17 @@ struct UpperRecord
  *
  *  The upper layer adds and overrides keys and values. Deleting a lower value
  *  or key leaves a tombstone that hides it; a key deleted and created again,
- *  or emptied with `RegDeleteTree`, becomes opaque and hides everything below
- *  it in the lower layer. Enumeration lists the upper entries first, then the
- *  lower ones no upper entry shadows; counts cover both.
+ *  or emptied with @ref Registry::RegDeleteTreeW, becomes opaque and hides
+ *  everything below it in the lower layer. Enumeration lists the upper
+ *  entries first, then the lower ones no upper entry shadows; counts cover
+ *  both.
  *
  *  The lower registry is never called with the hive's lock held, so a lower
  *  call that loads a module or takes a long time cannot hold up the hive.
  *
  *  Frozen, the hive answers an open of a key it has nothing at or below with
  *  the lower registry's own handle (@ref OpenResult::hLower). A
- *  `VirtualRegistry` sends later calls on such a handle to its base, so a
+ *  @ref VirtualRegistry sends later calls on such a handle to its base, so a
  *  frozen overlay's lower registry must be that base or answer the same
  *  handles.
  *
@@ -61,9 +62,9 @@ class OverlayHive final : public Hive
 {
 public:
     /// Over the key @p lowerPath below @p hLowerRoot of @p lower, which must
-    /// outlive the hive. @p samLowerView (`KEY_WOW64_64KEY`,
-    /// `KEY_WOW64_32KEY` or 0) is added to every lower open. Throws
-    /// `std::bad_alloc`.
+    /// outlive the hive. @p samLowerView (@ref KEY_WOW64_64KEY,
+    /// @ref KEY_WOW64_32KEY or 0) is added to every lower open. Throws
+    /// @ref std::bad_alloc.
     OverlayHive(
         Registry& lower,
         HKEY hLowerRoot,

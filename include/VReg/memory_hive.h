@@ -17,7 +17,7 @@ class Tree;
 class MemoryHive final : public Hive
 {
 public:
-    /// Throws `std::bad_alloc`.
+    /// Throws @ref std::bad_alloc.
     MemoryHive();
     ~MemoryHive() override;
 

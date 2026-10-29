@@ -72,4 +72,7 @@ the API it reimplements. Change them freely before the first release.
 - No init-statement in an `if`, and no state-changing call inside its
   condition: assign the result in a statement of its own first. A single
   declaration as the condition is fine.
-- Doc comments are Doxygen with leading `///`.
+- Doc comments are Doxygen with leading `///`. They name every symbol with
+  `@ref`, Win32 and standard ones included (`@ref ERROR_MORE_DATA`,
+  `@ref std::bad_alloc`); backticks are for what is not a symbol: code
+  fragments, file and module names, key names, patterns like `RRF_*`.

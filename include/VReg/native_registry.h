@@ -11,7 +11,7 @@ namespace VReg
  *
  *  The default table is resolved from the export tables of `KernelBase.dll`
  *  and, for the pre-`Ex` forms only it exports, `advapi32.dll`, never through
- *  `GetProcAddress`: an apphelp shim can make that answer a stub instead of
+ *  @ref GetProcAddress: an apphelp shim can make that answer a stub instead of
  *  the entry point. Resolution never loads a module (VReg links advapi32, so
  *  both are loaded before it runs), which makes it safe under the loader
  *  lock.

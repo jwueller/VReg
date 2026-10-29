@@ -13,7 +13,7 @@
 namespace VReg::RegFile
 {
 /// Decodes a whole file to text without BOM. Detects the encoding as @ref Parse documents.
-/// Answers `ERROR_INVALID_DATA` with @p pError set on bytes the encoding cannot hold.
+/// Answers @ref ERROR_INVALID_DATA with @p pError set on bytes the encoding cannot hold.
 LSTATUS DecodeFile(
     std::span<const std::byte> file,
     std::wstring& text,
@@ -21,7 +21,7 @@ LSTATUS DecodeFile(
 );
 
 /// The bytes of @p text in @p format, with a BOM for Unicode.
-/// Answers `ERROR_NO_UNICODE_TRANSLATION` when the format's code page cannot hold it.
+/// Answers @ref ERROR_NO_UNICODE_TRANSLATION when the format's code page cannot hold it.
 LSTATUS EncodeFile(
     const std::wstring& text,
     Format format,

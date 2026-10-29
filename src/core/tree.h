@@ -20,7 +20,7 @@ struct Value
     std::vector<std::byte> data;
     /// Overlay only: hides the lower value of this name.
     bool isTombstone = false;
-    /// Stored by `Hive::SetMuiTextValue`: a terminated `REG_SZ`.
+    /// Stored by @ref Hive::SetMuiTextValue: a terminated @ref REG_SZ.
     bool isMuiText = false;
 };
 
@@ -50,7 +50,7 @@ struct Node
     /// Overlay only: hides the lower key of this name; never handed out.
     bool isTombstone = false;
     /// Overlay only: hides every lower subkey and value (a key deleted and
-    /// created again, or emptied by `RegDeleteTree`).
+    /// created again, or emptied by @ref Registry::RegDeleteTreeW).
     bool isOpaque = false;
     /// Overlay only: the lower key at this path exists and its class shows
     /// through (the node was made from it, not created over it).
@@ -72,10 +72,11 @@ struct Node
     std::wstring_view right
 ) noexcept;
 
-/// @p text as the data of a terminated `REG_SZ`. Throws `std::bad_alloc`.
+/// @p text as the data of a terminated @ref REG_SZ. Throws @ref std::bad_alloc.
 [[nodiscard]] std::vector<std::byte> StringData(std::wstring_view text);
 
-/// What `Hive::QueryMuiText` answers for @p value. Throws `std::bad_alloc`.
+/// What @ref Hive::QueryMuiText answers for @p value. Throws
+/// @ref std::bad_alloc.
 LSTATUS MuiTextOf(const Value& value, std::wstring& text);
 
 /**
@@ -83,7 +84,7 @@ LSTATUS MuiTextOf(const Value& value, std::wstring& text);
  *
  *  Nodes are created here and freed only with the tree; a deleted node stays
  *  allocated (marked deleted) so its handle keeps answering
- *  `ERROR_KEY_DELETED`. Destroying the tree unbinds every handle it issued.
+ *  @ref ERROR_KEY_DELETED. Destroying the tree unbinds every handle it issued.
  *
  *  Readers take the lock shared and writers exclusive, until @ref Freeze;
  *  after that nothing writes and readers take no lock at all.
@@ -91,7 +92,7 @@ LSTATUS MuiTextOf(const Value& value, std::wstring& text);
 class Tree
 {
 public:
-    /// Creates the root. Throws `std::bad_alloc`.
+    /// Creates the root. Throws @ref std::bad_alloc.
     explicit Tree(Hive& owner);
     ~Tree();
 
@@ -137,8 +138,8 @@ public:
         std::wstring_view name
     ) noexcept;
 
-    /// A new child of @p parent, with its handle. Throws `std::bad_alloc`, and
-    /// answers null when the handle namespace is exhausted.
+    /// A new child of @p parent, with its handle. Throws @ref std::bad_alloc,
+    /// and answers null when the handle namespace is exhausted.
     [[nodiscard]] Node* AddChild(
         Node& parent,
         std::wstring_view name,
@@ -153,10 +154,11 @@ public:
 
     /// Fires and drops the watches a change of kind @p dwFilter (a
     /// `REG_NOTIFY_CHANGE_*` bit) on @p node reaches: its own, and those of its
-    /// ancestors that watch their subtree. Neither `SetEvent` nor `CloseHandle`
-    /// can wait on the loader lock or on anything a caller of the hive could
-    /// hold, so they run under the write lock, which the caller must hold;
-    /// deferring them would need an allocation after the change is made.
+    /// ancestors that watch their subtree. Neither @ref SetEvent nor
+    /// @ref CloseHandle can wait on the loader lock or on anything a caller of
+    /// the hive could hold, so they run under the write lock, which the
+    /// caller must hold; deferring them would need an allocation after the
+    /// change is made.
     static void Notify(Node& node, DWORD dwFilter) noexcept;
 
     /// Registers @p hEvent (duplicated here) for the next change of @p node

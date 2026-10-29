@@ -13,8 +13,8 @@ namespace VReg
  *
  *  The `Ex` W forms are the virtual surface every implementation provides.
  *  The A forms, the pre-`Ex` forms and the few W conveniences Win32 builds
- *  from other calls (`RegSetKeyValueW` and friends) are implemented once,
- *  here, over those virtuals; A forms widen and narrow through `CP_ACP` in
+ *  from other calls (@ref RegSetKeyValueW and friends) are implemented once,
+ *  here, over those virtuals; A forms widen and narrow through @ref CP_ACP in
  *  both directions, as the native A functions do. Every one of them answers
  *  what the native function answers for the same input: status, out-sizes
  *  and bytes.
@@ -24,7 +24,7 @@ namespace VReg
  *  it to the A form of the registry it wraps; one that does not sees the call
  *  as the W form it becomes.
  *
- *  Members carry their Win32 names, so the `UNICODE` selector macros of
+ *  Members carry their Win32 names, so the @ref UNICODE selector macros of
  *  `winreg.h` work on them: `registry.RegOpenKeyEx(...)` calls
  *  @ref RegOpenKeyExW or @ref RegOpenKeyExA. Only A and W names are ever
  *  declared; a member with the neutral name would be renamed by the macro.
@@ -32,7 +32,7 @@ namespace VReg
  *  functions in `owned_values.h`, not part of this interface.
  *
  * @note Every member is `noexcept`; an allocation failure answers
- *  `ERROR_OUTOFMEMORY`.
+ *  @ref ERROR_OUTOFMEMORY.
  */
 class Registry
 {

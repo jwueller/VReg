@@ -7,11 +7,11 @@
 
 namespace VReg
 {
-/// Widens @p cch bytes through `CP_ACP`.
+/// Widens @p cch bytes through @ref CP_ACP.
 /// @throws std::bad_alloc, std::length_error
 [[nodiscard]] std::wstring WideFromAnsi(const char* pch, std::size_t cch);
 
-/// Narrows @p cch UTF-16 units through `CP_ACP`; what the code page cannot
+/// Narrows @p cch UTF-16 units through @ref CP_ACP; what the code page cannot
 /// represent becomes its default character.
 /// @throws std::bad_alloc, std::length_error
 [[nodiscard]] std::string AnsiFromWide(const wchar_t* pch, std::size_t cch);

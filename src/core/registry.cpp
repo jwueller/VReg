@@ -15,7 +15,7 @@ namespace VReg
 {
 namespace
 {
-/// A predefined root such as `HKEY_CURRENT_USER`, sign-extended on x64.
+/// A predefined root such as @ref HKEY_CURRENT_USER, sign-extended on x64.
 bool IsPredefinedKey(const HKEY hKey) noexcept
 {
     const auto value = reinterpret_cast<std::uintptr_t>(hKey);
@@ -1370,7 +1370,7 @@ DWORD AlignedToDword(const DWORD cb) noexcept
 }
 } // namespace
 
-/// Native places each value on a `DWORD` boundary, reads the ones that fit
+/// Native places each value on a @ref DWORD boundary, reads the ones that fit
 /// the buffer in order, and fills the entries only when all of them did.
 LSTATUS Registry::RegQueryMultipleValuesW(
     const HKEY hKey,

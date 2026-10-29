@@ -10,13 +10,13 @@
 
 /**
  * @file
- * @brief Reads over any `Registry` that size and fill a `std::wstring` or
- *  `std::vector<std::byte>` themselves, retrying with a larger buffer while
- *  the value grows between the sizing call and the read.
+ * @brief Reads over any @ref VReg::Registry that size and fill a
+ *  @ref std::wstring or `std::vector<std::byte>` themselves, retrying with a
+ *  larger buffer while the value grows between the sizing call and the read.
  *
- *  They have no Win32 counterpart, so they stay out of `Registry` and carry
- *  no `Reg` prefix (which would also collide with the Win32 macros
- *  `RegQueryValue`, `RegEnumKey`, ...).
+ *  They have no Win32 counterpart, so they stay out of @ref VReg::Registry
+ *  and carry no `Reg` prefix (which would also collide with the Win32 macros
+ *  @ref RegQueryValue, @ref RegEnumKey, ...).
  */
 namespace VReg
 {
@@ -39,9 +39,9 @@ LSTATUS GetValue(
 ) noexcept;
 
 /// A string value without its terminator. @p dwFlags takes `RRF_*` flags
-/// except the type restriction, which this adds: `REG_SZ`, and with
-/// `RRF_NOEXPAND` also `REG_EXPAND_SZ` (otherwise `RegGetValueW` expands it
-/// into a `REG_SZ`).
+/// except the type restriction, which this adds: @ref REG_SZ, and with
+/// @ref RRF_NOEXPAND also @ref REG_EXPAND_SZ (otherwise
+/// @ref Registry::RegGetValueW expands it into a @ref REG_SZ).
 LSTATUS GetString(
     const Registry& registry,
     HKEY hKey,

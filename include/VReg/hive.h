@@ -19,8 +19,8 @@ struct Node;
 /// A path below a key, one name per component, already split and validated.
 using KeyPath = std::span<const std::wstring_view>;
 
-/// What `QueryInfoKey` reports, as owned values. Lengths are in characters
-/// without terminators, except @ref cbMaxValue.
+/// What @ref Registry::RegQueryInfoKeyW reports, as owned values. Lengths
+/// are in characters without terminators, except @ref cbMaxValue.
 struct KeyInfo
 {
     std::wstring className;
@@ -44,13 +44,13 @@ struct OpenResult
 
 /**
  * @brief Storage for one subtree of a virtual namespace: a tree with one
- *  anonymous root, mounted at a path by `VirtualRegistry`.
+ *  anonymous root, mounted at a path by @ref VirtualRegistry.
  *
  *  The interface is node-level with owned values. Caller buffers, A and W,
- *  and handles stay in `VirtualRegistry`, once for every hive. Every member
- *  answers the `LSTATUS` the native registry answers for the same operation;
- *  a call on a deleted node answers `ERROR_KEY_DELETED`, and a write to a
- *  frozen hive `ERROR_ACCESS_DENIED`.
+ *  and handles stay in @ref VirtualRegistry, once for every hive. Every member
+ *  answers the @ref LSTATUS the native registry answers for the same operation;
+ *  a call on a deleted node answers @ref ERROR_KEY_DELETED, and a write to a
+ *  frozen hive @ref ERROR_ACCESS_DENIED.
  *
  *  Each node has exactly one virtual handle, issued when the node is created
  *  (@ref HandleOf).
@@ -82,7 +82,7 @@ public:
     ) noexcept = 0;
 
     /// On a frozen hive an existing key opens as with @ref OpenKey, and a
-    /// missing one answers `ERROR_ACCESS_DENIED`.
+    /// missing one answers @ref ERROR_ACCESS_DENIED.
     virtual LSTATUS CreateKey(
         Node* pParent,
         KeyPath path,
@@ -118,14 +118,15 @@ public:
     ) noexcept = 0;
 
     /**
-     * @brief Sets value @p name of @p pNode to @p text as a `REG_SZ` and
+     * @brief Sets value @p name of @p pNode to @p text as a @ref REG_SZ and
      *  marks it MUI text.
      *
-     *  `RegLoadMUIString` answers an unmarked hive value `ERROR_INVALID_DATA`,
-     *  since resolving an `@` resource reference would load a module. A
-     *  marked one stands for the text such a reference resolves to and
-     *  answers with @p text itself. Any other write of the value drops the
-     *  mark, and a `.reg` export carries it as a plain string.
+     *  @ref Registry::RegLoadMUIStringW answers an unmarked hive value
+     *  @ref ERROR_INVALID_DATA, since resolving an `@` resource reference would
+     *  load a module. A marked one stands for the text such a reference
+     *  resolves to and answers with @p text itself. Any other write of the
+     *  value drops the mark, and a `.reg` export carries it as a plain
+     *  string.
      */
     virtual LSTATUS SetMuiTextValue(
         Node* pNode,
@@ -134,7 +135,7 @@ public:
     ) noexcept = 0;
 
     /// The text of value @p name of @p pNode if @ref SetMuiTextValue stored
-    /// it, or `ERROR_INVALID_DATA` for any other value.
+    /// it, or @ref ERROR_INVALID_DATA for any other value.
     virtual LSTATUS QueryMuiText(
         Node* pNode,
         std::wstring_view name,
@@ -158,24 +159,24 @@ public:
     ) const noexcept = 0;
 
     virtual LSTATUS QueryInfo(Node* pNode, KeyInfo& info) const noexcept = 0;
-    /// What `RegFlushKey` on @p pNode needs from the hive: success, or
-    /// `ERROR_KEY_DELETED`.
+    /// What @ref Registry::RegFlushKey on @p pNode needs from the hive:
+    /// success, or @ref ERROR_KEY_DELETED.
     virtual LSTATUS CheckKey(Node* pNode) const noexcept = 0;
 
     /**
      * @brief Registers a one-shot change notification on @p pNode.
      *
      *  @p hEvent is signaled once, by the first write that @p dwFilter selects
-     *  (`REG_NOTIFY_CHANGE_NAME` for a subkey added or deleted,
-     *  `REG_NOTIFY_CHANGE_LAST_SET` for a value set or deleted; the other
+     *  (@ref REG_NOTIFY_CHANGE_NAME for a subkey added or deleted,
+     *  @ref REG_NOTIFY_CHANGE_LAST_SET for a value set or deleted; the other
      *  bits never fire) on the key, or below it when @p isSubtree. Deleting a
      *  watched key fires its watches too. The hive duplicates @p hEvent, so
      *  the caller may close its own handle. A frozen hive accepts the
-     *  registration and never signals. Answers `ERROR_KEY_DELETED` for a
+     *  registration and never signals. Answers @ref ERROR_KEY_DELETED for a
      *  deleted key, or the error of duplicating @p hEvent.
      *
      * @note Only writes made through the hive are seen; a change in the
-     *  registry below an `OverlayHive` is not.
+     *  registry below an @ref OverlayHive is not.
      */
     virtual LSTATUS Watch(
         Node* pNode,

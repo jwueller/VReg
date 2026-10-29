@@ -9,14 +9,14 @@ class Registry;
 } // namespace VReg
 
 /**
- * @brief Routes the process's `Reg*` calls into a `Registry` (normally a
- *  `VirtualRegistry`) through Microsoft Detours.
+ * @brief Routes the process's `Reg*` calls into a @ref VReg::Registry
+ *  (normally a @ref VReg::VirtualRegistry) through Microsoft Detours.
  *
  *  Every `Reg*` export that takes a key handle is hooked, since a virtual
  *  handle reaching an unhooked one would fail as invalid. Most are answered
  *  by the registry; the rest (save, restore, load, security, rename, copy,
  *  transacted forms, reflection, predefined-key overrides) answer
- *  `ERROR_NOT_SUPPORTED` for a virtual handle of this copy and pass
+ *  @ref ERROR_NOT_SUPPORTED for a virtual handle of this copy and pass
  *  everything else on.
  *
  *  Each hook is a small thunk outside the module image that jumps through a
@@ -34,14 +34,14 @@ class Registry;
  */
 namespace VReg::Detours
 {
-/// Calls `DetourAttach` for every hook, inside a transaction the caller
+/// Calls @ref DetourAttach for every hook, inside a transaction the caller
 /// begins and commits (for example one that also carries its own hooks).
 /// Every hook calls through @p registry, which may wrap the registry that
 /// answers (to trace each call, say). @p native is the registry below the
 /// hooks, the one @p registry reaches for whatever it does not answer: the
 /// commit turns its function table into the trampolines. Both must outlive
 /// the process. Answers the first Detours error, or
-/// `ERROR_ALREADY_INITIALIZED` when this copy attached before.
+/// @ref ERROR_ALREADY_INITIALIZED when this copy attached before.
 LONG Attach(Registry& registry, NativeRegistry& native) noexcept;
 
 /// @ref Attach in a transaction of its own, enrolling only the calling

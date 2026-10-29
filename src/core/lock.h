@@ -5,13 +5,14 @@
 namespace VReg
 {
 /**
- * @brief Holds an `SRWLOCK` exclusively for its lifetime.
+ * @brief Holds an @ref SRWLOCK exclusively for its lifetime.
  *
- *  Agent's choice: the library locks with `SRWLOCK` rather than `std::mutex`.
- *  Current MSVC headers give `std::mutex` a constexpr constructor that only
- *  the newest `msvcp140.dll` understands; Wine's fails the lock and aborts
- *  the process. Building with `_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR` was
- *  passed over: it would still tie every consumer to some `msvcp140.dll`.
+ *  Agent's choice: the library locks with @ref SRWLOCK rather than
+ *  @ref std::mutex. Current MSVC headers give @ref std::mutex a constexpr
+ *  constructor that only the newest `msvcp140.dll` understands; Wine's
+ *  fails the lock and aborts the process. Building with
+ *  @ref _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR was passed over: it would still
+ *  tie every consumer to some `msvcp140.dll`.
  */
 class ExclusiveLock
 {

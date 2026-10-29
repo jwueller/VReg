@@ -25,7 +25,7 @@ enum class Format
     Unicode,
     /// The same header as UTF-8 without a BOM.
     Utf8,
-    /// `REGEDIT4` in `CP_ACP`.
+    /// `REGEDIT4` in @ref CP_ACP.
     Regedit4,
 };
 
@@ -42,7 +42,7 @@ enum class OperationKind
 struct Operation
 {
     OperationKind kind{};
-    /// A predefined root such as `HKEY_LOCAL_MACHINE`.
+    /// A predefined root such as @ref HKEY_LOCAL_MACHINE.
     HKEY hRoot{};
     /// Below @ref hRoot, without a leading backslash; empty for the root itself.
     std::wstring path;
@@ -73,11 +73,11 @@ struct ParseError
 /**
  * @brief Parses a whole file.
  *
- *  The encoding is taken from a BOM (UTF-16LE, UTF-8); without one, a `REGEDIT4` header means `CP_ACP` and
+ *  The encoding is taken from a BOM (UTF-16LE, UTF-8); without one, a `REGEDIT4` header means @ref CP_ACP and
  *  anything else UTF-8. @p script is only written when the whole file parses.
  *
- * @return `ERROR_SUCCESS`, `ERROR_INVALID_DATA` on a syntax or encoding error (described by @p pError, which may
- *  be null), or `ERROR_OUTOFMEMORY`.
+ * @return @ref ERROR_SUCCESS, @ref ERROR_INVALID_DATA on a syntax or encoding error (described by @p pError, which may
+ *  be null), or @ref ERROR_OUTOFMEMORY.
  */
 LSTATUS Parse(
     std::span<const std::byte> file,
@@ -110,8 +110,8 @@ LSTATUS Apply(
  *  Keys and values are sorted ordinal case-insensitive. The output reproduces every value's bytes when parsed
  *  and applied. @p file is only written on success.
  *
- * @return `ERROR_NO_UNICODE_TRANSLATION` when @p format cannot represent a name or string, `ERROR_INVALID_NAME`
- *  for a name that holds a line break (no format can write one), `ERROR_INVALID_HANDLE` when @p hRoot is not a
+ * @return @ref ERROR_NO_UNICODE_TRANSLATION when @p format cannot represent a name or string, @ref ERROR_INVALID_NAME
+ *  for a name that holds a line break (no format can write one), @ref ERROR_INVALID_HANDLE when @p hRoot is not a
  *  predefined root, otherwise the status of the registry calls.
  */
 LSTATUS ExportSnapshot(
