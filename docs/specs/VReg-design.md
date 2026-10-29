@@ -303,23 +303,25 @@ would cost an `NtQueryKey` on every call on a real handle.
 Every `Reg*` export that accepts an HKEY is hooked, because a virtual handle
 reaching an unhooked API fails as an invalid handle. Targets resolve from
 the `KernelBase.dll` export table, falling back to `advapi32.dll` for the
-pre-`Ex` forms.
+pre-`Ex` forms. The README ("Supported functions") lists every function of
+each group.
 
-- **Emulated**: open and create (Ex and pre-Ex, ANSI and wide), close, query
-  value (Ex and pre-Ex), set value (Ex and pre-Ex), `RegGetValue` (with `RRF_*`
-  filtering and `REG_EXPAND_SZ` expansion), `RegSetKeyValue`, delete key
-  (and Ex), delete value, `RegDeleteKeyValue`, `RegDeleteTree`, enumerate
-  keys and values (Ex and pre-Ex), `RegQueryInfoKey`,
-  `RegQueryMultipleValues`, `RegLoadMUIStringW`, `RegFlushKey` (no-op),
-  `RegNotifyChangeKeyValue` (a frozen hive never signals; a writable one
-  signals on writes).
-- **Refused on virtual handles, passthrough on real ones**: save, restore,
-  load, unload, replace, security get/set, rename, copy tree, transacted
-  forms, reflection control. They answer `ERROR_NOT_SUPPORTED` on a virtual
-  handle.
-- `RegLoadMUIStringA` answers `ERROR_CALL_NOT_IMPLEMENTED` natively on every
-  input; it is hooked only so a virtual handle gets that same answer instead
-  of reaching the real function.
+- **Emulated**: the members of `Registry`, answered through it.
+  `RegGetValue` applies the `RRF_*` filters and `REG_EXPAND_SZ` expansion,
+  `RegFlushKey` is a no-op, and `RegNotifyChangeKeyValue` never signals on a
+  frozen hive and signals on writes to a writable one.
+  `RegLoadMUIStringA` answers `ERROR_CALL_NOT_IMPLEMENTED` natively on every
+  input; it is hooked only so a virtual handle gets that same answer
+  instead of reaching the real function.
+- **Refused on virtual handles, passthrough on real ones**: they answer
+  `ERROR_NOT_SUPPORTED` on a virtual handle of this copy, and the hook
+  passes everything else to the trampoline without a `Registry`. They stay
+  out of `Registry`: as members they would be pure virtual, so every
+  wrapper forwards calls nothing answers, or carry a default that breaks
+  passthrough behind a wrapper that does not override it. One joins the
+  family once a hive can answer it.
+- **Not hooked**: the functions that take no key handle, which no virtual
+  handle can reach.
 
 ### Install
 

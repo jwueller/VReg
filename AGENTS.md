@@ -60,7 +60,9 @@ the API it reimplements. Change them freely before the first release.
 - `Registry` members are the Win32 `Reg*` function family, `Reg` prefix
   included, and only their ANSI and wide names exist: a neutral name
   (`RegOpenKeyEx`) is a `winreg.h` macro. Nothing else joins the class;
-  helpers over it are free functions.
+  helpers over it are free functions. Each member links its Microsoft
+  documentation with `@see`, and the README's "Supported functions" lists
+  every `Reg*` function with the same links.
 - Win32-shaped entry points are `noexcept` and return `LSTATUS`.
 - Conversions that return their result are named `YFromX`.
 - Parameter names are never omitted or commented out; an unused one is

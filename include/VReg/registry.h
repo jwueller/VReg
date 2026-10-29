@@ -29,7 +29,9 @@ namespace VReg
  *  @ref RegOpenKeyExW or @ref RegOpenKeyExA. Only ANSI and wide names are ever
  *  declared; a member with the neutral name would be renamed by the macro.
  *  Queries are `const`. The reads that size and fill owned buffers are free
- *  functions in `owned_values.h`, not part of this interface.
+ *  functions in `owned_values.h`, not part of this interface; neither are
+ *  the functions VReg refuses on virtual keys or does not hook, which the
+ *  README lists under "Supported functions".
  *
  * @note Every member is `noexcept`; an allocation failure answers
  *  @ref ERROR_OUTOFMEMORY.
@@ -41,6 +43,8 @@ public:
 
     /// @name The virtual surface
     /// @{
+
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopenkeyexw
     virtual LSTATUS RegOpenKeyExW(
         HKEY hKey,
         LPCWSTR lpSubKey,
@@ -49,6 +53,7 @@ public:
         PHKEY phkResult
     ) noexcept = 0;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcreatekeyexw
     virtual LSTATUS RegCreateKeyExW(
         HKEY hKey,
         LPCWSTR lpSubKey,
@@ -61,10 +66,12 @@ public:
         LPDWORD lpdwDisposition
     ) noexcept = 0;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regclosekey
     virtual LSTATUS RegCloseKey(
         HKEY hKey
     ) noexcept = 0;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryvalueexw
     virtual LSTATUS RegQueryValueExW(
         HKEY hKey,
         LPCWSTR lpValueName,
@@ -74,6 +81,7 @@ public:
         LPDWORD lpcbData
     ) const noexcept = 0;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetvalueexw
     virtual LSTATUS RegSetValueExW(
         HKEY hKey,
         LPCWSTR lpValueName,
@@ -83,11 +91,13 @@ public:
         DWORD cbData
     ) noexcept = 0;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletevaluew
     virtual LSTATUS RegDeleteValueW(
         HKEY hKey,
         LPCWSTR lpValueName
     ) noexcept = 0;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeyexw
     virtual LSTATUS RegDeleteKeyExW(
         HKEY hKey,
         LPCWSTR lpSubKey,
@@ -95,11 +105,13 @@ public:
         DWORD Reserved
     ) noexcept = 0;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletetreew
     virtual LSTATUS RegDeleteTreeW(
         HKEY hKey,
         LPCWSTR lpSubKey
     ) noexcept = 0;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumkeyexw
     virtual LSTATUS RegEnumKeyExW(
         HKEY hKey,
         DWORD dwIndex,
@@ -111,6 +123,7 @@ public:
         PFILETIME lpftLastWriteTime
     ) const noexcept = 0;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumvaluew
     virtual LSTATUS RegEnumValueW(
         HKEY hKey,
         DWORD dwIndex,
@@ -122,6 +135,7 @@ public:
         LPDWORD lpcbData
     ) const noexcept = 0;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryinfokeyw
     virtual LSTATUS RegQueryInfoKeyW(
         HKEY hKey,
         LPWSTR lpClass,
@@ -137,6 +151,7 @@ public:
         PFILETIME lpftLastWriteTime
     ) const noexcept = 0;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regloadmuistringw
     virtual LSTATUS RegLoadMUIStringW(
         HKEY hKey,
         LPCWSTR pszValue,
@@ -147,6 +162,7 @@ public:
         LPCWSTR pszDirectory
     ) const noexcept = 0;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-reggetvaluew
     virtual LSTATUS RegGetValueW(
         HKEY hkey,
         LPCWSTR lpSubKey,
@@ -157,6 +173,7 @@ public:
         LPDWORD pcbData
     ) const noexcept = 0;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regnotifychangekeyvalue
     virtual LSTATUS RegNotifyChangeKeyValue(
         HKEY hKey,
         BOOL bWatchSubtree,
@@ -165,6 +182,7 @@ public:
         BOOL fAsynchronous
     ) noexcept = 0;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regflushkey
     virtual LSTATUS RegFlushKey(
         HKEY hKey
     ) noexcept = 0;
@@ -172,6 +190,8 @@ public:
 
     /// @name ANSI forms of the virtual surface
     /// @{
+
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopenkeyexa
     virtual LSTATUS RegOpenKeyExA(
         HKEY hKey,
         LPCSTR lpSubKey,
@@ -180,6 +200,7 @@ public:
         PHKEY phkResult
     ) noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcreatekeyexa
     virtual LSTATUS RegCreateKeyExA(
         HKEY hKey,
         LPCSTR lpSubKey,
@@ -192,6 +213,7 @@ public:
         LPDWORD lpdwDisposition
     ) noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryvalueexa
     virtual LSTATUS RegQueryValueExA(
         HKEY hKey,
         LPCSTR lpValueName,
@@ -201,6 +223,7 @@ public:
         LPDWORD lpcbData
     ) const noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetvalueexa
     virtual LSTATUS RegSetValueExA(
         HKEY hKey,
         LPCSTR lpValueName,
@@ -210,11 +233,13 @@ public:
         DWORD cbData
     ) noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletevaluea
     virtual LSTATUS RegDeleteValueA(
         HKEY hKey,
         LPCSTR lpValueName
     ) noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeyexa
     virtual LSTATUS RegDeleteKeyExA(
         HKEY hKey,
         LPCSTR lpSubKey,
@@ -222,11 +247,13 @@ public:
         DWORD Reserved
     ) noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletetreea
     virtual LSTATUS RegDeleteTreeA(
         HKEY hKey,
         LPCSTR lpSubKey
     ) noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumkeyexa
     virtual LSTATUS RegEnumKeyExA(
         HKEY hKey,
         DWORD dwIndex,
@@ -238,6 +265,7 @@ public:
         PFILETIME lpftLastWriteTime
     ) const noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumvaluea
     virtual LSTATUS RegEnumValueA(
         HKEY hKey,
         DWORD dwIndex,
@@ -249,6 +277,7 @@ public:
         LPDWORD lpcbData
     ) const noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryinfokeya
     virtual LSTATUS RegQueryInfoKeyA(
         HKEY hKey,
         LPSTR lpClass,
@@ -266,6 +295,7 @@ public:
 
     /// Answers @ref ERROR_CALL_NOT_IMPLEMENTED on every input, as the native
     /// function does.
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regloadmuistringa
     virtual LSTATUS RegLoadMUIStringA(
         HKEY hKey,
         LPCSTR pszValue,
@@ -276,6 +306,7 @@ public:
         LPCSTR pszDirectory
     ) const noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-reggetvaluea
     virtual LSTATUS RegGetValueA(
         HKEY hkey,
         LPCSTR lpSubKey,
@@ -289,30 +320,36 @@ public:
 
     /// @name Pre-`Ex` forms
     /// @{
+
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopenkeya
     virtual LSTATUS RegOpenKeyA(
         HKEY hKey,
         LPCSTR lpSubKey,
         PHKEY phkResult
     ) noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopenkeyw
     LSTATUS RegOpenKeyW(
         HKEY hKey,
         LPCWSTR lpSubKey,
         PHKEY phkResult
     ) noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcreatekeya
     virtual LSTATUS RegCreateKeyA(
         HKEY hKey,
         LPCSTR lpSubKey,
         PHKEY phkResult
     ) noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcreatekeyw
     LSTATUS RegCreateKeyW(
         HKEY hKey,
         LPCWSTR lpSubKey,
         PHKEY phkResult
     ) noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryvaluea
     virtual LSTATUS RegQueryValueA(
         HKEY hKey,
         LPCSTR lpSubKey,
@@ -320,6 +357,7 @@ public:
         PLONG lpcbData
     ) noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryvaluew
     LSTATUS RegQueryValueW(
         HKEY hKey,
         LPCWSTR lpSubKey,
@@ -327,6 +365,7 @@ public:
         PLONG lpcbData
     ) noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetvaluea
     virtual LSTATUS RegSetValueA(
         HKEY hKey,
         LPCSTR lpSubKey,
@@ -335,6 +374,7 @@ public:
         DWORD cbData
     ) noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetvaluew
     LSTATUS RegSetValueW(
         HKEY hKey,
         LPCWSTR lpSubKey,
@@ -343,16 +383,19 @@ public:
         DWORD cbData
     ) noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeya
     virtual LSTATUS RegDeleteKeyA(
         HKEY hKey,
         LPCSTR lpSubKey
     ) noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeyw
     LSTATUS RegDeleteKeyW(
         HKEY hKey,
         LPCWSTR lpSubKey
     ) noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumkeya
     virtual LSTATUS RegEnumKeyA(
         HKEY hKey,
         DWORD dwIndex,
@@ -360,6 +403,7 @@ public:
         DWORD cchName
     ) const noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumkeyw
     LSTATUS RegEnumKeyW(
         HKEY hKey,
         DWORD dwIndex,
@@ -370,6 +414,8 @@ public:
 
     /// @name Conveniences Win32 builds from the calls above
     /// @{
+
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetkeyvaluea
     virtual LSTATUS RegSetKeyValueA(
         HKEY hKey,
         LPCSTR lpSubKey,
@@ -379,6 +425,7 @@ public:
         DWORD cbData
     ) noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetkeyvaluew
     LSTATUS RegSetKeyValueW(
         HKEY hKey,
         LPCWSTR lpSubKey,
@@ -388,18 +435,21 @@ public:
         DWORD cbData
     ) noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeyvaluea
     virtual LSTATUS RegDeleteKeyValueA(
         HKEY hKey,
         LPCSTR lpSubKey,
         LPCSTR lpValueName
     ) noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeyvaluew
     LSTATUS RegDeleteKeyValueW(
         HKEY hKey,
         LPCWSTR lpSubKey,
         LPCWSTR lpValueName
     ) noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regquerymultiplevaluesa
     virtual LSTATUS RegQueryMultipleValuesA(
         HKEY hKey,
         PVALENTA val_list,
@@ -408,6 +458,7 @@ public:
         LPDWORD ldwTotsize
     ) const noexcept;
 
+    /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regquerymultiplevaluesw
     LSTATUS RegQueryMultipleValuesW(
         HKEY hKey,
         PVALENTW val_list,

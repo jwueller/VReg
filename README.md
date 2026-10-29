@@ -140,6 +140,187 @@ hooks. Where VReg cannot match native Windows exactly, the
 [design](./docs/specs/VReg-design.md) lists it under "Known
 divergences".
 
+## Supported functions
+
+Each links to its Microsoft documentation; an ANSI and wide pair shares an
+entry.
+
+### Answered
+
+By `Registry` (its members) and, once hooked, for every virtual key.
+
+#### Open, create and close
+
+- [`RegOpenKeyA`][RegOpenKeyA], [`RegOpenKeyW`][RegOpenKeyW]
+- [`RegOpenKeyExA`][RegOpenKeyExA], [`RegOpenKeyExW`][RegOpenKeyExW]
+- [`RegCreateKeyA`][RegCreateKeyA], [`RegCreateKeyW`][RegCreateKeyW]
+- [`RegCreateKeyExA`][RegCreateKeyExA], [`RegCreateKeyExW`][RegCreateKeyExW]
+- [`RegCloseKey`][RegCloseKey]
+
+#### Values
+
+- [`RegQueryValueA`][RegQueryValueA], [`RegQueryValueW`][RegQueryValueW]
+- [`RegQueryValueExA`][RegQueryValueExA], [`RegQueryValueExW`][RegQueryValueExW]
+- [`RegGetValueA`][RegGetValueA], [`RegGetValueW`][RegGetValueW]
+- [`RegQueryMultipleValuesA`][RegQueryMultipleValuesA], [`RegQueryMultipleValuesW`][RegQueryMultipleValuesW]
+- [`RegSetValueA`][RegSetValueA], [`RegSetValueW`][RegSetValueW]
+- [`RegSetValueExA`][RegSetValueExA], [`RegSetValueExW`][RegSetValueExW]
+- [`RegSetKeyValueA`][RegSetKeyValueA], [`RegSetKeyValueW`][RegSetKeyValueW]
+- [`RegDeleteValueA`][RegDeleteValueA], [`RegDeleteValueW`][RegDeleteValueW]
+- [`RegDeleteKeyValueA`][RegDeleteKeyValueA], [`RegDeleteKeyValueW`][RegDeleteKeyValueW]
+- [`RegLoadMUIStringA`][RegLoadMUIStringA], [`RegLoadMUIStringW`][RegLoadMUIStringW]
+  (`RegLoadMUIStringA` answers `ERROR_CALL_NOT_IMPLEMENTED`, as it does natively)
+
+#### Keys
+
+- [`RegDeleteKeyA`][RegDeleteKeyA], [`RegDeleteKeyW`][RegDeleteKeyW]
+- [`RegDeleteKeyExA`][RegDeleteKeyExA], [`RegDeleteKeyExW`][RegDeleteKeyExW]
+- [`RegDeleteTreeA`][RegDeleteTreeA], [`RegDeleteTreeW`][RegDeleteTreeW]
+- [`RegFlushKey`][RegFlushKey]
+
+#### Enumeration and information
+
+- [`RegEnumKeyA`][RegEnumKeyA], [`RegEnumKeyW`][RegEnumKeyW]
+- [`RegEnumKeyExA`][RegEnumKeyExA], [`RegEnumKeyExW`][RegEnumKeyExW]
+- [`RegEnumValueA`][RegEnumValueA], [`RegEnumValueW`][RegEnumValueW]
+- [`RegQueryInfoKeyA`][RegQueryInfoKeyA], [`RegQueryInfoKeyW`][RegQueryInfoKeyW]
+
+#### Notification
+
+- [`RegNotifyChangeKeyValue`][RegNotifyChangeKeyValue]
+
+### Refused on virtual keys
+
+They answer `ERROR_NOT_SUPPORTED` on a virtual key and pass through
+unchanged on a real one. They are hooked but not part of `Registry`.
+
+#### Hive files
+
+- [`RegSaveKeyA`][RegSaveKeyA], [`RegSaveKeyW`][RegSaveKeyW]
+- [`RegSaveKeyExA`][RegSaveKeyExA], [`RegSaveKeyExW`][RegSaveKeyExW]
+- [`RegRestoreKeyA`][RegRestoreKeyA], [`RegRestoreKeyW`][RegRestoreKeyW]
+- [`RegLoadKeyA`][RegLoadKeyA], [`RegLoadKeyW`][RegLoadKeyW]
+- [`RegUnLoadKeyA`][RegUnLoadKeyA], [`RegUnLoadKeyW`][RegUnLoadKeyW]
+- [`RegReplaceKeyA`][RegReplaceKeyA], [`RegReplaceKeyW`][RegReplaceKeyW]
+
+#### Security
+
+- [`RegGetKeySecurity`][RegGetKeySecurity]
+- [`RegSetKeySecurity`][RegSetKeySecurity]
+
+#### Structure
+
+- [`RegRenameKey`][RegRenameKey]
+- [`RegCopyTreeA`][RegCopyTreeA], [`RegCopyTreeW`][RegCopyTreeW]
+
+#### Transactions
+
+- [`RegCreateKeyTransactedA`][RegCreateKeyTransactedA], [`RegCreateKeyTransactedW`][RegCreateKeyTransactedW]
+- [`RegOpenKeyTransactedA`][RegOpenKeyTransactedA], [`RegOpenKeyTransactedW`][RegOpenKeyTransactedW]
+- [`RegDeleteKeyTransactedA`][RegDeleteKeyTransactedA], [`RegDeleteKeyTransactedW`][RegDeleteKeyTransactedW]
+
+#### Reflection and overrides
+
+- [`RegDisableReflectionKey`][RegDisableReflectionKey]
+- [`RegEnableReflectionKey`][RegEnableReflectionKey]
+- [`RegQueryReflectionKey`][RegQueryReflectionKey]
+- [`RegOverridePredefKey`][RegOverridePredefKey]
+
+### Not hooked
+
+They take no key handle a virtual key could reach. The keys they return
+are real; a later call on one reaches a mount only by its native path, as
+for any real key, so nothing below `HKEY_CLASSES_ROOT` is reachable through
+`RegOpenUserClassesRoot`.
+
+- [`RegConnectRegistryA`][RegConnectRegistryA], [`RegConnectRegistryW`][RegConnectRegistryW]
+- [`RegDisablePredefinedCache`][RegDisablePredefinedCache]
+- [`RegDisablePredefinedCacheEx`][RegDisablePredefinedCacheEx]
+- [`RegLoadAppKeyA`][RegLoadAppKeyA], [`RegLoadAppKeyW`][RegLoadAppKeyW]
+- [`RegOpenCurrentUser`][RegOpenCurrentUser]
+- [`RegOpenUserClassesRoot`][RegOpenUserClassesRoot]
+
+[RegOpenKeyA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopenkeya
+[RegOpenKeyW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopenkeyw
+[RegOpenKeyExA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopenkeyexa
+[RegOpenKeyExW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopenkeyexw
+[RegCreateKeyA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcreatekeya
+[RegCreateKeyW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcreatekeyw
+[RegCreateKeyExA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcreatekeyexa
+[RegCreateKeyExW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcreatekeyexw
+[RegCloseKey]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regclosekey
+[RegQueryValueA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryvaluea
+[RegQueryValueW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryvaluew
+[RegQueryValueExA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryvalueexa
+[RegQueryValueExW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryvalueexw
+[RegGetValueA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-reggetvaluea
+[RegGetValueW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-reggetvaluew
+[RegQueryMultipleValuesA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regquerymultiplevaluesa
+[RegQueryMultipleValuesW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regquerymultiplevaluesw
+[RegSetValueA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetvaluea
+[RegSetValueW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetvaluew
+[RegSetValueExA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetvalueexa
+[RegSetValueExW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetvalueexw
+[RegSetKeyValueA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetkeyvaluea
+[RegSetKeyValueW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetkeyvaluew
+[RegDeleteValueA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletevaluea
+[RegDeleteValueW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletevaluew
+[RegDeleteKeyValueA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeyvaluea
+[RegDeleteKeyValueW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeyvaluew
+[RegLoadMUIStringA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regloadmuistringa
+[RegLoadMUIStringW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regloadmuistringw
+[RegDeleteKeyA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeya
+[RegDeleteKeyW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeyw
+[RegDeleteKeyExA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeyexa
+[RegDeleteKeyExW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeyexw
+[RegDeleteTreeA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletetreea
+[RegDeleteTreeW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletetreew
+[RegFlushKey]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regflushkey
+[RegEnumKeyA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumkeya
+[RegEnumKeyW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumkeyw
+[RegEnumKeyExA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumkeyexa
+[RegEnumKeyExW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumkeyexw
+[RegEnumValueA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumvaluea
+[RegEnumValueW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumvaluew
+[RegQueryInfoKeyA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryinfokeya
+[RegQueryInfoKeyW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryinfokeyw
+[RegNotifyChangeKeyValue]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regnotifychangekeyvalue
+[RegSaveKeyA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsavekeya
+[RegSaveKeyW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsavekeyw
+[RegSaveKeyExA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsavekeyexa
+[RegSaveKeyExW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsavekeyexw
+[RegRestoreKeyA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regrestorekeya
+[RegRestoreKeyW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regrestorekeyw
+[RegLoadKeyA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regloadkeya
+[RegLoadKeyW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regloadkeyw
+[RegUnLoadKeyA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regunloadkeya
+[RegUnLoadKeyW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regunloadkeyw
+[RegReplaceKeyA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regreplacekeya
+[RegReplaceKeyW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regreplacekeyw
+[RegGetKeySecurity]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-reggetkeysecurity
+[RegSetKeySecurity]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetkeysecurity
+[RegRenameKey]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regrenamekey
+[RegCopyTreeA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcopytreea
+[RegCopyTreeW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcopytreew
+[RegCreateKeyTransactedA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcreatekeytransacteda
+[RegCreateKeyTransactedW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcreatekeytransactedw
+[RegOpenKeyTransactedA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopenkeytransacteda
+[RegOpenKeyTransactedW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopenkeytransactedw
+[RegDeleteKeyTransactedA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeytransacteda
+[RegDeleteKeyTransactedW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeytransactedw
+[RegDisableReflectionKey]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdisablereflectionkey
+[RegEnableReflectionKey]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenablereflectionkey
+[RegQueryReflectionKey]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryreflectionkey
+[RegOverridePredefKey]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regoverridepredefkey
+[RegConnectRegistryA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regconnectregistrya
+[RegConnectRegistryW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regconnectregistryw
+[RegDisablePredefinedCache]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdisablepredefinedcache
+[RegDisablePredefinedCacheEx]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdisablepredefinedcacheex
+[RegLoadAppKeyA]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regloadappkeya
+[RegLoadAppKeyW]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regloadappkeyw
+[RegOpenCurrentUser]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopencurrentuser
+[RegOpenUserClassesRoot]: https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopenuserclassesroot
+
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md).
