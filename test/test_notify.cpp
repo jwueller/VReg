@@ -1,6 +1,7 @@
 // RegNotifyChangeKeyValue on virtual keys.
 
 #include "oracle.h"
+#include "thread.h"
 
 #include <VReg/memory_hive.h>
 #include <VReg/native_registry.h>
@@ -9,9 +10,6 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include <chrono>
-#include <future>
-#include <thread>
 #include <utility>
 
 using namespace VReg;
@@ -448,11 +446,11 @@ TEST_CASE("A synchronous call waits for a change")
     auto& registry = mount.Virtual();
     const HKEY hRoot = mount.Root();
 
-    auto waiter = std::async(
-        std::launch::async,
+    LSTATUS status = ERROR_IO_PENDING;
+    Thread waiter(
         [&]
         {
-            return registry.NotifyChangeKeyValue(
+            status = registry.NotifyChangeKeyValue(
                 hRoot,
                 FALSE,
                 kLastSet,
@@ -461,14 +459,14 @@ TEST_CASE("A synchronous call waits for a change")
             );
         }
     );
-    CHECK(waiter.wait_for(std::chrono::milliseconds(200)) == std::future_status::timeout);
+    CHECK_FALSE(waiter.Wait(200));
 
     // The registration may not be in place yet; write until the waiter returns.
-    for (int i = 0; i < 100 && waiter.wait_for(std::chrono::milliseconds(50)) != std::future_status::ready; ++i)
+    for (int i = 0; i < 100 && !waiter.Wait(50); ++i)
         SetDword(registry, hRoot, L"v", static_cast<DWORD>(i));
 
-    REQUIRE(waiter.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
-    CHECK(waiter.get() == ERROR_SUCCESS);
+    REQUIRE(waiter.Wait(5000));
+    CHECK(status == ERROR_SUCCESS);
 }
 
 TEST_CASE("Through an overlay, writes signal and lower changes do not")

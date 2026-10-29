@@ -1,4 +1,5 @@
 #include "oracle.h"
+#include "thread.h"
 
 #include <VReg/handle.h>
 #include <VReg/native_registry.h>
@@ -8,15 +9,12 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
-#include <chrono>
 #include <format>
 #include <functional>
-#include <future>
 #include <map>
 #include <optional>
 #include <span>
 #include <string>
-#include <thread>
 #include <utility>
 #include <vector>
 
@@ -1888,9 +1886,7 @@ namespace
 /// from another thread and waiting for it with a timeout.
 bool IsLockFree(OverlayHive& overlay, Node* const pProbe)
 {
-    std::promise<void> done;
-    auto finished = done.get_future();
-    std::thread writer(
+    const Thread writer(
         [&]
         {
             const DWORD dwValue = 1;
@@ -1900,12 +1896,9 @@ bool IsLockFree(OverlayHive& overlay, Node* const pProbe)
                 REG_DWORD,
                 std::as_bytes(std::span(&dwValue, 1))
             );
-            done.set_value();
         }
     );
-    const bool isFree = finished.wait_for(std::chrono::seconds(2)) == std::future_status::ready;
-    writer.join();
-    return isFree;
+    return writer.Wait(2000);
 }
 } // namespace
 
