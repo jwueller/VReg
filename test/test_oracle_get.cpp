@@ -1040,7 +1040,10 @@ TEMPLATE_LIST_TEST_CASE(
 )
 {
     Reduced<Win32Api> win32;
-    CheckSameRecording(Record<TestType>(win32), RecordVirtual<TestType>());
+    // The reference first, so it skips under Wine before the virtual run
+    // asks the system to resolve an indirect string (see ResolvedIndirect).
+    const auto expected = Record<TestType>(win32);
+    CheckSameRecording(expected, RecordVirtual<TestType>());
 }
 
 TEMPLATE_LIST_TEST_CASE(
