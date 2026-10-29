@@ -14,10 +14,23 @@
 # from a release archive, TWEAK is 0 and the string the version alone, unless
 # a commit is given for the build metadata.
 
+# A problem with the checkout stops a build of VReg itself (STRICT), where it
+# must be fixed. A project that pulls VReg in gets a warning when it
+# configures, nothing on each build, and a version without the part git could
+# not tell.
+macro(vreg_version_problem text)
+    if(strict)
+        message(FATAL_ERROR "${text}")
+    elseif(NOT CMAKE_SCRIPT_MODE_FILE)
+        message(WARNING "VReg: ${text}")
+    endif()
+endmacro()
+
 # Sets VREG_VERSION (the full semver string) and VREG_VERSION_MAJOR, _MINOR,
 # _PATCH and _TWEAK (its numbers) in the caller's scope for the sources at
-# SOURCE_DIR; COMMIT, when not empty, replaces what git would say.
-function(vreg_compute_version sourceDir commit)
+# SOURCE_DIR; COMMIT, when not empty, replaces what git would say. STRICT is
+# true for a build of VReg itself.
+function(vreg_compute_version sourceDir commit strict)
     file(READ "${sourceDir}/vcpkg.json" manifest)
     string(JSON version GET "${manifest}" version-semver)
     if(NOT version MATCHES "^([0-9]+)[.]([0-9]+)[.]([0-9]+)$")
@@ -59,20 +72,22 @@ function(vreg_compute_version sourceDir commit)
     endif()
     if(NOT commit AND GIT_FOUND AND isCheckout EQUAL 0)
         if(shallow STREQUAL "true")
-            message(FATAL_ERROR "The checkout is shallow, so its commits cannot be counted for the version: "
-                                "fetch the whole history (git fetch --unshallow --tags).")
+            vreg_version_problem("The checkout is shallow, so its commits cannot be counted for the version: "
+                                 "fetch the whole history (git fetch --unshallow --tags).")
+        else()
+            execute_process(
+                COMMAND "${GIT_EXECUTABLE}" rev-list --count HEAD
+                WORKING_DIRECTORY "${sourceDir}"
+                OUTPUT_VARIABLE tweak
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+            )
+            if(tweak GREATER 65535)
+                vreg_version_problem("The commit count ${tweak} does not fit the 16-bit field of a file version.")
+                set(tweak 0)
+            endif()
         endif()
 
-        execute_process(
-            COMMAND "${GIT_EXECUTABLE}" rev-list --count HEAD
-            WORKING_DIRECTORY "${sourceDir}"
-            OUTPUT_VARIABLE tweak
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-        )
-        if(tweak GREATER 65535)
-            message(FATAL_ERROR "The commit count ${tweak} does not fit the 16-bit field of a file version.")
-        endif()
-
+        # A shallow checkout has no tags to count from either.
         execute_process(
             COMMAND "${GIT_EXECUTABLE}" describe --tags --match v[0-9]* --long --abbrev=40 --dirty
             WORKING_DIRECTORY "${sourceDir}"
@@ -86,8 +101,8 @@ function(vreg_compute_version sourceDir commit)
             set(distance "${CMAKE_MATCH_2}")
             set(metadata "${CMAKE_MATCH_3}${CMAKE_MATCH_4}")
             if(tag STREQUAL version AND distance GREATER 0)
-                message(FATAL_ERROR "v${version} is released and ${distance} commits follow it: "
-                                    "raise the version in vcpkg.json to the next one.")
+                vreg_version_problem("v${version} is released and ${distance} commits follow it: "
+                                     "raise the version in vcpkg.json to the next one.")
             endif()
             if(NOT (tag STREQUAL version AND metadata MATCHES "^[0-9a-f]+$"))
                 string(APPEND text "-preview.${distance}")
@@ -118,7 +133,7 @@ endfunction()
 # Run with -P: writes OUTPUT for the sources at SOURCE_DIR, rewriting it only
 # when its text changes, so only what includes it rebuilds.
 if(CMAKE_SCRIPT_MODE_FILE STREQUAL CMAKE_CURRENT_LIST_FILE)
-    vreg_compute_version("${SOURCE_DIR}" "${COMMIT}")
+    vreg_compute_version("${SOURCE_DIR}" "${COMMIT}" "${STRICT}")
     set(header "#pragma once\n\n")
     foreach(part IN ITEMS MAJOR MINOR PATCH TWEAK)
         string(APPEND header "#define VREG_VERSION_${part} ${VREG_VERSION_${part}}\n")

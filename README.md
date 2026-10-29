@@ -44,7 +44,8 @@ CMake targets (static libraries):
 - `VReg::Detours`: the hooks. Enable it with `-DVREG_WITH_DETOURS=ON`;
   needs Detours.
 
-Consume it through `add_subdirectory`/`FetchContent`, or install it and use
+Consume it through `add_subdirectory`/`FetchContent` (VReg then installs
+nothing with your project unless you set `VREG_INSTALL`), or install it and use
 `find_package(VReg CONFIG COMPONENTS Core RegFile Detours)`.
 
 ### Through vcpkg

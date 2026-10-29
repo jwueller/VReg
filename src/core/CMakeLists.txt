@@ -29,6 +29,7 @@ add_custom_target(
         -D SOURCE_DIR=${PROJECT_SOURCE_DIR}
         -D OUTPUT=${vreg_version_header}
         -D COMMIT=${VREG_SOURCE_COMMIT}
+        -D STRICT=${PROJECT_IS_TOP_LEVEL}
         -P ${PROJECT_SOURCE_DIR}/cmake/VRegVersion.cmake
     BYPRODUCTS ${vreg_version_header}
     VERBATIM
