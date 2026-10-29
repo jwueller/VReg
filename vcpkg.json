@@ -5,7 +5,7 @@
   "description": "A virtualized Windows registry",
   "homepage": "https://github.com/jwueller/VReg",
   "license": "MIT",
-  "supports": "windows & (x86 | x64)",
+  "supports": "windows & (x86 | x64 | arm64)",
   "features": {
     "detours": {
       "description": "Build VReg::Detours",

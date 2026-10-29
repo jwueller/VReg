@@ -29,9 +29,6 @@ if(NOT WIN32)
 endif()
 
 option(VREG_WITH_DETOURS "Build VReg::Detours (needs Microsoft Detours)" OFF)
-if(VREG_WITH_DETOURS AND CMAKE_CXX_COMPILER_ARCHITECTURE_ID MATCHES "ARM64")
-    message(FATAL_ERROR "VReg::Detours does not support ARM64 yet (see \"Missing\" in README.md).")
-endif()
 option(VREG_BUILD_TESTS "Build the tests" ${PROJECT_IS_TOP_LEVEL})
 option(VREG_INSTALL "Install VReg along with the project that builds it" ${PROJECT_IS_TOP_LEVEL})
 

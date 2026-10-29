@@ -31,8 +31,7 @@ It grew out of the virtual registry in
   Detours. It is safe under the loader lock, coexists with other hookers, and
   works with several modules in one process that each link VReg statically.
 
-Windows only (x86, x64 and ARM64; the hooks x86 and x64 only), and runs
-under Wine and Proton.
+Windows only (x86, x64 and ARM64), and runs under Wine and Proton.
 
 ## Using it
 
@@ -69,6 +68,11 @@ the baseline:
 
 Then depend on `vreg`, or `{"name": "vreg", "features": ["detours"]}` for
 the hooks, in `vcpkg.json`. The port prints its CMake usage on install.
+
+The hooks on ARM64 need a Detours newer than 4.0.1 (vcpkg's `detours`
+2025-06-20 or later, so a vcpkg baseline that has it): 4.0.1 overwrites more
+of each ARM64 function it hooks than it relocates, and every call passed
+through to the real registry crashes.
 
 ### Overlay over the real registry
 
@@ -336,11 +340,6 @@ for any real key, so nothing below `HKEY_CLASSES_ROOT` is reachable through
 
 ### Missing
 
-- The hooks on ARM64. Calls the hooks pass through to the real registry
-  crash there with an illegal instruction, most likely Branch Target
-  Identification rejecting the jump from a Detours trampoline back into
-  the middle of the original function; the hooked calls into virtual keys
-  work. Configuring `VREG_WITH_DETOURS` for ARM64 stops with an error.
 - ARM64EC builds. Its emulated x64 callers and native callers reach the
   `Reg*` functions through separate entry points, which would each need
   hooks. Agent's choice: listed as missing rather than as a non-goal, since

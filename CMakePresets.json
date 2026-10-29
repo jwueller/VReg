@@ -18,7 +18,7 @@
     },
     {"name": "x86", "hidden": true, "architecture": {"value": "x86", "strategy": "external"}, "cacheVariables": {"VCPKG_TARGET_TRIPLET": "x86-windows"}},
     {"name": "x64", "hidden": true, "architecture": {"value": "x64", "strategy": "external"}, "cacheVariables": {"VCPKG_TARGET_TRIPLET": "x64-windows"}},
-    {"name": "arm64", "hidden": true, "architecture": {"value": "arm64", "strategy": "external"}, "cacheVariables": {"VCPKG_TARGET_TRIPLET": "arm64-windows", "VCPKG_MANIFEST_FEATURES": "tests", "VREG_WITH_DETOURS": "OFF"}},
+    {"name": "arm64", "hidden": true, "architecture": {"value": "arm64", "strategy": "external"}, "cacheVariables": {"VCPKG_TARGET_TRIPLET": "arm64-windows"}},
     {"name": "msvc", "hidden": true, "cacheVariables": {"CMAKE_CXX_COMPILER": "cl"}},
     {"name": "clang-cl", "hidden": true, "cacheVariables": {"CMAKE_CXX_COMPILER": "clang-cl"}},
     {"name": "msvc-x86", "inherits": ["base", "x86", "msvc"]},

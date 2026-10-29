@@ -20,8 +20,8 @@ ctest --preset msvc-x64-debug
 ```
 
 Presets: `{msvc,clang-cl}-{x86,x64,arm64}` to configure; append `-debug` or
-`-release` to build and test. They enable the tests and `VReg::Detours`
-(except on ARM64), with Catch2 and Detours from vcpkg.
+`-release` to build and test. They enable the tests and `VReg::Detours`,
+with Catch2 and Detours from vcpkg.
 
 CI also runs clang-tidy with the checks in `.clang-tidy` over `src/`. To run
 it locally after configuring, for each file:
