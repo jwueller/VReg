@@ -286,6 +286,29 @@ public:
         );
     }
 
+    LSTATUS GetValueA(
+        HKEY hkey,
+        LPCSTR lpSubKey,
+        LPCSTR lpValue,
+        DWORD dwFlags,
+        LPDWORD pdwType,
+        PVOID pvData,
+        LPDWORD pcbData
+    ) noexcept override
+    {
+        if (const auto status = Enter("GetValueA"))
+            return *status;
+        return m_inner.GetValueA(
+            hkey,
+            lpSubKey,
+            lpValue,
+            dwFlags,
+            pdwType,
+            pvData,
+            pcbData
+        );
+    }
+
     LSTATUS NotifyChangeKeyValue(
         HKEY hKey,
         BOOL bWatchSubtree,

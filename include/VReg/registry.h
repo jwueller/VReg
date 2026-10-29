@@ -19,6 +19,11 @@ namespace VReg
  *  what the native function answers for the same input: status, out-sizes
  *  and bytes.
  *
+ *  The A forms are virtual too, so a wrapper (one that traces each call, say)
+ *  can see which form its caller used. One that overrides an A form forwards
+ *  it to the A form of the registry it wraps; one that does not sees the call
+ *  as the W form it becomes.
+ *
  *  Members are named after their Win32 function without the `Reg` prefix.
  *  The unsuffixed members that have no Win32 counterpart (@ref QueryValue,
  *  @ref EnumKey, ...) are the owned-value forms: they size and fill a
@@ -169,7 +174,7 @@ public:
 
     /// @name A forms of the virtual surface
     /// @{
-    LSTATUS OpenKeyExA(
+    virtual LSTATUS OpenKeyExA(
         HKEY hKey,
         LPCSTR lpSubKey,
         DWORD ulOptions,
@@ -177,7 +182,7 @@ public:
         PHKEY phkResult
     ) noexcept;
 
-    LSTATUS CreateKeyExA(
+    virtual LSTATUS CreateKeyExA(
         HKEY hKey,
         LPCSTR lpSubKey,
         DWORD Reserved,
@@ -189,7 +194,7 @@ public:
         LPDWORD lpdwDisposition
     ) noexcept;
 
-    LSTATUS QueryValueExA(
+    virtual LSTATUS QueryValueExA(
         HKEY hKey,
         LPCSTR lpValueName,
         LPDWORD lpReserved,
@@ -198,7 +203,7 @@ public:
         LPDWORD lpcbData
     ) noexcept;
 
-    LSTATUS SetValueExA(
+    virtual LSTATUS SetValueExA(
         HKEY hKey,
         LPCSTR lpValueName,
         DWORD Reserved,
@@ -207,24 +212,24 @@ public:
         DWORD cbData
     ) noexcept;
 
-    LSTATUS DeleteValueA(
+    virtual LSTATUS DeleteValueA(
         HKEY hKey,
         LPCSTR lpValueName
     ) noexcept;
 
-    LSTATUS DeleteKeyExA(
+    virtual LSTATUS DeleteKeyExA(
         HKEY hKey,
         LPCSTR lpSubKey,
         REGSAM samDesired,
         DWORD Reserved
     ) noexcept;
 
-    LSTATUS DeleteTreeA(
+    virtual LSTATUS DeleteTreeA(
         HKEY hKey,
         LPCSTR lpSubKey
     ) noexcept;
 
-    LSTATUS EnumKeyExA(
+    virtual LSTATUS EnumKeyExA(
         HKEY hKey,
         DWORD dwIndex,
         LPSTR lpName,
@@ -235,7 +240,7 @@ public:
         PFILETIME lpftLastWriteTime
     ) noexcept;
 
-    LSTATUS EnumValueA(
+    virtual LSTATUS EnumValueA(
         HKEY hKey,
         DWORD dwIndex,
         LPSTR lpValueName,
@@ -246,7 +251,7 @@ public:
         LPDWORD lpcbData
     ) noexcept;
 
-    LSTATUS QueryInfoKeyA(
+    virtual LSTATUS QueryInfoKeyA(
         HKEY hKey,
         LPSTR lpClass,
         LPDWORD lpcchClass,
@@ -263,7 +268,7 @@ public:
 
     /// Answers `ERROR_CALL_NOT_IMPLEMENTED` on every input, as the native
     /// function does.
-    LSTATUS LoadMUIStringA(
+    virtual LSTATUS LoadMUIStringA(
         HKEY hKey,
         LPCSTR pszValue,
         LPSTR pszOutBuf,
@@ -273,7 +278,7 @@ public:
         LPCSTR pszDirectory
     ) noexcept;
 
-    LSTATUS GetValueA(
+    virtual LSTATUS GetValueA(
         HKEY hkey,
         LPCSTR lpSubKey,
         LPCSTR lpValue,
@@ -286,7 +291,7 @@ public:
 
     /// @name Pre-`Ex` forms
     /// @{
-    LSTATUS OpenKeyA(
+    virtual LSTATUS OpenKeyA(
         HKEY hKey,
         LPCSTR lpSubKey,
         PHKEY phkResult
@@ -298,7 +303,7 @@ public:
         PHKEY phkResult
     ) noexcept;
 
-    LSTATUS CreateKeyA(
+    virtual LSTATUS CreateKeyA(
         HKEY hKey,
         LPCSTR lpSubKey,
         PHKEY phkResult
@@ -310,7 +315,7 @@ public:
         PHKEY phkResult
     ) noexcept;
 
-    LSTATUS QueryValueA(
+    virtual LSTATUS QueryValueA(
         HKEY hKey,
         LPCSTR lpSubKey,
         LPSTR lpData,
@@ -324,7 +329,7 @@ public:
         PLONG lpcbData
     ) noexcept;
 
-    LSTATUS SetValueA(
+    virtual LSTATUS SetValueA(
         HKEY hKey,
         LPCSTR lpSubKey,
         DWORD dwType,
@@ -340,7 +345,7 @@ public:
         DWORD cbData
     ) noexcept;
 
-    LSTATUS DeleteKeyA(
+    virtual LSTATUS DeleteKeyA(
         HKEY hKey,
         LPCSTR lpSubKey
     ) noexcept;
@@ -350,7 +355,7 @@ public:
         LPCWSTR lpSubKey
     ) noexcept;
 
-    LSTATUS EnumKeyA(
+    virtual LSTATUS EnumKeyA(
         HKEY hKey,
         DWORD dwIndex,
         LPSTR lpName,
@@ -367,7 +372,7 @@ public:
 
     /// @name Conveniences Win32 builds from the calls above
     /// @{
-    LSTATUS SetKeyValueA(
+    virtual LSTATUS SetKeyValueA(
         HKEY hKey,
         LPCSTR lpSubKey,
         LPCSTR lpValueName,
@@ -385,7 +390,7 @@ public:
         DWORD cbData
     ) noexcept;
 
-    LSTATUS DeleteKeyValueA(
+    virtual LSTATUS DeleteKeyValueA(
         HKEY hKey,
         LPCSTR lpSubKey,
         LPCSTR lpValueName
@@ -397,7 +402,7 @@ public:
         LPCWSTR lpValueName
     ) noexcept;
 
-    LSTATUS QueryMultipleValuesA(
+    virtual LSTATUS QueryMultipleValuesA(
         HKEY hKey,
         PVALENTA val_list,
         DWORD num_vals,

@@ -59,12 +59,17 @@ it.
   value, set value, delete value, delete key, delete tree, enumerate keys
   and values, query info, load MUI string, get value, notify, flush.
 - The A forms and the pre-`Ex` forms (`RegOpenKeyA`, `RegEnumKeyW`, ...) are
-  non-virtual and implemented once over the W virtuals, widening and
-  narrowing through `CP_ACP` in both directions (ANSI callers use the system
-  code page; UTF-8 there corrupts non-ASCII names and data).
+  implemented once over the W virtuals, widening and narrowing through
+  `CP_ACP` in both directions (ANSI callers use the system code page; UTF-8
+  there corrupts non-ASCII names and data).
 - `RegSetKeyValue`, `RegDeleteKeyValue` and `RegQueryMultipleValues`
-  (A and W) are non-virtual as well, built from the virtuals as Win32 builds
-  them; they are hooked, so every `Registry` must answer them.
+  (A and W) are built from the virtuals as Win32 builds them; they are
+  hooked, so every `Registry` must answer them.
+- Every A form is virtual, with that implementation as its default, so a
+  wrapper in front of a registry (one that traces each call) can tell an A
+  call from a W call; it forwards an A form it overrides to the A form of
+  the registry it wraps. The W pre-`Ex` forms and conveniences stay
+  non-virtual.
 - Modern overloads returning owned values (`std::wstring`,
   `std::vector<std::byte>`) are non-virtual helpers on top. The original
   Win32 signatures stay the primary surface.
