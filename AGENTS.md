@@ -9,6 +9,9 @@ work by `docs/plans/`.
 
 - Commit autonomously; push only with the maintainer's sign-off. Never
   force-push or rewrite published history unless told to.
+- Tag a release only on a commit CI has passed on, the Wine jobs
+  included: push the release commit, wait for green, then tag. Local
+  test runs do not cover Wine or clang-cl.
 - Keep history to settled decisions. Unpushed commits that record churn
   (a discussion resolved before it landed, a fix to the previous commit)
   are amended or squashed, not stacked.
