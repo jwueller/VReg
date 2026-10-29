@@ -1003,6 +1003,28 @@ TEST_CASE("A second Attach answers already initialized")
     CHECK(!RealKeyExists(name));
 }
 
+TEST_CASE("The hooks call through the registry handed to Install")
+{
+    const auto name = MountName(L"Exe");
+    InterceptRegistry* pIntercept = nullptr;
+    REQUIRE(InstallMount(name.c_str(), L"Exe", &pIntercept) == NO_ERROR);
+
+    std::vector<std::string> calls;
+    pIntercept->onCall = [&](const std::string& call) { calls.push_back(call); };
+    CHECK(ReadMountModule(name) == L"Exe");
+
+    pIntercept->failures["GetValueW"] = ERROR_ACCESS_DENIED;
+    const HKEY hRoot = OpenMount(name);
+    LSTATUS status{};
+    CHECK(!ReadModule(hRoot, status));
+    CHECK(status == ERROR_ACCESS_DENIED);
+
+    pIntercept->onCall = nullptr;
+    pIntercept->failures.clear();
+    CHECK(std::ranges::count(calls, "OpenKeyExW") == 2);
+    CHECK(std::ranges::count(calls, "GetValueW") == 2);
+}
+
 TEST_CASE("Neutralize removes the mount and leaves real keys working")
 {
     const auto name = MountName(L"Exe");

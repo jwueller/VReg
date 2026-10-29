@@ -132,6 +132,8 @@ write into it.
   then on); never unload while another thread may be inside a registry call.
 - **Several modules** may each link VReg and install their own hooks; their
   handles never collide, and each answers only its own mounts.
+- **Tracing:** `Install` takes any `Registry`, so a wrapper that logs each
+  call and forwards it to the `VirtualRegistry` can stand in front of it.
 - **MUI strings:** `RegLoadMUIString` never resolves a hive value's `@`
   resource reference (that would load a module) and answers
   `ERROR_INVALID_DATA`. A value stored with `Hive::SetMuiTextValue` answers

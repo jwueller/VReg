@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../intercept_registry.h"
+
 #include <VReg/detours.h>
 #include <VReg/memory_hive.h>
 #include <VReg/native_registry.h>
@@ -18,10 +20,13 @@ inline constexpr wchar_t kModuleValue[] = L"Module";
 
 /// Mounts a hive whose @ref kModuleValue is @p pszModule at
 /// `HKEY_CURRENT_USER\pszPath` in a registry over the real one, and installs
-/// the hooks over it. The objects are leaked: the hooks outlive the caller.
+/// the hooks over it; through an `InterceptRegistry` in front of it when
+/// @p ppIntercept asks for one. The objects are leaked: the hooks outlive the
+/// caller.
 inline LONG InstallMount(
     const wchar_t* const pszPath,
-    const wchar_t* const pszModule
+    const wchar_t* const pszModule,
+    InterceptRegistry** const ppIntercept = nullptr
 )
 {
     auto* const pHive = new MemoryHive;
@@ -43,6 +48,10 @@ inline LONG InstallMount(
     if (error != ERROR_SUCCESS)
         return error;
 
-    return Detours::Install(*pRegistry, *pNative);
+    if (!ppIntercept)
+        return Detours::Install(*pRegistry, *pNative);
+
+    *ppIntercept = new InterceptRegistry(*pRegistry);
+    return Detours::Install(**ppIntercept, *pNative);
 }
 } // namespace VReg::Test

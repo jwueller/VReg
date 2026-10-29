@@ -1,7 +1,7 @@
 #include <VReg/detours.h>
 
 #include <VReg/native_registry.h>
-#include <VReg/virtual_registry.h>
+#include <VReg/registry.h>
 
 #include "core/export_table.h"
 #include "core/handle_space.h"
@@ -196,7 +196,7 @@ struct NeutralizeOnUnload
 } g_neutralizeOnUnload;
 } // namespace
 
-LONG Attach(VirtualRegistry& registry, NativeRegistry& native) noexcept
+LONG Attach(Registry& registry, NativeRegistry& native) noexcept
 {
     static std::atomic<bool> s_isAttached;
     if (s_isAttached.exchange(true))
@@ -309,7 +309,7 @@ LONG Attach(VirtualRegistry& registry, NativeRegistry& native) noexcept
     return NO_ERROR;
 }
 
-LONG Install(VirtualRegistry& registry, NativeRegistry& native) noexcept
+LONG Install(Registry& registry, NativeRegistry& native) noexcept
 {
     const auto began = DetourTransactionBegin();
     if (began != NO_ERROR)
