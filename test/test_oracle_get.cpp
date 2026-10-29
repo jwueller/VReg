@@ -3,6 +3,10 @@
 
 #include "scenario.h"
 
+#include <VReg/hive.h>
+
+#include <Shlwapi.h>
+
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
 
@@ -16,6 +20,21 @@ using namespace VReg::Test;
 
 namespace
 {
+/// What the scenario's `Indirect` value resolves to natively.
+std::wstring ResolvedIndirect()
+{
+    std::array<wchar_t, 256> text{};
+    REQUIRE(
+        SHLoadIndirectString(
+            L"@%SystemRoot%\\System32\\shell32.dll,-21770",
+            text.data(),
+            static_cast<UINT>(text.size()),
+            nullptr
+        ) == S_OK
+    );
+    return text.data();
+}
+
 template <class Api>
 LSTATUS GetEx(
     Api& api,
@@ -472,6 +491,20 @@ struct LoadMUIStringForms
             RECORD("set " + Narrow(value.name), SetStored(api, hRoot, value));
         }
 
+        // A hive never resolves an indirect string, but answers a value marked
+        // as MUI text with its text: here, what the indirect string resolves to.
+        if constexpr (std::is_same_v<Api, VirtualRegistry>)
+        {
+            auto* const pNode = Hive::NodeOf(hRoot);
+            REQUIRE(
+                Hive::HiveOf(pNode)->SetMuiTextValue(
+                    pNode,
+                    L"Indirect",
+                    ResolvedIndirect()
+                ) == ERROR_SUCCESS
+            );
+        }
+
         for (const wchar_t* const pszName :
              {L"Plain",
               L"PlainNoTerminator",
@@ -489,7 +522,8 @@ struct LoadMUIStringForms
               L""})
         {
             // Resolving an indirect string loads a resource module, which a virtual key never does.
-            if (kVirtualKeys<Api> && std::wstring_view(pszName).starts_with(L"Indirect"))
+            if (kVirtualKeys<Api> && std::wstring_view(pszName).starts_with(L"Indirect")
+                && std::wstring_view(pszName) != L"Indirect")
                 continue;
 
             const auto label = Narrow(pszName);
@@ -530,6 +564,20 @@ struct LoadMUIStringForms
                     ),
                     {cbData}
                 );
+                cbData = kFillSize;
+                RECORD(
+                    "muiW null buffer " + label + std::format(" flags {}", dwFlags),
+                    api.LoadMUIStringW(
+                        hRoot,
+                        pszName,
+                        nullptr,
+                        128,
+                        dwFlags ? nullptr : &cbData,
+                        dwFlags,
+                        nullptr
+                    ),
+                    {cbData}
+                );
                 std::array<wchar_t, 64> data;
                 std::memset(data.data(), kFill, sizeof(data));
                 RECORD(
@@ -551,20 +599,25 @@ struct LoadMUIStringForms
             std::array<wchar_t, 64> data;
             std::memset(data.data(), kFill, sizeof(data));
             DWORD cbData = kFillSize;
-            RECORD(
-                "muiW directory " + label,
-                api.LoadMUIStringW(
-                    hRoot,
-                    pszName,
-                    data.data(),
-                    128,
-                    &cbData,
-                    0,
-                    L"C:\\Windows\\System32"
-                ),
-                {cbData},
-                {Bytes(data)}
-            );
+            // Natively the directory decides where the module is found; a
+            // value marked as MUI text has no module.
+            if (!kVirtualKeys<Api> || label != "Indirect")
+            {
+                RECORD(
+                    "muiW directory " + label,
+                    api.LoadMUIStringW(
+                        hRoot,
+                        pszName,
+                        data.data(),
+                        128,
+                        &cbData,
+                        0,
+                        L"C:\\Windows\\System32"
+                    ),
+                    {cbData},
+                    {Bytes(data)}
+                );
+            }
 
             const auto narrow = Narrow(pszName);
             std::array<char, 64> adata;

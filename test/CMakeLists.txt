@@ -24,7 +24,7 @@ add_executable(
     test_virtual_registry.cpp
     test_version.cpp
 )
-target_link_libraries(VReg_Tests PRIVATE VReg::RegFile VReg::Core VReg_BuildSettings Catch2::Catch2WithMain)
+target_link_libraries(VReg_Tests PRIVATE VReg::RegFile VReg::Core VReg_BuildSettings Catch2::Catch2WithMain Shlwapi)
 # The tests reach internal headers as well as the public ones.
 target_include_directories(VReg_Tests PRIVATE ${PROJECT_SOURCE_DIR}/src)# A hung test fails instead of stalling an unattended run.
 catch_discover_tests(VReg_Tests PROPERTIES TIMEOUT 120)

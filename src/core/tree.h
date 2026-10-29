@@ -20,6 +20,8 @@ struct Value
     std::vector<std::byte> data;
     /// Overlay only: hides the lower value of this name.
     bool isTombstone = false;
+    /// Stored by `Hive::SetMuiTextValue`: a terminated `REG_SZ`.
+    bool isMuiText = false;
 };
 
 /// A pending change notification: fires once, then is gone.
@@ -69,6 +71,12 @@ struct Node
     std::wstring_view left,
     std::wstring_view right
 ) noexcept;
+
+/// @p text as the data of a terminated `REG_SZ`. Throws `std::bad_alloc`.
+[[nodiscard]] std::vector<std::byte> StringData(std::wstring_view text);
+
+/// What `Hive::QueryMuiText` answers for @p value. Throws `std::bad_alloc`.
+LSTATUS MuiTextOf(const Value& value, std::wstring& text);
 
 /**
  * @brief The node storage of a hive: the nodes, their handles and the lock.

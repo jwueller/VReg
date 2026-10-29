@@ -259,6 +259,81 @@ TEST_CASE("A frozen hive refuses writes and still answers reads")
     CHECK(QueryDword(registry, hSub, L"v", status) == 7);
 }
 
+TEST_CASE("A value marked as MUI text loads as its text until written again")
+{
+    MemoryHive hive;
+    VirtualRegistry registry;
+    REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"Test", hive) == ERROR_SUCCESS);
+    const HKEY hRoot = Hive::HandleOf(hive.Root());
+    const HKEY hSub = CreateKey(registry, hRoot, L"Sub");
+    auto* const pSub = Hive::NodeOf(hSub);
+
+    REQUIRE(hive.SetMuiTextValue(pSub, L"Name", L"Text") == ERROR_SUCCESS);
+
+    std::wstring text;
+    CHECK(
+        registry.LoadMUIString(
+            hSub,
+            L"Name",
+            0,
+            nullptr,
+            text
+        ) == ERROR_SUCCESS
+    );
+    CHECK(text == L"Text");
+
+    DWORD dwType = 0;
+    std::array<wchar_t, 8> data{};
+    DWORD cbData = sizeof(data);
+    CHECK(
+        registry.QueryValueExW(
+            hSub,
+            L"Name",
+            nullptr,
+            &dwType,
+            reinterpret_cast<BYTE*>(data.data()),
+            &cbData
+        ) == ERROR_SUCCESS
+    );
+    CHECK(dwType == REG_SZ);
+    CHECK(cbData == sizeof(L"Text"));
+    CHECK(std::wstring(data.data()) == L"Text");
+
+    CHECK(
+        registry.SetValueExW(
+            hSub,
+            L"Name",
+            0,
+            REG_SZ,
+            reinterpret_cast<const BYTE*>(L"Text"),
+            sizeof(L"Text")
+        ) == ERROR_SUCCESS
+    );
+    CHECK(
+        registry.LoadMUIString(
+            hSub,
+            L"Name",
+            0,
+            nullptr,
+            text
+        ) == ERROR_INVALID_DATA
+    );
+
+    CHECK(hive.SetMuiTextValue(pSub, L"Name", L"Text") == ERROR_SUCCESS);
+    hive.Freeze();
+    CHECK(hive.SetMuiTextValue(pSub, L"Name", L"Other") == ERROR_ACCESS_DENIED);
+    CHECK(
+        registry.LoadMUIString(
+            hSub,
+            L"Name",
+            0,
+            nullptr,
+            text
+        ) == ERROR_SUCCESS
+    );
+    CHECK(text == L"Text");
+}
+
 TEST_CASE("Mount rejects what cannot be mounted")
 {
     MemoryHive hive;

@@ -117,6 +117,30 @@ public:
         std::wstring_view name
     ) noexcept = 0;
 
+    /**
+     * @brief Sets value @p name of @p pNode to @p text as a `REG_SZ` and
+     *  marks it MUI text.
+     *
+     *  `RegLoadMUIString` answers an unmarked hive value `ERROR_INVALID_DATA`,
+     *  since resolving an `@` resource reference would load a module. A
+     *  marked one stands for the text such a reference resolves to and
+     *  answers with @p text itself. Any other write of the value drops the
+     *  mark, and a `.reg` export carries it as a plain string.
+     */
+    virtual LSTATUS SetMuiTextValue(
+        Node* pNode,
+        std::wstring_view name,
+        std::wstring_view text
+    ) noexcept = 0;
+
+    /// The text of value @p name of @p pNode if @ref SetMuiTextValue stored
+    /// it, or `ERROR_INVALID_DATA` for any other value.
+    virtual LSTATUS QueryMuiText(
+        Node* pNode,
+        std::wstring_view name,
+        std::wstring& text
+    ) noexcept = 0;
+
     virtual LSTATUS EnumKey(
         Node* pNode,
         DWORD dwIndex,

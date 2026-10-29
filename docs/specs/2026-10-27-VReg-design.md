@@ -115,7 +115,7 @@ buffer and A/W rules stay in `VirtualRegistry`.
   - An upper-only key ends its enumerations with `ERROR_NO_MORE_ITEMS`,
     never `ERROR_FILE_NOT_FOUND`.
   - `RegLoadMUIStringW` on a lower-backed value forwards to the lower key;
-    an upper value is answered as the literal it is (never resolved by us).
+    an upper value answers as any hive value does (see Deviations).
 
 ## Handles, freeze and locking
 
@@ -447,7 +447,14 @@ Measured by running the oracle catalogue against `VirtualRegistry` over a
 - `RegQueryInfoKey` reports a security descriptor size of 0.
 - `RegLoadMUIString` answers `ERROR_INVALID_DATA` for a hive value whether
   or not it is an `@` indirect string; resolving one would load a resource
-  module, which detour bodies may not do.
+  module, which detour bodies may not do. A value stored with
+  `Hive::SetMuiTextValue` instead stands for the text an indirect string
+  resolves to: it answers with that text, sized and truncated as native
+  answers a resolved string, and ignores `pszDirectory` (there is no module
+  to find). Agent's choice: an explicit mark per value, set through the
+  hive. A value type of our own would show through `RegQueryValueEx`, and
+  answering every plain string with its text would change what unmarked
+  values answer, which consumers rely on.
 - Through an overlay, an entry the upper layer shadows or tombstones carries
   the letter case of the first call that named it, not the lower key's case
   (a name is found without regard to case, but enumerated as stored).

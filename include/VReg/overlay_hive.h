@@ -114,6 +114,19 @@ public:
         override;
     LSTATUS DeleteValue(Node* pNode, std::wstring_view name) noexcept override;
 
+    LSTATUS SetMuiTextValue(
+        Node* pNode,
+        std::wstring_view name,
+        std::wstring_view text
+    ) noexcept override;
+
+    /// A value from below is never marked.
+    LSTATUS QueryMuiText(
+        Node* pNode,
+        std::wstring_view name,
+        std::wstring& text
+    ) noexcept override;
+
     LSTATUS EnumKey(
         Node* pNode,
         DWORD dwIndex,
@@ -168,6 +181,14 @@ private:
     };
 
     [[nodiscard]] LowerView ViewOf(const Node& node) const;
+
+    LSTATUS StoreValue(
+        Node* pNode,
+        std::wstring_view name,
+        DWORD dwType,
+        std::span<const std::byte> data,
+        bool isMuiText
+    ) noexcept;
 
     LSTATUS OpenLower(
         const std::wstring& path,

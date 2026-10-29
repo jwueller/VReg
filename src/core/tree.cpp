@@ -24,6 +24,26 @@ int CompareNames(
     ) - CSTR_EQUAL;
 }
 
+std::vector<std::byte> StringData(const std::wstring_view text)
+{
+    const auto* const pb = reinterpret_cast<const std::byte*>(text.data());
+    std::vector<std::byte> data(pb, pb + text.size() * sizeof(wchar_t));
+    data.resize(data.size() + sizeof(wchar_t));
+    return data;
+}
+
+LSTATUS MuiTextOf(const Value& value, std::wstring& text)
+{
+    if (!value.isMuiText)
+        return ERROR_INVALID_DATA;
+
+    text.assign(
+        reinterpret_cast<const wchar_t*>(value.data.data()),
+        value.data.size() / sizeof(wchar_t) - 1
+    );
+    return ERROR_SUCCESS;
+}
+
 HKEY Hive::HandleOf(const Node* const pNode) noexcept
 {
     return pNode->hKey;

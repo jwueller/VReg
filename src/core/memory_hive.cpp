@@ -197,6 +197,53 @@ LSTATUS MemoryHive::SetValue(
     const DWORD dwType,
     const std::span<const std::byte> data
 ) noexcept
+{
+    return StoreValue(pNode, name, dwType, data, false);
+}
+
+LSTATUS MemoryHive::SetMuiTextValue(
+    Node* const pNode,
+    const std::wstring_view name,
+    const std::wstring_view text
+) noexcept
+try
+{
+    return StoreValue(pNode, name, REG_SZ, StringData(text), true);
+}
+catch (const std::bad_alloc&)
+{
+    return ERROR_OUTOFMEMORY;
+}
+
+LSTATUS MemoryHive::QueryMuiText(
+    Node* const pNode,
+    const std::wstring_view name,
+    std::wstring& text
+) noexcept
+try
+{
+    Tree::ReadLock lock(*m_pTree);
+    if (pNode->isDeleted)
+        return ERROR_KEY_DELETED;
+
+    const auto* const pValue = Tree::FindValue(*pNode, name);
+    if (!pValue)
+        return ERROR_FILE_NOT_FOUND;
+
+    return MuiTextOf(*pValue, text);
+}
+catch (const std::bad_alloc&)
+{
+    return ERROR_OUTOFMEMORY;
+}
+
+LSTATUS MemoryHive::StoreValue(
+    Node* const pNode,
+    const std::wstring_view name,
+    const DWORD dwType,
+    const std::span<const std::byte> data,
+    const bool isMuiText
+) noexcept
 try
 {
     if (IsFrozen())
@@ -211,10 +258,13 @@ try
     {
         pValue->dwType = dwType;
         pValue->data = std::move(bytes);
+        pValue->isMuiText = isMuiText;
     }
     else
     {
-        pNode->values.push_back({.name = std::wstring(name), .dwType = dwType, .data = std::move(bytes)});
+        pNode->values.push_back(
+            {.name = std::wstring(name), .dwType = dwType, .data = std::move(bytes), .isMuiText = isMuiText}
+        );
     }
 
     Tree::Touch(*pNode);

@@ -1104,7 +1104,7 @@ try
         return target.status;
 
     if ((Flags & ~static_cast<DWORD>(REG_MUI_STRING_TRUNCATE)) || ((Flags & REG_MUI_STRING_TRUNCATE) != 0) != !pcbData
-        || (cbOutBuf % sizeof(wchar_t)) != 0)
+        || (cbOutBuf % sizeof(wchar_t)) != 0 || (!pszOutBuf && cbOutBuf != 0))
         return ERROR_INVALID_PARAMETER;
 
     auto* const pHive = Hive::HiveOf(target.pNode);
@@ -1117,8 +1117,9 @@ try
     if (opened != ERROR_SUCCESS)
         return opened;
 
-    // A value from below is resolved there, as the system would; one the hive
-    // holds is a literal, which would need a resource module to resolve.
+    // A value from below is resolved there, as the system would. One the hive
+    // holds would need a resource module to resolve, unless it is marked as
+    // the text itself.
     if (hLower)
     {
         auto* const pLower = pHive->Lower();
@@ -1137,18 +1138,40 @@ try
         return status;
     }
 
-    DWORD dwType{};
-    std::vector<std::byte> value;
-    const auto status = pHive->QueryValue(
+    std::wstring text;
+    const auto status = pHive->QueryMuiText(
         target.pNode,
         View(pszValue),
-        dwType,
-        value
+        text
     );
     if (status != ERROR_SUCCESS)
         return status;
 
-    return ERROR_INVALID_DATA;
+    // Truncation fills whatever buffer there is, terminated; otherwise the
+    // size is reported and the text copied only when all of it fits.
+    const auto cbText = static_cast<DWORD>((text.size() + 1) * sizeof(wchar_t));
+    if (!pcbData)
+    {
+        if (!pszOutBuf)
+            return ERROR_MORE_DATA;
+        if (cbOutBuf == 0)
+            return ERROR_SUCCESS;
+
+        const auto cch = std::min<std::size_t>(
+            text.size(),
+            cbOutBuf / sizeof(wchar_t) - 1
+        );
+        std::memcpy(pszOutBuf, text.data(), cch * sizeof(wchar_t));
+        pszOutBuf[cch] = L'\0';
+        return ERROR_SUCCESS;
+    }
+
+    *pcbData = cbText;
+    if (!pszOutBuf || cbOutBuf < cbText)
+        return ERROR_MORE_DATA;
+
+    std::memcpy(pszOutBuf, text.c_str(), cbText);
+    return ERROR_SUCCESS;
 }
 catch (const std::bad_alloc&)
 {

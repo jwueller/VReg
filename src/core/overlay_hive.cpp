@@ -690,6 +690,57 @@ LSTATUS OverlayHive::SetValue(
     const DWORD dwType,
     const std::span<const std::byte> data
 ) noexcept
+{
+    return StoreValue(pNode, name, dwType, data, false);
+}
+
+LSTATUS OverlayHive::SetMuiTextValue(
+    Node* const pNode,
+    const std::wstring_view name,
+    const std::wstring_view text
+) noexcept
+try
+{
+    return StoreValue(pNode, name, REG_SZ, StringData(text), true);
+}
+catch (const std::bad_alloc&)
+{
+    return ERROR_OUTOFMEMORY;
+}
+
+LSTATUS OverlayHive::QueryMuiText(
+    Node* const pNode,
+    const std::wstring_view name,
+    std::wstring& text
+) noexcept
+try
+{
+    {
+        Tree::ReadLock lock(*m_pTree);
+        if (pNode->isDeleted)
+            return ERROR_KEY_DELETED;
+
+        if (const auto* const pValue = Tree::FindValue(*pNode, name))
+            return pValue->isTombstone ? ERROR_FILE_NOT_FOUND : MuiTextOf(*pValue, text);
+    }
+
+    DWORD dwType{};
+    std::vector<std::byte> data;
+    const auto status = QueryValue(pNode, name, dwType, data);
+    return status == ERROR_SUCCESS ? ERROR_INVALID_DATA : status;
+}
+catch (const std::bad_alloc&)
+{
+    return ERROR_OUTOFMEMORY;
+}
+
+LSTATUS OverlayHive::StoreValue(
+    Node* const pNode,
+    const std::wstring_view name,
+    const DWORD dwType,
+    const std::span<const std::byte> data,
+    const bool isMuiText
+) noexcept
 try
 {
     if (IsFrozen())
@@ -701,9 +752,17 @@ try
         return ERROR_KEY_DELETED;
 
     if (auto* const pValue = Tree::FindValue(*pNode, name))
-        *pValue = {.name = std::move(pValue->name), .dwType = dwType, .data = std::move(bytes), .isTombstone = false};
+        *pValue = {
+            .name = std::move(pValue->name),
+            .dwType = dwType,
+            .data = std::move(bytes),
+            .isTombstone = false,
+            .isMuiText = isMuiText
+        };
     else
-        pNode->values.push_back({.name = std::wstring(name), .dwType = dwType, .data = std::move(bytes)});
+        pNode->values.push_back(
+            {.name = std::wstring(name), .dwType = dwType, .data = std::move(bytes), .isMuiText = isMuiText}
+        );
 
     Materialize(*pNode);
     Tree::Touch(*pNode);

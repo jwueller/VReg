@@ -61,6 +61,18 @@ public:
         override;
     LSTATUS DeleteValue(Node* pNode, std::wstring_view name) noexcept override;
 
+    LSTATUS SetMuiTextValue(
+        Node* pNode,
+        std::wstring_view name,
+        std::wstring_view text
+    ) noexcept override;
+
+    LSTATUS QueryMuiText(
+        Node* pNode,
+        std::wstring_view name,
+        std::wstring& text
+    ) noexcept override;
+
     LSTATUS EnumKey(
         Node* pNode,
         DWORD dwIndex,
@@ -89,6 +101,14 @@ public:
     ) noexcept override;
 
 private:
+    LSTATUS StoreValue(
+        Node* pNode,
+        std::wstring_view name,
+        DWORD dwType,
+        std::span<const std::byte> data,
+        bool isMuiText
+    ) noexcept;
+
     std::unique_ptr<Tree> m_pTree;
 };
 } // namespace VReg
