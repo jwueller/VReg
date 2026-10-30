@@ -3,11 +3,15 @@ include(Catch)
 
 add_executable(
     VReg_Tests
+    intercept_registry.h
     no_dialogs.cpp
     oracle.cpp
+    oracle.h
+    regfile_test.h
+    scenario.h
+    test_concurrency.cpp
     test_handle.cpp
     test_handle_probe.cpp
-    test_concurrency.cpp
     test_native_registry.cpp
     test_notify.cpp
     test_oracle.cpp
@@ -15,16 +19,18 @@ add_executable(
     test_oracle_get.cpp
     test_oracle_values.cpp
     test_overlay_hive.cpp
-    test_registry.cpp
-    test_size_only.cpp
     test_regfile_apply.cpp
     test_regfile_delta.cpp
     test_regfile_export.cpp
     test_regfile_parse.cpp
     test_regfile_roundtrip.cpp
+    test_registry.cpp
+    test_size_only.cpp
     test_status.cpp
-    test_virtual_registry.cpp
     test_version.cpp
+    test_virtual_registry.cpp
+    thread.h
+    win32_api.h
 )
 target_link_libraries(VReg_Tests PRIVATE VReg::RegFile VReg::Core VReg_BuildSettings Catch2::Catch2WithMain Shlwapi)
 # The tests reach internal headers as well as the public ones.

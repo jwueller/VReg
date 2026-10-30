@@ -14,7 +14,9 @@ target_sources(
         export.cpp
         parse.cpp
         text.cpp
+        text.h
         writer.cpp
+        writer.h
 )
 target_link_libraries(VReg_RegFile PUBLIC VReg::Core)
 # The entry points share core's exception boundary (core/status.h).

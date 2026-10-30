@@ -21,14 +21,22 @@ target_sources(
     VReg_Core
     PRIVATE
         ansi.cpp
+        ansi.h
         export_table.cpp
+        export_table.h
         handle_space.cpp
+        handle_space.h
+        lock.h
         memory_hive.cpp
         native_registry.cpp
-        owned_values.cpp
         overlay_hive.cpp
+        owned_values.cpp
         registry.cpp
+        retry.h
+        status.h
         tree.cpp
+        tree.h
+        value_type.h
         version.cpp
         virtual_registry.cpp
 )
