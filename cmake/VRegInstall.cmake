@@ -24,33 +24,39 @@ if(TARGET VReg_Detours)
 endif()
 
 set(vreg_cmake_dir ${CMAKE_INSTALL_LIBDIR}/cmake/VReg)
+
 install(
     EXPORT VRegTargets
     NAMESPACE VReg::
     DESTINATION ${vreg_cmake_dir}
 )
+
 configure_package_config_file(
     cmake/VRegConfig.cmake.in
     ${PROJECT_BINARY_DIR}/VRegConfig.cmake
     INSTALL_DESTINATION ${vreg_cmake_dir}
 )
+
 # Numeric: find_package cannot compare PROJECT_VERSION's semver string.
 write_basic_package_version_file(
     ${PROJECT_BINARY_DIR}/VRegConfigVersion.cmake
     VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
     COMPATIBILITY SameMinorVersion
 )
+
 install(
     FILES
         ${PROJECT_BINARY_DIR}/VRegConfig.cmake
         ${PROJECT_BINARY_DIR}/VRegConfigVersion.cmake
     DESTINATION ${vreg_cmake_dir}
 )
+
 if(TARGET VReg_Detours)
     install(
         EXPORT VRegDetoursTargets
         NAMESPACE VReg::
         DESTINATION ${vreg_cmake_dir}
     )
+
     install(FILES cmake/FindDetours.cmake DESTINATION ${vreg_cmake_dir})
 endif()

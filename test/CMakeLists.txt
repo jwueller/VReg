@@ -1,8 +1,7 @@
 find_package(Catch2 3 CONFIG REQUIRED)
 include(Catch)
 
-add_executable(
-    VReg_Tests
+add_executable(VReg_Tests
     intercept_registry.h
     no_dialogs.cpp
     oracle.cpp
@@ -32,35 +31,44 @@ add_executable(
     thread.h
     win32_api.h
 )
-target_link_libraries(VReg_Tests PRIVATE VReg::RegFile VReg::Core VReg_BuildSettings Catch2::Catch2WithMain Shlwapi)
+
+target_link_libraries(VReg_Tests PRIVATE
+    VReg::RegFile
+    VReg::Core
+    VReg_BuildSettings
+    Catch2::Catch2WithMain
+    Shlwapi
+)
+
 # The tests reach internal headers as well as the public ones.
-target_include_directories(VReg_Tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
+target_include_directories(VReg_Tests PRIVATE
+    ${PROJECT_SOURCE_DIR}/src
+)
+
 # What GetFileVersion() must report.
-target_compile_definitions(
-    VReg_Tests
-    PRIVATE
-        VREG_TEST_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
-        VREG_TEST_VERSION_MINOR=${PROJECT_VERSION_MINOR}
-        VREG_TEST_VERSION_PATCH=${PROJECT_VERSION_PATCH}
-)# A hung test fails instead of stalling an unattended run.
+target_compile_definitions(VReg_Tests PRIVATE
+    VREG_TEST_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
+    VREG_TEST_VERSION_MINOR=${PROJECT_VERSION_MINOR}
+    VREG_TEST_VERSION_PATCH=${PROJECT_VERSION_PATCH}
+)
+
+# A hung test fails instead of stalling an unattended run.
 catch_discover_tests(VReg_Tests PROPERTIES TIMEOUT 120)
 
 # Installs this build into a scratch prefix and builds `consumer/` against it
 # with find_package, the way a package manager would.
-add_test(
-    NAME consumer_find_package
-    COMMAND
-        ${CMAKE_COMMAND}
-        -D VREG_BINARY_DIR=${PROJECT_BINARY_DIR}
-        -D VREG_CONFIG=$<CONFIG>
-        -D CONSUMER_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/consumer
-        -D CONSUMER_WORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/consumer/$<CONFIG>
-        -D CMAKE_GENERATOR=${CMAKE_GENERATOR}
-        -D CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-        -D CMAKE_CXX_COMPILER_TARGET=${CMAKE_CXX_COMPILER_TARGET}
-        -D CONSUMER_WITH_DETOURS=$<IF:$<TARGET_EXISTS:VReg_Detours>,ON,OFF>
-        -D DETOURS_PREFIX=$<$<TARGET_EXISTS:VReg_Detours>:${Detours_INCLUDE_DIR}/..>
-        -P ${CMAKE_CURRENT_SOURCE_DIR}/consumer/run.cmake
+add_test(NAME consumer_find_package COMMAND
+    ${CMAKE_COMMAND}
+    -D VREG_BINARY_DIR=${PROJECT_BINARY_DIR}
+    -D VREG_CONFIG=$<CONFIG>
+    -D CONSUMER_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/consumer
+    -D CONSUMER_WORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/consumer/$<CONFIG>
+    -D CMAKE_GENERATOR=${CMAKE_GENERATOR}
+    -D CMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+    -D CMAKE_CXX_COMPILER_TARGET=${CMAKE_CXX_COMPILER_TARGET}
+    -D CONSUMER_WITH_DETOURS=$<IF:$<TARGET_EXISTS:VReg_Detours>,ON,OFF>
+    -D DETOURS_PREFIX=$<$<TARGET_EXISTS:VReg_Detours>:${Detours_INCLUDE_DIR}/..>
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/consumer/run.cmake
 )
 
 if(TARGET VReg_Detours)

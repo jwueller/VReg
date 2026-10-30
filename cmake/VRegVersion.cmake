@@ -57,6 +57,7 @@ function(vreg_compute_version sourceDir commit strict)
             OUTPUT_STRIP_TRAILING_WHITESPACE
             ERROR_QUIET
         )
+
         if(isCheckout EQUAL 0)
             string(REPLACE "\n" ";" answers "${answers}")
             list(GET answers 0 topLevel)
@@ -81,6 +82,7 @@ function(vreg_compute_version sourceDir commit strict)
                 OUTPUT_VARIABLE tweak
                 OUTPUT_STRIP_TRAILING_WHITESPACE
             )
+
             if(tweak GREATER 65535)
                 vreg_version_problem("The commit count ${tweak} does not fit the 16-bit field of a file version.")
                 set(tweak 0)
@@ -96,6 +98,7 @@ function(vreg_compute_version sourceDir commit strict)
             OUTPUT_STRIP_TRAILING_WHITESPACE
             ERROR_QUIET
         )
+
         if(describedResult EQUAL 0 AND described MATCHES "^v([0-9.]+)-([0-9]+)-g([0-9a-f]+)(-dirty)?$")
             set(tag "${CMAKE_MATCH_1}")
             set(distance "${CMAKE_MATCH_2}")
@@ -115,6 +118,7 @@ function(vreg_compute_version sourceDir commit strict)
                 OUTPUT_VARIABLE metadata
                 OUTPUT_STRIP_TRAILING_WHITESPACE
             )
+
             string(APPEND text "-preview")
         endif()
     endif()

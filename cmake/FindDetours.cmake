@@ -25,6 +25,7 @@ if(Detours_FOUND AND NOT TARGET Detours::Detours)
         set_property(TARGET Detours::Detours APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
         set_target_properties(Detours::Detours PROPERTIES IMPORTED_LOCATION_DEBUG "${Detours_LIBRARY_DEBUG}")
     endif()
+
     set_target_properties(
         Detours::Detours
         PROPERTIES
