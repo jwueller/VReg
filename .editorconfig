@@ -61,17 +61,17 @@ wrap_ternary_expr_style = chop_if_long
 # ReSharper inspection severities
 resharper_cpp_clang_tidy_clang_diagnostic_unused_function_highlighting = suggestion
 resharper_cpp_inconsistent_naming_highlighting = none
-# `HRESULT result = E_UNEXPECTED` before `goto out`, and zero-initialized Win32 structures.
+# Out-parameters zero-initialized before the call that fills them (`DWORD dwType{}`).
 resharper_cpp_initialized_value_is_always_rewritten_highlighting = none
 # A doc comment describes the parameters that need it, not all of them.
 resharper_cpp_doxygen_undocumented_parameter_highlighting = none
-# The frontends' tear-off templates use their owner class before it is complete.
-resharper_cpp_class_is_incomplete_highlighting = none
-# True of every method that only reaches a handle, a socket or a platform SDK: const would misdescribe it.
+# True of every method that only reaches a handle or the Win32 API: const would misdescribe it.
 resharper_cpp_member_function_may_be_const_highlighting = none
-# Clang warnings that argue with Win32 code: a `default:` over a platform SDK's enum, `__try`,
-# `GetProcAddress` casts, resource-script macros. The missing-designated-field-initializer
-# warning stays on: naming every field is how a forgotten one gets reported.
+# Clang warnings that argue with Win32 code or C++20 itself: a `default:` over a Win32 value,
+# Microsoft extensions (`__declspec`, `__debugbreak`), casts of resolved exports to function
+# pointers, struct padding, macros a configuration leaves unused, C++20 features reported as
+# extensions. The missing-designated-field-initializer warning stays on: naming every field is
+# how a forgotten one gets reported.
 resharper_cpp_clang_tidy_clang_diagnostic_switch_enum_highlighting = none
 resharper_cpp_clang_tidy_clang_diagnostic_language_extension_token_highlighting = none
 resharper_cpp_clang_tidy_clang_diagnostic_microsoft_cast_highlighting = none
@@ -79,14 +79,11 @@ resharper_cpp_clang_tidy_clang_diagnostic_cast_function_type_strict_highlighting
 resharper_cpp_clang_tidy_clang_diagnostic_cpp20_extensions_highlighting = none
 resharper_cpp_clang_tidy_clang_diagnostic_unused_macros_highlighting = none
 resharper_cpp_clang_tidy_clang_diagnostic_padded_highlighting = none
-# Every DLL links its own copy of the toolkit and its `inline` globals, by design.
+# Every module links its own copy of VReg, by design.
 resharper_cpp_clang_tidy_clang_diagnostic_unique_object_duplication_highlighting = none
 
 [*.md]
 max_line_length = off
-
-[*.ini]
-max_line_length = 80
 
 [*.{json,jsonl,yml,yaml}]
 indent_size = 2
