@@ -1,6 +1,14 @@
 vreg_add_library(RegFile STATIC)
 target_sources(
     VReg_RegFile
+    PUBLIC
+        FILE_SET HEADERS
+        BASE_DIRS ${PROJECT_SOURCE_DIR}/include
+        FILES
+            ${PROJECT_SOURCE_DIR}/include/VReg/regfile.h
+)
+target_sources(
+    VReg_RegFile
     PRIVATE
         apply.cpp
         export.cpp

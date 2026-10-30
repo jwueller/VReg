@@ -22,12 +22,6 @@ function(vreg_add_library name)
     add_library(VReg::${name} ALIAS VReg_${name})
     set_target_properties(VReg_${name} PROPERTIES EXPORT_NAME ${name})
     target_compile_features(VReg_${name} PUBLIC cxx_std_20)
-    target_include_directories(
-        VReg_${name}
-        PUBLIC
-            $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    )
     target_link_libraries(VReg_${name} PRIVATE $<BUILD_INTERFACE:VReg_BuildSettings>)
     # Agent's choice: the library only. The tests pass unchecked handles
     # (GetModuleHandleW, CreateEventW) straight on, where a failure fails

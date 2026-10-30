@@ -2,6 +2,23 @@
 vreg_add_library(Core STATIC)
 target_sources(
     VReg_Core
+    PUBLIC
+        FILE_SET HEADERS
+        BASE_DIRS ${PROJECT_SOURCE_DIR}/include
+        FILES
+            ${PROJECT_SOURCE_DIR}/include/VReg/core.h
+            ${PROJECT_SOURCE_DIR}/include/VReg/handle.h
+            ${PROJECT_SOURCE_DIR}/include/VReg/hive.h
+            ${PROJECT_SOURCE_DIR}/include/VReg/memory_hive.h
+            ${PROJECT_SOURCE_DIR}/include/VReg/native_registry.h
+            ${PROJECT_SOURCE_DIR}/include/VReg/overlay_hive.h
+            ${PROJECT_SOURCE_DIR}/include/VReg/owned_values.h
+            ${PROJECT_SOURCE_DIR}/include/VReg/registry.h
+            ${PROJECT_SOURCE_DIR}/include/VReg/version.h
+            ${PROJECT_SOURCE_DIR}/include/VReg/virtual_registry.h
+)
+target_sources(
+    VReg_Core
     PRIVATE
         ansi.cpp
         export_table.cpp

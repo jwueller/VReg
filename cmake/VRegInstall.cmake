@@ -9,8 +9,8 @@ install(
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
-install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # VReg::Detours is exported on its own, so a consumer that does not ask for it
 # needs no Detours to find the package.
@@ -19,6 +19,7 @@ if(TARGET VReg_Detours)
         TARGETS VReg_Detours
         EXPORT VRegDetoursTargets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     )
 endif()
 
