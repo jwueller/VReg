@@ -5,6 +5,7 @@
 #include "ansi.h"
 #include "retry.h"
 #include "status.h"
+#include "value_type.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -23,13 +24,6 @@ bool IsPredefinedKey(const HKEY hKey) noexcept
     const auto low = static_cast<std::uint32_t>(value);
     const auto signExtended = static_cast<std::uintptr_t>(static_cast<std::int32_t>(low));
     return low >= 0x80000000u && low <= 0x800000FFu && value == signExtended;
-}
-
-bool IsStringType(const DWORD dwType) noexcept
-{
-    return dwType == REG_SZ
-        || dwType == REG_EXPAND_SZ
-        || dwType == REG_MULTI_SZ;
 }
 
 /// Copies @p text and a terminator into a name buffer of @p cchBuffer bytes.

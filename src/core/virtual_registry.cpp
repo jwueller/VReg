@@ -7,6 +7,7 @@
 #include "lock.h"
 #include "status.h"
 #include "tree.h"
+#include "value_type.h"
 
 #include <algorithm>
 #include <cstring>
@@ -77,7 +78,7 @@ void CopyValue(
 ) noexcept
 {
     std::memcpy(pbBuffer, value.data(), value.size());
-    if (dwType != REG_SZ && dwType != REG_EXPAND_SZ && dwType != REG_MULTI_SZ)
+    if (!IsStringType(dwType))
         return;
 
     const auto cbWhole = value.size() / sizeof(wchar_t) * sizeof(wchar_t);
@@ -1334,7 +1335,7 @@ try
     if (queried != ERROR_SUCCESS)
         return fail(queried);
 
-    const bool isString = dwType == REG_SZ || dwType == REG_EXPAND_SZ || dwType == REG_MULTI_SZ;
+    const bool isString = IsStringType(dwType);
 
     // Native copies the stored bytes first, then the string with the terminators it lacks, then the expansion, each
     // over the previous one and only if it fits.
