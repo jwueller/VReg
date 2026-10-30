@@ -60,6 +60,9 @@ HandleSpace& HandleSpace::Process() noexcept
     static_assert(std::is_trivially_destructible_v<HandleSpace>);
     static HandleSpace space = []
     {
+        // Every copy of VReg in the process, however built, finds the others
+        // by this name, so it never changes: a copy using another name would
+        // hand out handles that overlap theirs.
         wchar_t wszName[64];
         swprintf_s(wszName, L"Local\\VReg-handles-%lu", GetCurrentProcessId());
         return HandleSpace(wszName);
