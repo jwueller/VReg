@@ -213,15 +213,14 @@ Registry* OverlayHive::Lower() const noexcept
 OverlayHive::LowerView OverlayHive::ViewOf(const Node& node) const
 {
     LowerView view;
+    std::vector<const Node*> chain;
     for (const auto* pNode = &node; pNode; pNode = pNode->pParent)
     {
         if (pNode->isOpaque)
             return view;
+        if (pNode->pParent)
+            chain.push_back(pNode);
     }
-
-    std::vector<const Node*> chain;
-    for (const auto* pNode = &node; pNode->pParent; pNode = pNode->pParent)
-        chain.push_back(pNode);
 
     view.isVisible = true;
     view.path = m_lowerPath;
