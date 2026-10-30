@@ -8,7 +8,6 @@
 #include "value_type.h"
 
 #include <algorithm>
-#include <cstdint>
 #include <cstring>
 #include <new>
 #include <stdexcept>
@@ -17,13 +16,14 @@ namespace VReg
 {
 namespace
 {
-/// A predefined root such as @ref HKEY_CURRENT_USER, sign-extended on x64.
+/// A predefined root such as @ref HKEY_CURRENT_USER: `winreg.h` builds them
+/// from a negative @ref LONG, sign-extended on x64. Neither a kernel handle
+/// nor a virtual one ever has bit 31 set, and a zero-extended value on x64
+/// does not survive the round trip.
 bool IsPredefinedKey(const HKEY hKey) noexcept
 {
-    const auto value = reinterpret_cast<std::uintptr_t>(hKey);
-    const auto low = static_cast<std::uint32_t>(value);
-    const auto signExtended = static_cast<std::uintptr_t>(static_cast<std::int32_t>(low));
-    return low >= 0x80000000u && low <= 0x800000FFu && value == signExtended;
+    const LONG value = HandleToLong(hKey);
+    return value < 0 && LongToHandle(value) == hKey;
 }
 
 /// Copies @p text and a terminator into a name buffer of @p cchBuffer bytes.
