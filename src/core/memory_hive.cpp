@@ -89,6 +89,19 @@ try
     }
 
     Tree::WriteLock lock(*m_pTree);
+    if (!lock)
+    {
+        return CreateKey(
+            pParent,
+            path,
+            className,
+            dwOptions,
+            samDesired,
+            result,
+            dwDisposition
+        );
+    }
+
     if (pParent->isDeleted)
         return ERROR_KEY_DELETED;
 
@@ -134,10 +147,9 @@ LSTATUS MemoryHive::DeleteKey(
     const KeyPath path
 ) noexcept
 {
-    if (IsFrozen())
-        return ERROR_ACCESS_DENIED;
-
     Tree::WriteLock lock(*m_pTree);
+    if (!lock)
+        return ERROR_ACCESS_DENIED;
     if (pParent->isDeleted)
         return ERROR_KEY_DELETED;
 
@@ -156,10 +168,9 @@ LSTATUS MemoryHive::DeleteTree(
     Node* const pNode
 ) noexcept
 {
-    if (IsFrozen())
-        return ERROR_ACCESS_DENIED;
-
     Tree::WriteLock lock(*m_pTree);
+    if (!lock)
+        return ERROR_ACCESS_DENIED;
     if (pNode->isDeleted)
         return ERROR_KEY_DELETED;
 
@@ -255,10 +266,9 @@ LSTATUS MemoryHive::StoreValue(
 ) noexcept
 try
 {
-    if (IsFrozen())
-        return ERROR_ACCESS_DENIED;
-
     Tree::WriteLock lock(*m_pTree);
+    if (!lock)
+        return ERROR_ACCESS_DENIED;
     if (pNode->isDeleted)
         return ERROR_KEY_DELETED;
 
@@ -295,10 +305,9 @@ LSTATUS MemoryHive::DeleteValue(
     const std::wstring_view name
 ) noexcept
 {
-    if (IsFrozen())
-        return ERROR_ACCESS_DENIED;
-
     Tree::WriteLock lock(*m_pTree);
+    if (!lock)
+        return ERROR_ACCESS_DENIED;
     if (pNode->isDeleted)
         return ERROR_KEY_DELETED;
 

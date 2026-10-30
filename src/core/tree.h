@@ -127,6 +127,9 @@ public:
         SRWLOCK* m_pLock;
     };
 
+    /// The exclusive lock, or nothing once frozen; false then. A check of
+    /// @ref IsFrozen made before taking it can be stale, since a writer may
+    /// wait here while @ref Freeze runs, so only this one decides a write.
     class WriteLock
     {
     public:
@@ -135,8 +138,10 @@ public:
         WriteLock(const WriteLock&) = delete;
         WriteLock& operator=(const WriteLock&) = delete;
 
+        explicit operator bool() const noexcept;
+
     private:
-        SRWLOCK& m_lock;
+        SRWLOCK* m_pLock;
     };
 
     [[nodiscard]] static Node* FindChild(

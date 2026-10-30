@@ -167,14 +167,25 @@ Tree::ReadLock::~ReadLock()
 }
 
 Tree::WriteLock::WriteLock(Tree& tree) noexcept :
-    m_lock(tree.m_lock)
+    m_pLock(&tree.m_lock)
 {
-    AcquireSRWLockExclusive(&m_lock);
+    AcquireSRWLockExclusive(m_pLock);
+    if (tree.IsFrozen())
+    {
+        ReleaseSRWLockExclusive(m_pLock);
+        m_pLock = nullptr;
+    }
 }
 
 Tree::WriteLock::~WriteLock()
 {
-    ReleaseSRWLockExclusive(&m_lock);
+    if (m_pLock)
+        ReleaseSRWLockExclusive(m_pLock);
+}
+
+Tree::WriteLock::operator bool() const noexcept
+{
+    return m_pLock != nullptr;
 }
 
 Node* Tree::FindChild(const Node& parent, const std::wstring_view name) noexcept
@@ -309,7 +320,7 @@ LSTATUS Tree::Watch(
     LSTATUS status = ERROR_SUCCESS;
     if (node.isDeleted)
         status = ERROR_KEY_DELETED;
-    else if (!IsFrozen())
+    else if (lock)
     {
         try
         {

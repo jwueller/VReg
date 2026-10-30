@@ -1752,3 +1752,107 @@ TEST_CASE("The hive lock is never held across a call into the lower registry")
 
     fx.Lower().onCall = nullptr;
 }
+
+TEST_CASE("An overlay frozen during a write answers as frozen and writes nothing")
+{
+    Fixture fx;
+    auto& native = fx.Native();
+    auto& reg = fx.Registry();
+    const HKEY hLowerL = Create(native, fx.LowerRoot(), L"L");
+    REQUIRE(SetDword(native, hLowerL, L"v", 1) == ERROR_SUCCESS);
+    native.RegCloseKey(
+        Create(native, hLowerL, L"Sub")
+    );
+    native.RegCloseKey(
+        hLowerL
+    );
+    const HKEY hL = MustOpen(reg, fx.Root(), L"L");
+
+    // The writer has checked the overlay writable before its first lower call.
+    fx.Lower().onCall = [&](const std::string&)
+    {
+        if (!fx.Overlay().IsFrozen())
+            fx.Overlay().Freeze();
+    };
+
+    SECTION("Opening a lower key")
+    {
+        HKEY hKey{};
+        CHECK(Open(reg, fx.Root(), L"L\\Sub", hKey) == ERROR_SUCCESS);
+        CHECK(Hive::NodeOf(hKey) == nullptr);
+        reg.RegCloseKey(
+            hKey
+        );
+    }
+
+    SECTION("Creating an existing lower key")
+    {
+        HKEY hKey{};
+        DWORD dwDisposition = 0;
+        CHECK(
+            reg.RegCreateKeyExW(
+                fx.Root(),
+                L"L\\Sub",
+                0,
+                nullptr,
+                0,
+                KEY_READ,
+                nullptr,
+                &hKey,
+                &dwDisposition
+            ) == ERROR_SUCCESS
+        );
+        CHECK(dwDisposition == REG_OPENED_EXISTING_KEY);
+        CHECK(Hive::NodeOf(hKey) == nullptr);
+        reg.RegCloseKey(
+            hKey
+        );
+    }
+
+    SECTION("Creating a new key")
+    {
+        HKEY hKey{};
+        CHECK(
+            reg.RegCreateKeyExW(
+                fx.Root(),
+                L"L\\New",
+                0,
+                nullptr,
+                0,
+                KEY_ALL_ACCESS,
+                nullptr,
+                &hKey,
+                nullptr
+            ) == ERROR_ACCESS_DENIED
+        );
+        CHECK(Open(reg, fx.Root(), L"L\\New", hKey) == ERROR_FILE_NOT_FOUND);
+    }
+
+    SECTION("Deleting a lower value")
+    {
+        CHECK(
+            reg.RegDeleteValueW(
+                hL,
+                L"v"
+            ) == ERROR_ACCESS_DENIED
+        );
+        DWORD dwValue{};
+        CHECK(QueryDword(reg, hL, L"v", dwValue) == ERROR_SUCCESS);
+    }
+
+    SECTION("Deleting a lower key")
+    {
+        CHECK(
+            reg.RegDeleteKeyExW(
+                hL,
+                L"Sub",
+                0,
+                0
+            ) == ERROR_ACCESS_DENIED
+        );
+        HKEY hKey{};
+        CHECK(Open(reg, hL, L"Sub", hKey) == ERROR_SUCCESS);
+    }
+
+    fx.Lower().onCall = nullptr;
+}

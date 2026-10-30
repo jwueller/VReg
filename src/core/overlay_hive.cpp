@@ -366,6 +366,9 @@ try
     // Writable: every open inside the mount answers with a node, or a write
     // through a lower handle handed out now would miss a later copy-up.
     Tree::WriteLock lock(*m_pTree);
+    if (!lock)
+        return OpenKey(pParent, path, samDesired, result);
+
     if (pCurrent->isDeleted)
         return ERROR_KEY_DELETED;
 
@@ -465,6 +468,19 @@ try
 
     const bool isVolatile = (dwOptions & REG_OPTION_VOLATILE) != 0;
     Tree::WriteLock lock(*m_pTree);
+    if (!lock)
+    {
+        return CreateKey(
+            pParent,
+            path,
+            className,
+            dwOptions,
+            samDesired,
+            result,
+            dwDisposition
+        );
+    }
+
     if (pParent->isDeleted)
         return ERROR_KEY_DELETED;
 
@@ -546,6 +562,14 @@ try
     if (located != ERROR_SUCCESS)
         return located;
 
+    // Frozen since the check above, so the open answered with a lower key.
+    if (!opened.pNode)
+    {
+        LowerKey lowerKey(m_lower);
+        lowerKey.Receive() = opened.hLower;
+        return ERROR_ACCESS_DENIED;
+    }
+
     auto* const pNode = opened.pNode;
     std::vector<std::wstring> tombstones;
     LowerView view;
@@ -610,6 +634,8 @@ try
     }
 
     Tree::WriteLock lock(*m_pTree);
+    if (!lock)
+        return ERROR_ACCESS_DENIED;
     if (pNode->isDeleted)
         return ERROR_KEY_DELETED;
     if (
@@ -644,10 +670,9 @@ LSTATUS OverlayHive::DeleteTree(
     Node* const pNode
 ) noexcept
 {
-    if (IsFrozen())
-        return ERROR_ACCESS_DENIED;
-
     Tree::WriteLock lock(*m_pTree);
+    if (!lock)
+        return ERROR_ACCESS_DENIED;
     if (pNode->isDeleted)
         return ERROR_KEY_DELETED;
 
@@ -798,11 +823,10 @@ LSTATUS OverlayHive::StoreValue(
 ) noexcept
 try
 {
-    if (IsFrozen())
-        return ERROR_ACCESS_DENIED;
-
     std::vector<std::byte> bytes(data.begin(), data.end());
     Tree::WriteLock lock(*m_pTree);
+    if (!lock)
+        return ERROR_ACCESS_DENIED;
     if (pNode->isDeleted)
         return ERROR_KEY_DELETED;
 
@@ -896,6 +920,8 @@ try
         return ERROR_FILE_NOT_FOUND;
 
     Tree::WriteLock lock(*m_pTree);
+    if (!lock)
+        return ERROR_ACCESS_DENIED;
     if (pNode->isDeleted)
         return ERROR_KEY_DELETED;
 
