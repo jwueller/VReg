@@ -1,6 +1,7 @@
 {
   "name": "vreg",
   "version-semver": "0.3.1",
+  "port-version": 1,
   "description": "A virtualized Windows registry: the Win32 Reg* interface over in-memory and overlay hives, .reg import and export, and optional Detours hooks",
   "homepage": "https://github.com/jwueller/VReg",
   "license": "MIT",
@@ -18,7 +19,6 @@
   "features": {
     "detours": {
       "description": "Route the process's Reg* calls into a virtual registry through Microsoft Detours",
-      "supports": "!arm64",
       "dependencies": [
         "detours"
       ]

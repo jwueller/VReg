@@ -22,6 +22,7 @@ vcpkg_cmake_configure(
         ${FEATURE_OPTIONS}
         -DVREG_BUILD_TESTS=OFF
 )
+
 vcpkg_cmake_install()
 vcpkg_cmake_config_fixup(CONFIG_PATH lib/cmake/VReg)
 
