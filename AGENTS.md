@@ -81,6 +81,11 @@ the API it reimplements. Change them freely before the first release.
   function (Win32 or a `Registry` member) put one parameter or argument per
   line, with blank lines between multi-line declarations. Any other call or
   signature does the same once it would run its line past 80 columns.
+- A CMake command that takes a list (sources, libraries, options,
+  definitions) keeps everything before the list on its first line and puts
+  each item, even a single one, on a line of its own; the IDE formatter
+  keeps that layout. A multiline statement is set off by blank lines, with
+  its comment attached.
 - No init-statement in an `if`, and no state-changing call inside its
   condition: assign the result in a statement of its own first. A single
   declaration as the condition is fine.
