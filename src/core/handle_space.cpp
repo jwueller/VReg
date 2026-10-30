@@ -4,6 +4,7 @@
 
 #include <cwchar>
 #include <new>
+#include <type_traits>
 
 namespace VReg
 {
@@ -54,21 +55,17 @@ HandleSpace::HandleSpace(const LPCWSTR pszName) noexcept
 
 HandleSpace& HandleSpace::Process() noexcept
 {
-    static HandleSpace* const pSpace = []
+    // Handles issued from it outlive static destruction, which therefore must
+    // leave it intact.
+    static_assert(std::is_trivially_destructible_v<HandleSpace>);
+    static HandleSpace space = []
     {
         wchar_t wszName[64];
         swprintf_s(wszName, L"Local\\VReg-handles-%lu", GetCurrentProcessId());
-
-        // Leaked: handles issued from it outlive static destruction.
-        return new(std::nothrow) HandleSpace(wszName);
+        return HandleSpace(wszName);
     }();
 
-    // Allocation of a few hundred bytes failing at first use leaves nothing to
-    // recover; the namespace is unusable for the whole process either way.
-    if (!pSpace)
-        std::terminate();
-
-    return *pSpace;
+    return space;
 }
 
 bool HandleSpace::IsUsable() const noexcept
