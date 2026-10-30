@@ -4,6 +4,56 @@
 
 #include <Windows.h>
 
+/// Applies `X` to the name of every function the @ref VReg::Registry surface
+/// mirrors, A and pre-`Ex` forms included: the fields of
+/// @ref VReg::NativeRegistry::Functions, and the functions the hooks emulate.
+#define VREG_REGISTRY_FUNCTIONS(X)                                                                                     \
+    X(RegOpenKeyExW)                                                                                                   \
+    X(RegOpenKeyExA)                                                                                                   \
+    X(RegOpenKeyW)                                                                                                     \
+    X(RegOpenKeyA)                                                                                                     \
+    X(RegCreateKeyExW)                                                                                                 \
+    X(RegCreateKeyExA)                                                                                                 \
+    X(RegCreateKeyW)                                                                                                   \
+    X(RegCreateKeyA)                                                                                                   \
+    X(RegCloseKey)                                                                                                     \
+    X(RegQueryValueExW)                                                                                                \
+    X(RegQueryValueExA)                                                                                                \
+    X(RegQueryValueW)                                                                                                  \
+    X(RegQueryValueA)                                                                                                  \
+    X(RegSetValueExW)                                                                                                  \
+    X(RegSetValueExA)                                                                                                  \
+    X(RegSetValueW)                                                                                                    \
+    X(RegSetValueA)                                                                                                    \
+    X(RegDeleteValueW)                                                                                                 \
+    X(RegDeleteValueA)                                                                                                 \
+    X(RegDeleteKeyExW)                                                                                                 \
+    X(RegDeleteKeyExA)                                                                                                 \
+    X(RegDeleteKeyW)                                                                                                   \
+    X(RegDeleteKeyA)                                                                                                   \
+    X(RegDeleteTreeW)                                                                                                  \
+    X(RegDeleteTreeA)                                                                                                  \
+    X(RegEnumKeyExW)                                                                                                   \
+    X(RegEnumKeyExA)                                                                                                   \
+    X(RegEnumKeyW)                                                                                                     \
+    X(RegEnumKeyA)                                                                                                     \
+    X(RegEnumValueW)                                                                                                   \
+    X(RegEnumValueA)                                                                                                   \
+    X(RegQueryInfoKeyW)                                                                                                \
+    X(RegQueryInfoKeyA)                                                                                                \
+    X(RegLoadMUIStringW)                                                                                               \
+    X(RegLoadMUIStringA)                                                                                               \
+    X(RegGetValueW)                                                                                                    \
+    X(RegGetValueA)                                                                                                    \
+    X(RegNotifyChangeKeyValue)                                                                                         \
+    X(RegFlushKey)                                                                                                     \
+    X(RegSetKeyValueW)                                                                                                 \
+    X(RegSetKeyValueA)                                                                                                 \
+    X(RegDeleteKeyValueW)                                                                                              \
+    X(RegDeleteKeyValueA)                                                                                              \
+    X(RegQueryMultipleValuesW)                                                                                         \
+    X(RegQueryMultipleValuesA)
+
 namespace VReg
 {
 /**
@@ -25,54 +75,12 @@ namespace VReg
 class NativeRegistry final : public Registry
 {
 public:
+#define VREG_FIELD(name) decltype(&::name) name;
     struct Functions
     {
-        decltype(&::RegOpenKeyExW) RegOpenKeyExW;
-        decltype(&::RegOpenKeyExA) RegOpenKeyExA;
-        decltype(&::RegOpenKeyW) RegOpenKeyW;
-        decltype(&::RegOpenKeyA) RegOpenKeyA;
-        decltype(&::RegCreateKeyExW) RegCreateKeyExW;
-        decltype(&::RegCreateKeyExA) RegCreateKeyExA;
-        decltype(&::RegCreateKeyW) RegCreateKeyW;
-        decltype(&::RegCreateKeyA) RegCreateKeyA;
-        decltype(&::RegCloseKey) RegCloseKey;
-        decltype(&::RegQueryValueExW) RegQueryValueExW;
-        decltype(&::RegQueryValueExA) RegQueryValueExA;
-        decltype(&::RegQueryValueW) RegQueryValueW;
-        decltype(&::RegQueryValueA) RegQueryValueA;
-        decltype(&::RegSetValueExW) RegSetValueExW;
-        decltype(&::RegSetValueExA) RegSetValueExA;
-        decltype(&::RegSetValueW) RegSetValueW;
-        decltype(&::RegSetValueA) RegSetValueA;
-        decltype(&::RegDeleteValueW) RegDeleteValueW;
-        decltype(&::RegDeleteValueA) RegDeleteValueA;
-        decltype(&::RegDeleteKeyExW) RegDeleteKeyExW;
-        decltype(&::RegDeleteKeyExA) RegDeleteKeyExA;
-        decltype(&::RegDeleteKeyW) RegDeleteKeyW;
-        decltype(&::RegDeleteKeyA) RegDeleteKeyA;
-        decltype(&::RegDeleteTreeW) RegDeleteTreeW;
-        decltype(&::RegDeleteTreeA) RegDeleteTreeA;
-        decltype(&::RegEnumKeyExW) RegEnumKeyExW;
-        decltype(&::RegEnumKeyExA) RegEnumKeyExA;
-        decltype(&::RegEnumKeyW) RegEnumKeyW;
-        decltype(&::RegEnumKeyA) RegEnumKeyA;
-        decltype(&::RegEnumValueW) RegEnumValueW;
-        decltype(&::RegEnumValueA) RegEnumValueA;
-        decltype(&::RegQueryInfoKeyW) RegQueryInfoKeyW;
-        decltype(&::RegQueryInfoKeyA) RegQueryInfoKeyA;
-        decltype(&::RegLoadMUIStringW) RegLoadMUIStringW;
-        decltype(&::RegLoadMUIStringA) RegLoadMUIStringA;
-        decltype(&::RegGetValueW) RegGetValueW;
-        decltype(&::RegGetValueA) RegGetValueA;
-        decltype(&::RegNotifyChangeKeyValue) RegNotifyChangeKeyValue;
-        decltype(&::RegFlushKey) RegFlushKey;
-        decltype(&::RegSetKeyValueW) RegSetKeyValueW;
-        decltype(&::RegSetKeyValueA) RegSetKeyValueA;
-        decltype(&::RegDeleteKeyValueW) RegDeleteKeyValueW;
-        decltype(&::RegDeleteKeyValueA) RegDeleteKeyValueA;
-        decltype(&::RegQueryMultipleValuesW) RegQueryMultipleValuesW;
-        decltype(&::RegQueryMultipleValuesA) RegQueryMultipleValuesA;
+        VREG_REGISTRY_FUNCTIONS(VREG_FIELD)
     };
+#undef VREG_FIELD
 
     /// The default table. A function neither module exports stays null.
     [[nodiscard]] static Functions ResolveFunctions() noexcept;

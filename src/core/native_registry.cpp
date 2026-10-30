@@ -27,52 +27,8 @@ NativeRegistry::Functions NativeRegistry::ResolveFunctions() noexcept
 {
     Functions functions{};
 
-#define VREG_RESOLVE(name) functions.name = reinterpret_cast<decltype(functions.name)>(FindRegistryExport(#name))
-    VREG_RESOLVE(RegOpenKeyExW);
-    VREG_RESOLVE(RegOpenKeyExA);
-    VREG_RESOLVE(RegOpenKeyW);
-    VREG_RESOLVE(RegOpenKeyA);
-    VREG_RESOLVE(RegCreateKeyExW);
-    VREG_RESOLVE(RegCreateKeyExA);
-    VREG_RESOLVE(RegCreateKeyW);
-    VREG_RESOLVE(RegCreateKeyA);
-    VREG_RESOLVE(RegCloseKey);
-    VREG_RESOLVE(RegQueryValueExW);
-    VREG_RESOLVE(RegQueryValueExA);
-    VREG_RESOLVE(RegQueryValueW);
-    VREG_RESOLVE(RegQueryValueA);
-    VREG_RESOLVE(RegSetValueExW);
-    VREG_RESOLVE(RegSetValueExA);
-    VREG_RESOLVE(RegSetValueW);
-    VREG_RESOLVE(RegSetValueA);
-    VREG_RESOLVE(RegDeleteValueW);
-    VREG_RESOLVE(RegDeleteValueA);
-    VREG_RESOLVE(RegDeleteKeyExW);
-    VREG_RESOLVE(RegDeleteKeyExA);
-    VREG_RESOLVE(RegDeleteKeyW);
-    VREG_RESOLVE(RegDeleteKeyA);
-    VREG_RESOLVE(RegDeleteTreeW);
-    VREG_RESOLVE(RegDeleteTreeA);
-    VREG_RESOLVE(RegEnumKeyExW);
-    VREG_RESOLVE(RegEnumKeyExA);
-    VREG_RESOLVE(RegEnumKeyW);
-    VREG_RESOLVE(RegEnumKeyA);
-    VREG_RESOLVE(RegEnumValueW);
-    VREG_RESOLVE(RegEnumValueA);
-    VREG_RESOLVE(RegQueryInfoKeyW);
-    VREG_RESOLVE(RegQueryInfoKeyA);
-    VREG_RESOLVE(RegLoadMUIStringW);
-    VREG_RESOLVE(RegLoadMUIStringA);
-    VREG_RESOLVE(RegGetValueW);
-    VREG_RESOLVE(RegGetValueA);
-    VREG_RESOLVE(RegNotifyChangeKeyValue);
-    VREG_RESOLVE(RegFlushKey);
-    VREG_RESOLVE(RegSetKeyValueW);
-    VREG_RESOLVE(RegSetKeyValueA);
-    VREG_RESOLVE(RegDeleteKeyValueW);
-    VREG_RESOLVE(RegDeleteKeyValueA);
-    VREG_RESOLVE(RegQueryMultipleValuesW);
-    VREG_RESOLVE(RegQueryMultipleValuesA);
+#define VREG_RESOLVE(name) functions.name = reinterpret_cast<decltype(functions.name)>(FindRegistryExport(#name));
+    VREG_REGISTRY_FUNCTIONS(VREG_RESOLVE)
 #undef VREG_RESOLVE
 
     return functions;
