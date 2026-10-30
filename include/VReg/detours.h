@@ -31,7 +31,10 @@ class Registry;
  *  own.
  *
  * @note A thread still inside a hook body when its module unmaps crashes:
- *  the module MUST NOT unload while registry calls are in flight.
+ *  the module MUST NOT unload while registry calls are in flight. A module
+ *  that cannot rule that out MAY pin itself (@ref GetModuleHandleExW with
+ *  @ref GET_MODULE_HANDLE_EX_FLAG_PIN), which keeps it loaded until the
+ *  process exits.
  */
 namespace VReg::Detours
 {

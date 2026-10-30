@@ -332,7 +332,12 @@ of each group.
   slots and trampolines are leaked on purpose.
 - Precondition, documented: a thread already inside a detour body when the
   module unmaps still crashes; the consumer must not unload while registry
-  calls are in flight.
+  calls are in flight, or pins its module. Switching the slot cannot help:
+  the thread returns into the unmapped body. Draining calls in flight
+  cannot either: detach runs under the loader lock, which a call inside a
+  native open may be waiting for, and the count's decrement would run in
+  the image itself. Agent's choice: pinning stays the consumer's, since it
+  ends unloading for good; `Install` pinning by default was passed over.
 - README recommendation, not a requirement: install before other registry
   hookers where possible.
 

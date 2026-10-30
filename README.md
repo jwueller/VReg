@@ -127,7 +127,10 @@ hive stays writable to whoever holds it.
   first hooked call already finds the hive.
 - **Unloading** neutralizes the hooks (they pass everything through from
   then on); the module MUST NOT unload while another thread may be inside
-  a registry call.
+  a registry call. A module that cannot rule that out MAY pin itself after
+  installing (`GetModuleHandleExW` with `GET_MODULE_HANDLE_EX_FLAG_PIN`):
+  it then stays loaded until the process exits, and no call can find its
+  code unmapped.
 - **Several modules** MAY each link VReg and install their own hooks; their
   handles never collide, and each answers only its own mounts.
 - **Tracing:** `Install` takes any `Registry`, so a wrapper that logs each
