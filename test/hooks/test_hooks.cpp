@@ -833,7 +833,7 @@ TEST_CASE("Hooked Reg functions pass real keys through")
     CHECK(!RealKeyExists(name));
 }
 
-TEST_CASE("Refused functions answer not supported on virtual keys and pass real ones through")
+TEST_CASE("Refused functions answer not supported on virtual handles and pass real ones through")
 {
     const auto name = MountName(L"Exe");
     REQUIRE(InstallMount(name.c_str(), L"Exe") == NO_ERROR);
@@ -1088,7 +1088,7 @@ TEST_CASE("Transacted functions answer not supported through a mount path and pa
     CHECK(!RealKeyExists(real));
 }
 
-TEST_CASE("RegLoadMUIStringA answers not implemented on virtual keys")
+TEST_CASE("RegLoadMUIStringA answers not implemented on virtual handles")
 {
     const auto name = MountName(L"Exe");
     REQUIRE(InstallMount(name.c_str(), L"Exe") == NO_ERROR);
