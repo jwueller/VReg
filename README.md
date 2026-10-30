@@ -1,12 +1,11 @@
 # VReg
 
-A virtualized Windows registry for C++. VReg lets a process see registry
-keys that don't exist on the machine, override values in keys that do, or
-run against a registry held entirely in memory, without touching the real
-registry.
+A virtual Windows registry for C++, as an overlay over the real one, or held
+entirely in memory. A process sees keys that don't exist on the machine and
+values added, overridden or deleted in keys that do, while the real
+registry stays unchanged.
 
-It grew out of the virtual registry in
-[DirectRetrofit](https://retrofit.games), which is its first consumer.
+It grew out of the virtual registry in [DirectRetrofit](https://retrofit.games).
 
 ## What it does
 
@@ -148,11 +147,6 @@ Calls straight to `ntdll` (`NtOpenKey` and friends) bypass the hooks; see
 [Known divergences from native Windows](#known-divergences-from-native-windows).
 
 ## Supported functions
-
-Each links to its Microsoft documentation; an ANSI and wide pair shares an
-entry.
-
-### Answered
 
 By `Registry` (its members) and, once hooked, for every virtual key.
 
@@ -346,17 +340,15 @@ is reachable through `RegOpenUserClassesRoot`.
 
 - ARM64EC builds. Its emulated x64 callers and native callers reach the
   `Reg*` functions through separate entry points, which would each need
-  hooks. Agent's choice: listed as missing rather than as a non-goal, since
-  nothing rules it out; no consumer needs it yet.
+  hooks.
 - Answers on virtual keys for the functions the hooks refuse there (see
   [Refused on virtual handles](#refused-on-virtual-handles));
   `RegRenameKey` and `RegCopyTree` are the ones a hive could answer most
   readily.
 - A diagnostic sink: an optional function pointer, off by default and bound
-  by the detour-body rules, reporting what VReg decides. Agent's choice: a
-  logging library dependency was passed over. Call tracing needs no sink: a
-  `Registry` wrapper installed in front of the `VirtualRegistry` sees every
-  call.
+  by the detour-body rules, reporting what VReg decides. Call tracing needs
+  no sink: a `Registry` wrapper installed in front of the `VirtualRegistry`
+  sees every call.
 
 ## Known divergences from native Windows
 
