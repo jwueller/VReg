@@ -36,7 +36,7 @@ using NtQueryKeyFunction = LONG(NTAPI*)(
  * @brief A namespace of hives mounted at registry paths over an optional base
  *  registry.
  *
- *  A call lands in a hive when its key is a virtual handle of a mounted hive,
+ *  A call lands in a hive when it passes a virtual handle of a mounted hive,
  *  or a predefined root plus a path at or below a mount point. Everything
  *  else goes to the base registry; with no base it answers
  *  @ref ERROR_FILE_NOT_FOUND (or @ref ERROR_INVALID_HANDLE for a handle that

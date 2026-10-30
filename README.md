@@ -195,9 +195,9 @@ By `Registry` (its members) and, once hooked, for every virtual key.
 
 - [`RegNotifyChangeKeyValue`][RegNotifyChangeKeyValue]
 
-### Refused on virtual keys
+### Refused on virtual handles
 
-They answer `ERROR_NOT_SUPPORTED` on a virtual key and pass through
+They answer `ERROR_NOT_SUPPORTED` on a virtual handle and pass through
 unchanged on a real one. They are hooked but not part of `Registry`.
 
 #### Hive files
@@ -225,7 +225,7 @@ unchanged on a real one. They are hooked but not part of `Registry`.
 - [`RegOpenKeyTransactedA`][RegOpenKeyTransactedA], [`RegOpenKeyTransactedW`][RegOpenKeyTransactedW]
 - [`RegDeleteKeyTransactedA`][RegDeleteKeyTransactedA], [`RegDeleteKeyTransactedW`][RegDeleteKeyTransactedW]
 
-They also answer `ERROR_NOT_SUPPORTED` on a real key whose subkey path
+They also answer `ERROR_NOT_SUPPORTED` on a real handle whose subkey path
 leads into a mount.
 
 #### Reflection and overrides
@@ -237,10 +237,10 @@ leads into a mount.
 
 ### Not hooked
 
-They take no key handle a virtual key could reach. The keys they return
-are real; a later call on one reaches a mount only by its native path, as
-for any real key, so nothing below `HKEY_CLASSES_ROOT` is reachable through
-`RegOpenUserClassesRoot`.
+They take no key handle, so they cannot reach a virtual key. The handles
+they return are real; a later call on one reaches a mount only by its
+native path, as for any real handle, so nothing below `HKEY_CLASSES_ROOT`
+is reachable through `RegOpenUserClassesRoot`.
 
 - [`RegConnectRegistryA`][RegConnectRegistryA], [`RegConnectRegistryW`][RegConnectRegistryW]
 - [`RegDisablePredefinedCache`][RegDisablePredefinedCache]
@@ -348,8 +348,9 @@ for any real key, so nothing below `HKEY_CLASSES_ROOT` is reachable through
   hooks. Agent's choice: listed as missing rather than as a non-goal, since
   nothing rules it out; no consumer needs it yet.
 - Answers on virtual keys for the functions the hooks refuse there (see
-  "Refused on virtual keys" above); `RegRenameKey` and `RegCopyTree` are
-  the ones a hive could answer most readily.
+  [Refused on virtual handles](#refused-on-virtual-handles));
+  `RegRenameKey` and `RegCopyTree` are the ones a hive could answer most
+  readily.
 - A diagnostic sink: an optional function pointer, off by default and bound
   by the detour-body rules, reporting what VReg decides. Agent's choice: a
   logging library dependency was passed over. Call tracing needs no sink: a
@@ -410,8 +411,8 @@ Measured by running the oracle catalogue against `VirtualRegistry` over a
 
 Mounts take no part in Kernel Transaction Manager transactions. A
 transacted create, open or delete answers `ERROR_NOT_SUPPORTED` where native
-would act inside the transaction: on a virtual key, and on a real key whose
-subkey path leads into a mount.
+would act on a virtual key inside the transaction: through its virtual
+handle, or through a real handle whose subkey path leads into a mount.
 
 ## Contributing
 

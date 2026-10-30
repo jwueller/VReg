@@ -30,7 +30,7 @@ namespace VReg
  *  declared; a member with the neutral name would be renamed by the macro.
  *  Queries are `const`. The reads that size and fill owned buffers are free
  *  functions in `owned_values.h`, not part of this interface; neither are
- *  the functions VReg refuses on virtual keys or does not hook, which the
+ *  the functions VReg refuses on virtual handles or does not hook, which the
  *  README lists under "Supported functions".
  *
  * @note Every member is `noexcept`; an allocation failure answers

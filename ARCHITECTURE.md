@@ -290,7 +290,7 @@ each group.
 - **Refused on virtual handles, passthrough on real ones**: they answer
   `ERROR_NOT_SUPPORTED` on a virtual handle of this copy, and the hook
   passes everything else to the trampoline without a `Registry`. The
-  transacted ones also refuse a real key plus a path into a mount: the hook
+  transacted ones also refuse a real handle plus a path into a mount: the hook
   opens each prefix of the path through `Registry` and refuses when one
   opens as a virtual handle. They stay
   out of `Registry`: as members they would be pure virtual, so every

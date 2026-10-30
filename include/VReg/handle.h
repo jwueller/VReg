@@ -10,7 +10,7 @@ namespace VReg
 /// The highest virtual handle value. Real key handles are kernel handle values
 /// (multiples of 4, at most tagged in bit 1 by advapi32), and predefined roots
 /// lie above this (sign-extended on x64), so an odd value at or below it is
-/// never a real key.
+/// never a real key handle.
 ///
 /// The range stays 31-bit on x64 too, so code that truncates an HKEY to a
 /// @ref DWORD keeps a working handle.
