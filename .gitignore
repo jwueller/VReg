@@ -587,3 +587,6 @@ FodyWeavers.xsd
 # Additional files built by Visual Studio
 
 # End of https://www.toptal.com/developers/gitignore/api/c++,osx,linux,windows,visualstudio,jetbrains+all
+
+# CMake: per-developer presets, such as the IDE toolchain choice
+CMakeUserPresets.json
