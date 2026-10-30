@@ -6,7 +6,6 @@
 
 #include <array>
 #include <atomic>
-#include <cstdint>
 
 namespace VReg
 {
@@ -27,8 +26,8 @@ namespace VReg
 class HandleSpace
 {
 public:
-    static constexpr std::uintptr_t BLOCK_SIZE = 4096;
-    static constexpr std::uintptr_t BLOCK_COUNT = VREG_VIRTUAL_HKEY_COUNT / BLOCK_SIZE;
+    static constexpr UINT_PTR BLOCK_SIZE = 4096;
+    static constexpr UINT_PTR BLOCK_COUNT = VREG_VIRTUAL_HKEY_COUNT / BLOCK_SIZE;
 
     /// The section's contents. Separately built copies of VReg read this
     /// layout, so it never changes; a different layout needs a different
@@ -77,17 +76,17 @@ private:
 
     // Two levels of block directories, filled in as blocks are reserved and
     // never freed: a lookup is two acquire loads and an index.
-    static constexpr std::uintptr_t DIRECTORY_SIZE = 512;
+    static constexpr UINT_PTR DIRECTORY_SIZE = 512;
     using Directory = std::array<std::atomic<Targets*>, DIRECTORY_SIZE>;
 
-    [[nodiscard]] const Targets* FindBlock(std::uintptr_t block) const noexcept;
-    [[nodiscard]] bool AddBlock(std::uintptr_t block) noexcept;
+    [[nodiscard]] const Targets* FindBlock(UINT_PTR block) const noexcept;
+    [[nodiscard]] bool AddBlock(UINT_PTR block) noexcept;
 
     Shared* m_pShared = nullptr;
 
     SRWLOCK m_lock = SRWLOCK_INIT;
-    std::uintptr_t m_nextIndex = 0;
-    std::uintptr_t m_endIndex = 0;
+    UINT_PTR m_nextIndex = 0;
+    UINT_PTR m_endIndex = 0;
 
     std::array<std::atomic<Directory*>, BLOCK_COUNT / DIRECTORY_SIZE> m_directories{};
 };

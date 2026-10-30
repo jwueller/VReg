@@ -87,7 +87,7 @@ HKEY HandleSpace::Allocate(void* const pTarget) noexcept
     {
         // InterlockedIncrement returns the new value; the block reserved is the
         // one before it.
-        const auto block = static_cast<std::uintptr_t>(InterlockedIncrement(&m_pShared->nextBlock)) - 1;
+        const auto block = static_cast<UINT_PTR>(InterlockedIncrement(&m_pShared->nextBlock)) - 1;
         if (block >= BLOCK_COUNT || !AddBlock(block))
             return nullptr;
 
@@ -132,7 +132,7 @@ void* HandleSpace::Find(const HKEY hKey) const noexcept
     return (*pTargets)[index % BLOCK_SIZE].load(std::memory_order_acquire);
 }
 
-const HandleSpace::Targets* HandleSpace::FindBlock(const std::uintptr_t block) const noexcept
+const HandleSpace::Targets* HandleSpace::FindBlock(const UINT_PTR block) const noexcept
 {
     const auto* const pDirectory = m_directories[block / DIRECTORY_SIZE].load(std::memory_order_acquire);
     if (!pDirectory)
@@ -141,7 +141,7 @@ const HandleSpace::Targets* HandleSpace::FindBlock(const std::uintptr_t block) c
     return (*pDirectory)[block % DIRECTORY_SIZE].load(std::memory_order_acquire);
 }
 
-bool HandleSpace::AddBlock(const std::uintptr_t block) noexcept
+bool HandleSpace::AddBlock(const UINT_PTR block) noexcept
 {
     auto& directorySlot = m_directories[block / DIRECTORY_SIZE];
     auto* pDirectory = directorySlot.load(std::memory_order_relaxed);
