@@ -97,7 +97,8 @@ public:
         DWORD& dwDisposition
     ) noexcept = 0;
 
-    /// Deletes the last component of @p path, which must have no subkeys.
+    /// Deletes the last component of @p path; a key with subkeys answers
+    /// @ref ERROR_ACCESS_DENIED, as native does.
     virtual LSTATUS DeleteKey(Node* pParent, KeyPath path) noexcept = 0;
     /// Deletes every subkey and value of @p pNode, leaving the node itself.
     virtual LSTATUS DeleteTree(Node* pNode) noexcept = 0;
