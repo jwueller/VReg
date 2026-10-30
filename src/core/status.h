@@ -2,7 +2,6 @@
 
 #include <Windows.h>
 
-#include <exception>
 #include <new>
 #include <stdexcept>
 
@@ -14,7 +13,9 @@ namespace VReg
  *
  *  A failed allocation answers @ref ERROR_OUTOFMEMORY, as the native
  *  registry does when it runs out of memory. Any other exception is a bug in
- *  VReg and terminates, as it would escaping the `noexcept` boundary.
+ *  VReg and answers @ref ERROR_INTERNAL_ERROR: the call fails, but the
+ *  process it runs in, often not VReg's own, keeps running. A debug build
+ *  breaks into an attached debugger first.
  *
  *  Every entry point that can allocate is a function-try-block ending in
  *  `catch (...) { return StatusFromException(); }`; clang-tidy's
@@ -36,7 +37,12 @@ inline LSTATUS StatusFromException() noexcept
     }
     catch (...)
     {
-        std::terminate();
+#ifndef NDEBUG
+        if (IsDebuggerPresent())
+            __debugbreak();
+#endif
+
+        return ERROR_INTERNAL_ERROR;
     }
 }
 } // namespace VReg

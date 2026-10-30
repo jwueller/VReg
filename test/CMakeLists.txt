@@ -21,6 +21,7 @@ add_executable(
     test_regfile_export.cpp
     test_regfile_parse.cpp
     test_regfile_roundtrip.cpp
+    test_status.cpp
     test_virtual_registry.cpp
     test_version.cpp
 )

@@ -412,8 +412,13 @@ Every Win32-shaped entry point is `noexcept` and returns the `LSTATUS`
 native Windows returns in the same situation; native behavior is the spec.
 Each one that can allocate is a function-try-block ending in
 `catch (...) { return StatusFromException(); }` (`src/core/status.h`),
-which turns a failed allocation into `ERROR_OUTOFMEMORY` and lets any other
-exception terminate. clang-tidy's `bugprone-exception-escape` runs in CI and
+which turns a failed allocation into `ERROR_OUTOFMEMORY` and any other
+exception, a bug in VReg, into `ERROR_INTERNAL_ERROR`, after a break into an
+attached debugger in a debug build. Failing the call keeps the process
+running, which in a hooked process is usually not VReg's own; the oracle
+still catches the bug, since native never answers that status. Agent's
+choice: `ERROR_INTERNAL_ERROR` over `ERROR_GEN_FAILURE`, which reads as a
+device fault. clang-tidy's `bugprone-exception-escape` runs in CI and
 fails on an entry point an exception can escape. Where VReg cannot match
 native Windows, the README lists it under "Known divergences from native
 Windows".
