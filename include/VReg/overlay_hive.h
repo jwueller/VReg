@@ -102,7 +102,8 @@ public:
         Node* pNode,
         std::wstring_view name,
         DWORD& dwType,
-        std::vector<std::byte>& data
+        DWORD& cbData,
+        std::vector<std::byte>* pData
     ) const noexcept
         override;
 
@@ -142,7 +143,8 @@ public:
         DWORD dwIndex,
         std::wstring& name,
         DWORD& dwType,
-        std::vector<std::byte>& data
+        DWORD& cbData,
+        std::vector<std::byte>* pData
     ) const noexcept
         override;
     LSTATUS QueryInfo(Node* pNode, KeyInfo& info) const noexcept override;

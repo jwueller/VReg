@@ -171,7 +171,8 @@ LSTATUS MemoryHive::QueryValue(
     Node* const pNode,
     const std::wstring_view name,
     DWORD& dwType,
-    std::vector<std::byte>& data
+    DWORD& cbData,
+    std::vector<std::byte>* const pData
 ) const noexcept
 try
 {
@@ -184,7 +185,9 @@ try
         return ERROR_FILE_NOT_FOUND;
 
     dwType = pValue->dwType;
-    data = pValue->data;
+    cbData = static_cast<DWORD>(pValue->data.size());
+    if (pData)
+        *pData = pValue->data;
     return ERROR_SUCCESS;
 }
 catch (...)
@@ -331,7 +334,8 @@ LSTATUS MemoryHive::EnumValue(
     const DWORD dwIndex,
     std::wstring& name,
     DWORD& dwType,
-    std::vector<std::byte>& data
+    DWORD& cbData,
+    std::vector<std::byte>* const pData
 ) const noexcept
 try
 {
@@ -345,7 +349,9 @@ try
     const auto& value = pNode->values[dwIndex];
     name = value.name;
     dwType = value.dwType;
-    data = value.data;
+    cbData = static_cast<DWORD>(value.data.size());
+    if (pData)
+        *pData = value.data;
     return ERROR_SUCCESS;
 }
 catch (...)

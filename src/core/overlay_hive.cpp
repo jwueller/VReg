@@ -642,7 +642,8 @@ LSTATUS OverlayHive::QueryValue(
     Node* const pNode,
     const std::wstring_view name,
     DWORD& dwType,
-    std::vector<std::byte>& data
+    DWORD& cbData,
+    std::vector<std::byte>* const pData
 ) const noexcept
 try
 {
@@ -658,7 +659,9 @@ try
                 return ERROR_FILE_NOT_FOUND;
 
             dwType = pValue->dwType;
-            data = pValue->data;
+            cbData = static_cast<DWORD>(pValue->data.size());
+            if (pData)
+                *pData = pValue->data;
             return ERROR_SUCCESS;
         }
 
@@ -678,7 +681,29 @@ try
         return status;
 
     const std::wstring valueName(name);
-    return VReg::QueryValue(m_lower, lowerKey.Get(), valueName.c_str(), &dwType, data);
+    if (!pData)
+    {
+        cbData = 0;
+        return m_lower.RegQueryValueExW(
+            lowerKey.Get(),
+            valueName.c_str(),
+            nullptr,
+            &dwType,
+            nullptr,
+            &cbData
+        );
+    }
+
+    const auto queried = VReg::QueryValue(
+        m_lower,
+        lowerKey.Get(),
+        valueName.c_str(),
+        &dwType,
+        *pData
+    );
+    if (queried == ERROR_SUCCESS)
+        cbData = static_cast<DWORD>(pData->size());
+    return queried;
 }
 catch (...)
 {
@@ -726,8 +751,8 @@ try
     }
 
     DWORD dwType{};
-    std::vector<std::byte> data;
-    const auto status = QueryValue(pNode, name, dwType, data);
+    DWORD cbData = 0;
+    const auto status = QueryValue(pNode, name, dwType, cbData, nullptr);
     return status == ERROR_SUCCESS ? ERROR_INVALID_DATA : status;
 }
 catch (...)
@@ -986,7 +1011,8 @@ LSTATUS OverlayHive::EnumValue(
     const DWORD dwIndex,
     std::wstring& name,
     DWORD& dwType,
-    std::vector<std::byte>& data
+    DWORD& cbData,
+    std::vector<std::byte>* const pData
 ) const noexcept
 try
 {
@@ -1004,7 +1030,9 @@ try
             {
                 name = value.name;
                 dwType = value.dwType;
-                data = value.data;
+                cbData = static_cast<DWORD>(value.data.size());
+                if (pData)
+                    *pData = value.data;
                 return ERROR_SUCCESS;
             }
 
@@ -1032,14 +1060,13 @@ try
     {
         std::wstring lowerName;
         DWORD dwLowerType{};
-        std::vector<std::byte> lowerData;
         const auto status = VReg::EnumValue(
             m_lower,
             lowerKey.Get(),
             i,
             lowerName,
             &dwLowerType,
-            &lowerData
+            nullptr
         );
         if (status != ERROR_SUCCESS)
             return status;
@@ -1049,8 +1076,44 @@ try
 
         name = std::move(lowerName);
         dwType = dwLowerType;
-        data = std::move(lowerData);
-        return ERROR_SUCCESS;
+        if (pData)
+        {
+            // The scan fetched no data; enumerate the matching entry again
+            // with it.
+            std::wstring matchName;
+            DWORD dwMatchType{};
+            const auto fetched = VReg::EnumValue(
+                m_lower,
+                lowerKey.Get(),
+                i,
+                matchName,
+                &dwMatchType,
+                pData
+            );
+            if (fetched != ERROR_SUCCESS)
+                return fetched;
+
+            // Name, type and data all from the one call, should the entry
+            // have changed since the scan.
+            name = std::move(matchName);
+            dwType = dwMatchType;
+            cbData = static_cast<DWORD>(pData->size());
+            return ERROR_SUCCESS;
+        }
+
+        std::wstring sizeName(name.size() + 1, wchar_t{});
+        DWORD cchName = static_cast<DWORD>(sizeName.size());
+        cbData = 0;
+        return m_lower.RegEnumValueW(
+            lowerKey.Get(),
+            i,
+            sizeName.data(),
+            &cchName,
+            nullptr,
+            nullptr,
+            nullptr,
+            &cbData
+        );
     }
 }
 catch (...)

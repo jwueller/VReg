@@ -683,12 +683,14 @@ try
         *lpcbData = 0;
 
     DWORD dwType{};
+    DWORD cbValue = 0;
     std::vector<std::byte> value;
     const auto status = target.pHive->QueryValue(
         target.pNode,
         View(lpValueName),
         dwType,
-        value
+        cbValue,
+        lpData ? &value : nullptr
     );
     if (status != ERROR_SUCCESS)
         return status;
@@ -696,7 +698,6 @@ try
     if (lpType)
         *lpType = dwType;
 
-    const auto cbValue = static_cast<DWORD>(value.size());
     if (!lpData)
     {
         if (lpcbData)
@@ -989,13 +990,15 @@ try
 
     std::wstring name;
     DWORD dwType{};
+    DWORD cbValue = 0;
     std::vector<std::byte> value;
     const auto status = target.pHive->EnumValue(
         target.pNode,
         dwIndex,
         name,
         dwType,
-        value
+        cbValue,
+        lpData ? &value : nullptr
     );
     if (status != ERROR_SUCCESS)
         return status;
@@ -1003,7 +1006,6 @@ try
     if (lpType)
         *lpType = dwType;
 
-    const auto cbValue = static_cast<DWORD>(value.size());
     bool isDataFit = true;
     DWORD cbDataBuffer = 0;
     if (lpcbData)
@@ -1320,8 +1322,15 @@ try
         *pcbData = 0;
 
     DWORD dwType{};
+    DWORD cbQueried = 0;
     std::vector<std::byte> value;
-    const auto queried = pHive->QueryValue(pNode, View(lpValue), dwType, value);
+    const auto queried = pHive->QueryValue(
+        pNode,
+        View(lpValue),
+        dwType,
+        cbQueried,
+        &value
+    );
     if (queried != ERROR_SUCCESS)
         return fail(queried);
 

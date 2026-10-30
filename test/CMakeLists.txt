@@ -16,6 +16,7 @@ add_executable(
     test_oracle_values.cpp
     test_overlay_hive.cpp
     test_registry.cpp
+    test_size_only.cpp
     test_regfile_apply.cpp
     test_regfile_delta.cpp
     test_regfile_export.cpp

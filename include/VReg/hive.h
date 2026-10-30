@@ -103,11 +103,15 @@ public:
     /// Deletes every subkey and value of @p pNode, leaving the node itself.
     virtual LSTATUS DeleteTree(Node* pNode) noexcept = 0;
 
+    /// Reads value @p name of @p pNode. @p cbData receives the size of the
+    /// data in bytes; @p pData receives the data itself only when it is not
+    /// null, so a null @p pData copies nothing.
     virtual LSTATUS QueryValue(
         Node* pNode,
         std::wstring_view name,
         DWORD& dwType,
-        std::vector<std::byte>& data
+        DWORD& cbData,
+        std::vector<std::byte>* pData
     ) const noexcept = 0;
 
     virtual LSTATUS SetValue(
@@ -155,12 +159,16 @@ public:
         FILETIME& lastWrite
     ) const noexcept = 0;
 
+    /// Reads the value of @p pNode at @p dwIndex. @p cbData receives the size
+    /// of the data in bytes; @p pData receives the data itself only when it
+    /// is not null, so a null @p pData copies nothing.
     virtual LSTATUS EnumValue(
         Node* pNode,
         DWORD dwIndex,
         std::wstring& name,
         DWORD& dwType,
-        std::vector<std::byte>& data
+        DWORD& cbData,
+        std::vector<std::byte>* pData
     ) const noexcept = 0;
 
     virtual LSTATUS QueryInfo(Node* pNode, KeyInfo& info) const noexcept = 0;
