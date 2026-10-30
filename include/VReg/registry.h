@@ -186,6 +186,7 @@ public:
     virtual LSTATUS RegFlushKey(
         HKEY hKey
     ) noexcept = 0;
+
     /// @}
 
     /// @name ANSI forms of the virtual surface
@@ -316,6 +317,7 @@ public:
         PVOID pvData,
         LPDWORD pcbData
     ) const noexcept;
+
     /// @}
 
     /// @name Pre-`Ex` forms
@@ -410,6 +412,7 @@ public:
         LPWSTR lpName,
         DWORD cchName
     ) const noexcept;
+
     /// @}
 
     /// @name Conveniences Win32 builds from the calls above
@@ -466,6 +469,7 @@ public:
         LPWSTR lpValueBuf,
         LPDWORD ldwTotsize
     ) const noexcept;
+
     /// @}
 };
 } // namespace VReg

@@ -27,7 +27,9 @@ bool IsPredefinedKey(const HKEY hKey) noexcept
 
 bool IsStringType(const DWORD dwType) noexcept
 {
-    return dwType == REG_SZ || dwType == REG_EXPAND_SZ || dwType == REG_MULTI_SZ;
+    return dwType == REG_SZ
+        || dwType == REG_EXPAND_SZ
+        || dwType == REG_MULTI_SZ;
 }
 
 /// Copies @p text and a terminator into a name buffer of @p cchBuffer bytes.
