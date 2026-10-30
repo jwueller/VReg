@@ -359,7 +359,13 @@ bool VirtualRegistry::ResolveNative(
             );
         if (ntStatus >= 0)
             break;
-        if ((ntStatus != NT_STATUS_BUFFER_OVERFLOW && ntStatus != NT_STATUS_BUFFER_TOO_SMALL) || cbResult <= buffer.size())
+        if (
+            (
+                ntStatus != NT_STATUS_BUFFER_OVERFLOW
+                && ntStatus != NT_STATUS_BUFFER_TOO_SMALL
+            )
+            || cbResult <= buffer.size()
+        )
             return false;
 
         buffer.resize(cbResult);
@@ -608,20 +614,20 @@ try
     DWORD dwDisposition = REG_OPENED_EXISTING_KEY;
     const auto status = target.pWritable
                             ? target.pWritable->CreateKey(
-                                  target.pNode,
-                                  target.rest,
-                                  View(lpClass),
-                                  dwOptions,
-                                  samDesired,
-                                  result,
-                                  dwDisposition
-                              )
+                                target.pNode,
+                                target.rest,
+                                View(lpClass),
+                                dwOptions,
+                                samDesired,
+                                result,
+                                dwDisposition
+                            )
                             : target.pHive->OpenKey(
-                                  target.pNode,
-                                  target.rest,
-                                  samDesired,
-                                  result
-                              );
+                                target.pNode,
+                                target.rest,
+                                samDesired,
+                                result
+                            );
     if (status == ERROR_FILE_NOT_FOUND && !target.pWritable)
         return ERROR_ACCESS_DENIED;
     if (status != ERROR_SUCCESS)
@@ -1163,8 +1169,12 @@ try
     if (!target.pNode)
         return target.status;
 
-    if ((Flags & ~static_cast<DWORD>(REG_MUI_STRING_TRUNCATE)) || ((Flags & REG_MUI_STRING_TRUNCATE) != 0) != !pcbData
-        || (cbOutBuf % sizeof(wchar_t)) != 0 || (!pszOutBuf && cbOutBuf != 0))
+    if (
+        Flags & ~static_cast<DWORD>(REG_MUI_STRING_TRUNCATE)
+        || ((Flags & REG_MUI_STRING_TRUNCATE) != 0) != !pcbData
+        || cbOutBuf % sizeof(wchar_t) != 0
+        || (!pszOutBuf && cbOutBuf != 0)
+    )
         return ERROR_INVALID_PARAMETER;
 
     const auto* const pHive = target.pHive;
@@ -1252,9 +1262,8 @@ try
     const auto target = Resolve(
         hkey,
         View(lpSubKey),
-        ((dwFlags & RRF_SUBKEY_WOW6464KEY) ? KEY_WOW64_64KEY : 0) | ((dwFlags & RRF_SUBKEY_WOW6432KEY)
-                                                                         ? KEY_WOW64_32KEY
-                                                                         : 0)
+        (dwFlags & RRF_SUBKEY_WOW6464KEY ? KEY_WOW64_64KEY : 0)
+        | (dwFlags & RRF_SUBKEY_WOW6432KEY ? KEY_WOW64_32KEY : 0)
     );
     if (target.isBase)
         return m_pBase->RegGetValueW(
@@ -1464,8 +1473,12 @@ try
     if (!target.pNode)
         return target.status;
 
-    constexpr DWORD KNOWN_FILTERS = REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_ATTRIBUTES | REG_NOTIFY_CHANGE_LAST_SET
-        | REG_NOTIFY_CHANGE_SECURITY | REG_NOTIFY_THREAD_AGNOSTIC;
+    constexpr DWORD KNOWN_FILTERS =
+        REG_NOTIFY_CHANGE_NAME
+        | REG_NOTIFY_CHANGE_ATTRIBUTES
+        | REG_NOTIFY_CHANGE_LAST_SET
+        | REG_NOTIFY_CHANGE_SECURITY
+        | REG_NOTIFY_THREAD_AGNOSTIC;
     if ((dwNotifyFilter & ~KNOWN_FILTERS) || (fAsynchronous && !hEvent))
         return ERROR_INVALID_PARAMETER;
 
