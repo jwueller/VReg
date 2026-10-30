@@ -277,7 +277,13 @@ would cost an `NtQueryKey` on every call on a real handle.
 Every `Reg*` export that accepts an HKEY is hooked, because a virtual handle
 reaching an unhooked API fails as an invalid handle. Targets resolve from
 the `KernelBase.dll` export table, falling back to `advapi32.dll` for the
-pre-`Ex` forms. The README's
+pre-`Ex` forms. KernelBase holds the bodies: advapi32's `Ex` exports only
+forward to them, and callers that import the API set
+(`api-ms-win-core-registry-l1-1-0`, as system DLLs and `onecore.lib` builds
+do) reach KernelBase without passing through advapi32, so only a hook on
+the body sees every caller. That KernelBase hosts the API set is not
+documented; `test/test_native_registry.cpp` checks the forwarding against
+the running system. The README's
 [Supported functions](./README.md#supported-functions) lists every function
 of each group.
 
