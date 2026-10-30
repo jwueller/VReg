@@ -60,7 +60,8 @@ the API it reimplements. Change them freely before the first release.
   them. Flat functions are `VReg` plus the Win32 name.
 - File names are lowercase `snake_case`: a mis-cased include works on a
   case-insensitive filesystem and breaks on a case-sensitive one, so case
-  never carries meaning in a path.
+  never carries meaning in a path. For the same reason, a Windows SDK header
+  is included as the SDK spells its file (`Windows.h`, `Shlwapi.h`).
 - Constants are ALL_CAPS like the Win32 ones beside them; public ones carry
   `VREG_` (`VREG_VIRTUAL_HKEY_BASE`). Macros ignore namespaces, so a name a
   Windows header already defines (`TEXT`, `NO_DATA`) is taken by it: pick
