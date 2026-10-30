@@ -60,7 +60,9 @@ to date with the port.
    version if the changes call for it), commit, and push.
 2. Wait for CI to pass on that commit, the Wine jobs included: local test
    runs cover neither Wine nor clang-cl. Tag only a commit CI passed on.
-3. Tag it `vX.Y.Z` and push the tag.
+3. Tag it `vX.Y.Z` and push the tag. Once CI passes on the tag, it
+   publishes the GitHub release, its notes the commit subjects since the
+   previous tag.
 4. Point the port at the release: set `version-semver` in
    [ports/vreg/vcpkg.json](./ports/vreg/vcpkg.json), and in
    [ports/vreg/portfile.cmake](./ports/vreg/portfile.cmake) the SHA512 of

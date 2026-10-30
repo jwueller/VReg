@@ -170,3 +170,26 @@ jobs:
             printf 'Failed: %s\n' "${failures[@]}"
             exit 1
           fi
+
+  # Agent's choice: the notes list the commit subjects since the previous
+  # release tag. VReg merges no pull requests, so --generate-notes would list
+  # nothing, and hand-written notes would be one more step at tagging time.
+  release:
+    name: Release
+    if: github.ref_type == 'tag'
+    needs: [windows, versions, wine]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          previous=$(git describe --tags --abbrev=0 --match 'v*' "$GITHUB_REF_NAME^")
+          git log --reverse --format='- %s' "$previous..$GITHUB_REF_NAME" > notes.md
+          gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" --notes-file notes.md
