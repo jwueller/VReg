@@ -72,7 +72,14 @@ bool RealKeyExists(const std::wstring& name)
     std::wstring buffer = name;
     const auto cbName = static_cast<USHORT>(buffer.size() * sizeof(wchar_t));
     UnicodeString objectName{cbName, cbName, buffer.data()};
-    ObjectAttributes attributes{sizeof(ObjectAttributes), hUser, &objectName, OBJ_CASE_INSENSITIVE, nullptr, nullptr};
+    ObjectAttributes attributes{
+        sizeof(ObjectAttributes),
+        hUser,
+        &objectName,
+        OBJ_CASE_INSENSITIVE,
+        nullptr,
+        nullptr
+    };
     HANDLE hKey{};
     const auto status = pfnNtOpenKey(&hKey, KEY_READ, &attributes);
     if (status >= 0)
@@ -166,7 +173,10 @@ Module LoadModule(const wchar_t* const pszTag)
     Module module;
     module.name = MountName(pszTag);
 
-    const auto path = ExeDirectory() / std::format(L"VReg_HookModule{}.dll", pszTag);
+    const auto path = ExeDirectory() / std::format(
+        L"VReg_HookModule{}.dll",
+        pszTag
+    );
     module.hModule = ::LoadLibraryW(path.c_str());
     REQUIRE(module.hModule != nullptr);
 
@@ -967,7 +977,12 @@ TEST_CASE("RegOpenKeyTransactedW answers an invalid transaction on real keys wit
 {
     // Wine does not export it; its loader binds the import to a stub that
     // aborts the process.
-    if (!GetProcAddress(GetModuleHandleW(L"advapi32.dll"), "RegOpenKeyTransactedW"))
+    if (
+        !GetProcAddress(
+            GetModuleHandleW(L"advapi32.dll"),
+            "RegOpenKeyTransactedW"
+        )
+    )
         SKIP("advapi32 does not export RegOpenKeyTransactedW");
 
     const auto name = MountName(L"Exe");
@@ -993,7 +1008,14 @@ TEST_CASE("RegOpenKeyTransactedW answers an invalid transaction on real keys wit
 TEST_CASE("Transacted functions answer not supported through a mount path and pass real ones through")
 {
     const auto hAdvapi32 = GetModuleHandleW(L"advapi32.dll");
-    for (const char* const pszName : {"RegCreateKeyTransactedW", "RegOpenKeyTransactedW", "RegDeleteKeyTransactedW"})
+    for (
+        const char* const pszName :
+        {
+            "RegCreateKeyTransactedW",
+            "RegOpenKeyTransactedW",
+            "RegDeleteKeyTransactedW"
+        }
+    )
     {
         if (!GetProcAddress(hAdvapi32, pszName))
             SKIP("advapi32 does not export the transacted functions");
@@ -1001,7 +1023,15 @@ TEST_CASE("Transacted functions answer not supported through a mount path and pa
 
     const auto name = MountName(L"Exe");
     REQUIRE(InstallMount(name.c_str(), L"Exe") == NO_ERROR);
-    const HANDLE hTransaction = CreateTransaction(nullptr, nullptr, 0, 0, 0, 0, nullptr);
+    const HANDLE hTransaction = CreateTransaction(
+        nullptr,
+        nullptr,
+        0,
+        0,
+        0,
+        0,
+        nullptr
+    );
     REQUIRE(hTransaction != INVALID_HANDLE_VALUE);
 
     const auto inside = name + L"\\Inside";
@@ -1137,7 +1167,10 @@ TEST_CASE("The hooks call through the registry handed to Install")
     REQUIRE(InstallMount(name.c_str(), L"Exe", &pIntercept) == NO_ERROR);
 
     std::vector<std::string> calls;
-    pIntercept->onCall = [&](const std::string& call) { calls.push_back(call); };
+    pIntercept->onCall = [&](const std::string& call)
+    {
+        calls.push_back(call);
+    };
     CHECK(ReadMountModule(name) == L"Exe");
 
     pIntercept->failures["RegGetValueW"] = ERROR_ACCESS_DENIED;

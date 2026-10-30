@@ -89,11 +89,19 @@ std::vector<StoredValue> GetValues()
     values.push_back({L"Sz", REG_SZ, BytesOf(L"text", 5)});
     values.push_back({L"SzNoTerminator", REG_SZ, BytesOf(L"text", 4)});
     values.push_back({L"SzEmpty", REG_SZ, {}});
-    values.push_back({L"SzNonAscii", REG_SZ, BytesOf(NON_ASCII, std::size(NON_ASCII))});
-    values.push_back({L"ExpandShort", REG_EXPAND_SZ, BytesOf(L"%SystemRoot%", 13)});
+    values.push_back(
+        {L"SzNonAscii", REG_SZ, BytesOf(NON_ASCII, std::size(NON_ASCII))}
+    );
+    values.push_back(
+        {L"ExpandShort", REG_EXPAND_SZ, BytesOf(L"%SystemRoot%", 13)}
+    );
     values.push_back({L"ExpandLong", REG_EXPAND_SZ, BytesOf(L"%OS%\\x", 7)});
-    values.push_back({L"ExpandUnset", REG_EXPAND_SZ, BytesOf(L"%VREG_UNSET_VARIABLE%", 22)});
-    values.push_back({L"ExpandNoTerminator", REG_EXPAND_SZ, BytesOf(L"%OS%", 4)});
+    values.push_back(
+        {L"ExpandUnset", REG_EXPAND_SZ, BytesOf(L"%VREG_UNSET_VARIABLE%", 22)}
+    );
+    values.push_back(
+        {L"ExpandNoTerminator", REG_EXPAND_SZ, BytesOf(L"%OS%", 4)}
+    );
     values.push_back({L"ExpandEmpty", REG_EXPAND_SZ, {}});
     values.push_back({L"Dword", REG_DWORD, {0x78, 0x56, 0x34, 0x12}});
     values.push_back({L"DwordShort", REG_DWORD, {0x78, 0x56}});
@@ -101,7 +109,9 @@ std::vector<StoredValue> GetValues()
     values.push_back({L"Binary", REG_BINARY, {1, 2, 3, 4, 5}});
     values.push_back({L"BinaryEmpty", REG_BINARY, {}});
     values.push_back({L"Multi", REG_MULTI_SZ, BytesOf(L"a\0bc\0", 6)});
-    values.push_back({L"MultiNoTerminator", REG_MULTI_SZ, BytesOf(L"a\0bc", 5)});
+    values.push_back(
+        {L"MultiNoTerminator", REG_MULTI_SZ, BytesOf(L"a\0bc", 5)}
+    );
     values.push_back({L"None", REG_NONE, {1, 2}});
     values.push_back({L"Unknown", 0x1234, {4, 3}});
     return values;
@@ -245,7 +255,11 @@ void GetMatrix(
 
 struct GetValueEveryType
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         for (const auto& value : GetValues())
         {
@@ -289,7 +303,11 @@ struct GetValueEveryType
 
 struct GetValueSubKeyAndName
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         RECORD(
             "set sub",
@@ -360,16 +378,41 @@ struct GetValueSubKeyAndName
         {
             const auto narrowSub = pszSub ? Narrow(pszSub) : std::string();
             const char* const pszNarrow = pszSub ? narrowSub.c_str() : nullptr;
-            for (const wchar_t* const pszValue :
-                 {static_cast<const wchar_t*>(nullptr), L"", L"v", L"V32", L"Missing", L"v\u20ac"})
+            for (
+                const wchar_t* const pszValue :
+                {
+                    static_cast<const wchar_t*>(nullptr),
+                    L"",
+                    L"v",
+                    L"V32",
+                    L"Missing",
+                    L"v\u20ac"
+                }
+            )
             {
-                const auto narrowValue = pszValue ? Narrow(pszValue) : std::string();
-                const char* const pszNarrowValue = pszValue ? narrowValue.c_str() : nullptr;
-                const auto label = std::string("sub ") + (pszSub ? narrowSub : "(null)") + " value "
+                const auto narrowValue =
+                    pszValue
+                    ? Narrow(pszValue)
+                    : std::string();
+                const char* const pszNarrowValue =
+                    pszValue
+                    ? narrowValue.c_str()
+                    : nullptr;
+                const auto label =
+                    std::string("sub ")
+                    + (pszSub ? narrowSub : "(null)")
+                    + " value "
                                    + (pszValue ? narrowValue : "(null)");
 
-                for (const DWORD dwFlags :
-                     {RRF_RT_ANY, RRF_RT_REG_SZ, RRF_RT_DWORD | RRF_ZEROONFAILURE, RRF_RT_ANY | RRF_SUBKEY_WOW6432KEY})
+                for (
+                    const DWORD dwFlags :
+                    {
+                        RRF_RT_ANY,
+                        RRF_RT_REG_SZ,
+                        RRF_RT_DWORD | RRF_ZEROONFAILURE,
+                        RRF_RT_ANY | RRF_SUBKEY_WOW6432KEY
+                    }
+                )
                 {
                     std::array<wchar_t, 16> data;
                     std::memset(data.data(), FILL, sizeof(data));
@@ -471,7 +514,11 @@ struct GetValueSubKeyAndName
 
 struct LoadMUIStringForms
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         for (const auto& value : std::vector<StoredValue>{
                  {L"Plain", REG_SZ, BytesOf(L"text", 5)},
@@ -482,9 +529,27 @@ struct LoadMUIStringForms
                  {L"Dword", REG_DWORD, {1, 2, 3, 4}},
                  {L"Binary", REG_BINARY, {1, 2, 3}},
                  {L"Multi", REG_MULTI_SZ, BytesOf(L"a\0b\0", 5)},
-                 {L"Indirect", REG_SZ, BytesOf(L"@%SystemRoot%\\System32\\shell32.dll,-21770", 44)},
-                 {L"IndirectMissing", REG_SZ, BytesOf(L"@%SystemRoot%\\System32\\NoSuchVRegLibrary.dll,-1", 51)},
-                 {L"IndirectBadId", REG_SZ, BytesOf(L"@%SystemRoot%\\System32\\shell32.dll,-99999999", 46)},
+                 {
+                     L"Indirect",
+                     REG_SZ,
+                     BytesOf(L"@%SystemRoot%\\System32\\shell32.dll,-21770", 44)
+                 },
+                 {
+                     L"IndirectMissing",
+                     REG_SZ,
+                     BytesOf(
+                         L"@%SystemRoot%\\System32\\NoSuchVRegLibrary.dll,-1",
+                         51
+                     )
+                 },
+                 {
+                     L"IndirectBadId",
+                     REG_SZ,
+                     BytesOf(
+                         L"@%SystemRoot%\\System32\\shell32.dll,-99999999",
+                         46
+                     )
+                 },
                  {L"IndirectMalformed", REG_SZ, BytesOf(L"@shell32.dll", 13)},
              })
         {
@@ -492,7 +557,8 @@ struct LoadMUIStringForms
         }
 
         // A hive never resolves an indirect string, but answers a value marked
-        // as MUI text with its text: here, what the indirect string resolves to.
+        // as MUI text with its text: here, what the indirect string resolves
+        // to.
         if constexpr (std::is_same_v<Api, VirtualRegistry>)
         {
             auto* const pNode = Hive::NodeOf(hRoot);
@@ -521,13 +587,20 @@ struct LoadMUIStringForms
               L"Missing",
               L""})
         {
-            // Resolving an indirect string loads a resource module, which a virtual key never does.
-            if (VIRTUAL_KEYS<Api> && std::wstring_view(pszName).starts_with(L"Indirect")
-                && std::wstring_view(pszName) != L"Indirect")
+            // Resolving an indirect string loads a resource module, which a
+            // virtual key never does.
+            if (
+                VIRTUAL_KEYS<Api>
+                && std::wstring_view(pszName).starts_with(L"Indirect")
+                && std::wstring_view(pszName) != L"Indirect"
+            )
                 continue;
 
             const auto label = Narrow(pszName);
-            for (const DWORD dwFlags : {DWORD{0}, DWORD{REG_MUI_STRING_TRUNCATE}})
+            for (
+                const DWORD dwFlags :
+                {DWORD{0}, DWORD{REG_MUI_STRING_TRUNCATE}}
+            )
             {
                 for (const DWORD cbBuffer : {0u, 2u, 3u, 6u, 10u, 128u})
                 {
@@ -535,7 +608,9 @@ struct LoadMUIStringForms
                     std::memset(data.data(), FILL, sizeof(data));
                     DWORD cbData = FILL_SIZE;
                     RECORD(
-                        "muiW " + label + std::format(" flags {} buffer {}", dwFlags, cbBuffer),
+                        "muiW "
+                        + label
+                        + std::format(" flags {} buffer {}", dwFlags, cbBuffer),
                         api.RegLoadMUIStringW(
                             hRoot,
                             pszName,
@@ -566,7 +641,9 @@ struct LoadMUIStringForms
                 );
                 cbData = FILL_SIZE;
                 RECORD(
-                    "muiW null buffer " + label + std::format(" flags {}", dwFlags),
+                    "muiW null buffer "
+                    + label
+                    + std::format(" flags {}", dwFlags),
                     api.RegLoadMUIStringW(
                         hRoot,
                         pszName,
@@ -794,10 +871,14 @@ void MultipleMatrix(
     const std::string& label
 )
 {
-    for (const int cbTotal : {-1, 0, 1, 4, 8, 12, 16, 20, 24, 32, 40, 48, 128, 256})
+    for (
+        const int cbTotal :
+        {-1, 0, 1, 4, 8, 12, 16, 20, 24, 32, 40, 48, 128, 256}
+    )
     {
-        // The native ANSI function faults on a null buffer, and answers `ERROR_INVALID_DATA` after filling some
-        // of the entries when the buffer holds the first values but not all of them.
+        // The native ANSI function faults on a null buffer, and answers
+        // `ERROR_INVALID_DATA` after filling some of the entries when the
+        // buffer holds the first values but not all of them.
         if constexpr (std::is_same_v<Char, char>)
         {
             if (cbTotal < 0 || (cbTotal > 4 && cbTotal < 24))
@@ -863,7 +944,18 @@ void MultipleMatrix(
             RECORD(
                 label + " detail",
                 status,
-                {flat[0], flat[1], flat[2], flat[3], flat[4], flat[5], flat[6], flat[7], flat[8], flat[9]},
+                {
+                    flat[0],
+                    flat[1],
+                    flat[2],
+                    flat[3],
+                    flat[4],
+                    flat[5],
+                    flat[6],
+                    flat[7],
+                    flat[8],
+                    flat[9]
+                },
                 {Bytes(buffer)}
             );
             break;
@@ -873,7 +965,11 @@ void MultipleMatrix(
 
 struct QueryMultipleValuesForms
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         const BYTE binary[3] = {1, 2, 3};
         const DWORD dword = 0x12345678;
@@ -946,21 +1042,105 @@ struct QueryMultipleValuesForms
 
         using W = std::vector<std::wstring>;
         using A = std::vector<std::string>;
-        MultipleMatrix<Api, wchar_t, VALENTW>(api, record, hRoot, W{L"a"}, "W one");
-        MultipleMatrix<Api, wchar_t, VALENTW>(api, record, hRoot, W{L"a", L"b"}, "W two");
-        MultipleMatrix<Api, wchar_t, VALENTW>(api, record, hRoot, W{L"a", L"c", L"b"}, "W three");
-        MultipleMatrix<Api, wchar_t, VALENTW>(api, record, hRoot, W{L"c", L"d", L"e"}, "W odd sizes");
-        MultipleMatrix<Api, wchar_t, VALENTW>(api, record, hRoot, W{L"a", L"Missing", L"b"}, "W missing");
-        MultipleMatrix<Api, wchar_t, VALENTW>(api, record, hRoot, W{L"Missing"}, "W only missing");
-        MultipleMatrix<Api, wchar_t, VALENTW>(api, record, hRoot, W{L""}, "W default");
-        MultipleMatrix<Api, wchar_t, VALENTW>(api, record, hRoot, W{L"b", L"b"}, "W repeated");
+        MultipleMatrix<Api, wchar_t, VALENTW>(
+            api,
+            record,
+            hRoot,
+            W{L"a"},
+            "W one"
+        );
+        MultipleMatrix<Api, wchar_t, VALENTW>(
+            api,
+            record,
+            hRoot,
+            W{L"a", L"b"},
+            "W two"
+        );
+        MultipleMatrix<Api, wchar_t, VALENTW>(
+            api,
+            record,
+            hRoot,
+            W{L"a", L"c", L"b"},
+            "W three"
+        );
+        MultipleMatrix<Api, wchar_t, VALENTW>(
+            api,
+            record,
+            hRoot,
+            W{L"c", L"d", L"e"},
+            "W odd sizes"
+        );
+        MultipleMatrix<Api, wchar_t, VALENTW>(
+            api,
+            record,
+            hRoot,
+            W{L"a", L"Missing", L"b"},
+            "W missing"
+        );
+        MultipleMatrix<Api, wchar_t, VALENTW>(
+            api,
+            record,
+            hRoot,
+            W{L"Missing"},
+            "W only missing"
+        );
+        MultipleMatrix<Api, wchar_t, VALENTW>(
+            api,
+            record,
+            hRoot,
+            W{L""},
+            "W default"
+        );
+        MultipleMatrix<Api, wchar_t, VALENTW>(
+            api,
+            record,
+            hRoot,
+            W{L"b", L"b"},
+            "W repeated"
+        );
         MultipleMatrix<Api, char, VALENTA>(api, record, hRoot, A{"a"}, "A one");
-        MultipleMatrix<Api, char, VALENTA>(api, record, hRoot, A{"a", "b"}, "A two");
-        MultipleMatrix<Api, char, VALENTA>(api, record, hRoot, A{"a", "c", "b"}, "A three");
-        MultipleMatrix<Api, char, VALENTA>(api, record, hRoot, A{"c", "d", "e"}, "A odd sizes");
-        MultipleMatrix<Api, char, VALENTA>(api, record, hRoot, A{"a", "Missing", "b"}, "A missing");
-        MultipleMatrix<Api, char, VALENTA>(api, record, hRoot, A{"Missing"}, "A only missing");
-        MultipleMatrix<Api, char, VALENTA>(api, record, hRoot, A{""}, "A default");
+        MultipleMatrix<Api, char, VALENTA>(
+            api,
+            record,
+            hRoot,
+            A{"a", "b"},
+            "A two"
+        );
+        MultipleMatrix<Api, char, VALENTA>(
+            api,
+            record,
+            hRoot,
+            A{"a", "c", "b"},
+            "A three"
+        );
+        MultipleMatrix<Api, char, VALENTA>(
+            api,
+            record,
+            hRoot,
+            A{"c", "d", "e"},
+            "A odd sizes"
+        );
+        MultipleMatrix<Api, char, VALENTA>(
+            api,
+            record,
+            hRoot,
+            A{"a", "Missing", "b"},
+            "A missing"
+        );
+        MultipleMatrix<Api, char, VALENTA>(
+            api,
+            record,
+            hRoot,
+            A{"Missing"},
+            "A only missing"
+        );
+        MultipleMatrix<Api, char, VALENTA>(
+            api,
+            record,
+            hRoot,
+            A{""},
+            "A default"
+        );
 
         VALENTW wide{const_cast<LPWSTR>(L"a"), 0, 0, 0};
         VALENTA narrow{const_cast<LPSTR>("a"), 0, 0, 0};
@@ -1019,7 +1199,12 @@ struct QueryMultipleValuesForms
     }
 };
 
-using Scenarios = std::tuple<GetValueEveryType, GetValueSubKeyAndName, LoadMUIStringForms, QueryMultipleValuesForms>;
+using Scenarios = std::tuple<
+    GetValueEveryType,
+    GetValueSubKeyAndName,
+    LoadMUIStringForms,
+    QueryMultipleValuesForms
+>;
 } // namespace
 
 TEMPLATE_LIST_TEST_CASE(

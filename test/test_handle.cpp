@@ -19,7 +19,11 @@ std::uintptr_t ValueOf(const HKEY hKey)
 /// A section name no other test or process uses.
 std::wstring UniqueSectionName(const wchar_t* tag)
 {
-    return L"Local\\VReg-test-" + std::to_wstring(GetCurrentProcessId()) + L"-" + tag;
+    return
+        L"Local\\VReg-test-"
+        + std::to_wstring(GetCurrentProcessId())
+        + L"-"
+        + tag;
 }
 
 /// Maps a section the way a foreign copy would, to arrange its contents.
@@ -55,7 +59,10 @@ TEST_CASE("Virtual handles count down from the base in odd steps")
     CHECK(ValueOf(VirtualHKeyFromIndex(VREG_VIRTUAL_HKEY_COUNT - 1)) == 1);
     CHECK(VirtualHKeyFromIndex(VREG_VIRTUAL_HKEY_COUNT) == nullptr);
 
-    for (const std::uintptr_t index : {std::uintptr_t{0}, std::uintptr_t{12345}, VREG_VIRTUAL_HKEY_COUNT - 1})
+    for (
+        const std::uintptr_t index :
+        {std::uintptr_t{0}, std::uintptr_t{12345}, VREG_VIRTUAL_HKEY_COUNT - 1}
+    )
     {
         const auto hKey = VirtualHKeyFromIndex(index);
         CHECK(IsVirtualHKey(hKey));
@@ -67,7 +74,9 @@ TEST_CASE("Real and predefined handles are never virtual")
 {
     CHECK_FALSE(IsVirtualHKey(nullptr));
     CHECK_FALSE(IsVirtualHKey(std::bit_cast<HKEY>(std::uintptr_t{0x158})));
-    CHECK_FALSE(IsVirtualHKey(std::bit_cast<HKEY>(std::uintptr_t{0x16E}))); // HKCR tag bit
+    CHECK_FALSE(
+        IsVirtualHKey(std::bit_cast<HKEY>(std::uintptr_t{0x16E}))
+    ); // HKCR tag bit
     CHECK_FALSE(IsVirtualHKey(HKEY_CLASSES_ROOT));
     CHECK_FALSE(IsVirtualHKey(HKEY_CURRENT_USER)); // odd, but above the base
     CHECK_FALSE(IsVirtualHKey(HKEY_LOCAL_MACHINE));

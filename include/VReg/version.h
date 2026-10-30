@@ -37,7 +37,9 @@ struct FileVersion
         const FileVersion& right
     ) noexcept
     {
-        return std::bit_cast<ULONGLONG>(left) <=> std::bit_cast<ULONGLONG>(right);
+        return std::bit_cast<ULONGLONG>(left) <=> std::bit_cast<ULONGLONG>(
+            right
+        );
     }
 };
 

@@ -39,33 +39,33 @@ struct Emulated<LSTATUS(APIENTRY*)(Args...), Member>
 
 // The functions refused on virtual handles, by index into their resolved
 // entry points (the trampolines once the hooks are committed).
-#define VREG_REFUSED_HOOKS(X)                                                                                          \
-    X(RegSaveKeyA)                                                                                                     \
-    X(RegSaveKeyW)                                                                                                     \
-    X(RegSaveKeyExA)                                                                                                   \
-    X(RegSaveKeyExW)                                                                                                   \
-    X(RegRestoreKeyA)                                                                                                  \
-    X(RegRestoreKeyW)                                                                                                  \
-    X(RegLoadKeyA)                                                                                                     \
-    X(RegLoadKeyW)                                                                                                     \
-    X(RegUnLoadKeyA)                                                                                                   \
-    X(RegUnLoadKeyW)                                                                                                   \
-    X(RegReplaceKeyA)                                                                                                  \
-    X(RegReplaceKeyW)                                                                                                  \
-    X(RegGetKeySecurity)                                                                                               \
-    X(RegSetKeySecurity)                                                                                               \
-    X(RegRenameKey)                                                                                                    \
-    X(RegCopyTreeA)                                                                                                    \
-    X(RegCopyTreeW)                                                                                                    \
-    X(RegCreateKeyTransactedA)                                                                                         \
-    X(RegCreateKeyTransactedW)                                                                                         \
-    X(RegOpenKeyTransactedA)                                                                                           \
-    X(RegOpenKeyTransactedW)                                                                                           \
-    X(RegDeleteKeyTransactedA)                                                                                         \
-    X(RegDeleteKeyTransactedW)                                                                                         \
-    X(RegDisableReflectionKey)                                                                                         \
-    X(RegEnableReflectionKey)                                                                                          \
-    X(RegQueryReflectionKey)                                                                                           \
+#define VREG_REFUSED_HOOKS(X)                                                  \
+    X(RegSaveKeyA)                                                             \
+    X(RegSaveKeyW)                                                             \
+    X(RegSaveKeyExA)                                                           \
+    X(RegSaveKeyExW)                                                           \
+    X(RegRestoreKeyA)                                                          \
+    X(RegRestoreKeyW)                                                          \
+    X(RegLoadKeyA)                                                             \
+    X(RegLoadKeyW)                                                             \
+    X(RegUnLoadKeyA)                                                           \
+    X(RegUnLoadKeyW)                                                           \
+    X(RegReplaceKeyA)                                                          \
+    X(RegReplaceKeyW)                                                          \
+    X(RegGetKeySecurity)                                                       \
+    X(RegSetKeySecurity)                                                       \
+    X(RegRenameKey)                                                            \
+    X(RegCopyTreeA)                                                            \
+    X(RegCopyTreeW)                                                            \
+    X(RegCreateKeyTransactedA)                                                 \
+    X(RegCreateKeyTransactedW)                                                 \
+    X(RegOpenKeyTransactedA)                                                   \
+    X(RegOpenKeyTransactedW)                                                   \
+    X(RegDeleteKeyTransactedA)                                                 \
+    X(RegDeleteKeyTransactedW)                                                 \
+    X(RegDisableReflectionKey)                                                 \
+    X(RegEnableReflectionKey)                                                  \
+    X(RegQueryReflectionKey)                                                   \
     X(RegOverridePredefKey)
 
 enum RefusedIndex : std::size_t
@@ -113,7 +113,9 @@ bool IsUntransacted(
     (void)ulOptions;
     (void)samDesired;
     (void)phkResult;
-    return !pExtendedParemeter && (!hTransaction || hTransaction == INVALID_HANDLE_VALUE);
+    return
+        !pExtendedParemeter
+        && (!hTransaction || hTransaction == INVALID_HANDLE_VALUE);
 }
 
 /**
@@ -132,7 +134,11 @@ bool IsUntransacted(
  *  member outside the Win32 family. Opening is read-only, and a deprecated
  *  API can afford one open per path component.
  */
-LSTATUS RefuseMountPath(const HKEY hKey, const LPCWSTR pszSubKey, const REGSAM samDesired) noexcept
+LSTATUS RefuseMountPath(
+    const HKEY hKey,
+    const LPCWSTR pszSubKey,
+    const REGSAM samDesired
+) noexcept
 try
 {
     auto* const pRegistry = g_pRegistry.load(std::memory_order_acquire);
@@ -172,7 +178,11 @@ catch (...)
     return StatusFromException();
 }
 
-LSTATUS RefuseMountPath(const HKEY hKey, const LPCSTR pszSubKey, const REGSAM samDesired) noexcept
+LSTATUS RefuseMountPath(
+    const HKEY hKey,
+    const LPCSTR pszSubKey,
+    const REGSAM samDesired
+) noexcept
 try
 {
     const WideArg subKey(pszSubKey);
@@ -248,7 +258,9 @@ LSTATUS RefuseMountPath(
 
 constexpr bool IsTransacted(const std::size_t index) noexcept
 {
-    return index >= kRegCreateKeyTransactedA && index <= kRegDeleteKeyTransactedW;
+    return
+        index >= kRegCreateKeyTransactedA
+        && index <= kRegDeleteKeyTransactedW;
 }
 
 template <class Function, std::size_t Index>
@@ -277,7 +289,9 @@ struct Refused<LSTATUS(APIENTRY*)(Args...), Index>
                 return ERROR_INVALID_TRANSACTION;
         }
 
-        const auto pfnNext = reinterpret_cast<LSTATUS(APIENTRY*)(Args...)>(g_refusedTargets[Index]);
+        const auto pfnNext = reinterpret_cast<LSTATUS(APIENTRY*)(Args...)>(
+            g_refusedTargets[Index]
+        );
         return pfnNext(args...);
     }
 };
@@ -320,8 +334,12 @@ public:
 #error "ARM64EC is not supported: its x64 and native callers need hooks of their own."
 #elif defined(_M_ARM64)
         // ldr x16, slot (PC-relative, in words); br x16.
-        const auto offset = reinterpret_cast<std::intptr_t>(ppSlot) - reinterpret_cast<std::intptr_t>(pbCode);
-        const auto ldr = 0x58000010u | (static_cast<std::uint32_t>(offset / 4) << 5);
+        const auto offset =
+            reinterpret_cast<std::intptr_t>(ppSlot)
+            - reinterpret_cast<std::intptr_t>(pbCode);
+        const auto ldr =
+            0x58000010u
+            | (static_cast<std::uint32_t>(offset / 4) << 5);
         const auto br = 0xD61F0200u;
         std::memcpy(pbCode, &ldr, sizeof(ldr));
         std::memcpy(pbCode + 4, &br, sizeof(br));
@@ -331,7 +349,8 @@ public:
         pbCode[1] = std::byte{0x25};
 #if defined(_M_X64)
         const auto displacement = static_cast<std::int32_t>(
-            reinterpret_cast<std::intptr_t>(ppSlot) - reinterpret_cast<std::intptr_t>(pbCode + 6)
+            reinterpret_cast<std::intptr_t>(ppSlot)
+            - reinterpret_cast<std::intptr_t>(pbCode + 6)
         );
         std::memcpy(pbCode + 2, &displacement, sizeof(displacement));
 #else
@@ -397,23 +416,25 @@ LONG Attach(Registry& registry, NativeRegistry& native) noexcept
     std::array<Hook, Thunks::CAPACITY> hooks{};
     std::size_t cHooks = 0;
 
-#define VREG_EMULATED(name)                                                                                            \
-    hooks[cHooks++] = {                                                                                                \
-        reinterpret_cast<void**>(&functions.name),                                                                     \
-        reinterpret_cast<void*>(&Emulated<decltype(functions.name), &Registry::name>::Body)                            \
+#define VREG_EMULATED(name)                                                    \
+    hooks[cHooks++] = {                                                        \
+        reinterpret_cast<void**>(&functions.name),                             \
+        reinterpret_cast<void*>(                                               \
+            &Emulated<decltype(functions.name), &Registry::name>::Body         \
+        )                                                                      \
     };
     VREG_INTERNAL_REGISTRY_FUNCTIONS(VREG_EMULATED)
 #undef VREG_EMULATED
 
     // A refused function this system does not export has nothing to hook.
-#define VREG_REFUSED(name)                                                                                             \
-    g_refusedTargets[k##name] = FindRegistryExport(#name);                                                             \
-    if (g_refusedTargets[k##name])                                                                                     \
-    {                                                                                                                  \
-        hooks[cHooks++] = {                                                                                            \
-            &g_refusedTargets[k##name],                                                                                \
-            reinterpret_cast<void*>(&Refused<decltype(&::name), k##name>::Body)                                        \
-        };                                                                                                             \
+#define VREG_REFUSED(name)                                                     \
+    g_refusedTargets[k##name] = FindRegistryExport(#name);                     \
+    if (g_refusedTargets[k##name])                                             \
+    {                                                                          \
+        hooks[cHooks++] = {                                                    \
+            &g_refusedTargets[k##name],                                        \
+            reinterpret_cast<void*>(&Refused<decltype(&::name), k##name>::Body)\
+        };                                                                     \
     }
     VREG_REFUSED_HOOKS(VREG_REFUSED)
 #undef VREG_REFUSED

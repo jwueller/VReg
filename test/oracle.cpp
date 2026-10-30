@@ -20,7 +20,11 @@ AppHive::AppHive()
     static std::atomic<unsigned> s_counter;
 
     m_directory = std::filesystem::temp_directory_path()
-                  / std::format(L"VReg-oracle-{}-{}", GetCurrentProcessId(), s_counter++);
+                  / std::format(
+                      L"VReg-oracle-{}-{}",
+                      GetCurrentProcessId(),
+                      s_counter++
+                  );
     std::filesystem::remove_all(m_directory);
     std::filesystem::create_directories(m_directory);
 
@@ -137,7 +141,12 @@ void Recorder::operator()(
     const std::initializer_list<std::span<const std::byte>> buffers
 )
 {
-    Call call{.label = std::move(label), .status = status, .sizes = sizes, .bytes = {}};
+    Call call{
+        .label = std::move(label),
+        .status = status,
+        .sizes = sizes,
+        .bytes = {}
+    };
     for (const auto buffer : buffers)
         call.bytes.insert(call.bytes.end(), buffer.begin(), buffer.end());
 
@@ -168,7 +177,9 @@ void CheckSameRecording(const Recording& expected, const Recording& actual)
 }
 } // namespace VReg::Test
 
-std::string Catch::StringMaker<VReg::Test::Call>::convert(const VReg::Test::Call& call)
+std::string Catch::StringMaker<VReg::Test::Call>::convert(
+    const VReg::Test::Call& call
+)
 {
     auto text = std::format("{}: status {}", call.label, call.status);
 

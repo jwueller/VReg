@@ -889,11 +889,26 @@ TEST_CASE("A failed lower query is never a smaller successful view")
 
     const auto [call, status] = GENERATE(
         std::pair<const char*, LSTATUS>{"RegOpenKeyExW", ERROR_ACCESS_DENIED},
-        std::pair<const char*, LSTATUS>{"RegOpenKeyExW", ERROR_NOT_ENOUGH_MEMORY},
-        std::pair<const char*, LSTATUS>{"RegQueryInfoKeyW", ERROR_ACCESS_DENIED},
-        std::pair<const char*, LSTATUS>{"RegQueryInfoKeyW", ERROR_INVALID_FUNCTION},
-        std::pair<const char*, LSTATUS>{"RegQueryValueExW", ERROR_INVALID_FUNCTION},
-        std::pair<const char*, LSTATUS>{"RegEnumKeyExW", ERROR_INVALID_FUNCTION},
+        std::pair<const char*, LSTATUS>{
+            "RegOpenKeyExW",
+            ERROR_NOT_ENOUGH_MEMORY
+        },
+        std::pair<const char*, LSTATUS>{
+            "RegQueryInfoKeyW",
+            ERROR_ACCESS_DENIED
+        },
+        std::pair<const char*, LSTATUS>{
+            "RegQueryInfoKeyW",
+            ERROR_INVALID_FUNCTION
+        },
+        std::pair<const char*, LSTATUS>{
+            "RegQueryValueExW",
+            ERROR_INVALID_FUNCTION
+        },
+        std::pair<const char*, LSTATUS>{
+            "RegEnumKeyExW",
+            ERROR_INVALID_FUNCTION
+        },
         std::pair<const char*, LSTATUS>{"RegEnumValueW", ERROR_INVALID_FUNCTION}
     );
     INFO(call << " " << status);
@@ -901,7 +916,14 @@ TEST_CASE("A failed lower query is never a smaller successful view")
     const std::string name = call;
 
     const auto info = QueryInfo(reg, fx.Root());
-    CHECK((name == "RegOpenKeyExW" || name == "RegQueryInfoKeyW" || name == "RegQueryValueExW") == (info.status != ERROR_SUCCESS));
+    CHECK(
+        (
+            name == "RegOpenKeyExW"
+            || name == "RegQueryInfoKeyW"
+            || name == "RegQueryValueExW"
+        )
+        == (info.status != ERROR_SUCCESS)
+    );
     if (info.status != ERROR_SUCCESS)
     {
         CHECK(info.status == status);
@@ -959,7 +981,11 @@ TEST_CASE("A failed lower query is never a smaller successful view")
         nullptr,
         nullptr
     );
-    if (name == "RegOpenKeyExW" || name == "RegQueryInfoKeyW" || name == "RegEnumKeyExW")
+    if (
+        name == "RegOpenKeyExW"
+        || name == "RegQueryInfoKeyW"
+        || name == "RegEnumKeyExW"
+    )
         CHECK(keyStatus == status);
     else
         CHECK(keyStatus == ERROR_SUCCESS);
@@ -1618,7 +1644,10 @@ TEST_CASE("The hive lock is never held across a call into the lower registry")
     };
 
     const HKEY hL = MustOpen(reg, fx.Root(), L"L");
-    const auto check = [&](const char* const pszLabel, const std::function<void()>& operation)
+    const auto check = [&](
+        const char* const pszLabel,
+        const std::function<void()>& operation
+    )
     {
         INFO(pszLabel);
         cCalls = 0;

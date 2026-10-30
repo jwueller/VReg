@@ -236,7 +236,10 @@ TEST_CASE("Export orders keys and values ordinal case-insensitive")
     const auto file = Export(registry, L"S", Format::Utf8);
     const auto text = AsString(file);
     std::vector<std::size_t> positions;
-    for (const auto* const pszKey : {"\\S]", "\\S\\A]", "\\S\\b]", "\\S\\B2]", "\\S\\c]", "\\S\\_x]"})
+    for (
+        const auto* const pszKey :
+        {"\\S]", "\\S\\A]", "\\S\\b]", "\\S\\B2]", "\\S\\c]", "\\S\\_x]"}
+    )
     {
         const auto at = text.find(pszKey);
         REQUIRE(at != std::string::npos);
@@ -312,7 +315,8 @@ TEST_CASE("Non-ASCII text exports in Unicode and UTF-8")
     CHECK(
         Export(registry, L"U", Format::Unicode) ==
         Utf16File(
-            HEADER + L"[HKEY_CURRENT_USER\\U]\r\n\r\n[HKEY_CURRENT_USER\\U\\中]\r\n\"café\"=\"é\"\r\n\r\n"
+            HEADER
+            + L"[HKEY_CURRENT_USER\\U]\r\n\r\n[HKEY_CURRENT_USER\\U\\中]\r\n\"café\"=\"é\"\r\n\r\n"
         )
     );
 }
@@ -426,7 +430,9 @@ TEST_CASE("The root itself can be exported")
     MustSet(registry, L"", L"v", REG_DWORD, DwordBytes(1));
     CHECK(
         Export(registry, L"", Format::Unicode) ==
-        Utf16File(HEADER + L"[HKEY_CURRENT_USER]\r\n\"v\"=dword:00000001\r\n\r\n")
+        Utf16File(
+            HEADER + L"[HKEY_CURRENT_USER]\r\n\"v\"=dword:00000001\r\n\r\n"
+        )
     );
 }
 
@@ -436,7 +442,8 @@ TEST_CASE("ExportSnapshotToFile writes the same bytes and keeps a file on failur
     AppHiveRegistry registry(hive.Root());
     MustSet(registry, L"E", L"v", REG_DWORD, DwordBytes(1));
 
-    const auto directory = std::filesystem::temp_directory_path() / L"VRegExportFileTest";
+    const auto directory =
+        std::filesystem::temp_directory_path() / L"VRegExportFileTest";
     std::filesystem::create_directories(directory);
     const auto path = directory / L"out.reg";
 

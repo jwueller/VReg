@@ -26,7 +26,8 @@ inline std::vector<std::byte> Utf16File(const std::wstring_view text)
     return file;
 }
 
-/// The raw bytes of @p text, for UTF-8 and ANSI fixtures written as narrow literals.
+/// The raw bytes of @p text, for UTF-8 and ANSI fixtures written as narrow
+/// literals.
 inline std::vector<std::byte> RawFile(const std::string_view text)
 {
     std::vector<std::byte> file(text.size());
@@ -69,8 +70,9 @@ inline RegFile::Script MustParse(const std::wstring_view text)
     return script;
 }
 
-/// The real registry with a predefined root redirected to a private app hive, so scripts that name
-/// `HKEY_CURRENT_USER` act on the hive. Everything else is forwarded unchanged.
+/// The real registry with a predefined root redirected to a private app hive,
+/// so scripts that name `HKEY_CURRENT_USER` act on the hive. Everything else is
+/// forwarded unchanged.
 class AppHiveRegistry final : public Registry
 {
 public:
@@ -404,8 +406,8 @@ inline void MustSet(
             ) ==
         ERROR_SUCCESS
     );
-    // Native looks past the end of string data for a terminator it may add, so what follows must not be
-    // zero or the stored bytes depend on the heap.
+    // Native looks past the end of string data for a terminator it may add, so
+    // what follows must not be zero or the stored bytes depend on the heap.
     std::vector<std::byte> padded(data);
     padded.insert(padded.end(), 4, std::byte{0x11});
     REQUIRE(

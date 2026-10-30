@@ -16,7 +16,10 @@ TEST_CASE("Export lookup agrees with the loader")
     const auto hKernelBase = GetModuleHandleW(L"KernelBase.dll");
     REQUIRE(hKernelBase);
 
-    for (const auto* const pszName : {"RegOpenKeyExW", "RegCloseKey", "RegQueryInfoKeyA", "CreateFileW"})
+    for (
+        const auto* const pszName :
+        {"RegOpenKeyExW", "RegCloseKey", "RegQueryInfoKeyA", "CreateFileW"}
+    )
     {
         INFO(pszName);
         CHECK(
@@ -42,9 +45,10 @@ std::vector<std::string> ExportNames(const HMODULE hModule)
     );
     const auto& directory =
         pNt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
-    const auto* const pExports = reinterpret_cast<const IMAGE_EXPORT_DIRECTORY*>(
-        pBase + directory.VirtualAddress
-    );
+    const auto* const pExports =
+        reinterpret_cast<const IMAGE_EXPORT_DIRECTORY*>(
+            pBase + directory.VirtualAddress
+        );
     const auto* const pNames = reinterpret_cast<const DWORD*>(
         pBase + pExports->AddressOfNames
     );
@@ -89,7 +93,10 @@ TEST_CASE("Forwarded exports are not resolved")
 TEST_CASE("Every native registry function resolves")
 {
     const auto functions = NativeRegistry::ResolveFunctions();
-    const auto pointers = std::bit_cast<std::array<void*, sizeof(functions) / sizeof(void*)>>(functions);
+    const auto pointers =
+        std::bit_cast<std::array<void*, sizeof(functions) / sizeof(void*)>>(
+            functions
+        );
     for (std::size_t i = 0; i < pointers.size(); ++i)
     {
         INFO("field " << i);

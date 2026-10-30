@@ -27,7 +27,8 @@ struct Value
 /// A pending change notification: fires once, then is gone.
 struct ChangeWatch
 {
-    /// Our own duplicate of the caller's event; closed when the watch fires or the tree goes.
+    /// Our own duplicate of the caller's event; closed when the watch fires or
+    /// the tree goes.
     HANDLE hEvent = nullptr;
     bool isSubtree = false;
     DWORD dwFilter = 0;
@@ -178,7 +179,8 @@ private:
     Hive& m_owner;
     SRWLOCK m_lock = SRWLOCK_INIT;
     std::atomic<bool> m_isFrozen = false;
-    /// Fixed for the life of the tree. Not read from @ref m_nodes, whose storage moves while writers add to it.
+    /// Fixed for the life of the tree. Not read from @ref m_nodes, whose
+    /// storage moves while writers add to it.
     Node* m_pRoot = nullptr;
     std::vector<std::unique_ptr<Node>> m_nodes;
 };

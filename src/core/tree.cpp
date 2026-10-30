@@ -100,15 +100,18 @@ void DropWatches(Node& node) noexcept
     node.watches.clear();
 }
 
-/// Signals and drops the watches of @p node that @p dwFilter selects; @p isInherited limits them to those
-/// watching their subtree.
+/// Signals and drops the watches of @p node that @p dwFilter selects;
+/// @p isInherited limits them to those watching their subtree.
 void Fire(Node& node, const DWORD dwFilter, const bool isInherited) noexcept
 {
     std::erase_if(
         node.watches,
         [&](const ChangeWatch& watch)
         {
-            if (!(watch.dwFilter & dwFilter) || (isInherited && !watch.isSubtree))
+            if (
+                !(watch.dwFilter & dwFilter)
+                || (isInherited && !watch.isSubtree)
+            )
                 return false;
 
             SetEvent(watch.hEvent);
@@ -270,7 +273,11 @@ void Tree::Remove(Node& node) noexcept
 void Tree::Notify(Node& node, const DWORD dwFilter) noexcept
 {
     Fire(node, dwFilter, false);
-    for (auto* pAncestor = node.pParent; pAncestor; pAncestor = pAncestor->pParent)
+    for (
+        auto* pAncestor = node.pParent;
+        pAncestor;
+        pAncestor = pAncestor->pParent
+    )
         Fire(*pAncestor, dwFilter, true);
 }
 
@@ -285,7 +292,17 @@ LSTATUS Tree::Watch(
         return ERROR_SUCCESS;
 
     HANDLE hOwn{};
-    if (!DuplicateHandle(GetCurrentProcess(), hEvent, GetCurrentProcess(), &hOwn, 0, FALSE, DUPLICATE_SAME_ACCESS))
+    if (
+        !DuplicateHandle(
+            GetCurrentProcess(),
+            hEvent,
+            GetCurrentProcess(),
+            &hOwn,
+            0,
+            FALSE,
+            DUPLICATE_SAME_ACCESS
+        )
+    )
         return GetLastError();
 
     WriteLock lock(*this);
@@ -296,7 +313,9 @@ LSTATUS Tree::Watch(
     {
         try
         {
-            node.watches.push_back({.hEvent = hOwn, .isSubtree = isSubtree, .dwFilter = dwFilter});
+            node.watches.push_back(
+                {.hEvent = hOwn, .isSubtree = isSubtree, .dwFilter = dwFilter}
+            );
             return ERROR_SUCCESS;
         }
         catch (const std::bad_alloc&)

@@ -7,7 +7,9 @@
 #error "VREG_HOOK_MODULE_NAME names the module in its hive."
 #endif
 
-extern "C" __declspec(dllexport) LONG __cdecl HookModuleInstall(const wchar_t* const pszPath)
+extern "C" __declspec(dllexport) LONG __cdecl HookModuleInstall(
+    const wchar_t* const pszPath
+)
 {
     return VReg::Test::InstallMount(pszPath, VREG_HOOK_MODULE_NAME);
 }

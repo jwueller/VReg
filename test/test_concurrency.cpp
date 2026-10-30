@@ -1,5 +1,6 @@
-// Readers and writers on several threads against a writable hive: no crash, no deadlock, only status codes a
-// registry may answer, and a final state that is consistent with itself.
+// Readers and writers on several threads against a writable hive: no crash, no
+// deadlock, only status codes a registry may answer, and a final state that is
+// consistent with itself.
 
 #include "oracle.h"
 
@@ -50,7 +51,8 @@ std::wstring ValueName(const unsigned i)
     return L"V" + std::to_wstring(i);
 }
 
-/// What every writer stores under value @p index, so a final read can tell a torn value from a written one.
+/// What every writer stores under value @p index, so a final read can tell a
+/// torn value from a written one.
 DWORD ValueData(const unsigned index)
 {
     return 1000 + index * 7;
@@ -262,7 +264,10 @@ void ReadKey(
                 &cbValue
             );
         Judge(shared, status);
-        if (status == ERROR_SUCCESS && (dwType != REG_DWORD || cbValue != sizeof(dwValue)))
+        if (
+            status == ERROR_SUCCESS
+            && (dwType != REG_DWORD || cbValue != sizeof(dwValue))
+        )
             Judge(shared, ERROR_INVALID_DATA);
         break;
     }
@@ -329,9 +334,11 @@ void ReadKey(
             nullptr
         );
         Judge(shared, status);
-        // Every name comes from a small closed set, in the upper and the lower layer alike, so a count above it
-        // means an entry was counted twice.
-        if (status == ERROR_SUCCESS && (cSubKeys > SUB_KEYS || cValues > VALUES))
+        // Every name comes from a small closed set, in the upper and the lower
+        // layer alike, so a count above it means an entry was counted twice.
+        if (
+            status == ERROR_SUCCESS && (cSubKeys > SUB_KEYS || cValues > VALUES)
+        )
             Judge(shared, ERROR_INVALID_DATA);
         break;
     }
@@ -361,7 +368,8 @@ void ReaderLoop(
         if (status != ERROR_SUCCESS)
             continue;
 
-        // The same handle is read several times while writers delete and recreate the key under it.
+        // The same handle is read several times while writers delete and
+        // recreate the key under it.
         for (int i = 0; i < 4; ++i)
             ReadKey(registry, hKey, shared, random);
 
@@ -419,7 +427,8 @@ void ExporterLoop(
     }
 }
 
-/// The hive, read by one thread with nothing else running, must agree with itself.
+/// The hive, read by one thread with nothing else running, must agree with
+/// itself.
 void CheckConsistent(Registry& registry, const HKEY hRoot)
 {
     std::set<std::wstring> keys;
@@ -589,8 +598,8 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
     }
 }
 
-/// Runs the workload against the hive mounted at @p pszMount for a bounded time. @p pfnFreezeMidway, when given, is
-/// called once halfway.
+/// Runs the workload against the hive mounted at @p pszMount for a bounded
+/// time. @p pfnFreezeMidway, when given, is called once halfway.
 void RunStress(
     Registry& registry,
     const wchar_t* const pszMount,
@@ -637,7 +646,8 @@ void RunStress(
     {
         if (Clock::now() - stopped > HANG_LIMIT)
         {
-            // A thread that cannot be joined would hang the process; report and leave.
+            // A thread that cannot be joined would hang the process; report and
+            // leave.
             std::fputs(
                 "concurrency test: worker threads did not finish (deadlock)\n",
                 stderr
@@ -650,7 +660,12 @@ void RunStress(
     for (auto& thread : threads)
         thread.join();
 
-    INFO("operations: " << shared.cOperations.load() << ", watches fired: " << shared.cFired.load());
+    INFO(
+        "operations: "
+        << shared.cOperations.load()
+        << ", watches fired: "
+        << shared.cFired.load()
+    );
     INFO("first unexpected status: " << shared.firstBad.load());
     CHECK(shared.cBad.load() == 0);
     CHECK(shared.cOperations.load() > 1000);
@@ -699,7 +714,8 @@ TEST_CASE("Readers and writers on a writable OverlayHive over an app hive")
     OverlayMount mount;
     auto& native = mount.Native();
 
-    // The lower layer holds names from the same closed set, so it shadows and is shadowed.
+    // The lower layer holds names from the same closed set, so it shadows and
+    // is shadowed.
     for (unsigned k = 0; k < KEYS; k += 2)
     {
         for (unsigned s = 0; s < SUB_KEYS; s += 2)

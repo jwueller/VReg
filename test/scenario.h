@@ -31,11 +31,11 @@
 /// Runs @p call, then records its status and the values the remaining
 /// arguments (out-sizes and buffers) hold after it. The recorder is the
 /// variable named `record`.
-#define RECORD(label, call, ...)                                                                                       \
-    do                                                                                                                 \
-    {                                                                                                                  \
-        const LSTATUS vregStatus = (call);                                                                             \
-        record(label, vregStatus, ##__VA_ARGS__);                                                                      \
+#define RECORD(label, call, ...)                                               \
+    do                                                                         \
+    {                                                                          \
+        const LSTATUS vregStatus = (call);                                     \
+        record(label, vregStatus, ##__VA_ARGS__);                              \
     } while (false)
 
 namespace VReg::Test
@@ -100,7 +100,9 @@ inline std::uint64_t Offset(
 {
     if (p == nullptr)
         return ~std::uint64_t{};
-    return static_cast<std::uint64_t>(static_cast<const BYTE*>(p) - static_cast<const BYTE*>(base));
+    return static_cast<std::uint64_t>(
+        static_cast<const BYTE*>(p) - static_cast<const BYTE*>(base)
+    );
 }
 
 inline std::string Narrow(const std::wstring_view text)
@@ -256,7 +258,10 @@ void QueryMatrix(
         QueryEx(api, hKey, pszName, nullptr, nullptr, nullptr)
     );
 
-    for (const DWORD cbBuffer : {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 9u, 12u, 24u, 64u})
+    for (
+        const DWORD cbBuffer :
+        {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 9u, 12u, 24u, 64u}
+    )
     {
         std::array<BYTE, 64> data;
         data.fill(FILL);

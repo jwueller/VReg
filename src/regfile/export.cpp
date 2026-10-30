@@ -48,14 +48,16 @@ public:
     {
     }
 
-    /// Appends the key @p hKey, named @p fullName, then its values, then its subkeys in order.
+    /// Appends the key @p hKey, named @p fullName, then its values, then its
+    /// subkeys in order.
     LSTATUS Walk(
         const HKEY hKey,
         const std::wstring& fullName,
         const unsigned depth = 0
     )
     {
-        // The registry nests at most 512 levels; anything deeper is a cycle through some other registry.
+        // The registry nests at most 512 levels; anything deeper is a cycle
+        // through some other registry.
         constexpr unsigned MAX_DEPTH = 512;
         if (depth > MAX_DEPTH)
             return ERROR_CANTREAD;
@@ -118,8 +120,9 @@ public:
         for (const auto& subkey : subkeys)
         {
             HKEY hSubkey{};
-            // A symbolic link is exported as the key it is (its SymbolicLinkValue), never followed: following one
-            // can leave the subtree or loop.
+            // A symbolic link is exported as the key it is (its
+            // SymbolicLinkValue), never followed: following one can leave the
+            // subtree or loop.
             const auto opened = m_registry.RegOpenKeyExW(
                 hKey,
                 subkey.c_str(),
@@ -262,12 +265,18 @@ LSTATUS ExportDelta(
                 }
             );
             std::vector<Record> values;
-            for (; i < upper.size() && upper[i].kind == UpperRecord::Kind::Value; ++i)
+            for (
+                ;
+                i < upper.size() && upper[i].kind == UpperRecord::Kind::Value;
+                ++i
+            )
             {
                 auto& value = upper[i];
                 values.push_back(
                     {
-                        .kind = value.isTombstone ? Record::Kind::DeleteValue : Record::Kind::Value,
+                        .kind = value.isTombstone
+                        ? Record::Kind::DeleteValue
+                        : Record::Kind::Value,
                         .key = {},
                         .name = std::move(value.name),
                         .dwType = value.dwType,

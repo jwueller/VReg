@@ -25,7 +25,9 @@ bool IsPredefinedHKey(const HKEY hKey) noexcept
 {
     const auto value = reinterpret_cast<ULONG_PTR>(hKey);
     return value >= reinterpret_cast<ULONG_PTR>(HKEY_CLASSES_ROOT)
-        && value <= reinterpret_cast<ULONG_PTR>(HKEY_CURRENT_USER_LOCAL_SETTINGS);
+        && value <= reinterpret_cast<ULONG_PTR>(
+            HKEY_CURRENT_USER_LOCAL_SETTINGS
+        );
 }
 
 /// The longest key name component the registry accepts, in characters.
@@ -85,7 +87,9 @@ void CopyValue(
     if (cbWhole == 0)
         return;
 
-    const bool isTerminated = value[cbWhole - 2] == std::byte{0} && value[cbWhole - 1] == std::byte{0};
+    const bool isTerminated =
+        value[cbWhole - 2] == std::byte{0}
+        && value[cbWhole - 1] == std::byte{0};
     if (!isTerminated && cbWhole + sizeof(wchar_t) <= cbBuffer)
         std::memset(pbBuffer + cbWhole, 0, sizeof(wchar_t));
 }
@@ -103,7 +107,10 @@ bool IsWow6432Node(const std::wstring_view name) noexcept
     return CompareNames(name, L"WOW6432Node") == 0;
 }
 
-constexpr MountView PROCESS_VIEW = sizeof(void*) == 8 ? MountView::Only64 : MountView::Only32;
+constexpr MountView PROCESS_VIEW =
+    sizeof(void*) == 8
+    ? MountView::Only64
+    : MountView::Only32;
 
 MountView ViewFromSam(const REGSAM samDesired) noexcept
 {
@@ -131,10 +138,18 @@ std::wstring CurrentUserSid()
     DWORD cbUser = 0;
     GetTokenInformation(hToken, TokenUser, nullptr, 0, &cbUser);
     std::vector<std::byte> user(cbUser);
-    if (cbUser && GetTokenInformation(hToken, TokenUser, user.data(), cbUser, &cbUser))
+    if (
+        cbUser
+        && GetTokenInformation(hToken, TokenUser, user.data(), cbUser, &cbUser)
+    )
     {
         LPWSTR pszSid = nullptr;
-        if (ConvertSidToStringSidW(reinterpret_cast<const TOKEN_USER*>(user.data())->User.Sid, &pszSid))
+        if (
+            ConvertSidToStringSidW(
+                reinterpret_cast<const TOKEN_USER*>(user.data())->User.Sid,
+                &pszSid
+            )
+        )
         {
             sid = pszSid;
             LocalFree(pszSid);
@@ -400,8 +415,11 @@ bool VirtualRegistry::ResolveNative(
     {
         bool isWow = false;
         std::size_t iRest = 0;
-        if (mount.nativePath.empty() || !MatchesNative(mount.nativePath, full, isWow, iRest)
-            || !Admits(mount.view, isWow ? MountView::Only32 : callView))
+        if (
+            mount.nativePath.empty()
+            || !MatchesNative(mount.nativePath, full, isWow, iRest)
+            || !Admits(mount.view, isWow ? MountView::Only32 : callView)
+        )
             continue;
 
         if (!pBest || mount.nativePath.size() > pBest->nativePath.size())
@@ -466,8 +484,12 @@ VirtualRegistry::Target VirtualRegistry::Resolve(
         const MountPoint* pBest = nullptr;
         for (const auto& mount : Mounts().mounts)
         {
-            if (!isSplit || mount.hRoot != hKey || mount.path.size() > components.size()
-                || !Admits(mount.view, callView))
+            if (
+                !isSplit
+                || mount.hRoot != hKey
+                || mount.path.size() > components.size()
+                || !Admits(mount.view, callView)
+            )
                 continue;
 
             if (!std::equal(
@@ -596,7 +618,8 @@ try
     if (!phkResult)
         return ERROR_BADKEY;
 
-    // Native leaves the result alone for these two and nulls it for every other failure.
+    // Native leaves the result alone for these two and nulls it for every other
+    // failure.
     if (Reserved)
         return ERROR_INVALID_PARAMETER;
     if (target.status == ERROR_INVALID_HANDLE)
@@ -1277,7 +1300,12 @@ try
         );
 
     constexpr DWORD BOTH_VIEWS = RRF_SUBKEY_WOW6464KEY | RRF_SUBKEY_WOW6432KEY;
-    if (!hkey || (pvData && !pcbData) || !(dwFlags & RRF_RT_ANY) || (dwFlags & BOTH_VIEWS) == BOTH_VIEWS)
+    if (
+        !hkey
+        || (pvData && !pcbData)
+        || !(dwFlags & RRF_RT_ANY)
+        || (dwFlags & BOTH_VIEWS) == BOTH_VIEWS
+    )
         return ERROR_INVALID_PARAMETER;
 
     const DWORD cbBuffer = pcbData ? *pcbData : 0;
@@ -1346,8 +1374,9 @@ try
 
     const bool isString = IsStringType(dwType);
 
-    // Native copies the stored bytes first, then the string with the terminators it lacks, then the expansion, each
-    // over the previous one and only if it fits.
+    // Native copies the stored bytes first, then the string with the
+    // terminators it lacks, then the expansion, each over the previous one and
+    // only if it fits.
     std::vector<std::byte> stages[3];
     stages[0] = value;
     DWORD cbReported = static_cast<DWORD>(value.size());
@@ -1372,13 +1401,17 @@ try
 
         if (dwType == REG_EXPAND_SZ && !(dwFlags & RRF_NOEXPAND))
         {
-            const auto* const pszRaw = reinterpret_cast<const wchar_t*>(value.data());
+            const auto* const pszRaw = reinterpret_cast<const wchar_t*>(
+                value.data()
+            );
             const DWORD cwchExpanded = ExpandEnvironmentStringsW(
                 pszRaw,
                 nullptr,
                 0
             );
-            stages[2].resize(static_cast<std::size_t>(cwchExpanded) * sizeof(wchar_t));
+            stages[2].resize(
+                static_cast<std::size_t>(cwchExpanded) * sizeof(wchar_t)
+            );
             ExpandEnvironmentStringsW(
                 pszRaw,
                 reinterpret_cast<wchar_t*>(stages[2].data()),
@@ -1404,10 +1437,19 @@ try
         0,
         RRF_RT_REG_QWORD,
     };
-    const DWORD dwTypeFlag = dwType < std::size(TYPE_FLAGS) ? TYPE_FLAGS[dwType] : 0;
-    const bool isAllowed = dwTypeFlag ? (dwFlags & dwTypeFlag) != 0 : (dwFlags & RRF_RT_ANY) == RRF_RT_ANY;
+    const DWORD dwTypeFlag =
+        dwType < std::size(TYPE_FLAGS)
+        ? TYPE_FLAGS[dwType]
+        : 0;
+    const bool isAllowed =
+        dwTypeFlag
+        ? (dwFlags & dwTypeFlag) != 0
+        : (dwFlags & RRF_RT_ANY) == RRF_RT_ANY;
 
-    const auto& final = stages[2].empty() ? (stages[1].empty() ? stages[0] : stages[1]) : stages[2];
+    const auto& final =
+        stages[2].empty()
+        ? (stages[1].empty() ? stages[0] : stages[1])
+        : stages[2];
     const bool isFit = pvData && final.size() <= cbBuffer;
     if (pvData)
     {
@@ -1417,7 +1459,8 @@ try
                 std::memcpy(pvData, stage.data(), stage.size());
         }
 
-        // An expansion that does not fit leaves the unexpanded text with its first character cleared.
+        // An expansion that does not fit leaves the unexpanded text with its
+        // first character cleared.
         if (!stages[2].empty() && !isFit && stages[1].size() <= cbBuffer)
             std::memset(pvData, 0, sizeof(wchar_t));
     }
@@ -1426,15 +1469,27 @@ try
         *pdwType = dwType;
     if (pcbData)
     {
-        // A string that cannot be returned reports room for the terminators it may lack.
-        const DWORD cbTerminators = dwType == REG_MULTI_SZ ? 4 : (isString ? 2 : 0);
-        const DWORD cbReserved = static_cast<DWORD>(stages[0].size()) + cbTerminators;
-        *pcbData = !stages[2].empty() ? cbReported : (isFit ? cbReported : std::max(cbReported, cbReserved));
+        // A string that cannot be returned reports room for the terminators it
+        // may lack.
+        const DWORD cbTerminators =
+            dwType == REG_MULTI_SZ
+            ? 4
+            : (isString ? 2 : 0);
+        const DWORD cbReserved =
+            static_cast<DWORD>(stages[0].size())
+            + cbTerminators;
+        *pcbData =
+            !stages[2].empty()
+            ? cbReported
+            : (isFit ? cbReported : std::max(cbReported, cbReserved));
     }
 
-    // Binary data passes as a DWORD only when it is empty or has that size. Agent's choice: native was measured
-    // with sizes 0 and 5 only; rejecting every other size is a guess for 1 to 3 and 6 or more.
-    const bool isSizeMismatch = dwType == REG_BINARY && (dwFlags & RRF_RT_ANY) == RRF_RT_DWORD
+    // Binary data passes as a DWORD only when it is empty or has that size.
+    // Agent's choice: native was measured with sizes 0 and 5 only; rejecting
+    // every other size is a guess for 1 to 3 and 6 or more.
+    const bool isSizeMismatch =
+        dwType == REG_BINARY
+        && (dwFlags & RRF_RT_ANY) == RRF_RT_DWORD
         && !stages[0].empty() && stages[0].size() != sizeof(DWORD);
 
     LSTATUS status = ERROR_SUCCESS;

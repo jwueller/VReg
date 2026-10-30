@@ -18,7 +18,11 @@ namespace
 {
 struct CreateOpenAndClose
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         HKEY hKey{};
         DWORD dwDisposition = FILL_SIZE;
@@ -101,7 +105,11 @@ struct CreateOpenAndClose
 
 struct QueryStringBufferTooSmall
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         constexpr wchar_t VALUE_TEXT[] = L"value";
         RECORD(
@@ -138,7 +146,11 @@ struct QueryStringBufferTooSmall
 
 struct CreateDispositionAndClass
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         HKEY hKey{};
         DWORD dwDisposition = FILL_SIZE;
@@ -352,7 +364,10 @@ struct CreateDispositionAndClass
             )
         );
 
-        for (const wchar_t* const pszSub : {L"", L"\\Leading", L"Trailing\\", L"Double\\\\Slash", L"\\"})
+        for (
+            const wchar_t* const pszSub :
+            {L"", L"\\Leading", L"Trailing\\", L"Double\\\\Slash", L"\\"}
+        )
         {
             dwDisposition = FILL_SIZE;
             hKey = FillKey();
@@ -469,7 +484,11 @@ struct CreateDispositionAndClass
 
 struct CreateOpenAnsi
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         HKEY hKey{};
         DWORD dwDisposition = FILL_SIZE;
@@ -674,7 +693,10 @@ struct CreateOpenAnsi
             )
         );
 
-        for (const char* const pszSub : {static_cast<const char*>(nullptr), "", "\\Leading", "Trailing\\"})
+        for (
+            const char* const pszSub :
+            {static_cast<const char*>(nullptr), "", "\\Leading", "Trailing\\"}
+        )
         {
             hKey = FillKey();
             const auto status = api.RegOpenKeyExA(
@@ -784,7 +806,11 @@ struct CreateOpenAnsi
 
 struct OpenKeyForms
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         HKEY hKey{};
         RECORD(
@@ -873,7 +899,8 @@ struct OpenKeyForms
                 hKey
             )
         );
-        // Native needs SeBackupPrivilege; a virtual key has no access check to bypass and always opens.
+        // Native needs SeBackupPrivilege; a virtual key has no access check to
+        // bypass and always opens.
         if constexpr (!VIRTUAL_KEYS<Api>)
         {
             hKey = FillKey();
@@ -971,7 +998,8 @@ struct OpenKeyForms
             {KeyState(hKey)}
         );
 
-        // A virtual key has one handle per node, so it carries no per-open access rights.
+        // A virtual key has one handle per node, so it carries no per-open
+        // access rights.
         if constexpr (!VIRTUAL_KEYS<Api>)
         {
             HKEY hRead{};
@@ -1047,7 +1075,11 @@ struct OpenKeyForms
 
 struct PreExOpenAndCreate
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         HKEY hKey{};
         RECORD(
@@ -1065,8 +1097,19 @@ struct PreExOpenAndCreate
             )
         );
 
-        for (const wchar_t* const pszSub :
-             {static_cast<const wchar_t*>(nullptr), L"", L"A", L"a\\b", L"A\\", L"\\A", L"Missing", L"A\\\\B"})
+        for (
+            const wchar_t* const pszSub :
+            {
+                static_cast<const wchar_t*>(nullptr),
+                L"",
+                L"A",
+                L"a\\b",
+                L"A\\",
+                L"\\A",
+                L"Missing",
+                L"A\\\\B"
+            }
+        )
         {
             const auto label = std::string(pszSub ? Narrow(pszSub) : "(null)");
             hKey = FillKey();
@@ -1320,10 +1363,24 @@ struct PreExOpenAndCreate
 
 struct DeleteKeys
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         HKEY hKey{};
-        for (const wchar_t* const pszName : {L"Parent\\Child", L"Leaf1", L"Leaf2", L"Leaf3", L"Leaf4\u00e4", L"Leaf5"})
+        for (
+            const wchar_t* const pszName :
+            {
+                L"Parent\\Child",
+                L"Leaf1",
+                L"Leaf2",
+                L"Leaf3",
+                L"Leaf4\u00e4",
+                L"Leaf5"
+            }
+        )
         {
             RECORD(
                 "create",
@@ -1531,7 +1588,10 @@ struct DeleteKeys
             )
         );
 
-        for (const auto* const pszSub : {L"Parent", L"Leaf1", L"Leaf2", L"Leaf3", L"Leaf4\u00e4", L"Leaf5"})
+        for (
+            const auto* const pszSub :
+            {L"Parent", L"Leaf1", L"Leaf2", L"Leaf3", L"Leaf4\u00e4", L"Leaf5"}
+        )
         {
             hKey = FillKey();
             const auto status = api.RegOpenKeyExW(
@@ -1555,7 +1615,11 @@ struct DeleteKeys
 
 struct OperateOnDeletedKey
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         HKEY hKey{};
         const BYTE data[4] = {1, 2, 3, 4};
@@ -1751,11 +1815,26 @@ struct OperateOnDeletedKey
 
 struct DeleteTrees
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         const BYTE data[4] = {1, 2, 3, 4};
-        for (const wchar_t* const pszSub :
-             {L"T\\A\\B\\C", L"T\\A", L"T", L"T\\S", L"U\u00e4\\X", L"V\\X", L"W\\X", L"X\\X"})
+        for (
+            const wchar_t* const pszSub :
+            {
+                L"T\\A\\B\\C",
+                L"T\\A",
+                L"T",
+                L"T\\S",
+                L"U\u00e4\\X",
+                L"V\\X",
+                L"W\\X",
+                L"X\\X"
+            }
+        )
             RECORD(
                 "set " + Narrow(pszSub),
                 api.RegSetKeyValueW(
@@ -1958,7 +2037,11 @@ struct DeleteTrees
 
 struct FlushAndNotify
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         HKEY hKey{};
         RECORD(

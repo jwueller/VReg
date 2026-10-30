@@ -50,7 +50,11 @@ TEST_CASE("Apply creates keys and sets every value form")
     REQUIRE(Apply(script, registry, &failed) == ERROR_SUCCESS);
     CHECK(failed == 99);
 
-    const auto get = [&](const wchar_t* const pszName, const DWORD dwType, const std::vector<std::byte>& data)
+    const auto get = [&](
+        const wchar_t* const pszName,
+        const DWORD dwType,
+        const std::vector<std::byte>& data
+    )
     {
         CheckValue(registry, L"Software\\T\\Deep", pszName, dwType, data);
     };
@@ -157,7 +161,10 @@ TEST_CASE("Apply deletes values and keys")
     {
         REQUIRE(
             Apply(
-                MustParse(HEADER + L"[-HKCU\\Missing\\Deep]\r\n[-HKCU\\Gone\\Deep\\Deeper\\Nope]\r\n"),
+                MustParse(
+                    HEADER
+                    + L"[-HKCU\\Missing\\Deep]\r\n[-HKCU\\Gone\\Deep\\Deeper\\Nope]\r\n"
+                ),
                 registry,
                 nullptr
             ) == ERROR_SUCCESS
@@ -227,7 +234,9 @@ TEST_CASE("Apply stops at the first failing operation")
     orphan.dwType = REG_DWORD;
     orphan.data = DwordBytes(1);
     script.operations.push_back(orphan);
-    script.operations.push_back(MustParse(HEADER + L"[HKCU\\Never]\r\n").operations[0]);
+    script.operations.push_back(
+        MustParse(HEADER + L"[HKCU\\Never]\r\n").operations[0]
+    );
 
     std::size_t failed = 99;
     CHECK(Apply(script, registry, &failed) == ERROR_FILE_NOT_FOUND);

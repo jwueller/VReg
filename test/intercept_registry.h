@@ -21,7 +21,8 @@ public:
     {
     }
 
-    /// Calls named here (`RegOpenKeyExW`, ...) answer the status instead of being forwarded.
+    /// Calls named here (`RegOpenKeyExW`, ...) answer the status instead of
+    /// being forwarded.
     std::map<std::string, LSTATUS> failures;
     std::function<void(const std::string&)> onCall;
 

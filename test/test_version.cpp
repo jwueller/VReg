@@ -34,13 +34,40 @@ TEST_CASE("The version is semver with the commit as build metadata")
 
 TEST_CASE("A file version lies in memory as its packed four-part number")
 {
-    constexpr VReg::FileVersion version{.wRevision = 4, .wPatch = 3, .wMinor = 2, .wMajor = 1};
+    constexpr VReg::FileVersion version{
+        .wRevision = 4,
+        .wPatch = 3,
+        .wMinor = 2,
+        .wMajor = 1
+    };
 
-    STATIC_CHECK(std::bit_cast<ULONGLONG>(version) == MAKEDLLVERULL(1, 2, 3, 4));
-    constexpr VReg::FileVersion major{.wRevision = 0, .wPatch = 0, .wMinor = 0, .wMajor = 1};
-    constexpr VReg::FileVersion minors{.wRevision = 9, .wPatch = 9, .wMinor = 9, .wMajor = 0};
-    constexpr VReg::FileVersion patch{.wRevision = 0, .wPatch = 1, .wMinor = 0, .wMajor = 0};
-    constexpr VReg::FileVersion minor{.wRevision = 0, .wPatch = 0, .wMinor = 1, .wMajor = 0};
+    STATIC_CHECK(
+        std::bit_cast<ULONGLONG>(version) == MAKEDLLVERULL(1, 2, 3, 4)
+    );
+    constexpr VReg::FileVersion major{
+        .wRevision = 0,
+        .wPatch = 0,
+        .wMinor = 0,
+        .wMajor = 1
+    };
+    constexpr VReg::FileVersion minors{
+        .wRevision = 9,
+        .wPatch = 9,
+        .wMinor = 9,
+        .wMajor = 0
+    };
+    constexpr VReg::FileVersion patch{
+        .wRevision = 0,
+        .wPatch = 1,
+        .wMinor = 0,
+        .wMajor = 0
+    };
+    constexpr VReg::FileVersion minor{
+        .wRevision = 0,
+        .wPatch = 0,
+        .wMinor = 1,
+        .wMajor = 0
+    };
     STATIC_CHECK(major > minors);
     STATIC_CHECK(patch < minor);
     STATIC_CHECK(version == version);

@@ -16,10 +16,12 @@ namespace VReg
 inline constexpr UINT_PTR VREG_VIRTUAL_HKEY_BASE = 0x7FFFFFFF;
 
 /// One more than the highest index @ref VirtualHKeyFromIndex accepts.
-inline constexpr UINT_PTR VREG_VIRTUAL_HKEY_COUNT = (VREG_VIRTUAL_HKEY_BASE >> 1) + 1;
+inline constexpr UINT_PTR VREG_VIRTUAL_HKEY_COUNT =
+    (VREG_VIRTUAL_HKEY_BASE >> 1)
+    + 1;
 
-/// The handle for @p index, counting down from @ref VREG_VIRTUAL_HKEY_BASE in odd
-/// steps; null when @p index is out of range.
+/// The handle for @p index, counting down from @ref VREG_VIRTUAL_HKEY_BASE in
+/// odd steps; null when @p index is out of range.
 constexpr HKEY VirtualHKeyFromIndex(const UINT_PTR index) noexcept
 {
     if (index >= VREG_VIRTUAL_HKEY_COUNT)

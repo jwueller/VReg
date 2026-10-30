@@ -73,7 +73,11 @@ LSTATUS DecodeFile(
     if (file.size() > static_cast<std::size_t>(INT_MAX))
         return Fail(pError, "the file is too large");
 
-    if (file.size() >= 2 && file[0] == std::byte{0xFF} && file[1] == std::byte{0xFE})
+    if (
+        file.size() >= 2
+        && file[0] == std::byte{0xFF}
+        && file[1] == std::byte{0xFE}
+    )
     {
         const auto body = file.subspan(2);
         if (body.size() % sizeof(wchar_t) != 0)
@@ -82,9 +86,18 @@ LSTATUS DecodeFile(
         std::memcpy(text.data(), body.data(), body.size());
         return ERROR_SUCCESS;
     }
-    if (file.size() >= 2 && file[0] == std::byte{0xFE} && file[1] == std::byte{0xFF})
+    if (
+        file.size() >= 2
+        && file[0] == std::byte{0xFE}
+        && file[1] == std::byte{0xFF}
+    )
         return Fail(pError, "big-endian UTF-16 is not supported");
-    if (file.size() >= 3 && file[0] == std::byte{0xEF} && file[1] == std::byte{0xBB} && file[2] == std::byte{0xBF})
+    if (
+        file.size() >= 3
+        && file[0] == std::byte{0xEF}
+        && file[1] == std::byte{0xBB}
+        && file[2] == std::byte{0xBF}
+    )
         return Widen(CP_UTF8, file.subspan(3), text, pError);
 
     return Widen(
@@ -117,7 +130,8 @@ LSTATUS EncodeFile(
     if (text.size() > static_cast<std::size_t>(INT_MAX))
         return ERROR_NOT_ENOUGH_MEMORY;
 
-    // An ACP of UTF-8 takes neither the best-fit flag nor a default-char report.
+    // An ACP of UTF-8 takes neither the best-fit flag nor a default-char
+    // report.
     const UINT codePage = format == Format::Utf8 ? CP_UTF8 : CP_ACP;
     const bool isUtf8 = codePage == CP_UTF8 || GetACP() == CP_UTF8;
     const DWORD dwFlags = isUtf8 ? WC_ERR_INVALID_CHARS : WC_NO_BEST_FIT_CHARS;
@@ -184,7 +198,15 @@ LSTATUS ReadWholeFile(
     {
         file.resize(static_cast<std::size_t>(size.QuadPart));
         DWORD cbRead = 0;
-        if (!ReadFile(hFile, file.data(), static_cast<DWORD>(file.size()), &cbRead, nullptr))
+        if (
+            !ReadFile(
+                hFile,
+                file.data(),
+                static_cast<DWORD>(file.size()),
+                &cbRead,
+                nullptr
+            )
+        )
             status = static_cast<LSTATUS>(GetLastError());
         else
             file.resize(cbRead);
@@ -212,7 +234,15 @@ LSTATUS WriteWholeFile(
 
     LSTATUS status = ERROR_SUCCESS;
     DWORD cbWritten = 0;
-    if (!WriteFile(hFile, file.data(), static_cast<DWORD>(file.size()), &cbWritten, nullptr))
+    if (
+        !WriteFile(
+            hFile,
+            file.data(),
+            static_cast<DWORD>(file.size()),
+            &cbWritten,
+            nullptr
+        )
+    )
         status = static_cast<LSTATUS>(GetLastError());
     if (!CloseHandle(hFile) && status == ERROR_SUCCESS)
         status = static_cast<LSTATUS>(GetLastError());

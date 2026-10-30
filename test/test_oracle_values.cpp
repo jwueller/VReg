@@ -38,22 +38,44 @@ std::vector<StoredValue> WideValues()
     values.push_back({L"SzOneByte", REG_SZ, {0x41}});
     values.push_back({L"SzEmpty", REG_SZ, {}});
     values.push_back({L"SzJustTerminator", REG_SZ, {0, 0}});
-    values.push_back({L"SzNonAscii", REG_SZ, BytesOf(NON_ASCII, std::size(NON_ASCII))});
-    values.push_back({L"SzNonAsciiNoTerminator", REG_SZ, BytesOf(NON_ASCII, std::size(NON_ASCII) - 1)});
-    values.push_back({L"SzEmbeddedNul", REG_SZ, BytesOf(EMBEDDED, std::size(EMBEDDED))});
-    values.push_back({L"Expand", REG_EXPAND_SZ, BytesOf(L"%SystemRoot%\\x", 15)});
+    values.push_back(
+        {L"SzNonAscii", REG_SZ, BytesOf(NON_ASCII, std::size(NON_ASCII))}
+    );
+    values.push_back(
+        {
+            L"SzNonAsciiNoTerminator",
+            REG_SZ,
+            BytesOf(NON_ASCII, std::size(NON_ASCII) - 1)
+        }
+    );
+    values.push_back(
+        {L"SzEmbeddedNul", REG_SZ, BytesOf(EMBEDDED, std::size(EMBEDDED))}
+    );
+    values.push_back(
+        {L"Expand", REG_EXPAND_SZ, BytesOf(L"%SystemRoot%\\x", 15)}
+    );
     values.push_back({L"ExpandEmpty", REG_EXPAND_SZ, {}});
     values.push_back({L"Binary", REG_BINARY, {1, 2, 3, 4, 5}});
     values.push_back({L"BinaryEmpty", REG_BINARY, {}});
     values.push_back({L"Dword", REG_DWORD, {0x78, 0x56, 0x34, 0x12}});
     values.push_back({L"DwordShort", REG_DWORD, {0x78, 0x56}});
-    values.push_back({L"DwordBigEndian", REG_DWORD_BIG_ENDIAN, {0x12, 0x34, 0x56, 0x78}});
+    values.push_back(
+        {L"DwordBigEndian", REG_DWORD_BIG_ENDIAN, {0x12, 0x34, 0x56, 0x78}}
+    );
     values.push_back({L"Link", REG_LINK, BytesOf(L"link", 4)});
     values.push_back({L"Multi", REG_MULTI_SZ, BytesOf(L"a\0bc\0", 6)});
-    values.push_back({L"MultiNoFinalTerminator", REG_MULTI_SZ, BytesOf(L"a\0bc", 5)});
+    values.push_back(
+        {L"MultiNoFinalTerminator", REG_MULTI_SZ, BytesOf(L"a\0bc", 5)}
+    );
     values.push_back({L"MultiNoTerminator", REG_MULTI_SZ, BytesOf(L"abc", 3)});
     values.push_back({L"MultiEmpty", REG_MULTI_SZ, {}});
-    values.push_back({L"MultiNonAscii", REG_MULTI_SZ, BytesOf(MULTI_NON_ASCII, std::size(MULTI_NON_ASCII))});
+    values.push_back(
+        {
+            L"MultiNonAscii",
+            REG_MULTI_SZ,
+            BytesOf(MULTI_NON_ASCII, std::size(MULTI_NON_ASCII))
+        }
+    );
     values.push_back({L"Qword", REG_QWORD, {1, 2, 3, 4, 5, 6, 7, 8}});
     values.push_back({L"ResourceList", REG_RESOURCE_LIST, {9, 8, 7}});
     values.push_back({L"Unknown", 0x1234, {4, 3}});
@@ -62,7 +84,11 @@ std::vector<StoredValue> WideValues()
 
 struct SetWideAndQueryEveryType
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         for (const auto& value : WideValues())
         {
@@ -106,7 +132,11 @@ std::vector<AnsiItem> AnsiItems()
 
 struct SetAnsiAndQueryEveryType
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         for (const auto& item : AnsiItems())
         {
@@ -131,7 +161,11 @@ struct SetAnsiAndQueryEveryType
 
 struct SetInvalidArguments
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         const BYTE data[16] = {1, 2, 3, 4, 5, 6, 7, 8};
 
@@ -358,7 +392,11 @@ struct SetInvalidArguments
 
 struct QueryMissingAndInvalid
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         QueryMatrix(api, record, hRoot, L"Missing", "missing W");
         QueryMatrix(api, record, hRoot, "Missing", "missing A");
@@ -493,7 +531,11 @@ struct QueryMissingAndInvalid
 
 struct DefaultValue
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         const BYTE VALUE_TEXT[] = "text";
         QueryMatrix(
@@ -629,7 +671,11 @@ struct DefaultValue
 
 struct NonAsciiNames
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         const BYTE data[4] = {1, 2, 3, 4};
         RECORD(
@@ -739,7 +785,11 @@ struct NonAsciiNames
 
 struct DeleteValues
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         const BYTE data[4] = {1, 2, 3, 4};
         RECORD(
@@ -825,7 +875,11 @@ struct DeleteValues
 
 struct PreExValues
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         const wchar_t WIDE[] = L"he\u00e4llo";
         const char NARROW[] = "he\xe4llo";
@@ -991,8 +1045,21 @@ struct PreExValues
             )
         );
 
-        for (const auto* const pszSub :
-             {L"Sub", L"Deep\\Sub", L"Sub2", L"NullData", L"Wrong", L"Missing", L"", L"U\u4e2d", L"UD", L"Empty"})
+        for (
+            const auto* const pszSub :
+            {
+                L"Sub",
+                L"Deep\\Sub",
+                L"Sub2",
+                L"NullData",
+                L"Wrong",
+                L"Missing",
+                L"",
+                L"U\u4e2d",
+                L"UD",
+                L"Empty"
+            }
+        )
         {
             const auto label = Narrow(pszSub);
             for (const LONG cbBuffer : {-1l, 0l, 1l, 2l, 5l, 12l, 64l})
@@ -1235,7 +1302,11 @@ struct PreExValues
 
 struct SetKeyValueForms
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         const BYTE dword[4] = {1, 2, 3, 4};
 
@@ -1524,7 +1595,11 @@ struct SetKeyValueForms
 
 struct DeleteKeyValueForms
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         const BYTE data[4] = {1, 2, 3, 4};
         RECORD(

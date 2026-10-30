@@ -27,7 +27,10 @@ NativeRegistry::Functions NativeRegistry::ResolveFunctions() noexcept
 {
     Functions functions{};
 
-#define VREG_RESOLVE(name) functions.name = reinterpret_cast<decltype(functions.name)>(FindRegistryExport(#name));
+#define VREG_RESOLVE(name)                                                     \
+    functions.name = reinterpret_cast<decltype(functions.name)>(               \
+        FindRegistryExport(#name)                                              \
+    );
     VREG_INTERNAL_REGISTRY_FUNCTIONS(VREG_RESOLVE)
 #undef VREG_RESOLVE
 

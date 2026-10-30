@@ -344,13 +344,24 @@ TEST_CASE("A hive mounted read-only answers reads and refuses writes")
     const HKEY hRoot = Hive::HandleOf(hive.Root());
     {
         VirtualRegistry writer;
-        REQUIRE(writer.Mount(HKEY_CURRENT_USER, L"Test", hive) == ERROR_SUCCESS);
-        REQUIRE(SetDword(writer, CreateKey(writer, hRoot, L"Sub"), L"v", 7) == ERROR_SUCCESS);
+        REQUIRE(
+            writer.Mount(HKEY_CURRENT_USER, L"Test", hive) == ERROR_SUCCESS
+        );
+        REQUIRE(
+            SetDword(
+                writer,
+                CreateKey(writer, hRoot, L"Sub"),
+                L"v",
+                7
+            ) == ERROR_SUCCESS
+        );
     }
 
     VirtualRegistry registry;
     const Hive& readOnly = hive;
-    REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"Test", readOnly) == ERROR_SUCCESS);
+    REQUIRE(
+        registry.Mount(HKEY_CURRENT_USER, L"Test", readOnly) == ERROR_SUCCESS
+    );
 
     const HKEY hSub = OpenKey(registry, HKEY_CURRENT_USER, L"Test\\Sub");
     LSTATUS status = ERROR_SUCCESS;
@@ -421,7 +432,13 @@ TEST_CASE("A hive mounted read-only answers reads and refuses writes")
     );
     CHECK(QueryDword(registry, hSub, L"v", status) == 9);
 
-    CHECK(registry.Mount(HKEY_CURRENT_USER, L"Other", hive) == ERROR_INVALID_PARAMETER);
+    CHECK(
+        registry.Mount(
+            HKEY_CURRENT_USER,
+            L"Other",
+            hive
+        ) == ERROR_INVALID_PARAMETER
+    );
 }
 
 TEST_CASE("Mount rejects what cannot be mounted")
@@ -849,7 +866,9 @@ struct FakeNtQueryKey
         if (keyInformationClass != 3 || it == s_paths.end())
             return static_cast<LONG>(0xC0000008);
 
-        const ULONG cbName = static_cast<ULONG>(it->second.size() * sizeof(wchar_t));
+        const ULONG cbName = static_cast<ULONG>(
+            it->second.size() * sizeof(wchar_t)
+        );
         *pcbResult = sizeof(ULONG) + cbName;
         if (cbKeyInformation < *pcbResult)
             return static_cast<LONG>(0x80000005);
@@ -1069,7 +1088,8 @@ TEST_CASE("A real parent handle is resolved by its native path")
 
     SECTION("A native path longer than the first buffer is read in full")
     {
-        const std::wstring prefix = L"\\REGISTRY\\MACHINE\\SOFTWARE\\VRegNative\\App\\";
+        const std::wstring prefix =
+            L"\\REGISTRY\\MACHINE\\SOFTWARE\\VRegNative\\App\\";
         const HKEY hLong = FakeKey(5, prefix + std::wstring(200, L'x'));
         CHECK(
             OpenVia(
@@ -1251,7 +1271,11 @@ TEST_CASE("A mount answers only the calls of its view")
     );
 
     HKEY hKey = nullptr;
-    const auto isVirtual = [&](const HKEY hParent, const wchar_t* const pszPath, const REGSAM sam)
+    const auto isVirtual = [&](
+        const HKEY hParent,
+        const wchar_t* const pszPath,
+        const REGSAM sam
+    )
     {
         const auto status = OpenVia(registry, hParent, pszPath, sam, hKey);
         return status == ERROR_SUCCESS && IsVirtualHKey(hKey);

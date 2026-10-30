@@ -11,7 +11,8 @@ namespace VReg
 class Registry;
 class Tree;
 
-/// One entry of an overlay's upper layer, as @ref OverlayHive::SnapshotUpper lists it.
+/// One entry of an overlay's upper layer, as @ref OverlayHive::SnapshotUpper
+/// lists it.
 struct UpperRecord
 {
     enum class Kind
@@ -21,7 +22,8 @@ struct UpperRecord
     };
 
     Kind kind{};
-    /// The key, relative to the hive's root and separated by backslashes; empty for the root itself.
+    /// The key, relative to the hive's root and separated by backslashes; empty
+    /// for the root itself.
     std::wstring path;
     /// Values only; empty for the default value.
     std::wstring name;
@@ -31,8 +33,9 @@ struct UpperRecord
     std::vector<std::byte> data;
     /// A key or value of the lower layer that is deleted here.
     bool isTombstone = false;
-    /// Keys only: the key hides everything the lower key of this path holds (it was deleted and created again, or
-    /// emptied by @ref Registry::RegDeleteTreeW).
+    /// Keys only: the key hides everything the lower key of this path holds (it
+    /// was deleted and created again, or emptied by
+    /// @ref Registry::RegDeleteTreeW).
     bool isOpaque = false;
 };
 
@@ -158,11 +161,14 @@ public:
     ) const noexcept override;
 
     /**
-     * @brief Lists the upper layer: what the hive holds itself, as opposed to what shows through from below.
+     * @brief Lists the upper layer: what the hive holds itself, as opposed to
+     *  what shows through from below.
      *
-     *  This is the seam `.reg` export reads. A key comes before its values, which come before its subkeys, which
-     *  are in name order; values are in creation order. A key that only stands for a lower key, with no values of
-     *  its own, is not listed; the upper keys below it are. Reads only the hive, never the lower registry.
+     *  This is the seam `.reg` export reads. A key comes before its values,
+     *  which come before its subkeys, which are in name order; values are in
+     *  creation order. A key that only stands for a lower key, with no values
+     *  of its own, is not listed; the upper keys below it are. Reads only the
+     *  hive, never the lower registry.
      */
     LSTATUS SnapshotUpper(std::vector<UpperRecord>& records) const noexcept;
 

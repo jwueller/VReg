@@ -1,4 +1,5 @@
-// Export, parse and apply into a second hive must reproduce every value byte for byte.
+// Export, parse and apply into a second hive must reproduce every value byte
+// for byte.
 
 #include "regfile_test.h"
 
@@ -37,7 +38,11 @@ std::vector<Entry> AsciiEntries()
         {L"RT", L"embedded nul", {REG_SZ, StringBytes(withNul)}},
         {L"RT", L"newline", {REG_SZ, StringBytes(L"a\r\nb\nc")}},
         {L"RT", L"tab and semicolon", {REG_SZ, StringBytes(L"a\tb;c")}},
-        {L"RT", L"odd", {REG_SZ, {std::byte{0x61}, std::byte{0}, std::byte{0x62}}}},
+        {
+            L"RT",
+            L"odd",
+            {REG_SZ, {std::byte{0x61}, std::byte{0}, std::byte{0x62}}}
+        },
         {L"RT", L"zero bytes", {REG_SZ, {}}},
         {L"RT", L"expand", {REG_EXPAND_SZ, StringBytes(L"%SystemRoot%\\x")}},
         {L"RT", L"multi", {REG_MULTI_SZ, BytesOf(
@@ -97,7 +102,8 @@ void CheckSame(Registry& registry, const std::vector<Entry>& entries)
     }
 }
 
-/// Exports "RT" from one hive, parses the result and applies it to a fresh hive.
+/// Exports "RT" from one hive, parses the result and applies it to a fresh
+/// hive.
 void RoundTrip(const std::vector<Entry>& entries, const Format format)
 {
     AppHive source;
@@ -155,7 +161,11 @@ TEST_CASE("Non-ASCII names and strings survive Unicode and UTF-8")
 {
     const auto format = GENERATE(Format::Unicode, Format::Utf8);
     const std::vector<Entry> entries = {
-        {L"RT\\\u4e2d\u6587", L"caf\u00e9", {REG_SZ, StringBytes(L"\u00e9\u4e2d \U0001F600")}},
+        {
+            L"RT\\\u4e2d\u6587",
+            L"caf\u00e9",
+            {REG_SZ, StringBytes(L"\u00e9\u4e2d \U0001F600")}
+        },
         {L"RT\\\u4e2d\u6587", L"", {REG_EXPAND_SZ, StringBytes(L"%\u00e9%")}},
         {L"RT", L"\U0001F600", {REG_DWORD, DwordBytes(7)}},
     };
@@ -166,8 +176,19 @@ TEST_CASE("A value of the ANSI code page survives REGEDIT4")
 {
     char chAcute{};
     BOOL fUsedDefault = FALSE;
-    if (WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, L"\u00e9", 1, &chAcute, 1, nullptr, &fUsedDefault) != 1 ||
-        fUsedDefault)
+    if (
+        WideCharToMultiByte(
+            CP_ACP,
+            WC_NO_BEST_FIT_CHARS,
+            L"\u00e9",
+            1,
+            &chAcute,
+            1,
+            nullptr,
+            &fUsedDefault
+        ) != 1
+        || fUsedDefault
+    )
         SKIP("the ANSI code page has no e acute");
     const std::vector<Entry> entries = {
         {L"RT\\caf\u00e9", L"n\u00e9", {REG_SZ, StringBytes(L"\u00e9")}},
@@ -225,7 +246,11 @@ TEST_CASE("The exported file ends where regedit's does")
         ) == ERROR_SUCCESS
     );
     const auto text = AsString(file);
-    CHECK(text.starts_with("Windows Registry Editor Version 5.00\r\n\r\n[HKEY_CURRENT_USER\\RT]\r\n"));
+    CHECK(
+        text.starts_with(
+            "Windows Registry Editor Version 5.00\r\n\r\n[HKEY_CURRENT_USER\\RT]\r\n"
+        )
+    );
     CHECK(text.ends_with("\r\n\r\n"));
     CHECK(text.find("\n\n") == std::string::npos);
 }

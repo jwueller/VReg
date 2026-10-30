@@ -515,7 +515,10 @@ TEST_CASE("EnumKey walks the subkeys to the end")
     NativeRegistry registry;
 
     const std::wstring longName(255, L'k');
-    for (const auto& name : {std::wstring(L"Alpha"), std::wstring(L"B\u00e4ta\u4e2d"), longName})
+    for (
+        const auto& name :
+        {std::wstring(L"Alpha"), std::wstring(L"B\u00e4ta\u4e2d"), longName}
+    )
     {
         HKEY hKey{};
         REQUIRE(
@@ -545,9 +548,19 @@ TEST_CASE("EnumKey walks the subkeys to the end")
 
     REQUIRE(names.size() == 3);
     CHECK(EnumKey(registry, hive.Root(), 3, name) == ERROR_NO_MORE_ITEMS);
-    CHECK((names[0] == L"Alpha" || names[1] == L"Alpha" || names[2] == L"Alpha"));
-    CHECK((names[0] == L"B\u00e4ta\u4e2d" || names[1] == L"B\u00e4ta\u4e2d" || names[2] == L"B\u00e4ta\u4e2d"));
-    CHECK((names[0] == longName || names[1] == longName || names[2] == longName));
+    CHECK(
+        (names[0] == L"Alpha" || names[1] == L"Alpha" || names[2] == L"Alpha")
+    );
+    CHECK(
+        (
+            names[0] == L"B\u00e4ta\u4e2d"
+            || names[1] == L"B\u00e4ta\u4e2d"
+            || names[2] == L"B\u00e4ta\u4e2d"
+        )
+    );
+    CHECK(
+        (names[0] == longName || names[1] == longName || names[2] == longName)
+    );
 }
 
 TEST_CASE("EnumValue returns the name, type and data")
@@ -655,7 +668,9 @@ LSTATUS WINAPI StubLoadMUIStringW(
     (void)pszValue;
     (void)Flags;
     (void)pszDirectory;
-    const auto cbNeeded = static_cast<DWORD>((g_muiText.size() + 1) * sizeof(wchar_t));
+    const auto cbNeeded = static_cast<DWORD>(
+        (g_muiText.size() + 1) * sizeof(wchar_t)
+    );
     *pcbData = cbNeeded;
     if (cbOutBuf < cbNeeded)
         return ERROR_MORE_DATA;

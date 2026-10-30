@@ -42,7 +42,12 @@ void* AllocateAligned(const std::size_t cb, const std::align_val_t align)
     if (t_isTracking)
         t_cbLargest = std::max(t_cbLargest, cb);
 
-    if (void* const p = _aligned_malloc(cb ? cb : 1, static_cast<std::size_t>(align)))
+    if (
+        void* const p = _aligned_malloc(
+            cb ? cb : 1,
+            static_cast<std::size_t>(align)
+        )
+    )
         return p;
     throw std::bad_alloc();
 }
@@ -313,7 +318,9 @@ TEST_CASE("A size-only query of a MemoryHive value copies no data")
 {
     MemoryHive hive;
     VirtualRegistry registry;
-    REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"SizeOnly", hive) == ERROR_SUCCESS);
+    REQUIRE(
+        registry.Mount(HKEY_CURRENT_USER, L"SizeOnly", hive) == ERROR_SUCCESS
+    );
 
     SetBigValue(registry, Hive::HandleOf(hive.Root()));
     CheckSizeOnly(registry, Hive::HandleOf(hive.Root()));
@@ -325,7 +332,9 @@ TEST_CASE("A size-only query of an OverlayHive upper value copies no data")
     NativeRegistry native;
     OverlayHive overlay(native, appHive.Root(), L"");
     VirtualRegistry registry(&native);
-    REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"SizeOnly", overlay) == ERROR_SUCCESS);
+    REQUIRE(
+        registry.Mount(HKEY_CURRENT_USER, L"SizeOnly", overlay) == ERROR_SUCCESS
+    );
 
     SetBigValue(registry, Hive::HandleOf(overlay.Root()));
     CheckSizeOnly(registry, Hive::HandleOf(overlay.Root()));
@@ -339,7 +348,9 @@ TEST_CASE("A size-only query of an OverlayHive lower value copies no data")
 
     OverlayHive overlay(native, appHive.Root(), L"");
     VirtualRegistry registry(&native);
-    REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"SizeOnly", overlay) == ERROR_SUCCESS);
+    REQUIRE(
+        registry.Mount(HKEY_CURRENT_USER, L"SizeOnly", overlay) == ERROR_SUCCESS
+    );
 
     CheckSizeOnly(registry, Hive::HandleOf(overlay.Root()));
 }

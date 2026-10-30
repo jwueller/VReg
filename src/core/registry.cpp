@@ -90,7 +90,8 @@ try
         samDesired,
         phkResult
     );
-    // The native ANSI form leaves the result alone for an invalid handle; the wide form nulls it.
+    // The native ANSI form leaves the result alone for an invalid handle; the
+    // wide form nulls it.
     if (status == ERROR_INVALID_HANDLE && phkResult)
         *phkResult = hPrevious;
     return status;
@@ -214,9 +215,10 @@ try
         }
         else
         {
-            // Native reads the wide data into the caller's buffer when it fits there and narrows it in
-            // place, so the bytes past the text are the tail of the wide data; it also terminates text
-            // that has no terminator if there is room.
+            // Native reads the wide data into the caller's buffer when it fits
+            // there and narrows it in place, so the bytes past the text are the
+            // tail of the wide data; it also terminates text that has no
+            // terminator if there is room.
             if (value.size() <= *lpcbData)
                 std::memcpy(lpData, value.data(), value.size());
             if (cbText > 0)
@@ -264,9 +266,10 @@ try
         reinterpret_cast<const char*>(lpData),
         cbData
     );
-    // Native reads the byte after unterminated data and keeps it as the terminator when it is zero, which it
-    // nearly always is. Agent's choice: always terminate, so no byte past cbData is ever read; reading it,
-    // as native does, can fault at the end of a page.
+    // Native reads the byte after unterminated data and keeps it as the
+    // terminator when it is zero, which it nearly always is. Agent's choice:
+    // always terminate, so no byte past cbData is ever read; reading it, as
+    // native does, can fault at the end of a page.
     if (!text.empty() && text.back() != L'\0')
         text.push_back(L'\0');
 
@@ -377,7 +380,10 @@ try
             wantClass ? &cchClassOut : nullptr,
             &ftLastWrite
         );
-        if (status != ERROR_MORE_DATA || (cchName >= MAX_CLASS_CHARS && cchClass >= MAX_CLASS_CHARS))
+        if (
+            status != ERROR_MORE_DATA
+            || (cchName >= MAX_CLASS_CHARS && cchClass >= MAX_CLASS_CHARS)
+        )
         {
             name.resize(cchNameOut);
             className.resize(cchClassOut);
@@ -473,7 +479,8 @@ try
 
     if (nameA.size() > *lpcchValueName)
     {
-        // Native terminates the text in the caller's buffer here, and writes nothing else.
+        // Native terminates the text in the caller's buffer here, and writes
+        // nothing else.
         if (lpData && isString && cbValue > 0 && cbValue < cbBuffer)
             lpData[cbValue] = 0;
         return ERROR_MORE_DATA;
@@ -532,8 +539,8 @@ try
     if (lpClass && !lpcchClass)
         return ERROR_INVALID_PARAMETER;
 
-    // Native answers success for a zero-length class buffer, without a class, but reports the class length
-    // if the caller asked for the longest class.
+    // Native answers success for a zero-length class buffer, without a class,
+    // but reports the class length if the caller asked for the longest class.
     const bool wantClass = lpClass && *lpcchClass != 0;
     const bool wantClassLength = lpClass && !wantClass && lpcbMaxClassLen;
     if (!wantClass && !wantClassLength)
@@ -661,10 +668,13 @@ try
         );
     };
 
-    // Only string values are converted; anything else, and every failure to find the value, is what the
-    // wide form answers.
+    // Only string values are converted; anything else, and every failure to
+    // find the value, is what the wide form answers.
     constexpr DWORD WOW_FLAGS = RRF_SUBKEY_WOW6464KEY | RRF_SUBKEY_WOW6432KEY;
-    const DWORD dwFlagsStored = (dwFlags & WOW_FLAGS) | RRF_RT_ANY | RRF_NOEXPAND;
+    const DWORD dwFlagsStored =
+        (dwFlags & WOW_FLAGS)
+        | RRF_RT_ANY
+        | RRF_NOEXPAND;
     DWORD dwStoredType{};
     const auto statusStoredType = RegGetValueW(
         hkey,
@@ -678,9 +688,12 @@ try
     if (statusStoredType != ERROR_SUCCESS || !IsStringType(dwStoredType))
         return forwardToWide();
 
-    // A value whose type the flags reject is still read and reported, with the failure status.
+    // A value whose type the flags reject is still read and reported, with the
+    // failure status.
     const DWORD dwFlagsTyped = dwFlags & ~RRF_ZEROONFAILURE;
-    const DWORD dwFlagsAnyType = (dwFlags & (WOW_FLAGS | RRF_NOEXPAND)) | RRF_RT_ANY;
+    const DWORD dwFlagsAnyType =
+        (dwFlags & (WOW_FLAGS | RRF_NOEXPAND))
+        | RRF_RT_ANY;
     DWORD dwType = 0;
     DWORD cbQuery = 0;
     const auto status = RegGetValueW(
@@ -720,7 +733,9 @@ try
     if (statusRead != ERROR_SUCCESS)
         return statusRead;
 
-    const bool isExpanded = dwStoredType == REG_EXPAND_SZ && !(dwFlags & RRF_NOEXPAND);
+    const bool isExpanded =
+        dwStoredType == REG_EXPAND_SZ
+        && !(dwFlags & RRF_NOEXPAND);
     std::vector<std::byte> stored;
     DWORD cbStoredRaw = 0;
     if (isExpanded)
@@ -756,14 +771,22 @@ try
             data.size() / sizeof(wchar_t)
         );
     const auto cbText = static_cast<DWORD>(text.size());
-    // What a call that cannot return the text reports as its size: room for the terminator the wide
-    // form reserves; for an expanded value, the larger of the unexpanded text and the expansion, and
-    // a character more when the expansion is the larger.
+    // What a call that cannot return the text reports as its size: room for the
+    // terminator the wide form reserves; for an expanded value, the larger of
+    // the unexpanded text and the expansion, and a character more when the
+    // expansion is the larger.
     DWORD cbReported
-        = cbText + (cbQuery > data.size() ? static_cast<DWORD>((cbQuery - data.size()) / sizeof(wchar_t)) : 0);
+        = cbText
+        + (
+            cbQuery > data.size()
+            ? static_cast<DWORD>((cbQuery - data.size()) / sizeof(wchar_t))
+            : 0
+        );
     if (isExpanded)
     {
-        const auto storedChars = reinterpret_cast<const wchar_t*>(stored.data());
+        const auto storedChars = reinterpret_cast<const wchar_t*>(
+            stored.data()
+        );
         const auto cbRawText
             = static_cast<DWORD>(
                 AnsiFromWide(
@@ -772,7 +795,10 @@ try
                 ).size()
             );
         const auto ibNul = text.find('\0');
-        const DWORD cbExpanded = ibNul == std::string::npos ? cbText : static_cast<DWORD>(ibNul + 1);
+        const DWORD cbExpanded =
+            ibNul == std::string::npos
+            ? cbText
+            : static_cast<DWORD>(ibNul + 1);
         cbReported = std::max(
             cbRawText,
             cbExpanded
@@ -780,7 +806,10 @@ try
     }
     const DWORD cbBuffer = pcbData ? *pcbData : 0;
     const DWORD cbNeeded = isExpanded ? cbText + 1 : cbText;
-    const LSTATUS statusMismatch = isMismatch ? status : static_cast<LSTATUS>(ERROR_SUCCESS);
+    const LSTATUS statusMismatch =
+        isMismatch
+        ? status
+        : static_cast<LSTATUS>(ERROR_SUCCESS);
 
     if (pdwType)
         *pdwType = dwType;
@@ -797,7 +826,8 @@ try
         *pcbData = cbReported;
         if (isExpanded)
         {
-            // Native copies the unexpanded text, then clears its first character.
+            // Native copies the unexpanded text, then clears its first
+            // character.
             const auto storedText = AnsiFromWide(
                 reinterpret_cast<const wchar_t*>(stored.data()),
                 stored.size() / sizeof(wchar_t)
@@ -827,9 +857,10 @@ try
         return isMismatch ? status : ERROR_MORE_DATA;
     }
 
-    // Native reads the stored wide data into the caller's buffer when it fits there and narrows it in
-    // place, so the bytes past the text are the tail of the stored data. The wide form reports two bytes
-    // (four for a multi-string) more than are stored.
+    // Native reads the stored wide data into the caller's buffer when it fits
+    // there and narrows it in place, so the bytes past the text are the tail of
+    // the stored data. The wide form reports two bytes (four for a
+    // multi-string) more than are stored.
     auto* const pbData = static_cast<BYTE*>(pvData);
     if (isExpanded)
     {
@@ -842,7 +873,9 @@ try
     }
     else
     {
-        const DWORD cbStored = cbQuery - std::min<DWORD>(cbQuery, dwType == REG_MULTI_SZ ? 4 : 2);
+        const DWORD cbStored =
+            cbQuery
+            - std::min<DWORD>(cbQuery, dwType == REG_MULTI_SZ ? 4 : 2);
         if (cbStored <= cbBuffer)
             std::memcpy(
                 pbData,
@@ -1451,7 +1484,9 @@ try
     {
         val_list[i].ve_valuelen = placed[i].cbValue;
         val_list[i].ve_type = placed[i].dwType;
-        val_list[i].ve_valueptr = reinterpret_cast<DWORD_PTR>(pbBuffer + placed[i].ibValue);
+        val_list[i].ve_valueptr = reinterpret_cast<DWORD_PTR>(
+            pbBuffer + placed[i].ibValue
+        );
     }
     return static_cast<LSTATUS>(ERROR_SUCCESS);
 }
@@ -1540,7 +1575,9 @@ try
     {
         val_list[i].ve_valuelen = placed[i].cbValue;
         val_list[i].ve_type = placed[i].dwType;
-        val_list[i].ve_valueptr = reinterpret_cast<DWORD_PTR>(pbBuffer + placed[i].ibValue);
+        val_list[i].ve_valueptr = reinterpret_cast<DWORD_PTR>(
+            pbBuffer + placed[i].ibValue
+        );
     }
     *ldwTotsize = AlignedToDword(cbEnd);
     return static_cast<LSTATUS>(ERROR_SUCCESS);

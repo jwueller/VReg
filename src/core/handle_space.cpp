@@ -87,7 +87,9 @@ HKEY HandleSpace::Allocate(void* const pTarget) noexcept
     {
         // InterlockedIncrement returns the new value; the block reserved is the
         // one before it.
-        const auto block = static_cast<UINT_PTR>(InterlockedIncrement(&m_pShared->nextBlock)) - 1;
+        const auto block =
+            static_cast<UINT_PTR>(InterlockedIncrement(&m_pShared->nextBlock))
+            - 1;
         if (block >= BLOCK_COUNT || !AddBlock(block))
             return nullptr;
 
@@ -103,7 +105,9 @@ HKEY HandleSpace::Allocate(void* const pTarget) noexcept
 
 bool HandleSpace::Owns(const HKEY hKey) const noexcept
 {
-    return IsVirtualHKey(hKey) && FindBlock(IndexFromVirtualHKey(hKey) / BLOCK_SIZE) != nullptr;
+    return
+        IsVirtualHKey(hKey)
+        && FindBlock(IndexFromVirtualHKey(hKey) / BLOCK_SIZE) != nullptr;
 }
 
 void HandleSpace::Release(const HKEY hKey) noexcept
@@ -112,7 +116,11 @@ void HandleSpace::Release(const HKEY hKey) noexcept
         return;
 
     const auto index = IndexFromVirtualHKey(hKey);
-    if (auto* const pTargets = const_cast<Targets*>(FindBlock(index / BLOCK_SIZE)))
+    if (
+        auto* const pTargets = const_cast<Targets*>(
+            FindBlock(index / BLOCK_SIZE)
+        )
+    )
         (*pTargets)[index % BLOCK_SIZE].store(
             nullptr,
             std::memory_order_release
@@ -132,13 +140,19 @@ void* HandleSpace::Find(const HKEY hKey) const noexcept
     return (*pTargets)[index % BLOCK_SIZE].load(std::memory_order_acquire);
 }
 
-const HandleSpace::Targets* HandleSpace::FindBlock(const UINT_PTR block) const noexcept
+const HandleSpace::Targets* HandleSpace::FindBlock(
+    const UINT_PTR block
+) const noexcept
 {
-    const auto* const pDirectory = m_directories[block / DIRECTORY_SIZE].load(std::memory_order_acquire);
+    const auto* const pDirectory = m_directories[block / DIRECTORY_SIZE].load(
+        std::memory_order_acquire
+    );
     if (!pDirectory)
         return nullptr;
 
-    return (*pDirectory)[block % DIRECTORY_SIZE].load(std::memory_order_acquire);
+    return (*pDirectory)[block % DIRECTORY_SIZE].load(
+        std::memory_order_acquire
+    );
 }
 
 bool HandleSpace::AddBlock(const UINT_PTR block) noexcept

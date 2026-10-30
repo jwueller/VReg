@@ -1,5 +1,5 @@
-// Delta export: an overlay's upper layer as a file that, applied over the same lower registry, reproduces the merged
-// view.
+// Delta export: an overlay's upper layer as a file that, applied over the same
+// lower registry, reproduces the merged view.
 
 #include "regfile_test.h"
 
@@ -12,7 +12,8 @@ namespace
 const std::wstring HEADER = L"Windows Registry Editor Version 5.00\r\n\r\n";
 constexpr const wchar_t* MOUNT = L"VRegDelta";
 
-/// Two overlays over the same lower key of an app hive: one to change, one to apply the exported delta to.
+/// Two overlays over the same lower key of an app hive: one to change, one to
+/// apply the exported delta to.
 class DeltaFixture
 {
 public:
@@ -221,7 +222,9 @@ public:
         );
     }
 
-    [[nodiscard]] std::vector<std::byte> Delta(const Format format = Format::Unicode)
+    [[nodiscard]] std::vector<std::byte> Delta(
+        const Format format = Format::Unicode
+    )
     {
         std::vector<std::byte> file;
         REQUIRE(
@@ -236,7 +239,8 @@ public:
         return file;
     }
 
-    /// Applies the exported delta to the fresh overlay and requires both merged views to match.
+    /// Applies the exported delta to the fresh overlay and requires both merged
+    /// views to match.
     void CheckRoundTrip(const Format format = Format::Unicode)
     {
         const auto file = Delta(format);
@@ -290,7 +294,10 @@ public:
 private:
     static std::wstring Full(const std::wstring& path)
     {
-        return path.empty() ? std::wstring(MOUNT) : std::wstring(MOUNT) + L'\\' + path;
+        return
+            path.empty()
+            ? std::wstring(MOUNT)
+            : std::wstring(MOUNT) + L'\\' + path;
     }
 
     AppHive m_appHive;

@@ -15,7 +15,8 @@ namespace
 const std::wstring HEADER = L"Windows Registry Editor Version 5.00\r\n";
 const std::wstring KEY = L"[HKEY_CURRENT_USER\\T]\r\n";
 
-/// Parses @p body under the v5 header and a key at line 2, so body line 1 is file line 3.
+/// Parses @p body under the v5 header and a key at line 2, so body line 1 is
+/// file line 3.
 Script ParseBody(const std::wstring& body)
 {
     return MustParse(HEADER + KEY + body);
@@ -30,18 +31,27 @@ Operation OnlyValue(const Script& script)
 
 TEST_CASE("Both headers and every encoding parse")
 {
-    const std::string v5 = "Windows Registry Editor Version 5.00\r\n\r\n[HKEY_CURRENT_USER\\T]\r\n\"a\"=\"b\"\r\n";
-    const std::string v4 = "REGEDIT4\r\n\r\n[HKEY_CURRENT_USER\\T]\r\n\"a\"=\"b\"\r\n";
-    const auto utf8Bom = [](const std::string& text) { return RawFile("\xEF\xBB\xBF" + text); };
+    const std::string v5 =
+        "Windows Registry Editor Version 5.00\r\n\r\n[HKEY_CURRENT_USER\\T]\r\n\"a\"=\"b\"\r\n";
+    const std::string v4 =
+        "REGEDIT4\r\n\r\n[HKEY_CURRENT_USER\\T]\r\n\"a\"=\"b\"\r\n";
+    const auto utf8Bom = [](const std::string& text)
+    {
+        return RawFile("\xEF\xBB\xBF" + text);
+    };
 
     std::vector<std::byte> file;
     SECTION("UTF-16LE with BOM")
     {
-        file = Utf16File(L"Windows Registry Editor Version 5.00\r\n\r\n[HKEY_CURRENT_USER\\T]\r\n\"a\"=\"b\"\r\n");
+        file = Utf16File(
+            L"Windows Registry Editor Version 5.00\r\n\r\n[HKEY_CURRENT_USER\\T]\r\n\"a\"=\"b\"\r\n"
+        );
     }
     SECTION("UTF-16LE with BOM and REGEDIT4")
     {
-        file = Utf16File(L"REGEDIT4\r\n\r\n[HKEY_CURRENT_USER\\T]\r\n\"a\"=\"b\"\r\n");
+        file = Utf16File(
+            L"REGEDIT4\r\n\r\n[HKEY_CURRENT_USER\\T]\r\n\"a\"=\"b\"\r\n"
+        );
     }
     SECTION("UTF-8 with BOM")
     {
@@ -57,7 +67,9 @@ TEST_CASE("Both headers and every encoding parse")
     }
     SECTION("LF line endings")
     {
-        file = RawFile("Windows Registry Editor Version 5.00\n\n[HKEY_CURRENT_USER\\T]\n\"a\"=\"b\"\n");
+        file = RawFile(
+            "Windows Registry Editor Version 5.00\n\n[HKEY_CURRENT_USER\\T]\n\"a\"=\"b\"\n"
+        );
     }
 
     Script script;
@@ -75,7 +87,9 @@ TEST_CASE("Non-ASCII text decodes per encoding")
     {
         REQUIRE(
             Parse(
-                RawFile("Windows Registry Editor Version 5.00\n[HKEY_CURRENT_USER\\T]\n\"a\"=\"caf\xC3\xA9 \xE4\xB8\xAD\"\n"),
+                RawFile(
+                    "Windows Registry Editor Version 5.00\n[HKEY_CURRENT_USER\\T]\n\"a\"=\"caf\xC3\xA9 \xE4\xB8\xAD\"\n"
+                ),
                 script,
                 nullptr
             ) == ERROR_SUCCESS
@@ -86,8 +100,19 @@ TEST_CASE("Non-ASCII text decodes per encoding")
     {
         char chAcute{};
         BOOL fUsedDefault = FALSE;
-        if (WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, L"\u00e9", 1, &chAcute, 1, nullptr, &fUsedDefault) != 1 ||
-            fUsedDefault)
+        if (
+            WideCharToMultiByte(
+                CP_ACP,
+                WC_NO_BEST_FIT_CHARS,
+                L"\u00e9",
+                1,
+                &chAcute,
+                1,
+                nullptr,
+                &fUsedDefault
+            ) != 1
+            || fUsedDefault
+        )
             SKIP("the ANSI code page has no e acute");
         std::string text = "REGEDIT4\n[HKEY_CURRENT_USER\\T]\n\"a\"=\"x\"\n";
         text.insert(text.find("x\""), 1, chAcute);
@@ -145,7 +170,9 @@ TEST_CASE("Unusable files are rejected whole")
     {
         CHECK(
             Parse(
-                RawFile("Windows Registry Editor Version 5.00\n[HKEY_CURRENT_USER\\T]\n\"a\"=\"\xFF\"\n"),
+                RawFile(
+                    "Windows Registry Editor Version 5.00\n[HKEY_CURRENT_USER\\T]\n\"a\"=\"\xFF\"\n"
+                ),
                 script,
                 &error
             ) ==
@@ -175,7 +202,8 @@ TEST_CASE("Keys")
     SECTION("create and delete, with the line they start on")
     {
         const auto script = MustParse(
-            HEADER + L"\r\n[HKEY_CURRENT_USER\\Software\\Mixed Case]\r\n\r\n[-HKEY_LOCAL_MACHINE\\Gone\\Deep]\r\n"
+            HEADER
+            + L"\r\n[HKEY_CURRENT_USER\\Software\\Mixed Case]\r\n\r\n[-HKEY_LOCAL_MACHINE\\Gone\\Deep]\r\n"
         );
         REQUIRE(script.operations.size() == 2);
         CHECK(script.operations[0].kind == OperationKind::CreateKey);
@@ -190,15 +218,27 @@ TEST_CASE("Keys")
     SECTION("roots by full name and short name, in any case")
     {
         const auto root = GENERATE(
-            std::pair<const wchar_t*, HKEY>{L"HKEY_CLASSES_ROOT", HKEY_CLASSES_ROOT},
+            std::pair<const wchar_t*, HKEY>{
+                L"HKEY_CLASSES_ROOT",
+                HKEY_CLASSES_ROOT
+            },
             std::pair<const wchar_t*, HKEY>{L"HKCR", HKEY_CLASSES_ROOT},
-            std::pair<const wchar_t*, HKEY>{L"hkey_current_user", HKEY_CURRENT_USER},
+            std::pair<const wchar_t*, HKEY>{
+                L"hkey_current_user",
+                HKEY_CURRENT_USER
+            },
             std::pair<const wchar_t*, HKEY>{L"HKCU", HKEY_CURRENT_USER},
-            std::pair<const wchar_t*, HKEY>{L"HKEY_LOCAL_MACHINE", HKEY_LOCAL_MACHINE},
+            std::pair<const wchar_t*, HKEY>{
+                L"HKEY_LOCAL_MACHINE",
+                HKEY_LOCAL_MACHINE
+            },
             std::pair<const wchar_t*, HKEY>{L"hklm", HKEY_LOCAL_MACHINE},
             std::pair<const wchar_t*, HKEY>{L"HKEY_USERS", HKEY_USERS},
             std::pair<const wchar_t*, HKEY>{L"HKU", HKEY_USERS},
-            std::pair<const wchar_t*, HKEY>{L"HKEY_CURRENT_CONFIG", HKEY_CURRENT_CONFIG},
+            std::pair<const wchar_t*, HKEY>{
+                L"HKEY_CURRENT_CONFIG",
+                HKEY_CURRENT_CONFIG
+            },
             std::pair<const wchar_t*, HKEY>{L"HKCC", HKEY_CURRENT_CONFIG}
         );
         const auto script = MustParse(HEADER + L"[" + root.first + L"\\A]\r\n");
@@ -222,7 +262,9 @@ TEST_CASE("Strings")
 {
     SECTION("plain, empty and escaped")
     {
-        const auto script = ParseBody(L"\"a\"=\"text\"\r\n\"b\"=\"\"\r\n\"c\"=\"x\\\\y\\\"z\\\"\"\r\n");
+        const auto script = ParseBody(
+            L"\"a\"=\"text\"\r\n\"b\"=\"\"\r\n\"c\"=\"x\\\\y\\\"z\\\"\"\r\n"
+        );
         REQUIRE(script.operations.size() == 4);
         CHECK(script.operations[1].dwType == REG_SZ);
         CHECK(script.operations[1].data == StringBytes(L"text"));
@@ -231,7 +273,9 @@ TEST_CASE("Strings")
     }
     SECTION("the default value and escaped names")
     {
-        const auto script = ParseBody(L"@=\"d\"\r\n\"a\\\"b\\\\\"=\"v\"\r\n\"@\"=\"at\"\r\n");
+        const auto script = ParseBody(
+            L"@=\"d\"\r\n\"a\\\"b\\\\\"=\"v\"\r\n\"@\"=\"at\"\r\n"
+        );
         REQUIRE(script.operations.size() == 4);
         CHECK(script.operations[1].name.empty());
         CHECK(script.operations[2].name == L"a\"b\\");
@@ -249,7 +293,9 @@ TEST_CASE("Numbers and binary data")
 {
     SECTION("dword")
     {
-        const auto script = ParseBody(L"\"a\"=dword:0000002a\r\n\"b\"=DWORD:FFFFFFFF\r\n\"c\"=dword:7\r\n");
+        const auto script = ParseBody(
+            L"\"a\"=dword:0000002a\r\n\"b\"=DWORD:FFFFFFFF\r\n\"c\"=dword:7\r\n"
+        );
         REQUIRE(script.operations.size() == 4);
         CHECK(script.operations[1].dwType == REG_DWORD);
         CHECK(script.operations[1].data == DwordBytes(0x2a));
@@ -260,7 +306,13 @@ TEST_CASE("Numbers and binary data")
     {
         const auto value = OnlyValue(ParseBody(L"\"a\"=hex:00,ff,A0\r\n"));
         CHECK(value.dwType == REG_BINARY);
-        CHECK(value.data == std::vector{std::byte{0}, std::byte{0xFF}, std::byte{0xA0}});
+        CHECK(
+            value.data == std::vector{
+                std::byte{0},
+                std::byte{0xFF},
+                std::byte{0xA0}
+            }
+        );
     }
     SECTION("hex with no bytes")
     {
@@ -302,7 +354,9 @@ TEST_CASE("Deleting values")
 
 TEST_CASE("Value operations carry their key")
 {
-    const auto script = MustParse(HEADER + L"[HKCU\\A]\r\n\"x\"=dword:1\r\n[HKLM\\B]\r\n\"y\"=-\r\n");
+    const auto script = MustParse(
+        HEADER + L"[HKCU\\A]\r\n\"x\"=dword:1\r\n[HKLM\\B]\r\n\"y\"=-\r\n"
+    );
     REQUIRE(script.operations.size() == 4);
     CHECK(script.operations[1].hRoot == HKEY_CURRENT_USER);
     CHECK(script.operations[1].path == L"A");
@@ -314,7 +368,9 @@ TEST_CASE("Continuations, comments and blank lines")
 {
     SECTION("hex continues over lines with leading blanks")
     {
-        const auto value = OnlyValue(ParseBody(L"\"a\"=hex:01,02,\\\r\n  03,04,\\\r\n  05\r\n"));
+        const auto value = OnlyValue(
+            ParseBody(L"\"a\"=hex:01,02,\\\r\n  03,04,\\\r\n  05\r\n")
+        );
         CHECK(value.data.size() == 5);
         CHECK(value.data[4] == std::byte{5});
     }
@@ -328,7 +384,8 @@ TEST_CASE("Continuations, comments and blank lines")
     SECTION("comments and blank lines are skipped anywhere between lines")
     {
         const auto script = MustParse(
-            HEADER + L"; first\r\n\r\n  ; indented\r\n[HKCU\\A]\r\n\r\n; between\r\n\"a\"=dword:1\r\n\r\n"
+            HEADER
+            + L"; first\r\n\r\n  ; indented\r\n[HKCU\\A]\r\n\r\n; between\r\n\"a\"=dword:1\r\n\r\n"
         );
         CHECK(script.operations.size() == 2);
         CHECK(script.operations[1].line == 8);
@@ -355,14 +412,37 @@ TEST_CASE("Malformed input names its line and column")
         {"unknown root", HEADER + L"[BOGUS\\x]\r\n", 2, 2},
         {"unknown root when deleting", HEADER + L"[-BOGUS\\x]\r\n", 2, 3},
         {"deleting a root", HEADER + L"[-HKEY_CURRENT_USER]\r\n", 2, 3},
-        {"a NUL in a key path", HEADER + L"[-HKEY_CURRENT_USER\\" + std::wstring(1, L'\0') + L"x]\r\n", 2, 21},
-        {"a NUL in a value name", HEADER + KEY + L"\"a" + std::wstring(1, L'\0') + L"b\"=dword:1\r\n", 3, 3},
+        {
+            "a NUL in a key path",
+            HEADER
+            + L"[-HKEY_CURRENT_USER\\"
+            + std::wstring(1, L'\0')
+            + L"x]\r\n",
+            2,
+            21
+        },
+        {
+            "a NUL in a value name",
+            HEADER + KEY + L"\"a" + std::wstring(1, L'\0') + L"b\"=dword:1\r\n",
+            3,
+            3
+        },
         {"an empty key", HEADER + L"[]\r\n", 2, 2},
         {"a value before any key", HEADER + L"\"a\"=\"b\"\r\n", 2, 1},
-        {"a value after a deleted key", HEADER + L"[-HKCU\\x]\r\n\"a\"=dword:1\r\n", 3, 1},
+        {
+            "a value after a deleted key",
+            HEADER + L"[-HKCU\\x]\r\n\"a\"=dword:1\r\n",
+            3,
+            1
+        },
         {"text that is no line", HEADER + KEY + L"bogus\r\n", 3, 1},
         {"a missing equals sign", HEADER + KEY + L"\"a\" \"b\"\r\n", 3, 5},
-        {"an unterminated string", HEADER + KEY + L"\"a\"=\"unterminated\r\n", 3, 18},
+        {
+            "an unterminated string",
+            HEADER + KEY + L"\"a\"=\"unterminated\r\n",
+            3,
+            18
+        },
         {"an unterminated name", HEADER + KEY + L"\"abc\r\n", 3, 5},
         {"an invalid escape", HEADER + KEY + L"\"a\"=\"bad\\q\"\r\n", 3, 9},
         {"text after a string", HEADER + KEY + L"\"a\"=\"b\" junk\r\n", 3, 9},
@@ -370,19 +450,54 @@ TEST_CASE("Malformed input names its line and column")
         {"an unknown value form", HEADER + KEY + L"\"a\"=bogus\r\n", 3, 5},
         {"a missing value", HEADER + KEY + L"\"a\"=\r\n", 3, 5},
         {"dword without digits", HEADER + KEY + L"\"a\"=dword:\r\n", 3, 11},
-        {"dword with nine digits", HEADER + KEY + L"\"a\"=dword:123456789\r\n", 3, 19},
-        {"dword with trailing text", HEADER + KEY + L"\"a\"=dword:12zz\r\n", 3, 13},
+        {
+            "dword with nine digits",
+            HEADER + KEY + L"\"a\"=dword:123456789\r\n",
+            3,
+            19
+        },
+        {
+            "dword with trailing text",
+            HEADER + KEY + L"\"a\"=dword:12zz\r\n",
+            3,
+            13
+        },
         {"hex with a bad byte", HEADER + KEY + L"\"a\"=hex:01,zz\r\n", 3, 12},
-        {"hex with a trailing comma", HEADER + KEY + L"\"a\"=hex:01,\r\n", 3, 12},
+        {
+            "hex with a trailing comma",
+            HEADER + KEY + L"\"a\"=hex:01,\r\n",
+            3,
+            12
+        },
         {"hex with a leading comma", HEADER + KEY + L"\"a\"=hex:,01\r\n", 3, 9},
         {"hex with three digits", HEADER + KEY + L"\"a\"=hex:010\r\n", 3, 11},
         {"hex without a comma", HEADER + KEY + L"\"a\"=hex:01 02\r\n", 3, 12},
         {"hex(n) without digits", HEADER + KEY + L"\"a\"=hex(zz):\r\n", 3, 9},
-        {"hex(n) without a closing parenthesis", HEADER + KEY + L"\"a\"=hex(1:\r\n", 3, 10},
-        {"hex(n) with a huge type", HEADER + KEY + L"\"a\"=hex(123456789):\r\n", 3, 17},
+        {
+            "hex(n) without a closing parenthesis",
+            HEADER + KEY + L"\"a\"=hex(1:\r\n",
+            3,
+            10
+        },
+        {
+            "hex(n) with a huge type",
+            HEADER + KEY + L"\"a\"=hex(123456789):\r\n",
+            3,
+            17
+        },
         {"hex without a colon", HEADER + KEY + L"\"a\"=hex\r\n", 3, 8},
-        {"an error on a continuation line", HEADER + KEY + L"\"a\"=hex:01,\\\r\n  zz\r\n", 4, 3},
-        {"an error after comments and blanks", HEADER + KEY + L"; c\r\n\r\n\"a\"=hex:zz\r\n", 5, 9},
+        {
+            "an error on a continuation line",
+            HEADER + KEY + L"\"a\"=hex:01,\\\r\n  zz\r\n",
+            4,
+            3
+        },
+        {
+            "an error after comments and blanks",
+            HEADER + KEY + L"; c\r\n\r\n\"a\"=hex:zz\r\n",
+            5,
+            9
+        },
     };
 
     for (const auto& c : cases)
@@ -402,7 +517,8 @@ TEST_CASE("Malformed input names its line and column")
 
 TEST_CASE("ParseFile reads a file and reports a missing one")
 {
-    const auto directory = std::filesystem::temp_directory_path() / L"VRegParseFileTest";
+    const auto directory =
+        std::filesystem::temp_directory_path() / L"VRegParseFileTest";
     std::filesystem::create_directories(directory);
     const auto path = directory / L"a.reg";
     {

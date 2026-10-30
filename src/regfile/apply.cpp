@@ -56,9 +56,13 @@ LSTATUS Perform(
     Registry& registry
 ) noexcept
 {
-    // A script can be built by hand, so the parser's guarantees are checked again: a NUL would cut a path or name
-    // short, and an empty path would delete a whole root.
-    if (operation.path.find(L'\0') != std::wstring::npos || operation.name.find(L'\0') != std::wstring::npos)
+    // A script can be built by hand, so the parser's guarantees are checked
+    // again: a NUL would cut a path or name short, and an empty path would
+    // delete a whole root.
+    if (
+        operation.path.find(L'\0') != std::wstring::npos
+        || operation.name.find(L'\0') != std::wstring::npos
+    )
         return ERROR_INVALID_PARAMETER;
     if (operation.kind == OperationKind::DeleteKey && operation.path.empty())
         return ERROR_INVALID_PARAMETER;
@@ -114,9 +118,9 @@ LSTATUS Perform(
         );
         if (status != ERROR_SUCCESS)
             return status;
-        // Native reads past unterminated string data for a terminator and may store one more wchar if it
-        // finds a zero there, so such data goes in with nonzero bytes after it to store exactly what the
-        // file says.
+        // Native reads past unterminated string data for a terminator and may
+        // store one more wchar if it finds a zero there, so such data goes in
+        // with nonzero bytes after it to store exactly what the file says.
         const auto& data = operation.data;
         const bool isString = operation.dwType == REG_SZ
             || operation.dwType == REG_EXPAND_SZ

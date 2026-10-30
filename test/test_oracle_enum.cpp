@@ -217,12 +217,15 @@ template <class Api> void PopulateKeys(
     const HKEY hRoot
 )
 {
-    for (const auto& [pszName, pszClass] : std::initializer_list<std::pair<const wchar_t*, const wchar_t*>>{
-             {L"Alpha", L"ClassA"},
-             {L"B\u00e4ta", L"Cl\u00e4ss\u20ac"},
-             {L"Gamma\u4e2d", nullptr},
-             {L"D\u0101lta", L"\u4e2d\u0101"},
-         })
+    for (
+        const auto& [pszName, pszClass] :
+        std::initializer_list<std::pair<const wchar_t*, const wchar_t*>>{
+            {L"Alpha", L"ClassA"},
+            {L"B\u00e4ta", L"Cl\u00e4ss\u20ac"},
+            {L"Gamma\u4e2d", nullptr},
+            {L"D\u0101lta", L"\u4e2d\u0101"},
+        }
+    )
     {
         const auto hKey = CreateWithClass(
             api,
@@ -259,7 +262,10 @@ void EnumKeyMatrix(
                 std::memset(name.data(), FILL, sizeof(name));
                 std::memset(cls.data(), FILL, sizeof(cls));
                 DWORD cchNameInOut = cchName;
-                DWORD cchClassInOut = cchClass < 0 ? 0 : static_cast<DWORD>(cchClass);
+                DWORD cchClassInOut =
+                    cchClass < 0
+                    ? 0
+                    : static_cast<DWORD>(cchClass);
                 FILETIME ft = FillTime();
                 const auto status = EnumKeyEx(
                     api,
@@ -273,9 +279,19 @@ void EnumKeyMatrix(
                     &ft
                 );
                 RECORD(
-                    label + std::format(" index {} name {} class {}", dwIndex, cchName, cchClass),
+                    label
+                    + std::format(
+                        " index {} name {} class {}",
+                        dwIndex,
+                        cchName,
+                        cchClass
+                    ),
                     status,
-                    {cchNameInOut, cchClass < 0 ? 0 : cchClassInOut, Written(ft)},
+                    {
+                        cchNameInOut,
+                        cchClass < 0 ? 0 : cchClassInOut,
+                        Written(ft)
+                    },
                     {Bytes(name), Bytes(cls)}
                 );
             }
@@ -395,7 +411,11 @@ void EnumKeyMatrix(
 
 struct EnumerateKeys
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         EnumKeyMatrix<Api, wchar_t>(api, record, hRoot, "empty W");
         EnumKeyMatrix<Api, char>(api, record, hRoot, "empty A");
@@ -407,7 +427,11 @@ struct EnumerateKeys
 
 struct EnumerateKeysPreEx
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         PopulateKeys(api, record, hRoot);
         for (const DWORD dwIndex : {0u, 1u, 2u, 3u, 4u})
@@ -517,11 +541,17 @@ void EnumValueMatrix(
 {
     constexpr int WITHOUT_DATA = -2;
     constexpr int SIZE_ONLY = -1;
-    for (const DWORD dwIndex : {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u, 10u, 11u, 12u})
+    for (
+        const DWORD dwIndex :
+        {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u, 10u, 11u, 12u}
+    )
     {
         for (const DWORD cchName : {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 64u})
         {
-            for (const int cbData : {WITHOUT_DATA, SIZE_ONLY, 0, 1, 2, 3, 5, 10, 64})
+            for (
+                const int cbData :
+                {WITHOUT_DATA, SIZE_ONLY, 0, 1, 2, 3, 5, 10, 64}
+            )
             {
                 std::array<Char, 64> name;
                 std::array<BYTE, 64> data;
@@ -540,13 +570,25 @@ void EnumValueMatrix(
                     &cchNameInOut,
                     nullptr,
                     &dwType,
-                    cbData == WITHOUT_DATA ? nullptr : (cbData == SIZE_ONLY ? nullptr : data.data()),
+                    cbData == WITHOUT_DATA
+                    ? nullptr
+                    : (cbData == SIZE_ONLY ? nullptr : data.data()),
                     cbData == WITHOUT_DATA ? nullptr : &cbDataInOut
                 );
                 RECORD(
-                    label + std::format(" index {} name {} data {}", dwIndex, cchName, cbData),
+                    label
+                    + std::format(
+                        " index {} name {} data {}",
+                        dwIndex,
+                        cchName,
+                        cbData
+                    ),
                     status,
-                    {cchNameInOut, cbData == WITHOUT_DATA ? 0 : cbDataInOut, dwType},
+                    {
+                        cchNameInOut,
+                        cbData == WITHOUT_DATA ? 0 : cbDataInOut,
+                        dwType
+                    },
                     {Bytes(name), Bytes(data)}
                 );
             }
@@ -680,7 +722,11 @@ void EnumValueMatrix(
 
 struct EnumerateValues
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         EnumValueMatrix<Api, wchar_t>(api, record, hRoot, "empty W");
         EnumValueMatrix<Api, char>(api, record, hRoot, "empty A");
@@ -708,7 +754,10 @@ void QueryInfoMatrix(
             std::array<DWORD, OUTPUTS> out;
             out.fill(FILL_SIZE);
             FILETIME ft = FillTime();
-            DWORD cchClassInOut = cchClass < 0 ? 0 : static_cast<DWORD>(cchClass);
+            DWORD cchClassInOut =
+                cchClass < 0
+                ? 0
+                : static_cast<DWORD>(cchClass);
 
             auto outPointer = [&](const int i)
             {
@@ -733,7 +782,17 @@ void QueryInfoMatrix(
             RECORD(
                 label + std::format(" skip {} class {}", skip, cchClass),
                 status,
-                {cchClass < 0 ? 0 : cchClassInOut, out[0], out[1], out[2], out[3], out[4], out[5], out[6], Written(ft)},
+                {
+                    cchClass < 0 ? 0 : cchClassInOut,
+                    out[0],
+                    out[1],
+                    out[2],
+                    out[3],
+                    out[4],
+                    out[5],
+                    out[6],
+                    Written(ft)
+                },
                 {Bytes(cls)}
             );
         }
@@ -847,7 +906,11 @@ void QueryInfoMatrix(
 
 struct QueryInfoKeyForms
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         QueryInfoMatrix<Api, wchar_t>(api, record, hRoot, "empty root W");
         QueryInfoMatrix<Api, char>(api, record, hRoot, "empty root A");
@@ -856,7 +919,10 @@ struct QueryInfoKeyForms
         QueryInfoMatrix<Api, wchar_t>(api, record, hRoot, "root W");
         QueryInfoMatrix<Api, char>(api, record, hRoot, "root A");
 
-        for (const auto* const pszName : {L"Alpha", L"B\u00e4ta", L"Gamma\u4e2d", L"D\u0101lta"})
+        for (
+            const auto* const pszName :
+            {L"Alpha", L"B\u00e4ta", L"Gamma\u4e2d", L"D\u0101lta"}
+        )
         {
             HKEY hKey{};
             RECORD(
@@ -879,7 +945,8 @@ struct QueryInfoKeyForms
             );
         }
 
-        // A virtual key has one handle per node, so it carries no per-open access rights.
+        // A virtual key has one handle per node, so it carries no per-open
+        // access rights.
         if constexpr (!VIRTUAL_KEYS<Api>)
         {
             HKEY hKey{};
@@ -907,7 +974,11 @@ struct QueryInfoKeyForms
 
 struct EnumerateWhileChanging
 {
-    template <class Api> void operator()(Api& api, const HKEY hRoot, Recorder& record) const
+    template <class Api> void operator()(
+        Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
     {
         PopulateKeys(api, record, hRoot);
         PopulateValues(api, record, hRoot);
@@ -988,8 +1059,13 @@ struct EnumerateWhileChanging
     }
 };
 
-using Scenarios
-    = std::tuple<EnumerateKeys, EnumerateKeysPreEx, EnumerateValues, QueryInfoKeyForms, EnumerateWhileChanging>;
+using Scenarios = std::tuple<
+    EnumerateKeys,
+    EnumerateKeysPreEx,
+    EnumerateValues,
+    QueryInfoKeyForms,
+    EnumerateWhileChanging
+>;
 } // namespace
 
 TEMPLATE_LIST_TEST_CASE(

@@ -18,8 +18,8 @@ struct SyntaxError
     const char* pszMessage;
 };
 
-/// A line of the file with its continuations joined. Offsets into @ref text map back to the physical
-/// lines the text came from.
+/// A line of the file with its continuations joined. Offsets into @ref text map
+/// back to the physical lines the text came from.
 struct LogicalLine
 {
     struct Segment
@@ -68,7 +68,10 @@ int HexDigit(const wchar_t ch)
 
 wchar_t Lower(const wchar_t ch)
 {
-    return (ch >= L'A' && ch <= L'Z') ? static_cast<wchar_t>(ch - L'A' + L'a') : ch;
+    return
+        (ch >= L'A' && ch <= L'Z')
+        ? static_cast<wchar_t>(ch - L'A' + L'a')
+        : ch;
 }
 
 bool EqualsIgnoreCase(const std::wstring_view a, const std::wstring_view b)
@@ -107,7 +110,10 @@ bool FindRoot(const std::wstring_view name, HKEY& hRoot)
     };
     for (const auto& root : roots)
     {
-        if (EqualsIgnoreCase(name, root.pszLong) || EqualsIgnoreCase(name, root.pszShort))
+        if (
+            EqualsIgnoreCase(name, root.pszLong)
+            || EqualsIgnoreCase(name, root.pszShort)
+        )
         {
             hRoot = root.hKey;
             return true;
@@ -124,7 +130,8 @@ public:
     {
     }
 
-    /// Parses all of @p text, throwing nothing but std::bad_alloc; a syntax error answers false.
+    /// Parses all of @p text, throwing nothing but std::bad_alloc; a syntax
+    /// error answers false.
     bool Run(const std::wstring& text, ParseError* const pError)
     {
         std::vector<std::wstring_view> lines;
@@ -141,7 +148,10 @@ public:
         }
 
         const auto header = TrimEnd(lines[0]);
-        if (header != L"Windows Registry Editor Version 5.00" && header != L"REGEDIT4")
+        if (
+            header != L"Windows Registry Editor Version 5.00"
+            && header != L"REGEDIT4"
+        )
             return Fail(
                 pError,
                 1,
@@ -190,8 +200,9 @@ private:
         return false;
     }
 
-    /// Reads the logical line starting at @p index into @p line (empty for blank and comment lines) and
-    /// returns the index of its last physical line.
+    /// Reads the logical line starting at @p index into @p line (empty for
+    /// blank and comment lines) and returns the index of its last physical
+    /// line.
     static std::size_t ReadLine(
         const std::vector<std::wstring_view>& lines,
         std::size_t index,
@@ -213,7 +224,8 @@ private:
         if (physical.front() == L'[')
             return index;
 
-        // A value that continues ends its line in a backslash; a closing quote ends every complete one.
+        // A value that continues ends its line in a backslash; a closing quote
+        // ends every complete one.
         while (index + 1 < lines.size())
         {
             auto joined = TrimEnd(line.text);
@@ -239,8 +251,9 @@ private:
     {
         m_text = line.text;
 
-        // Key paths and value names reach the registry as C strings, where a NUL would silently cut them short
-        // ("[-HKCU\<NUL>x]" would delete all of HKCU); no valid .reg text holds one anywhere.
+        // Key paths and value names reach the registry as C strings, where a
+        // NUL would silently cut them short ("[-HKCU\<NUL>x]" would delete all
+        // of HKCU); no valid .reg text holds one anywhere.
         m_pos = m_text.find(L'\0');
         if (m_pos != std::wstring::npos)
             Throw("a NUL character");
@@ -315,7 +328,10 @@ private:
             Throw("a root key cannot be deleted");
 
         Operation operation;
-        operation.kind = isDelete ? OperationKind::DeleteKey : OperationKind::CreateKey;
+        operation.kind =
+            isDelete
+            ? OperationKind::DeleteKey
+            : OperationKind::CreateKey;
         operation.hRoot = hRoot;
         operation.path = path;
         operation.line = m_line;
@@ -345,7 +361,9 @@ private:
             if (ch == L'\\')
             {
                 ++m_pos;
-                if (AtEnd() || (m_text[m_pos] != L'\\' && m_text[m_pos] != L'"'))
+                if (
+                    AtEnd() || (m_text[m_pos] != L'\\' && m_text[m_pos] != L'"')
+                )
                 {
                     --m_pos;
                     Throw("invalid escape, only \\\\ and \\\" are allowed");
@@ -366,7 +384,9 @@ private:
         {
             if (++digits > maxDigits)
                 Throw("too many hex digits");
-            dwValue = (dwValue << 4) | static_cast<DWORD>(HexDigit(m_text[m_pos]));
+            dwValue =
+                (dwValue << 4)
+                | static_cast<DWORD>(HexDigit(m_text[m_pos]));
             ++m_pos;
         }
         if (digits == 0)

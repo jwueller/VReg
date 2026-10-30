@@ -27,7 +27,8 @@ class HandleSpace
 {
 public:
     static constexpr UINT_PTR BLOCK_SIZE = 4096;
-    static constexpr UINT_PTR BLOCK_COUNT = VREG_VIRTUAL_HKEY_COUNT / BLOCK_SIZE;
+    static constexpr UINT_PTR BLOCK_COUNT =
+        VREG_VIRTUAL_HKEY_COUNT / BLOCK_SIZE;
 
     /// The section's contents. Separately built copies of VReg read this
     /// layout, so it never changes; a different layout needs a different
@@ -88,6 +89,9 @@ private:
     UINT_PTR m_nextIndex = 0;
     UINT_PTR m_endIndex = 0;
 
-    std::array<std::atomic<Directory*>, BLOCK_COUNT / DIRECTORY_SIZE> m_directories{};
+    std::array<
+        std::atomic<Directory*>,
+        BLOCK_COUNT / DIRECTORY_SIZE
+    > m_directories{};
 };
 } // namespace VReg

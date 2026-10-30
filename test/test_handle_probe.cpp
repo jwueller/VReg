@@ -73,7 +73,13 @@ TEST_CASE("No route to a real key handle sets bit 0")
     CheckRoute("RegOpenCurrentUser", e, h);
 
     HANDLE hToken{};
-    if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY | TOKEN_IMPERSONATE | TOKEN_DUPLICATE, &hToken))
+    if (
+        OpenProcessToken(
+            GetCurrentProcess(),
+            TOKEN_QUERY | TOKEN_IMPERSONATE | TOKEN_DUPLICATE,
+            &hToken
+        )
+    )
     {
         e = RegOpenUserClassesRoot(hToken, 0, KEY_READ, &h);
         CheckRoute("RegOpenUserClassesRoot", e, h);

@@ -267,7 +267,12 @@ try
     else
     {
         pNode->values.push_back(
-            {.name = std::wstring(name), .dwType = dwType, .data = std::move(bytes), .isMuiText = isMuiText}
+            {
+                .name = std::wstring(name),
+                .dwType = dwType,
+                .data = std::move(bytes),
+                .isMuiText = isMuiText
+            }
         );
     }
 
@@ -296,7 +301,9 @@ LSTATUS MemoryHive::DeleteValue(
     if (!pValue)
         return ERROR_FILE_NOT_FOUND;
 
-    pNode->values.erase(pNode->values.begin() + (pValue - pNode->values.data()));
+    pNode->values.erase(
+        pNode->values.begin() + (pValue - pNode->values.data())
+    );
     Tree::Touch(*pNode);
     Tree::Notify(*pNode, REG_NOTIFY_CHANGE_LAST_SET);
     return ERROR_SUCCESS;

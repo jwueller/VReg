@@ -11,8 +11,9 @@ namespace VReg::RegFile
 {
 namespace
 {
-// Windows `reg export` breaks after the first comma past this column and indents continuation lines by two
-// spaces. Wine regedit breaks at the column itself, which differs when a line ends exactly there.
+// Windows `reg export` breaks after the first comma past this column and
+// indents continuation lines by two spaces. Wine regedit breaks at the column
+// itself, which differs when a line ends exactly there.
 constexpr std::size_t HEX_WRAP_COLUMN = 76;
 constexpr const wchar_t* NEWLINE = L"\r\n";
 
@@ -33,7 +34,8 @@ void AppendQuoted(std::wstring& out, const std::wstring& text)
     out.push_back(L'"');
 }
 
-/// The text a REG_SZ takes in the friendly form; false when the form would not reproduce the bytes.
+/// The text a REG_SZ takes in the friendly form; false when the form would not
+/// reproduce the bytes.
 bool FriendlyString(const std::vector<std::byte>& data, std::wstring& text)
 {
     if (data.size() < sizeof(wchar_t) || data.size() % sizeof(wchar_t) != 0)

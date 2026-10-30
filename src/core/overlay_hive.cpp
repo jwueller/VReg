@@ -30,7 +30,11 @@ std::wstring JoinPath(std::wstring path, const KeyPath rest)
 /// key below them needs. The root stays as it is: it is the mount point.
 void Materialize(Node& node) noexcept
 {
-    for (auto* pNode = &node; pNode->pParent && pNode->isTransparent; pNode = pNode->pParent)
+    for (
+        auto* pNode = &node;
+        pNode->pParent && pNode->isTransparent;
+        pNode = pNode->pParent
+    )
         pNode->isTransparent = false;
 }
 
@@ -61,8 +65,9 @@ void SortNames(std::vector<std::wstring>& names)
     );
 }
 
-/// Appends @p node and everything below it to @p records, leaving out a transparent node without values (the
-/// way to a lower key, which only the root can be while it has upper keys below it).
+/// Appends @p node and everything below it to @p records, leaving out a
+/// transparent node without values (the way to a lower key, which only the root
+/// can be while it has upper keys below it).
 void ListUpper(
     const Node& node,
     std::wstring& path,
@@ -168,7 +173,10 @@ private:
 /// not readable this way.
 bool Exists(const LSTATUS status) noexcept
 {
-    return status == ERROR_SUCCESS || status == ERROR_MORE_DATA || status == ERROR_ACCESS_DENIED;
+    return
+        status == ERROR_SUCCESS
+        || status == ERROR_MORE_DATA
+        || status == ERROR_ACCESS_DENIED;
 }
 } // namespace
 
@@ -341,7 +349,10 @@ try
     // key's to answer.
     const auto lowerPath = JoinPath(std::move(view.path), rest);
     LowerKey lowerKey(m_lower);
-    const REGSAM samLower = IsFrozen() ? samDesired : KEY_QUERY_VALUE | (samDesired & KEY_WOW64_RES);
+    const REGSAM samLower =
+        IsFrozen()
+        ? samDesired
+        : KEY_QUERY_VALUE | (samDesired & KEY_WOW64_RES);
     const auto status = OpenLower(lowerPath, samLower, lowerKey.Receive());
     if (status != ERROR_SUCCESS)
         return status;
@@ -580,7 +591,12 @@ try
         for (DWORD i = 0; hasLower && view.isVisible; ++i)
         {
             std::wstring name;
-            const auto enumStatus = VReg::EnumKey(m_lower, lowerKey.Get(), i, name);
+            const auto enumStatus = VReg::EnumKey(
+                m_lower,
+                lowerKey.Get(),
+                i,
+                name
+            );
             if (enumStatus == ERROR_NO_MORE_ITEMS)
                 break;
             if (enumStatus != ERROR_SUCCESS)
@@ -593,7 +609,12 @@ try
     Tree::WriteLock lock(*m_pTree);
     if (pNode->isDeleted)
         return ERROR_KEY_DELETED;
-    if (std::ranges::any_of(pNode->children, [](const Node* pChild) { return !pChild->isTombstone; }))
+    if (
+        std::ranges::any_of(
+            pNode->children,
+            [](const Node* pChild) { return !pChild->isTombstone; }
+        )
+    )
         return ERROR_ACCESS_DENIED;
 
     auto& parent = *pNode->pParent;
@@ -747,7 +768,10 @@ try
             return ERROR_KEY_DELETED;
 
         if (const auto* const pValue = Tree::FindValue(*pNode, name))
-            return pValue->isTombstone ? ERROR_FILE_NOT_FOUND : MuiTextOf(*pValue, text);
+            return
+                pValue->isTombstone
+                ? ERROR_FILE_NOT_FOUND
+                : MuiTextOf(*pValue, text);
     }
 
     DWORD dwType{};
@@ -787,7 +811,12 @@ try
         };
     else
         pNode->values.push_back(
-            {.name = std::wstring(name), .dwType = dwType, .data = std::move(bytes), .isMuiText = isMuiText}
+            {
+                .name = std::wstring(name),
+                .dwType = dwType,
+                .data = std::move(bytes),
+                .isMuiText = isMuiText
+            }
         );
 
     Materialize(*pNode);
@@ -869,13 +898,27 @@ try
     if (isInLower)
     {
         if (pValue)
-            *pValue = {.name = std::move(pValue->name), .dwType = REG_NONE, .data = {}, .isTombstone = true};
+            *pValue = {
+                .name = std::move(pValue->name),
+                .dwType = REG_NONE,
+                .data = {},
+                .isTombstone = true
+            };
         else
-            pNode->values.push_back({.name = std::wstring(name), .dwType = REG_NONE, .data = {}, .isTombstone = true});
+            pNode->values.push_back(
+                {
+                    .name = std::wstring(name),
+                    .dwType = REG_NONE,
+                    .data = {},
+                    .isTombstone = true
+                }
+            );
     }
     else if (pValue)
     {
-        pNode->values.erase(pNode->values.begin() + (pValue - pNode->values.data()));
+        pNode->values.erase(
+            pNode->values.begin() + (pValue - pNode->values.data())
+        );
     }
 
     Materialize(*pNode);
@@ -1211,7 +1254,10 @@ try
                     nullptr,
                     &lower.lastWrite
                 );
-                if (infoStatus == ERROR_MORE_DATA || infoStatus == ERROR_INSUFFICIENT_BUFFER)
+                if (
+                    infoStatus == ERROR_MORE_DATA
+                    || infoStatus == ERROR_INSUFFICIENT_BUFFER
+                )
                 {
                     classBuffer.resize(classBuffer.size() * 2);
                     continue;
@@ -1286,7 +1332,9 @@ catch (...)
     return StatusFromException();
 }
 
-LSTATUS OverlayHive::SnapshotUpper(std::vector<UpperRecord>& records) const noexcept
+LSTATUS OverlayHive::SnapshotUpper(
+    std::vector<UpperRecord>& records
+) const noexcept
 try
 {
     std::vector<UpperRecord> result;

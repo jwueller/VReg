@@ -127,7 +127,9 @@ LSTATUS GetString(
 ) noexcept
 try
 {
-    const DWORD dwTypeFlags = RRF_RT_REG_SZ | ((dwFlags & RRF_NOEXPAND) ? RRF_RT_REG_EXPAND_SZ : 0);
+    const DWORD dwTypeFlags =
+        RRF_RT_REG_SZ
+        | ((dwFlags & RRF_NOEXPAND) ? RRF_RT_REG_EXPAND_SZ : 0);
     std::vector<std::byte> data;
     const auto status = GetValue(
         registry,
@@ -217,7 +219,9 @@ try
             &cchRead,
             nullptr,
             &dwType,
-            (pData && isSized) ? reinterpret_cast<LPBYTE>(pData->data()) : nullptr,
+            (pData && isSized)
+            ? reinterpret_cast<LPBYTE>(pData->data())
+            : nullptr,
             pData ? &cbRead : nullptr
         );
         if (status == ERROR_MORE_DATA)
