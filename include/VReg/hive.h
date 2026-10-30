@@ -176,7 +176,7 @@ public:
      *  @ref REG_NOTIFY_CHANGE_LAST_SET for a value set or deleted; the other
      *  bits never fire) on the key, or below it when @p isSubtree. Deleting a
      *  watched key fires its watches too. The hive duplicates @p hEvent, so
-     *  the caller may close its own handle. A frozen hive accepts the
+     *  the caller MAY close its own handle. A frozen hive accepts the
      *  registration and never signals. Answers @ref ERROR_KEY_DELETED for a
      *  deleted key, or the error of duplicating @p hEvent.
      *

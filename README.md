@@ -119,16 +119,16 @@ read-only and its readers take no lock; leave it writable to let the process
 write into it. Mounting a `const Hive&` makes the mount read-only while the
 hive stays writable to whoever holds it.
 
-- **Install early**, before other code hooks the registry functions, where
-  you can. Later hookers chain on top and work, but a key handle opened
-  before the install that points into a mount keeps reaching the real
+- **Install early**: the install SHOULD come before other code hooks the
+  registry functions. Later hookers chain on top and work, but a key handle
+  opened before the install that points into a mount keeps reaching the real
   registry for calls made on it directly.
 - **From `DllMain`:** build, fill, freeze and mount before installing, so the
   first hooked call already finds the hive.
 - **Unloading** neutralizes the hooks (they pass everything through from
   then on); the module MUST NOT unload while another thread may be inside
   a registry call.
-- **Several modules** may each link VReg and install their own hooks; their
+- **Several modules** MAY each link VReg and install their own hooks; their
   handles never collide, and each answers only its own mounts.
 - **Tracing:** `Install` takes any `Registry`, so a wrapper that logs each
   call and forwards it to the `VirtualRegistry` can stand in front of it.

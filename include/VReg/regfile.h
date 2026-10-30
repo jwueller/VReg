@@ -76,7 +76,7 @@ struct ParseError
  *  The encoding is taken from a BOM (UTF-16LE, UTF-8); without one, a `REGEDIT4` header means @ref CP_ACP and
  *  anything else UTF-8. @p script is only written when the whole file parses.
  *
- * @return @ref ERROR_SUCCESS, @ref ERROR_INVALID_DATA on a syntax or encoding error (described by @p pError, which may
+ * @return @ref ERROR_SUCCESS, @ref ERROR_INVALID_DATA on a syntax or encoding error (described by @p pError, which MAY
  *  be null), or @ref ERROR_OUTOFMEMORY.
  */
 LSTATUS Parse(
@@ -95,7 +95,7 @@ LSTATUS ParseFile(
 /**
  * @brief Performs @p script through @p registry, in order.
  *
- *  Stops at the first operation that fails, stores its index in @p pFailed (may be null) and returns its status;
+ *  Stops at the first operation that fails, stores its index in @p pFailed (MAY be null) and returns its status;
  *  earlier operations stay applied. Deleting a key or value that does not exist is not a failure.
  */
 LSTATUS Apply(

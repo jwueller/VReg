@@ -37,7 +37,7 @@ namespace VReg::Detours
 {
 /// Calls @ref DetourAttach for every hook, inside a transaction the caller
 /// begins and commits (for example one that also carries its own hooks).
-/// Every hook calls through @p registry, which may wrap the registry that
+/// Every hook calls through @p registry, which MAY wrap the registry that
 /// answers (to trace each call, say). @p native is the registry below the
 /// hooks, the one @p registry reaches for whatever it does not answer: the
 /// commit turns its function table into the trampolines. Both MUST outlive
