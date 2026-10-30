@@ -402,7 +402,7 @@ LONG Attach(Registry& registry, NativeRegistry& native) noexcept
         reinterpret_cast<void**>(&functions.name),                                                                     \
         reinterpret_cast<void*>(&Emulated<decltype(functions.name), &Registry::name>::Body)                            \
     };
-    VREG_REGISTRY_FUNCTIONS(VREG_EMULATED)
+    VREG_INTERNAL_REGISTRY_FUNCTIONS(VREG_EMULATED)
 #undef VREG_EMULATED
 
     // A refused function this system does not export has nothing to hook.
