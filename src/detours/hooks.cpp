@@ -96,9 +96,8 @@ bool IsOwned(const T& value) noexcept
 /// itself: on ARM64 the function reaches that answer through a branch back
 /// into its first 12 bytes, which the hook's jump overwrites.
 ///
-/// Agent's choice: answered on every architecture rather than on ARM64
-/// alone, since the native answer is the same everywhere and one path is
-/// simpler.
+/// Answered on every architecture rather than on ARM64 alone, since the native
+/// answer is the same everywhere and one path is simpler.
 bool IsUntransacted(
     const HKEY hKey,
     const LPCWSTR pszSubKey,

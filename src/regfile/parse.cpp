@@ -340,8 +340,8 @@ private:
                 ++m_pos;
                 return text;
             }
-            // Agent's choice: any escape but \\ and \" is a syntax error, so a typo cannot silently change data;
-            // regedit's leniency here was passed over.
+            // Any escape but `\\` and `\"` is a syntax error, so a typo cannot
+            // silently change data; regedit is more lenient here.
             if (ch == L'\\')
             {
                 ++m_pos;
@@ -410,8 +410,8 @@ private:
             m_pos = 0;
             Throw("a value outside any key");
         }
-        // Agent's choice: a value under a [-key] line is an error rather than silently dropped, since it can only be
-        // a mistake.
+        // A value under a [-key] line is an error rather than silently dropped,
+        // since it can only be a mistake.
         if (m_state == KeyState::Deleted)
         {
             m_pos = 0;

@@ -4,9 +4,9 @@
 
 namespace VReg
 {
-// Agent's choice: names and classes are read into a buffer of 256 characters, which holds the longest key name,
-// and grow by doubling on ERROR_MORE_DATA up to the limits below. Sizing each call with a query first was passed
-// over as a second round trip for what is almost always one.
+// Names and classes are read into a temporary buffer of 256 characters, which
+// holds the longest key name, and grow by doubling on ERROR_MORE_DATA, up to
+// the limits below. Avoids an additional sizing call for the common case.
 inline constexpr DWORD INITIAL_NAME_CHARS = 256;
 inline constexpr DWORD MAX_CLASS_CHARS = 32768;
 inline constexpr DWORD MAX_VALUE_NAME_CHARS = 16384;

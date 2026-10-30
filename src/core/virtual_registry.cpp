@@ -1478,10 +1478,9 @@ try
             hEvent
         );
 
-    // Agent's choice: a synchronous call waits for the change like the native one, on a private event, so a
-    // watcher thread written for the native registry behaves the same (and, as there, never returns on a key
-    // nothing changes). Passed over: answering at once, which would spin such a loop, and
-    // ERROR_NOT_SUPPORTED, which would end it.
+    // A synchronous call waits for the change like the native one, on a private
+    // event, so a watcher thread written for the native registry behaves the
+    // same (and, as there, never returns on a key nothing changes).
     const HANDLE hOwn = CreateEventW(nullptr, TRUE, FALSE, nullptr);
     if (!hOwn)
         return GetLastError();
