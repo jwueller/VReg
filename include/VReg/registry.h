@@ -35,6 +35,10 @@ namespace VReg
  *
  * @note Every member is `noexcept`; an allocation failure answers
  *  @ref ERROR_OUTOFMEMORY.
+ *
+ * @note Once hooked (@ref Detours::Install), every member may run under a
+ *  foreign loader lock: an implementation MUST NOT load a module, create a
+ *  thread or wait on a lock a loader-lock holder could own.
  */
 class Registry
 {

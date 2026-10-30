@@ -54,6 +54,10 @@ struct OpenResult
  *
  *  Each node has exactly one virtual handle, issued when the node is created
  *  (@ref HandleOf).
+ *
+ * @note Once hooked (@ref Detours::Install), every member may run under a
+ *  foreign loader lock: an implementation MUST NOT load a module, create a
+ *  thread or wait on a lock a loader-lock holder could own.
  */
 class Hive
 {
