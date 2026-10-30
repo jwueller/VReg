@@ -71,11 +71,12 @@ public:
     }
 };
 
-constexpr DWORD VALUE_BYTES = 1024 * 1024;
+constexpr DWORD VALUE_BYTES = 256 * 1024;
 /// Far below the value, far above any bookkeeping a call makes.
 constexpr std::size_t LIMIT_BYTES = VALUE_BYTES / 16;
 
-void CheckSizeOnly(VirtualRegistry& registry, const HKEY hKey)
+/// Stores the large value the checks below ask for, through @p registry.
+void SetBigValue(Registry& registry, const HKEY hKey)
 {
     const std::vector<std::byte> value(VALUE_BYTES, std::byte{0x5A});
     REQUIRE(
@@ -88,7 +89,12 @@ void CheckSizeOnly(VirtualRegistry& registry, const HKEY hKey)
             VALUE_BYTES
         ) == ERROR_SUCCESS
     );
+}
 
+/// Asks for the size of the large value, by name and by enumeration, and
+/// checks that no allocation anywhere near its size happens meanwhile.
+void CheckSizeOnly(VirtualRegistry& registry, const HKEY hKey)
+{
     {
         DWORD dwType{};
         DWORD cbData = 0;
@@ -309,6 +315,7 @@ TEST_CASE("A size-only query of a MemoryHive value copies no data")
     VirtualRegistry registry;
     REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"SizeOnly", hive) == ERROR_SUCCESS);
 
+    SetBigValue(registry, Hive::HandleOf(hive.Root()));
     CheckSizeOnly(registry, Hive::HandleOf(hive.Root()));
 }
 
@@ -316,6 +323,20 @@ TEST_CASE("A size-only query of an OverlayHive upper value copies no data")
 {
     AppHive appHive;
     NativeRegistry native;
+    OverlayHive overlay(native, appHive.Root(), L"");
+    VirtualRegistry registry(&native);
+    REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"SizeOnly", overlay) == ERROR_SUCCESS);
+
+    SetBigValue(registry, Hive::HandleOf(overlay.Root()));
+    CheckSizeOnly(registry, Hive::HandleOf(overlay.Root()));
+}
+
+TEST_CASE("A size-only query of an OverlayHive lower value copies no data")
+{
+    AppHive appHive;
+    NativeRegistry native;
+    SetBigValue(native, appHive.Root());
+
     OverlayHive overlay(native, appHive.Root(), L"");
     VirtualRegistry registry(&native);
     REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"SizeOnly", overlay) == ERROR_SUCCESS);
