@@ -35,6 +35,7 @@ LSTATUS ReadWholeFile(
     const std::filesystem::path& path,
     std::vector<std::byte>& file
 );
+
 LSTATUS WriteWholeFile(
     const std::filesystem::path& path,
     std::span<const std::byte> file

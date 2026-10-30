@@ -129,7 +129,10 @@ catch (...)
     return StatusFromException();
 }
 
-LSTATUS MemoryHive::DeleteKey(Node* const pParent, const KeyPath path) noexcept
+LSTATUS MemoryHive::DeleteKey(
+    Node* const pParent,
+    const KeyPath path
+) noexcept
 {
     if (IsFrozen())
         return ERROR_ACCESS_DENIED;
@@ -149,7 +152,9 @@ LSTATUS MemoryHive::DeleteKey(Node* const pParent, const KeyPath path) noexcept
     return ERROR_SUCCESS;
 }
 
-LSTATUS MemoryHive::DeleteTree(Node* const pNode) noexcept
+LSTATUS MemoryHive::DeleteTree(
+    Node* const pNode
+) noexcept
 {
     if (IsFrozen())
         return ERROR_ACCESS_DENIED;
@@ -366,7 +371,10 @@ catch (...)
     return StatusFromException();
 }
 
-LSTATUS MemoryHive::QueryInfo(Node* const pNode, KeyInfo& info) const noexcept
+LSTATUS MemoryHive::QueryInfo(
+    Node* const pNode,
+    KeyInfo& info
+) const noexcept
 try
 {
     Tree::ReadLock lock(*m_pTree);
@@ -409,7 +417,9 @@ catch (...)
     return StatusFromException();
 }
 
-LSTATUS MemoryHive::CheckKey(Node* const pNode) const noexcept
+LSTATUS MemoryHive::CheckKey(
+    Node* const pNode
+) const noexcept
 {
     Tree::ReadLock lock(*m_pTree);
     return pNode->isDeleted ? ERROR_KEY_DELETED : ERROR_SUCCESS;

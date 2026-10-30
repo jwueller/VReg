@@ -18,8 +18,10 @@ struct Value
     std::wstring name;
     DWORD dwType = REG_NONE;
     std::vector<std::byte> data;
+
     /// Overlay only: hides the lower value of this name.
     bool isTombstone = false;
+
     /// Stored by @ref Hive::SetMuiTextValue: a terminated @ref REG_SZ.
     bool isMuiText = false;
 };
@@ -30,6 +32,7 @@ struct ChangeWatch
     /// Our own duplicate of the caller's event; closed when the watch fires or
     /// the tree goes.
     HANDLE hEvent = nullptr;
+
     bool isSubtree = false;
     DWORD dwFilter = 0;
 };
@@ -48,11 +51,14 @@ struct Node
     /// Overlay only: the key exists because the lower key at its path does;
     /// the node is just the way to it. Writing to it makes it an upper key.
     bool isTransparent = false;
+
     /// Overlay only: hides the lower key of this name; never handed out.
     bool isTombstone = false;
+
     /// Overlay only: hides every lower subkey and value (a key deleted and
     /// created again, or emptied by @ref Registry::RegDeleteTreeW).
     bool isOpaque = false;
+
     /// Overlay only: the lower key at this path exists and its class shows
     /// through (the node was made from it, not created over it).
     bool isLowerBacked = false;
@@ -60,8 +66,10 @@ struct Node
     /// Sorted by @ref CompareNames, the order the native registry enumerates
     /// subkeys in.
     std::vector<Node*> children;
+
     /// In creation order, as the native registry enumerates values.
     std::vector<Value> values;
+
     /// Guarded by the tree's write lock.
     std::vector<ChangeWatch> watches;
 };
@@ -95,6 +103,7 @@ class Tree
 public:
     /// Creates the root. Throws @ref std::bad_alloc.
     explicit Tree(Hive& owner);
+
     ~Tree();
 
     Tree(const Tree&) = delete;
@@ -134,6 +143,7 @@ public:
         const Node& parent,
         std::wstring_view name
     ) noexcept;
+
     [[nodiscard]] static Value* FindValue(
         Node& node,
         std::wstring_view name
@@ -179,9 +189,11 @@ private:
     Hive& m_owner;
     SRWLOCK m_lock = SRWLOCK_INIT;
     std::atomic<bool> m_isFrozen = false;
+
     /// Fixed for the life of the tree. Not read from @ref m_nodes, whose
     /// storage moves while writers add to it.
     Node* m_pRoot = nullptr;
+
     std::vector<std::unique_ptr<Node>> m_nodes;
 };
 } // namespace VReg

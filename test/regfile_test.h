@@ -105,7 +105,7 @@ public:
         LPWSTR lpClass,
         DWORD dwOptions,
         REGSAM samDesired,
-        const LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+        LPSECURITY_ATTRIBUTES lpSecurityAttributes,
         PHKEY phkResult,
         LPDWORD lpdwDisposition
     ) noexcept override
@@ -123,7 +123,9 @@ public:
         );
     }
 
-    LSTATUS RegCloseKey(HKEY hKey) noexcept override
+    LSTATUS RegCloseKey(
+        HKEY hKey
+    ) noexcept override
     {
         return m_native.RegCloseKey(
             hKey
@@ -168,7 +170,10 @@ public:
         );
     }
 
-    LSTATUS RegDeleteValueW(HKEY hKey, LPCWSTR lpValueName) noexcept override
+    LSTATUS RegDeleteValueW(
+        HKEY hKey,
+        LPCWSTR lpValueName
+    ) noexcept override
     {
         return m_native.RegDeleteValueW(
             hKey,
@@ -191,7 +196,10 @@ public:
         );
     }
 
-    LSTATUS RegDeleteTreeW(HKEY hKey, LPCWSTR lpSubKey) noexcept override
+    LSTATUS RegDeleteTreeW(
+        HKEY hKey,
+        LPCWSTR lpSubKey
+    ) noexcept override
     {
         return m_native.RegDeleteTreeW(
             Map(hKey),
@@ -335,7 +343,9 @@ public:
         );
     }
 
-    LSTATUS RegFlushKey(HKEY hKey) noexcept override
+    LSTATUS RegFlushKey(
+        HKEY hKey
+    ) noexcept override
     {
         return m_native.RegFlushKey(
             Map(hKey)

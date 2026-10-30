@@ -112,7 +112,7 @@ public:
         LPWSTR lpClass,
         DWORD dwOptions,
         REGSAM samDesired,
-        const LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+        LPSECURITY_ATTRIBUTES lpSecurityAttributes,
         PHKEY phkResult,
         LPDWORD lpdwDisposition
     ) noexcept override;
@@ -231,9 +231,12 @@ private:
         HKEY hRoot;
         std::vector<std::wstring> path;
         const Hive* pHive;
+
         /// @ref pHive for writing; null for a read-only mount.
         Hive* pWritable;
+
         MountView view;
+
         /// The native key path as components without `WOW6432Node`; empty
         /// when the mount has none.
         std::vector<std::wstring> nativePath;
@@ -249,21 +252,27 @@ private:
     {
         /// The node, when the key is inside a mount.
         Node* pNode = nullptr;
+
         /// The hive of @ref pNode, and the same hive for writing when it is
         /// mounted writable here.
         const Hive* pHive = nullptr;
         Hive* pWritable = nullptr;
+
         /// The components below @ref pNode still to walk.
         std::vector<std::wstring_view> rest;
+
         /// Whether the call goes to the base registry, because the key is
         /// outside every mount.
         bool isBase = false;
+
         LSTATUS status = ERROR_SUCCESS;
+
         /// Holds the native path text @ref rest may point into.
         std::unique_ptr<const std::wstring> pNativeText;
     };
 
     [[nodiscard]] const MountTable& Mounts() const noexcept;
+
     /// A mount of @p pHive here; null when it is not mounted.
     [[nodiscard]] const MountPoint* MountOf(const Hive* pHive) const noexcept;
 

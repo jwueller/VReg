@@ -108,7 +108,7 @@ public:
         LPWSTR lpClass,
         DWORD dwOptions,
         REGSAM samDesired,
-        const LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+        LPSECURITY_ATTRIBUTES lpSecurityAttributes,
         PHKEY phkResult,
         LPDWORD lpdwDisposition
     ) noexcept override;

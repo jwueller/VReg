@@ -44,15 +44,20 @@ enum class OperationKind
 struct Operation
 {
     OperationKind kind{};
+
     /// A predefined root such as @ref HKEY_LOCAL_MACHINE.
     HKEY hRoot{};
+
     /// Below @ref hRoot, without a leading backslash; empty for the root
     /// itself.
     std::wstring path;
+
     /// Empty for the default value (`@`).
     std::wstring name;
+
     DWORD dwType{};
     std::vector<std::byte> data;
+
     /// 1-based line of the file the operation starts on.
     std::size_t line{};
 };
@@ -68,7 +73,9 @@ struct ParseError
 {
     /// 1-based, in UTF-16 code units of the decoded text.
     std::size_t line{};
+
     std::size_t column{};
+
     /// A static string.
     const char* pszMessage{};
 };

@@ -42,8 +42,14 @@ public:
         DWORD& dwDisposition
     ) noexcept override;
 
-    LSTATUS DeleteKey(Node* pParent, KeyPath path) noexcept override;
-    LSTATUS DeleteTree(Node* pNode) noexcept override;
+    LSTATUS DeleteKey(
+        Node* pParent,
+        KeyPath path
+    ) noexcept override;
+
+    LSTATUS DeleteTree(
+        Node* pNode
+    ) noexcept override;
 
     LSTATUS QueryValue(
         Node* pNode,
@@ -58,9 +64,12 @@ public:
         std::wstring_view name,
         DWORD dwType,
         std::span<const std::byte> data
-    ) noexcept
-        override;
-    LSTATUS DeleteValue(Node* pNode, std::wstring_view name) noexcept override;
+    ) noexcept override;
+
+    LSTATUS DeleteValue(
+        Node* pNode,
+        std::wstring_view name
+    ) noexcept override;
 
     LSTATUS SetMuiTextValue(
         Node* pNode,
@@ -80,8 +89,7 @@ public:
         std::wstring& name,
         std::wstring& className,
         FILETIME& lastWrite
-    ) const noexcept
-        override;
+    ) const noexcept override;
 
     LSTATUS EnumValue(
         Node* pNode,
@@ -90,10 +98,16 @@ public:
         DWORD& dwType,
         DWORD& cbData,
         std::vector<std::byte>* pData
-    ) const noexcept
-        override;
-    LSTATUS QueryInfo(Node* pNode, KeyInfo& info) const noexcept override;
-    LSTATUS CheckKey(Node* pNode) const noexcept override;
+    ) const noexcept override;
+
+    LSTATUS QueryInfo(
+        Node* pNode,
+        KeyInfo& info
+    ) const noexcept override;
+
+    LSTATUS CheckKey(
+        Node* pNode
+    ) const noexcept override;
 
     LSTATUS Watch(
         Node* pNode,

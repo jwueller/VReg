@@ -19,20 +19,24 @@ struct UpperRecord
     {
         Key,
         Value,
-    };
+    } kind{};
 
-    Kind kind{};
     /// The key, relative to the hive's root and separated by backslashes; empty
     /// for the root itself.
     std::wstring path;
+
     /// Values only; empty for the default value.
     std::wstring name;
+
     /// Values only.
     DWORD dwType = REG_NONE;
+
     /// Values only.
     std::vector<std::byte> data;
+
     /// A key or value of the lower layer that is deleted here.
     bool isTombstone = false;
+
     /// Keys only: the key hides everything the lower key of this path holds (it
     /// was deleted and created again, or emptied by
     /// @ref Registry::RegDeleteTreeW).
@@ -98,8 +102,14 @@ public:
         DWORD& dwDisposition
     ) noexcept override;
 
-    LSTATUS DeleteKey(Node* pParent, KeyPath path) noexcept override;
-    LSTATUS DeleteTree(Node* pNode) noexcept override;
+    LSTATUS DeleteKey(
+        Node* pParent,
+        KeyPath path
+    ) noexcept override;
+
+    LSTATUS DeleteTree(
+        Node* pNode
+    ) noexcept override;
 
     LSTATUS QueryValue(
         Node* pNode,
@@ -107,17 +117,19 @@ public:
         DWORD& dwType,
         DWORD& cbData,
         std::vector<std::byte>* pData
-    ) const noexcept
-        override;
+    ) const noexcept override;
 
     LSTATUS SetValue(
         Node* pNode,
         std::wstring_view name,
         DWORD dwType,
         std::span<const std::byte> data
-    ) noexcept
-        override;
-    LSTATUS DeleteValue(Node* pNode, std::wstring_view name) noexcept override;
+    ) noexcept override;
+
+    LSTATUS DeleteValue(
+        Node* pNode,
+        std::wstring_view name
+    ) noexcept override;
 
     LSTATUS SetMuiTextValue(
         Node* pNode,
@@ -138,8 +150,7 @@ public:
         std::wstring& name,
         std::wstring& className,
         FILETIME& lastWrite
-    ) const noexcept
-        override;
+    ) const noexcept override;
 
     LSTATUS EnumValue(
         Node* pNode,
@@ -148,10 +159,16 @@ public:
         DWORD& dwType,
         DWORD& cbData,
         std::vector<std::byte>* pData
-    ) const noexcept
-        override;
-    LSTATUS QueryInfo(Node* pNode, KeyInfo& info) const noexcept override;
-    LSTATUS CheckKey(Node* pNode) const noexcept override;
+    ) const noexcept override;
+
+    LSTATUS QueryInfo(
+        Node* pNode,
+        KeyInfo& info
+    ) const noexcept override;
+
+    LSTATUS CheckKey(
+        Node* pNode
+    ) const noexcept override;
 
     LSTATUS Watch(
         Node* pNode,

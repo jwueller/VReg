@@ -25,11 +25,11 @@ struct Record
         Value,
         /// `"name"=-`, under the most recent Key record.
         DeleteValue,
-    };
+    } kind{};
 
-    Kind kind{};
     /// The full key path with the root's long name.
     std::wstring key;
+
     std::wstring name;
     DWORD dwType{};
     std::vector<std::byte> data;

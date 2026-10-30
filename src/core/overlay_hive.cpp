@@ -532,7 +532,10 @@ catch (...)
     return StatusFromException();
 }
 
-LSTATUS OverlayHive::DeleteKey(Node* const pParent, const KeyPath path) noexcept
+LSTATUS OverlayHive::DeleteKey(
+    Node* const pParent,
+    const KeyPath path
+) noexcept
 try
 {
     if (IsFrozen())
@@ -637,7 +640,9 @@ catch (...)
     return StatusFromException();
 }
 
-LSTATUS OverlayHive::DeleteTree(Node* const pNode) noexcept
+LSTATUS OverlayHive::DeleteTree(
+    Node* const pNode
+) noexcept
 {
     if (IsFrozen())
         return ERROR_ACCESS_DENIED;
@@ -1164,7 +1169,10 @@ catch (...)
     return StatusFromException();
 }
 
-LSTATUS OverlayHive::QueryInfo(Node* const pNode, KeyInfo& info) const noexcept
+LSTATUS OverlayHive::QueryInfo(
+    Node* const pNode,
+    KeyInfo& info
+) const noexcept
 try
 {
     std::vector<std::wstring> shadowedKeys;
@@ -1352,7 +1360,9 @@ catch (...)
     return StatusFromException();
 }
 
-LSTATUS OverlayHive::CheckKey(Node* const pNode) const noexcept
+LSTATUS OverlayHive::CheckKey(
+    Node* const pNode
+) const noexcept
 {
     Tree::ReadLock lock(*m_pTree);
     return pNode->isDeleted ? ERROR_KEY_DELETED : ERROR_SUCCESS;

@@ -73,9 +73,11 @@ public:
 
     /// The virtual handle of @p pNode.
     [[nodiscard]] static HKEY HandleOf(const Node* pNode) noexcept;
+
     /// The node a virtual handle of this copy of VReg belongs to, and its
     /// hive; null for any other handle.
     [[nodiscard]] static Node* NodeOf(HKEY hKey) noexcept;
+
     [[nodiscard]] static Hive* HiveOf(const Node* pNode) noexcept;
 
     virtual LSTATUS OpenKey(
@@ -105,7 +107,9 @@ public:
     ) noexcept = 0;
 
     /// Deletes every subkey and value of @p pNode, leaving the node itself.
-    virtual LSTATUS DeleteTree(Node* pNode) noexcept = 0;
+    virtual LSTATUS DeleteTree(
+        Node* pNode
+    ) noexcept = 0;
 
     /// Reads value @p name of @p pNode. @p cbData receives the size of the
     /// data in bytes; @p pData receives the data itself only when it is not
@@ -182,7 +186,9 @@ public:
 
     /// What @ref Registry::RegFlushKey on @p pNode needs from the hive:
     /// success, or @ref ERROR_KEY_DELETED.
-    virtual LSTATUS CheckKey(Node* pNode) const noexcept = 0;
+    virtual LSTATUS CheckKey(
+        Node* pNode
+    ) const noexcept = 0;
 
     /**
      * @brief Registers a one-shot change notification on @p pNode.
