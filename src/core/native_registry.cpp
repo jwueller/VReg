@@ -6,8 +6,9 @@ namespace VReg
 {
 namespace
 {
-// Makes every module linking VReg import advapi32, so the loader maps it
-// before VReg runs and resolution finds it without loading anything.
+/// Makes every module linking VReg import advapi32, so the loader maps it
+/// before VReg runs and resolution finds it without loading anything.
+// ReSharper disable once CppVariableCanBeMadeConstexpr
 [[maybe_unused]] const volatile auto g_pfnImportAdvapi32 = &::RegOpenKeyW;
 } // namespace
 
