@@ -66,7 +66,8 @@ the API it reimplements. Change them freely before the first release.
   included, and only their ANSI and wide names exist: a neutral name
   (`RegOpenKeyEx`) is a `winreg.h` macro. Nothing else joins the class;
   helpers over it are free functions. Each member links its Microsoft
-  documentation with `@see`, and the README's "Supported functions" lists
+  documentation with `@see`, and the README's
+  [Supported functions](./README.md#supported-functions) lists
   every `Reg*` function with the same links.
 - Win32-shaped entry points are `noexcept` and return `LSTATUS`.
 - Conversions that return their result are named `YFromX`.

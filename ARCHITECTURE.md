@@ -277,8 +277,9 @@ would cost an `NtQueryKey` on every call on a real handle.
 Every `Reg*` export that accepts an HKEY is hooked, because a virtual handle
 reaching an unhooked API fails as an invalid handle. Targets resolve from
 the `KernelBase.dll` export table, falling back to `advapi32.dll` for the
-pre-`Ex` forms. The README ("Supported functions") lists every function of
-each group.
+pre-`Ex` forms. The README's
+[Supported functions](./README.md#supported-functions) lists every function
+of each group.
 
 - **Emulated**: the members of `Registry`, answered through it.
   `RegGetValue` applies the `RRF_*` filters and `REG_EXPAND_SZ` expansion,

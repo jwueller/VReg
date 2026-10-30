@@ -144,7 +144,8 @@ and it reaches the real registry only through the base registry, never
 `::Reg*`.
 
 Calls straight to `ntdll` (`NtOpenKey` and friends) bypass the hooks; see
-"Scope" and "Known divergences from native Windows" below.
+[Scope](#scope) and
+[Known divergences from native Windows](#known-divergences-from-native-windows).
 
 ## Supported functions
 

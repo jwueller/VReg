@@ -67,7 +67,8 @@ to date with the port.
    [ports/vreg/vcpkg.json](./ports/vreg/vcpkg.json), and in
    [ports/vreg/portfile.cmake](./ports/vreg/portfile.cmake) the SHA512 of
    `https://github.com/jwueller/VReg/archive/vX.Y.Z.tar.gz`. Commit, add
-   the version entry as above, commit, and push.
+   the version entry as [The vcpkg port](#the-vcpkg-port) describes,
+   commit, and push.
 5. Start the next version: raise the patch version in vcpkg.json,
    commit, and push. Until then a build past the tag stops with a reminder, since
    a preview of the released version would sort below it.
