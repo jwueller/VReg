@@ -49,7 +49,8 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
           $env:VCPKG_ROOT = $env:VCPKG_INSTALLATION_ROOT
-          cmake --preset ${{ matrix.compiler }}-${{ matrix.arch }}
+          # MSVC code analysis needs only one compiler and architecture.
+          cmake --preset ${{ matrix.compiler }}-${{ matrix.arch }} ${{ matrix.compiler == 'msvc' && matrix.arch == 'x64' && '-DVREG_ANALYZE=ON' || '' }}
 
       - name: Build
         run: |

@@ -30,6 +30,10 @@ it locally after configuring, for each file:
 clang-tidy -p out/build/msvc-x64 src/core/registry.cpp
 ```
 
+The MSVC x64 job also builds the library with code analysis (`/analyze`),
+whose findings fail the build like any warning. Configure with
+`-DVREG_ANALYZE=ON` to run it locally.
+
 Native Windows behavior is the spec: a scenario that can run against the real
 registry (a private app hive) runs against it too, and the virtual answer must
 match it. CI also runs the tests under Wine, where those scenarios skip

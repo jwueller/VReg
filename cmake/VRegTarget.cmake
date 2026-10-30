@@ -29,5 +29,11 @@ function(vreg_add_library name)
             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     )
     target_link_libraries(VReg_${name} PRIVATE $<BUILD_INTERFACE:VReg_BuildSettings>)
+    # Agent's choice: the library only. The tests pass unchecked handles
+    # (GetModuleHandleW, CreateEventW) straight on, where a failure fails
+    # the test anyway, and would need a check per call to pass.
+    if(VREG_ANALYZE)
+        target_compile_options(VReg_${name} PRIVATE /analyze /analyze:external-)
+    endif()
     set_property(GLOBAL APPEND PROPERTY VREG_LIBRARIES VReg_${name})
 endfunction()

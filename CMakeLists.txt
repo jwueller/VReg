@@ -31,6 +31,7 @@ endif()
 option(VREG_WITH_DETOURS "Build VReg::Detours (needs Microsoft Detours)" OFF)
 option(VREG_BUILD_TESTS "Build the tests" ${PROJECT_IS_TOP_LEVEL})
 option(VREG_INSTALL "Install VReg along with the project that builds it" ${PROJECT_IS_TOP_LEVEL})
+option(VREG_ANALYZE "Run MSVC code analysis (/analyze) over the library sources" OFF)
 
 include(GNUInstallDirs)
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
