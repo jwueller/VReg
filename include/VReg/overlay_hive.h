@@ -53,15 +53,15 @@ struct UpperRecord
  *  Frozen, the hive answers an open of a key it has nothing at or below with
  *  the lower registry's own handle (@ref OpenResult::hLower). A
  *  @ref VirtualRegistry sends later calls on such a handle to its base, so a
- *  frozen overlay's lower registry must be that base or answer the same
+ *  frozen overlay's lower registry MUST be that base or answer the same
  *  handles.
  *
- * @note A hive must outlive every registry it is mounted in.
+ * @note A hive MUST outlive every registry it is mounted in.
  */
 class OverlayHive final : public Hive
 {
 public:
-    /// Over the key @p lowerPath below @p hLowerRoot of @p lower, which must
+    /// Over the key @p lowerPath below @p hLowerRoot of @p lower, which MUST
     /// outlive the hive. @p samLowerView (@ref KEY_WOW64_64KEY,
     /// @ref KEY_WOW64_32KEY or 0) is added to every lower open. Throws
     /// @ref std::bad_alloc.

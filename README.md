@@ -126,7 +126,8 @@ hive stays writable to whoever holds it.
 - **From `DllMain`:** build, fill, freeze and mount before installing, so the
   first hooked call already finds the hive.
 - **Unloading** neutralizes the hooks (they pass everything through from
-  then on); never unload while another thread may be inside a registry call.
+  then on); the module MUST NOT unload while another thread may be inside
+  a registry call.
 - **Several modules** may each link VReg and install their own hooks; their
   handles never collide, and each answers only its own mounts.
 - **Tracing:** `Install` takes any `Registry`, so a wrapper that logs each
@@ -137,9 +138,9 @@ hive stays writable to whoever holds it.
   with its text instead.
 
 Code that runs inside a hook (a custom `Registry` used as a base, for
-instance) may run under another module's loader lock: it must not load a
+instance) may run under another module's loader lock: it MUST NOT load a
 module, create a thread, or wait on a lock a loader-lock holder could own,
-and it reaches the real registry only through the base registry, never
+and it MUST reach the real registry only through the base registry, never
 `::Reg*`.
 
 Calls straight to `ntdll` (`NtOpenKey` and friends) bypass the hooks; see
@@ -388,7 +389,7 @@ Measured by running the oracle catalogue against `VirtualRegistry` over a
 - `RegQueryInfoKey` reports a security descriptor size of 0.
 - `RegLoadMUIString` answers `ERROR_INVALID_DATA` for a hive value whether
   or not it is an `@` indirect string; resolving one would load a resource
-  module, which detour bodies may not do. A value stored with
+  module, which a detour body MUST NOT do. A value stored with
   `Hive::SetMuiTextValue` instead stands for the text an indirect string
   resolves to: it answers with that text, sized and truncated as native
   answers a resolved string, and ignores `pszDirectory` (there is no module

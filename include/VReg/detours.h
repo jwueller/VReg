@@ -31,7 +31,7 @@ class Registry;
  *  own.
  *
  * @note A thread still inside a hook body when its module unmaps crashes:
- *  do not unload while registry calls are in flight.
+ *  the module MUST NOT unload while registry calls are in flight.
  */
 namespace VReg::Detours
 {
@@ -40,7 +40,7 @@ namespace VReg::Detours
 /// Every hook calls through @p registry, which may wrap the registry that
 /// answers (to trace each call, say). @p native is the registry below the
 /// hooks, the one @p registry reaches for whatever it does not answer: the
-/// commit turns its function table into the trampolines. Both must outlive
+/// commit turns its function table into the trampolines. Both MUST outlive
 /// the process. Answers the first Detours error, or
 /// @ref ERROR_ALREADY_INITIALIZED when this copy attached before.
 LONG Attach(Registry& registry, NativeRegistry& native) noexcept;

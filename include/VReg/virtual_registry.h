@@ -71,7 +71,7 @@ public:
     VirtualRegistry& operator=(const VirtualRegistry&) = delete;
 
     /// Mounts @p hive at @p path below the predefined key @p hRoot (an empty
-    /// path mounts the root itself). @p hive must outlive this registry.
+    /// path mounts the root itself). @p hive MUST outlive this registry.
     /// Answers @ref ERROR_INVALID_HANDLE for a root that is not predefined,
     /// @ref ERROR_BAD_PATHNAME for a malformed path and
     /// @ref ERROR_ALREADY_EXISTS for a path already mounted. @p view limits

@@ -11,7 +11,7 @@ class Tree;
 /**
  * @brief A hive held entirely in memory; starts empty.
  *
- * @note A hive must outlive every registry it is mounted in. Destroying it
+ * @note A hive MUST outlive every registry it is mounted in. Destroying it
  *  turns its handles into invalid ones.
  */
 class MemoryHive final : public Hive
