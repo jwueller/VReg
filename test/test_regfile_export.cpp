@@ -120,11 +120,13 @@ TEST_CASE("Export wraps hex data the way regedit does")
 {
     AppHive hive;
     AppHiveRegistry registry(hive.Root());
-    MustSet(registry, L"W", L"Wrap", REG_BINARY, Sequence(0, 60));
-    MustSet(registry, L"W", L"", REG_BINARY, Sequence(0, 30));
-    MustSet(registry, L"W", L"Edge", REG_BINARY, Sequence(0, 23));
+    // @formatter:off
+    MustSet(registry, L"W", L"Wrap",   REG_BINARY, Sequence(0, 60));
+    MustSet(registry, L"W", L"",       REG_BINARY, Sequence(0, 30));
+    MustSet(registry, L"W", L"Edge",   REG_BINARY, Sequence(0, 23));
     MustSet(registry, L"W", L"Edge76", REG_BINARY, Sequence(0, 23));
-    MustSet(registry, L"W", L"Last", REG_BINARY, Sequence(0, 22));
+    MustSet(registry, L"W", L"Last",   REG_BINARY, Sequence(0, 22));
+    // @formatter:on
 
     const std::wstring expected = HEADER +
         L"[HKEY_CURRENT_USER\\W]\r\n"
@@ -173,10 +175,12 @@ TEST_CASE("Export writes typed values as hex(n) and friendly forms only when exa
         REG_MULTI_SZ,
         BytesOf(std::wstring(L"a\0b\0\0", 5))
     );
+    // @formatter:off
     MustSet(registry, L"T", L"a dword3", REG_DWORD, Sequence(1, 3));
-    MustSet(registry, L"T", L"b qword", REG_QWORD, Sequence(1, 8));
-    MustSet(registry, L"T", L"c none", REG_NONE, {});
-    MustSet(registry, L"T", L"d type", 0x12345, {std::byte{7}});
+    MustSet(registry, L"T", L"b qword",  REG_QWORD, Sequence(1, 8));
+    MustSet(registry, L"T", L"c none",   REG_NONE,  {});
+    MustSet(registry, L"T", L"d type",   0x12345,   {std::byte{7}});
+    // @formatter:on
 
     const std::wstring expected = HEADER +
         L"[HKEY_CURRENT_USER\\T]\r\n"
@@ -290,6 +294,7 @@ TEST_CASE("Export in the other formats")
             "Windows Registry Editor Version 5.00\r\n\r\n[HKEY_CURRENT_USER\\F]\r\n\"h\"=hex:01\r\n\"s\"=\"v\"\r\n\r\n"
         );
     }
+
     SECTION("REGEDIT4 has its own header")
     {
         CHECK(
@@ -335,6 +340,7 @@ TEST_CASE("REGEDIT4 refuses what the ANSI code page cannot hold")
     {
         MustSet(registry, L"R", L"v", REG_SZ, StringBytes(unrepresentable));
     }
+
     SECTION("in a value name")
     {
         MustSet(
@@ -345,6 +351,7 @@ TEST_CASE("REGEDIT4 refuses what the ANSI code page cannot hold")
             DwordBytes(1)
         );
     }
+
     SECTION("in a key name")
     {
         MustSet(
@@ -395,6 +402,7 @@ TEST_CASE("Export errors")
             ) == ERROR_FILE_NOT_FOUND
         );
     }
+
     SECTION("a root that is not predefined")
     {
         CHECK(
@@ -407,6 +415,7 @@ TEST_CASE("Export errors")
             ) == ERROR_INVALID_HANDLE
         );
     }
+
     SECTION("a name with a line break")
     {
         MustSet(registry, L"L", L"a\nb", REG_DWORD, DwordBytes(1));
@@ -420,6 +429,7 @@ TEST_CASE("Export errors")
             ) == ERROR_INVALID_NAME
         );
     }
+
     CHECK(file == std::vector{std::byte{1}});
 }
 

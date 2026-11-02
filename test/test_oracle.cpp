@@ -18,7 +18,8 @@ namespace
 {
 struct CreateOpenAndClose
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -105,7 +106,8 @@ struct CreateOpenAndClose
 
 struct QueryStringBufferTooSmall
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -138,7 +140,10 @@ struct QueryStringBufferTooSmall
                 data.data(),
                 &cbData
             ),
-            {dwType, cbData},
+            {
+                dwType,
+                cbData,
+            },
             {Bytes(data)}
         );
     }
@@ -146,7 +151,8 @@ struct QueryStringBufferTooSmall
 
 struct CreateDispositionAndClass
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -168,7 +174,10 @@ struct CreateDispositionAndClass
                 &hKey,
                 &dwDisposition
             ),
-            {dwDisposition, KeyState(hKey)}
+            {
+                dwDisposition,
+                KeyState(hKey),
+            }
         );
         RECORD(
             "close",
@@ -333,7 +342,10 @@ struct CreateDispositionAndClass
                 &hKey,
                 &dwDisposition
             ),
-            {dwDisposition, KeyState(hKey)}
+            {
+                dwDisposition,
+                KeyState(hKey)
+            }
         );
         RECORD(
             "close",
@@ -385,15 +397,19 @@ struct CreateDispositionAndClass
             RECORD(
                 "create odd path " + Narrow(pszSub),
                 status,
-                {dwDisposition, KeyState(hKey), HandedBack<Api>(hKey, hRoot)}
+                {
+                    dwDisposition,
+                    KeyState(hKey),
+                    HandedBack<Api>(hKey, hRoot)
+                }
             );
             if (status == ERROR_SUCCESS && !HandedBack<Api>(hKey, hRoot))
                 RECORD(
-                    "close",
-                    api.RegCloseKey(
-                        hKey
-                    )
-                );
+                "close",
+                api.RegCloseKey(
+                    hKey
+                )
+            );
         }
 
         hKey = FillKey();
@@ -484,7 +500,8 @@ struct CreateDispositionAndClass
 
 struct CreateOpenAnsi
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -506,7 +523,10 @@ struct CreateOpenAnsi
                 &hKey,
                 &dwDisposition
             ),
-            {dwDisposition, KeyState(hKey)}
+            {
+                dwDisposition,
+                KeyState(hKey),
+            }
         );
         RECORD(
             "close",
@@ -694,8 +714,12 @@ struct CreateOpenAnsi
         );
 
         for (
-            const char* const pszSub :
-            {static_cast<const char*>(nullptr), "", "\\Leading", "Trailing\\"}
+            const char* const pszSub : {
+                static_cast<const char*>(nullptr),
+                "",
+                "\\Leading",
+                "Trailing\\",
+            }
         )
         {
             hKey = FillKey();
@@ -709,15 +733,18 @@ struct CreateOpenAnsi
             RECORD(
                 std::string("open A odd ") + (pszSub ? pszSub : "(null)"),
                 status,
-                {KeyState(hKey), HandedBack<Api>(hKey, hRoot)}
+                {
+                    KeyState(hKey),
+                    HandedBack<Api>(hKey, hRoot),
+                }
             );
             if (status == ERROR_SUCCESS && !HandedBack<Api>(hKey, hRoot))
                 RECORD(
-                    "close",
-                    api.RegCloseKey(
-                        hKey
-                    )
-                );
+                "close",
+                api.RegCloseKey(
+                    hKey
+                )
+            );
         }
 
         hKey = FillKey();
@@ -806,7 +833,8 @@ struct CreateOpenAnsi
 
 struct OpenKeyForms
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -834,16 +862,19 @@ struct OpenKeyForms
             )
         );
 
-        for (const wchar_t* const pszSub :
-             {static_cast<const wchar_t*>(nullptr),
-              L"",
-              L"A",
-              L"a\\b",
-              L"A\\",
-              L"\\A",
-              L"A\\\\B",
-              L"A\\Missing",
-              L"Missing\\B"})
+        for (
+            const wchar_t* const pszSub : {
+                static_cast<const wchar_t*>(nullptr),
+                L"",
+                L"A",
+                L"a\\b",
+                L"A\\",
+                L"\\A",
+                L"A\\\\B",
+                L"A\\Missing",
+                L"Missing\\B"
+            }
+        )
         {
             hKey = FillKey();
             const auto status = api.RegOpenKeyExW(
@@ -856,15 +887,18 @@ struct OpenKeyForms
             RECORD(
                 std::string("open ") + (pszSub ? Narrow(pszSub) : "(null)"),
                 status,
-                {KeyState(hKey), HandedBack<Api>(hKey, hRoot)}
+                {
+                    KeyState(hKey),
+                    HandedBack<Api>(hKey, hRoot),
+                }
             );
             if (status == ERROR_SUCCESS && !HandedBack<Api>(hKey, hRoot))
                 RECORD(
-                    "close",
-                    api.RegCloseKey(
-                        hKey
-                    )
-                );
+                "close",
+                api.RegCloseKey(
+                    hKey
+                )
+            );
         }
 
         RECORD(
@@ -914,11 +948,11 @@ struct OpenKeyForms
             RECORD("open backup option", backupStatus, {KeyState(hKey)});
             if (backupStatus == ERROR_SUCCESS)
                 RECORD(
-                    "close",
-                    api.RegCloseKey(
-                        hKey
-                    )
-                );
+                "close",
+                api.RegCloseKey(
+                    hKey
+                )
+            );
         }
         hKey = FillKey();
         RECORD(
@@ -1075,7 +1109,8 @@ struct OpenKeyForms
 
 struct PreExOpenAndCreate
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -1098,8 +1133,7 @@ struct PreExOpenAndCreate
         );
 
         for (
-            const wchar_t* const pszSub :
-            {
+            const wchar_t* const pszSub : {
                 static_cast<const wchar_t*>(nullptr),
                 L"",
                 L"A",
@@ -1131,7 +1165,10 @@ struct PreExOpenAndCreate
             RECORD(
                 "create W " + label,
                 status,
-                {KeyState(hKey), hKey == hRoot}
+                {
+                    KeyState(hKey),
+                    hKey == hRoot,
+                }
             );
             if (status == ERROR_SUCCESS)
                 CloseUnlessParent(
@@ -1163,7 +1200,10 @@ struct PreExOpenAndCreate
             RECORD(
                 "create A " + label,
                 status,
-                {KeyState(hKey), hKey == hRoot}
+                {
+                    KeyState(hKey),
+                    hKey == hRoot,
+                }
             );
             if (status == ERROR_SUCCESS)
                 CloseUnlessParent(
@@ -1363,7 +1403,8 @@ struct PreExOpenAndCreate
 
 struct DeleteKeys
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -1371,8 +1412,7 @@ struct DeleteKeys
     {
         HKEY hKey{};
         for (
-            const wchar_t* const pszName :
-            {
+            const wchar_t* const pszName : {
                 L"Parent\\Child",
                 L"Leaf1",
                 L"Leaf2",
@@ -1589,8 +1629,14 @@ struct DeleteKeys
         );
 
         for (
-            const auto* const pszSub :
-            {L"Parent", L"Leaf1", L"Leaf2", L"Leaf3", L"Leaf4\u00e4", L"Leaf5"}
+            const auto* const pszSub : {
+                L"Parent",
+                L"Leaf1",
+                L"Leaf2",
+                L"Leaf3",
+                L"Leaf4\u00e4",
+                L"Leaf5"
+            }
         )
         {
             hKey = FillKey();
@@ -1604,18 +1650,19 @@ struct DeleteKeys
             RECORD("open " + Narrow(pszSub), status);
             if (status == ERROR_SUCCESS)
                 RECORD(
-                    "close",
-                    api.RegCloseKey(
-                        hKey
-                    )
-                );
+                "close",
+                api.RegCloseKey(
+                    hKey
+                )
+            );
         }
     }
 };
 
 struct OperateOnDeletedKey
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -1815,7 +1862,8 @@ struct OperateOnDeletedKey
 
 struct DeleteTrees
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -1823,8 +1871,7 @@ struct DeleteTrees
     {
         const BYTE data[4] = {1, 2, 3, 4};
         for (
-            const wchar_t* const pszSub :
-            {
+            const wchar_t* const pszSub : {
                 L"T\\A\\B\\C",
                 L"T\\A",
                 L"T",
@@ -1836,16 +1883,16 @@ struct DeleteTrees
             }
         )
             RECORD(
-                "set " + Narrow(pszSub),
-                api.RegSetKeyValueW(
-                    hRoot,
-                    pszSub,
-                    L"v",
-                    REG_BINARY,
-                    data,
-                    4
-                )
-            );
+            "set " + Narrow(pszSub),
+            api.RegSetKeyValueW(
+                hRoot,
+                pszSub,
+                L"v",
+                REG_BINARY,
+                data,
+                4
+            )
+        );
 
         RECORD(
             "tree missing",
@@ -1954,7 +2001,10 @@ struct DeleteTrees
                 nullptr,
                 nullptr
             ),
-            {cSubKeys, cValues}
+            {
+                cSubKeys,
+                cValues,
+            }
         );
         RECORD(
             "close",
@@ -2030,14 +2080,18 @@ struct DeleteTrees
                 nullptr,
                 nullptr
             ),
-            {cSubKeys, cValues}
+            {
+                cSubKeys,
+                cValues,
+            }
         );
     }
 };
 
 struct FlushAndNotify
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -2191,7 +2245,8 @@ using Scenarios = std::tuple<
     DeleteKeys,
     OperateOnDeletedKey,
     DeleteTrees,
-    FlushAndNotify>;
+    FlushAndNotify
+>;
 } // namespace
 
 TEMPLATE_LIST_TEST_CASE(

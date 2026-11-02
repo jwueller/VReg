@@ -21,70 +21,55 @@ std::vector<StoredValue> WideValues()
     const wchar_t EMBEDDED[] = L"ab\0cd";
 
     std::vector<StoredValue> values;
-    values.push_back({L"None", REG_NONE, {1, 2, 3}});
-    values.push_back({L"NoneEmpty", REG_NONE, {}});
-    values.push_back({L"Sz", REG_SZ, BytesOf(L"text", 5)});
-    values.push_back({L"SzNoTerminator", REG_SZ, BytesOf(L"text", 4)});
-    values.push_back(
-        {L"SzOddBytes",
-         REG_SZ,
-         []
-         {
-             auto bytes = BytesOf(L"text", 4);
-             bytes.push_back(0x41);
-             return bytes;
-         }()}
-    );
-    values.push_back({L"SzOneByte", REG_SZ, {0x41}});
-    values.push_back({L"SzEmpty", REG_SZ, {}});
-    values.push_back({L"SzJustTerminator", REG_SZ, {0, 0}});
-    values.push_back(
-        {L"SzNonAscii", REG_SZ, BytesOf(NON_ASCII, std::size(NON_ASCII))}
-    );
+    // @formatter:off
+    values.push_back({L"None",           REG_NONE, {1, 2, 3}});
+    values.push_back({L"NoneEmpty",      REG_NONE, {}});
+    values.push_back({L"Sz",             REG_SZ,   BytesOf(L"text", 5)});
+    values.push_back({L"SzNoTerminator", REG_SZ,   BytesOf(L"text", 4)});
+    // @formatter:on
     values.push_back(
         {
-            L"SzNonAsciiNoTerminator",
+            L"SzOddBytes",
             REG_SZ,
-            BytesOf(NON_ASCII, std::size(NON_ASCII) - 1)
+            []
+            {
+                auto bytes = BytesOf(L"text", 4);
+                bytes.push_back(0x41);
+                return bytes;
+            }()
         }
     );
-    values.push_back(
-        {L"SzEmbeddedNul", REG_SZ, BytesOf(EMBEDDED, std::size(EMBEDDED))}
-    );
-    values.push_back(
-        {L"Expand", REG_EXPAND_SZ, BytesOf(L"%SystemRoot%\\x", 15)}
-    );
-    values.push_back({L"ExpandEmpty", REG_EXPAND_SZ, {}});
-    values.push_back({L"Binary", REG_BINARY, {1, 2, 3, 4, 5}});
-    values.push_back({L"BinaryEmpty", REG_BINARY, {}});
-    values.push_back({L"Dword", REG_DWORD, {0x78, 0x56, 0x34, 0x12}});
-    values.push_back({L"DwordShort", REG_DWORD, {0x78, 0x56}});
-    values.push_back(
-        {L"DwordBigEndian", REG_DWORD_BIG_ENDIAN, {0x12, 0x34, 0x56, 0x78}}
-    );
-    values.push_back({L"Link", REG_LINK, BytesOf(L"link", 4)});
-    values.push_back({L"Multi", REG_MULTI_SZ, BytesOf(L"a\0bc\0", 6)});
-    values.push_back(
-        {L"MultiNoFinalTerminator", REG_MULTI_SZ, BytesOf(L"a\0bc", 5)}
-    );
-    values.push_back({L"MultiNoTerminator", REG_MULTI_SZ, BytesOf(L"abc", 3)});
-    values.push_back({L"MultiEmpty", REG_MULTI_SZ, {}});
-    values.push_back(
-        {
-            L"MultiNonAscii",
-            REG_MULTI_SZ,
-            BytesOf(MULTI_NON_ASCII, std::size(MULTI_NON_ASCII))
-        }
-    );
-    values.push_back({L"Qword", REG_QWORD, {1, 2, 3, 4, 5, 6, 7, 8}});
-    values.push_back({L"ResourceList", REG_RESOURCE_LIST, {9, 8, 7}});
-    values.push_back({L"Unknown", 0x1234, {4, 3}});
+    // @formatter:off
+    values.push_back({L"SzOneByte",              REG_SZ,               {0x41}});
+    values.push_back({L"SzEmpty",                REG_SZ,               {}});
+    values.push_back({L"SzJustTerminator",       REG_SZ,               {0, 0}});
+    values.push_back({L"SzNonAscii",             REG_SZ,               BytesOf(NON_ASCII, std::size(NON_ASCII))});
+    values.push_back({L"SzNonAsciiNoTerminator", REG_SZ,               BytesOf(NON_ASCII, std::size(NON_ASCII) - 1)});
+    values.push_back({L"SzEmbeddedNul",          REG_SZ,               BytesOf(EMBEDDED, std::size(EMBEDDED))});
+    values.push_back({L"Expand",                 REG_EXPAND_SZ,        BytesOf(L"%SystemRoot%\\x", 15)});
+    values.push_back({L"ExpandEmpty",            REG_EXPAND_SZ,        {}});
+    values.push_back({L"Binary",                 REG_BINARY,           {1, 2, 3, 4, 5}});
+    values.push_back({L"BinaryEmpty",            REG_BINARY,           {}});
+    values.push_back({L"Dword",                  REG_DWORD,            {0x78, 0x56, 0x34, 0x12}});
+    values.push_back({L"DwordShort",             REG_DWORD,            {0x78, 0x56}});
+    values.push_back({L"DwordBigEndian",         REG_DWORD_BIG_ENDIAN, {0x12, 0x34, 0x56, 0x78}});
+    values.push_back({L"Link",                   REG_LINK,             BytesOf(L"link", 4)});
+    values.push_back({L"Multi",                  REG_MULTI_SZ,         BytesOf(L"a\0bc\0", 6)});
+    values.push_back({L"MultiNoFinalTerminator", REG_MULTI_SZ,         BytesOf(L"a\0bc", 5)});
+    values.push_back({L"MultiNoTerminator",      REG_MULTI_SZ,         BytesOf(L"abc", 3)});
+    values.push_back({L"MultiEmpty",             REG_MULTI_SZ,         {}});
+    values.push_back({L"MultiNonAscii",          REG_MULTI_SZ,         BytesOf(MULTI_NON_ASCII, std::size(MULTI_NON_ASCII))});
+    values.push_back({L"Qword",                  REG_QWORD,            {1, 2, 3, 4, 5, 6, 7, 8}});
+    values.push_back({L"ResourceList",           REG_RESOURCE_LIST,    {9, 8, 7}});
+    values.push_back({L"Unknown",                0x1234,               {4, 3}});
+    // @formatter:on
     return values;
 }
 
 struct SetWideAndQueryEveryType
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -132,7 +117,8 @@ std::vector<AnsiItem> AnsiItems()
 
 struct SetAnsiAndQueryEveryType
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -161,7 +147,8 @@ struct SetAnsiAndQueryEveryType
 
 struct SetInvalidArguments
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -392,7 +379,8 @@ struct SetInvalidArguments
 
 struct QueryMissingAndInvalid
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -430,7 +418,10 @@ struct QueryMissingAndInvalid
                 data.data(),
                 &cbData
             ),
-            {dwType, cbData}
+            {
+                dwType,
+                cbData,
+            }
         );
         RECORD(
             "A reserved set",
@@ -442,7 +433,10 @@ struct QueryMissingAndInvalid
                 data.data(),
                 &cbData
             ),
-            {dwType, cbData}
+            {
+                dwType,
+                cbData,
+            }
         );
 
         cbData = 16;
@@ -457,7 +451,10 @@ struct QueryMissingAndInvalid
                 data.data(),
                 &cbData
             ),
-            {dwType, cbData}
+            {
+                dwType,
+                cbData,
+            }
         );
         RECORD(
             "A invalid handle",
@@ -469,7 +466,10 @@ struct QueryMissingAndInvalid
                 data.data(),
                 &cbData
             ),
-            {dwType, cbData}
+            {
+                dwType,
+                cbData,
+            }
         );
         RECORD(
             "W invalid handle, reserved",
@@ -531,7 +531,8 @@ struct QueryMissingAndInvalid
 
 struct DefaultValue
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -671,7 +672,8 @@ struct DefaultValue
 
 struct NonAsciiNames
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -785,7 +787,8 @@ struct NonAsciiNames
 
 struct DeleteValues
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -875,7 +878,8 @@ struct DeleteValues
 
 struct PreExValues
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -1302,7 +1306,8 @@ struct PreExValues
 
 struct SetKeyValueForms
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -1544,18 +1549,20 @@ struct SetKeyValueForms
         );
 
         for (const auto* const pszSub :
-             {L"New\\Sub",
-              L"NewA\\Sub",
-              L"New",
-              L"NewA",
-              L"NoTerm",
-              L"NoTermA",
-              L"NoData",
-              L"NoDataA",
-              L"BadData",
-              L"BadDataA",
-              L"MultiA",
-              L"LinkW"})
+             {
+                 L"New\\Sub",
+                 L"NewA\\Sub",
+                 L"New",
+                 L"NewA",
+                 L"NoTerm",
+                 L"NoTermA",
+                 L"NoData",
+                 L"NoDataA",
+                 L"BadData",
+                 L"BadDataA",
+                 L"MultiA",
+                 L"LinkW"
+             })
         {
             const auto label = Narrow(pszSub);
             HKEY hKey{};
@@ -1595,7 +1602,8 @@ struct SetKeyValueForms
 
 struct DeleteKeyValueForms
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record

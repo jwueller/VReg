@@ -73,13 +73,11 @@ TEST_CASE("Forwarded exports are not resolved")
     {
         const auto pfn = GetProcAddress(hAdvapi32, name.c_str());
         HMODULE hOwner{};
-        const bool isOwned = pfn
-            && GetModuleHandleExW(
-                GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS
-                    | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                reinterpret_cast<LPCWSTR>(pfn),
-                &hOwner
-            );
+        const bool isOwned = pfn && GetModuleHandleExW(
+            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+            reinterpret_cast<LPCWSTR>(pfn),
+            &hOwner
+        );
         if (!isOwned || hOwner == hAdvapi32)
             continue;
 

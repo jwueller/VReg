@@ -184,7 +184,7 @@ LSTATUS NativeRegistry::RegEnumKeyExW(
     _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) const LPWSTR lpName,
     _Inout_ const LPDWORD lpcchName,
     _Reserved_ const LPDWORD lpReserved,
-    _Out_writes_to_opt_(*lpcchClass,*lpcchClass + 1) const LPWSTR lpClass,
+    _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) const LPWSTR lpClass,
     _Inout_opt_ const LPDWORD lpcchClass,
     _Out_opt_ const PFILETIME lpftLastWriteTime
 ) const noexcept

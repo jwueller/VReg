@@ -77,6 +77,7 @@ class NativeRegistry final : public Registry
 {
 public:
 #define VREG_FIELD(name) decltype(&::name) name;
+
     struct Functions
     {
         VREG_INTERNAL_REGISTRY_FUNCTIONS(VREG_FIELD)
@@ -158,7 +159,7 @@ public:
         _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) LPWSTR lpName,
         _Inout_ LPDWORD lpcchName,
         _Reserved_ LPDWORD lpReserved,
-        _Out_writes_to_opt_(*lpcchClass,*lpcchClass + 1) LPWSTR lpClass,
+        _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) LPWSTR lpClass,
         _Inout_opt_ LPDWORD lpcchClass,
         _Out_opt_ PFILETIME lpftLastWriteTime
     ) const noexcept override;

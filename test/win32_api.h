@@ -13,6 +13,7 @@ namespace VReg::Test
 struct Win32Api : NativeRegistry::Functions
 {
 #define VREG_IMPORTED(name) &::name,
+
     Win32Api() noexcept :
         Functions{VREG_INTERNAL_REGISTRY_FUNCTIONS(VREG_IMPORTED)}
     {

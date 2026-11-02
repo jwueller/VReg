@@ -122,7 +122,7 @@ public:
         _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) LPWSTR lpName,
         _Inout_ LPDWORD lpcchName,
         _Reserved_ LPDWORD lpReserved,
-        _Out_writes_to_opt_(*lpcchClass,*lpcchClass + 1) LPWSTR lpClass,
+        _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) LPWSTR lpClass,
         _Inout_opt_ LPDWORD lpcchClass,
         _Out_opt_ PFILETIME lpftLastWriteTime
     ) const noexcept = 0;
@@ -278,7 +278,7 @@ public:
         _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) LPSTR lpName,
         _Inout_ LPDWORD lpcchName,
         _Reserved_ LPDWORD lpReserved,
-        _Out_writes_to_opt_(*lpcchClass,*lpcchClass + 1) LPSTR lpClass,
+        _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) LPSTR lpClass,
         _Inout_opt_ LPDWORD lpcchClass,
         _Out_opt_ PFILETIME lpftLastWriteTime
     ) const noexcept;

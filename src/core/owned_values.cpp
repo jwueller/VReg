@@ -220,8 +220,8 @@ try
             nullptr,
             &dwType,
             (pData && isSized)
-            ? reinterpret_cast<LPBYTE>(pData->data())
-            : nullptr,
+                ? reinterpret_cast<LPBYTE>(pData->data())
+                : nullptr,
             pData ? &cbRead : nullptr
         );
         if (status == ERROR_MORE_DATA)

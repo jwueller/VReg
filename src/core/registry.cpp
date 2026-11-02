@@ -354,7 +354,7 @@ LSTATUS Registry::RegEnumKeyExA(
     _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) const LPSTR lpName,
     _Inout_ const LPDWORD lpcchName,
     _Reserved_ const LPDWORD lpReserved,
-    _Out_writes_to_opt_(*lpcchClass,*lpcchClass + 1) const LPSTR lpClass,
+    _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) const LPSTR lpClass,
     _Inout_opt_ const LPDWORD lpcchClass,
     _Out_opt_ const PFILETIME lpftLastWriteTime
 ) const noexcept
@@ -803,13 +803,11 @@ try
     // terminator the wide form reserves; for an expanded value, the larger of
     // the unexpanded text and the expansion, and a character more when the
     // expansion is the larger.
-    DWORD cbReported
-        = cbText
-        + (
-            cbQuery > data.size()
+    DWORD cbReported = cbText + (
+        cbQuery > data.size()
             ? static_cast<DWORD>((cbQuery - data.size()) / sizeof(wchar_t))
             : 0
-        );
+    );
     if (isExpanded)
     {
         const auto storedChars = reinterpret_cast<const wchar_t*>(
@@ -825,8 +823,8 @@ try
         const auto ibNul = text.find('\0');
         const DWORD cbExpanded =
             ibNul == std::string::npos
-            ? cbText
-            : static_cast<DWORD>(ibNul + 1);
+                ? cbText
+                : static_cast<DWORD>(ibNul + 1);
         cbReported = std::max(
             cbRawText,
             cbExpanded
@@ -836,8 +834,8 @@ try
     const DWORD cbNeeded = isExpanded ? cbText + 1 : cbText;
     const LSTATUS statusMismatch =
         isMismatch
-        ? status
-        : static_cast<LSTATUS>(ERROR_SUCCESS);
+            ? status
+            : static_cast<LSTATUS>(ERROR_SUCCESS);
 
     if (pdwType)
         *pdwType = dwType;

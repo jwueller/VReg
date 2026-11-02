@@ -351,8 +351,8 @@ try
     LowerKey lowerKey(m_lower);
     const REGSAM samLower =
         IsFrozen()
-        ? samDesired
-        : KEY_QUERY_VALUE | (samDesired & KEY_WOW64_RES);
+            ? samDesired
+            : KEY_QUERY_VALUE | (samDesired & KEY_WOW64_RES);
     const auto status = OpenLower(lowerPath, samLower, lowerKey.Receive());
     if (status != ERROR_SUCCESS)
         return status;
@@ -804,10 +804,9 @@ try
             return ERROR_KEY_DELETED;
 
         if (const auto* const pValue = Tree::FindValue(*pNode, name))
-            return
-                pValue->isTombstone
-                ? ERROR_FILE_NOT_FOUND
-                : MuiTextOf(*pValue, text);
+            return pValue->isTombstone
+                       ? ERROR_FILE_NOT_FOUND
+                       : MuiTextOf(*pValue, text);
     }
 
     DWORD dwType{};

@@ -96,7 +96,15 @@ the API it reimplements. Change them freely before the first release.
 - Signatures of the Win32-shaped functions and every call to a `Reg*`
   function (Win32 or a `Registry` member) put one parameter or argument per
   line, with blank lines between multi-line declarations. Any other call or
-  signature does the same once it would run its line past 80 columns.
+  signature does the same once it would run its line past the
+  `max_line_length` of `.editorconfig`.
+- A braced list that spans lines opens with `{` alone, puts each item on a
+  line of its own one level deeper with a trailing comma, and closes with
+  `}` at the opening indent; never `{a,` continued as `b}`.
+- Tests set off each test case and each `SECTION` with a blank line.
+- Test data that reads as a table (rows of the same shape) keeps one row per
+  line, columns aligned with spaces, between `// @formatter:off` and
+  `// @formatter:on` so the IDE formatter leaves it alone.
 - A CMake command that takes a list (sources, libraries, options,
   definitions) keeps everything before the list on its first line and puts
   each item, even a single one, on a line of its own; the IDE formatter

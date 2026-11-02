@@ -58,18 +58,16 @@ TEST_CASE("Apply creates keys and sets every value form")
     {
         CheckValue(registry, L"Software\\T\\Deep", pszName, dwType, data);
     };
-    get(L"", REG_SZ, StringBytes(L"default"));
-    get(L"str", REG_SZ, StringBytes(L"a\\b"));
-    get(L"dw", REG_DWORD, DwordBytes(0x2a));
-    get(L"bin", REG_BINARY, {std::byte{1}, std::byte{2}, std::byte{3}});
-    get(L"exp", REG_EXPAND_SZ, StringBytes(L"%P"));
-    get(
-        L"qw",
-        REG_QWORD,
-        std::vector<std::byte>{std::byte{1}, {}, {}, {}, {}, {}, {}, {}}
-    );
-    get(L"none", REG_NONE, {});
-    get(L"odd", REG_SZ, {std::byte{0x61}});
+    // @formatter:off
+    get(L"",     REG_SZ,        StringBytes(L"default"));
+    get(L"str",  REG_SZ,        StringBytes(L"a\\b"));
+    get(L"dw",   REG_DWORD,     DwordBytes(0x2a));
+    get(L"bin",  REG_BINARY,    {std::byte{1}, std::byte{2}, std::byte{3}});
+    get(L"exp",  REG_EXPAND_SZ, StringBytes(L"%P"));
+    get(L"qw",   REG_QWORD,     std::vector<std::byte>{std::byte{1}, {}, {}, {}, {}, {}, {}, {}});
+    get(L"none", REG_NONE,      {});
+    get(L"odd",  REG_SZ,        {std::byte{0x61}});
+    // @formatter:on
 }
 
 TEST_CASE("Apply overwrites values and keeps unrelated ones")
@@ -94,11 +92,13 @@ TEST_CASE("Apply deletes values and keys")
 {
     AppHive hive;
     AppHiveRegistry registry(hive.Root());
-    MustSet(registry, L"T", L"a", REG_DWORD, DwordBytes(1));
-    MustSet(registry, L"T", L"b", REG_DWORD, DwordBytes(2));
-    MustSet(registry, L"T", L"", REG_DWORD, DwordBytes(3));
+    // @formatter:off
+    MustSet(registry, L"T",                  L"a", REG_DWORD, DwordBytes(1));
+    MustSet(registry, L"T",                  L"b", REG_DWORD, DwordBytes(2));
+    MustSet(registry, L"T",                  L"",  REG_DWORD, DwordBytes(3));
     MustSet(registry, L"Gone\\Deep\\Deeper", L"x", REG_DWORD, DwordBytes(4));
-    MustSet(registry, L"Gone", L"y", REG_DWORD, DwordBytes(5));
+    MustSet(registry, L"Gone",               L"y", REG_DWORD, DwordBytes(5));
+    // @formatter:on
 
     SECTION("values, including the default one")
     {
@@ -145,6 +145,7 @@ TEST_CASE("Apply deletes values and keys")
             hKey
         );
     }
+
     SECTION("a key with its whole subtree")
     {
         REQUIRE(
@@ -157,6 +158,7 @@ TEST_CASE("Apply deletes values and keys")
         CHECK_FALSE(KeyExists(registry, L"Gone"));
         CHECK(KeyExists(registry, L"T"));
     }
+
     SECTION("what does not exist")
     {
         REQUIRE(
@@ -171,6 +173,7 @@ TEST_CASE("Apply deletes values and keys")
         );
         CHECK(KeyExists(registry, L"Gone\\Deep\\Deeper"));
     }
+
     SECTION("a value of a key or value that does not exist")
     {
         Script script;
@@ -294,4 +297,3 @@ TEST_CASE("An empty script applies to nothing")
     CHECK(Apply(Script{}, registry, &failed) == ERROR_SUCCESS);
     CHECK(failed == 99);
 }
-

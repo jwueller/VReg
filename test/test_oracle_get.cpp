@@ -59,8 +59,7 @@ LSTATUS GetEx(
 }
 
 template <class Api>
-LSTATUS
-GetEx(
+LSTATUS GetEx(
     Api& api,
     HKEY hKey,
     LPCSTR pszSub,
@@ -86,34 +85,26 @@ std::vector<StoredValue> GetValues()
 {
     const wchar_t NON_ASCII[] = L"a\u00e4\u20ac\u0101\u4e2d";
     std::vector<StoredValue> values;
-    values.push_back({L"Sz", REG_SZ, BytesOf(L"text", 5)});
-    values.push_back({L"SzNoTerminator", REG_SZ, BytesOf(L"text", 4)});
-    values.push_back({L"SzEmpty", REG_SZ, {}});
-    values.push_back(
-        {L"SzNonAscii", REG_SZ, BytesOf(NON_ASCII, std::size(NON_ASCII))}
-    );
-    values.push_back(
-        {L"ExpandShort", REG_EXPAND_SZ, BytesOf(L"%SystemRoot%", 13)}
-    );
-    values.push_back({L"ExpandLong", REG_EXPAND_SZ, BytesOf(L"%OS%\\x", 7)});
-    values.push_back(
-        {L"ExpandUnset", REG_EXPAND_SZ, BytesOf(L"%VREG_UNSET_VARIABLE%", 22)}
-    );
-    values.push_back(
-        {L"ExpandNoTerminator", REG_EXPAND_SZ, BytesOf(L"%OS%", 4)}
-    );
-    values.push_back({L"ExpandEmpty", REG_EXPAND_SZ, {}});
-    values.push_back({L"Dword", REG_DWORD, {0x78, 0x56, 0x34, 0x12}});
-    values.push_back({L"DwordShort", REG_DWORD, {0x78, 0x56}});
-    values.push_back({L"Qword", REG_QWORD, {1, 2, 3, 4, 5, 6, 7, 8}});
-    values.push_back({L"Binary", REG_BINARY, {1, 2, 3, 4, 5}});
-    values.push_back({L"BinaryEmpty", REG_BINARY, {}});
-    values.push_back({L"Multi", REG_MULTI_SZ, BytesOf(L"a\0bc\0", 6)});
-    values.push_back(
-        {L"MultiNoTerminator", REG_MULTI_SZ, BytesOf(L"a\0bc", 5)}
-    );
-    values.push_back({L"None", REG_NONE, {1, 2}});
-    values.push_back({L"Unknown", 0x1234, {4, 3}});
+    // @formatter:off
+    values.push_back({L"Sz",                 REG_SZ,        BytesOf(L"text", 5)});
+    values.push_back({L"SzNoTerminator",     REG_SZ,        BytesOf(L"text", 4)});
+    values.push_back({L"SzEmpty",            REG_SZ,        {}});
+    values.push_back({L"SzNonAscii",         REG_SZ,        BytesOf(NON_ASCII, std::size(NON_ASCII))});
+    values.push_back({L"ExpandShort",        REG_EXPAND_SZ, BytesOf(L"%SystemRoot%", 13)});
+    values.push_back({L"ExpandLong",         REG_EXPAND_SZ, BytesOf(L"%OS%\\x", 7)});
+    values.push_back({L"ExpandUnset",        REG_EXPAND_SZ, BytesOf(L"%VREG_UNSET_VARIABLE%", 22)});
+    values.push_back({L"ExpandNoTerminator", REG_EXPAND_SZ, BytesOf(L"%OS%", 4)});
+    values.push_back({L"ExpandEmpty",        REG_EXPAND_SZ, {}});
+    values.push_back({L"Dword",              REG_DWORD,     {0x78, 0x56, 0x34, 0x12}});
+    values.push_back({L"DwordShort",         REG_DWORD,     {0x78, 0x56}});
+    values.push_back({L"Qword",              REG_QWORD,     {1, 2, 3, 4, 5, 6, 7, 8}});
+    values.push_back({L"Binary",             REG_BINARY,    {1, 2, 3, 4, 5}});
+    values.push_back({L"BinaryEmpty",        REG_BINARY,    {}});
+    values.push_back({L"Multi",              REG_MULTI_SZ,  BytesOf(L"a\0bc\0", 6)});
+    values.push_back({L"MultiNoTerminator",  REG_MULTI_SZ,  BytesOf(L"a\0bc", 5)});
+    values.push_back({L"None",               REG_NONE,      {1, 2}});
+    values.push_back({L"Unknown",            0x1234,        {4, 3}});
+    // @formatter:on
     return values;
 }
 
@@ -189,7 +180,10 @@ void GetMatrix(
                 nullptr,
                 &cbData
             ),
-            {dwType, cbData}
+            {
+                dwType,
+                cbData,
+            }
         );
 
         for (const DWORD cbBuffer : {0u, 3u, 8u, 16u, 128u})
@@ -210,7 +204,10 @@ void GetMatrix(
                     data.data(),
                     &cbData
                 ),
-                {dwType, cbData},
+                {
+                    dwType,
+                    cbData,
+                },
                 {Bytes(data)}
             );
         }
@@ -255,7 +252,8 @@ void GetMatrix(
 
 struct GetValueEveryType
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -303,7 +301,8 @@ struct GetValueEveryType
 
 struct GetValueSubKeyAndName
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -366,15 +365,17 @@ struct GetValueSubKeyAndName
         );
 
         for (const wchar_t* const pszSub :
-             {static_cast<const wchar_t*>(nullptr),
-              L"",
-              L"Sub",
-              L"sub\\deep",
-              L"Sub\\",
-              L"\\Sub",
-              L"Missing",
-              L"Sub\\Missing",
-              L"S\u00e4b"})
+             {
+                 static_cast<const wchar_t*>(nullptr),
+                 L"",
+                 L"Sub",
+                 L"sub\\deep",
+                 L"Sub\\",
+                 L"\\Sub",
+                 L"Missing",
+                 L"Sub\\Missing",
+                 L"S\u00e4b"
+             })
         {
             const auto narrowSub = pszSub ? Narrow(pszSub) : std::string();
             const char* const pszNarrow = pszSub ? narrowSub.c_str() : nullptr;
@@ -392,17 +393,17 @@ struct GetValueSubKeyAndName
             {
                 const auto narrowValue =
                     pszValue
-                    ? Narrow(pszValue)
-                    : std::string();
+                        ? Narrow(pszValue)
+                        : std::string();
                 const char* const pszNarrowValue =
                     pszValue
-                    ? narrowValue.c_str()
-                    : nullptr;
+                        ? narrowValue.c_str()
+                        : nullptr;
                 const auto label =
                     std::string("sub ")
                     + (pszSub ? narrowSub : "(null)")
                     + " value "
-                                   + (pszValue ? narrowValue : "(null)");
+                    + (pszValue ? narrowValue : "(null)");
 
                 for (
                     const DWORD dwFlags :
@@ -429,7 +430,10 @@ struct GetValueSubKeyAndName
                             data.data(),
                             &cbData
                         ),
-                        {dwType, cbData},
+                        {
+                            dwType,
+                            cbData,
+                        },
                         {Bytes(data)}
                     );
 
@@ -448,7 +452,10 @@ struct GetValueSubKeyAndName
                             adata.data(),
                             &cbData
                         ),
-                        {dwType, cbData},
+                        {
+                            dwType,
+                            cbData,
+                        },
                         {Bytes(adata)}
                     );
                 }
@@ -514,7 +521,8 @@ struct GetValueSubKeyAndName
 
 struct LoadMUIStringForms
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -572,20 +580,22 @@ struct LoadMUIStringForms
         }
 
         for (const wchar_t* const pszName :
-             {L"Plain",
-              L"PlainNoTerminator",
-              L"PlainEmpty",
-              L"NonAscii",
-              L"Expand",
-              L"Dword",
-              L"Binary",
-              L"Multi",
-              L"Indirect",
-              L"IndirectMissing",
-              L"IndirectBadId",
-              L"IndirectMalformed",
-              L"Missing",
-              L""})
+             {
+                 L"Plain",
+                 L"PlainNoTerminator",
+                 L"PlainEmpty",
+                 L"NonAscii",
+                 L"Expand",
+                 L"Dword",
+                 L"Binary",
+                 L"Multi",
+                 L"Indirect",
+                 L"IndirectMissing",
+                 L"IndirectBadId",
+                 L"IndirectMalformed",
+                 L"Missing",
+                 L""
+             })
         {
             // Resolving an indirect string loads a resource module, which a
             // virtual key never does.
@@ -871,10 +881,7 @@ void MultipleMatrix(
     const std::string& label
 )
 {
-    for (
-        const int cbTotal :
-        {-1, 0, 1, 4, 8, 12, 16, 20, 24, 32, 40, 48, 128, 256}
-    )
+    for (const int cbTotal : {-1, 0, 1, 4, 8, 12, 16, 20, 24, 32, 40, 48, 128, 256})
     {
         // The native ANSI function faults on a null buffer, and answers
         // `ERROR_INVALID_DATA` after filling some of the entries when the
@@ -928,7 +935,12 @@ void MultipleMatrix(
             RECORD(
                 label + " detail",
                 status,
-                {flat[0], flat[1], flat[2], flat[3]},
+                {
+                    flat[0],
+                    flat[1],
+                    flat[2],
+                    flat[3],
+                },
                 {Bytes(buffer)}
             );
             break;
@@ -936,7 +948,15 @@ void MultipleMatrix(
             RECORD(
                 label + " detail",
                 status,
-                {flat[0], flat[1], flat[2], flat[3], flat[4], flat[5], flat[6]},
+                {
+                    flat[0],
+                    flat[1],
+                    flat[2],
+                    flat[3],
+                    flat[4],
+                    flat[5],
+                    flat[6],
+                },
                 {Bytes(buffer)}
             );
             break;
@@ -965,7 +985,8 @@ void MultipleMatrix(
 
 struct QueryMultipleValuesForms
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record

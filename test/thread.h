@@ -20,7 +20,14 @@ public:
     explicit Thread(std::function<void()> function) :
         m_function(std::move(function))
     {
-        m_hThread = CreateThread(nullptr, 0, &Run, this, 0, nullptr);
+        m_hThread = CreateThread(
+            nullptr,
+            0,
+            &Run,
+            this,
+            0,
+            nullptr
+        );
     }
 
     ~Thread()

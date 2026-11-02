@@ -211,7 +211,8 @@ HKEY CreateWithClass(
 
 /// Four subkeys with classes, wide and narrowable names, and one with a name
 /// the ANSI code page cannot represent. Returns nothing: the keys are closed.
-template <class Api> void PopulateKeys(
+template <class Api>
+void PopulateKeys(
     Api& api,
     Recorder& record,
     const HKEY hRoot
@@ -219,12 +220,14 @@ template <class Api> void PopulateKeys(
 {
     for (
         const auto& [pszName, pszClass] :
+        // @formatter:off
         std::initializer_list<std::pair<const wchar_t*, const wchar_t*>>{
-            {L"Alpha", L"ClassA"},
-            {L"B\u00e4ta", L"Cl\u00e4ss\u20ac"},
+            {L"Alpha",       L"ClassA"},
+            {L"B\u00e4ta",   L"Cl\u00e4ss\u20ac"},
             {L"Gamma\u4e2d", nullptr},
-            {L"D\u0101lta", L"\u4e2d\u0101"},
+            {L"D\u0101lta",  L"\u4e2d\u0101"},
         }
+        // @formatter:on
     )
     {
         const auto hKey = CreateWithClass(
@@ -264,8 +267,8 @@ void EnumKeyMatrix(
                 DWORD cchNameInOut = cchName;
                 DWORD cchClassInOut =
                     cchClass < 0
-                    ? 0
-                    : static_cast<DWORD>(cchClass);
+                        ? 0
+                        : static_cast<DWORD>(cchClass);
                 FILETIME ft = FillTime();
                 const auto status = EnumKeyEx(
                     api,
@@ -290,9 +293,12 @@ void EnumKeyMatrix(
                     {
                         cchNameInOut,
                         cchClass < 0 ? 0 : cchClassInOut,
-                        Written(ft)
+                        Written(ft),
                     },
-                    {Bytes(name), Bytes(cls)}
+                    {
+                        Bytes(name),
+                        Bytes(cls),
+                    }
                 );
             }
         }
@@ -355,7 +361,10 @@ void EnumKeyMatrix(
             nullptr
         ),
         {cchName},
-        {Bytes(name), Bytes(cls)}
+        {
+            Bytes(name),
+            Bytes(cls),
+        }
     );
     cchName = 64;
     RECORD(
@@ -371,7 +380,10 @@ void EnumKeyMatrix(
             &cchClass,
             nullptr
         ),
-        {cchName, cchClass},
+        {
+            cchName,
+            cchClass,
+        },
         {Bytes(name)}
     );
     cchName = 64;
@@ -411,7 +423,8 @@ void EnumKeyMatrix(
 
 struct EnumerateKeys
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -427,7 +440,8 @@ struct EnumerateKeys
 
 struct EnumerateKeysPreEx
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -507,24 +521,27 @@ struct EnumerateKeysPreEx
     }
 };
 
-template <class Api> void PopulateValues(
+template <class Api>
+void PopulateValues(
     Api& api,
     Recorder& record,
     const HKEY hKey
 )
 {
     for (const auto& value : std::vector<StoredValue>{
-             {L"v1", REG_SZ, BytesOf(L"text", 5)},
-             {L"v\u00e4", REG_DWORD, {1, 2, 3, 4}},
-             {L"v3\u4e2d", REG_BINARY, {}},
-             {L"", REG_SZ, BytesOf(L"default\u00e4", 9)},
-             {L"multi", REG_MULTI_SZ, BytesOf(L"a\u00e4\0\u4e2d\0", 6)},
-             {L"expand", REG_EXPAND_SZ, BytesOf(L"%SystemRoot%", 13)},
-             {L"sz\u20ac", REG_SZ, BytesOf(L"\u20ac\u0101", 3)},
-             {L"noterm", REG_SZ, BytesOf(L"abc", 3)},
-             {L"odd", REG_SZ, {0x61, 0, 0x62}},
-             {L"qword", REG_QWORD, {1, 2, 3, 4, 5, 6, 7, 8}},
-             {L"none", REG_NONE, {}},
+             // @formatter:off
+             {L"v1",       REG_SZ,        BytesOf(L"text", 5)},
+             {L"v\u00e4",  REG_DWORD,     {1, 2, 3, 4}},
+             {L"v3\u4e2d", REG_BINARY,    {}},
+             {L"",         REG_SZ,        BytesOf(L"default\u00e4", 9)},
+             {L"multi",    REG_MULTI_SZ,  BytesOf(L"a\u00e4\0\u4e2d\0", 6)},
+             {L"expand",   REG_EXPAND_SZ, BytesOf(L"%SystemRoot%", 13)},
+             {L"sz\u20ac", REG_SZ,        BytesOf(L"\u20ac\u0101", 3)},
+             {L"noterm",   REG_SZ,        BytesOf(L"abc", 3)},
+             {L"odd",      REG_SZ,        {0x61, 0, 0x62}},
+             {L"qword",    REG_QWORD,     {1, 2, 3, 4, 5, 6, 7, 8}},
+             {L"none",     REG_NONE,      {}},
+             // @formatter:on
          })
     {
         RECORD("set " + Narrow(value.name), SetStored(api, hKey, value));
@@ -541,17 +558,11 @@ void EnumValueMatrix(
 {
     constexpr int WITHOUT_DATA = -2;
     constexpr int SIZE_ONLY = -1;
-    for (
-        const DWORD dwIndex :
-        {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u, 10u, 11u, 12u}
-    )
+    for (const DWORD dwIndex : {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u, 10u, 11u, 12u})
     {
         for (const DWORD cchName : {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 64u})
         {
-            for (
-                const int cbData :
-                {WITHOUT_DATA, SIZE_ONLY, 0, 1, 2, 3, 5, 10, 64}
-            )
+            for (const int cbData : {WITHOUT_DATA, SIZE_ONLY, 0, 1, 2, 3, 5, 10, 64})
             {
                 std::array<Char, 64> name;
                 std::array<BYTE, 64> data;
@@ -571,8 +582,8 @@ void EnumValueMatrix(
                     nullptr,
                     &dwType,
                     cbData == WITHOUT_DATA
-                    ? nullptr
-                    : (cbData == SIZE_ONLY ? nullptr : data.data()),
+                        ? nullptr
+                        : (cbData == SIZE_ONLY ? nullptr : data.data()),
                     cbData == WITHOUT_DATA ? nullptr : &cbDataInOut
                 );
                 RECORD(
@@ -589,7 +600,10 @@ void EnumValueMatrix(
                         cbData == WITHOUT_DATA ? 0 : cbDataInOut,
                         dwType
                     },
-                    {Bytes(name), Bytes(data)}
+                    {
+                        Bytes(name),
+                        Bytes(data),
+                    }
                 );
             }
         }
@@ -616,8 +630,14 @@ void EnumValueMatrix(
             data.data(),
             &cbData
         ),
-        {cchName, cbData},
-        {Bytes(name), Bytes(data)}
+        {
+            cchName,
+            cbData
+        },
+        {
+            Bytes(name),
+            Bytes(data)
+        }
     );
     cchName = 64;
     cbData = 64;
@@ -722,7 +742,8 @@ void EnumValueMatrix(
 
 struct EnumerateValues
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -756,8 +777,8 @@ void QueryInfoMatrix(
             FILETIME ft = FillTime();
             DWORD cchClassInOut =
                 cchClass < 0
-                ? 0
-                : static_cast<DWORD>(cchClass);
+                    ? 0
+                    : static_cast<DWORD>(cchClass);
 
             auto outPointer = [&](const int i)
             {
@@ -841,7 +862,10 @@ void QueryInfoMatrix(
             nullptr,
             nullptr
         ),
-        {cchClass, cSubKeys}
+        {
+            cchClass,
+            cSubKeys,
+        }
     );
     cSubKeys = FILL_SIZE;
     RECORD(
@@ -900,13 +924,17 @@ void QueryInfoMatrix(
             nullptr,
             nullptr
         ),
-        {cchClass, cSubKeys}
+        {
+            cchClass,
+            cSubKeys,
+        }
     );
 }
 
 struct QueryInfoKeyForms
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -974,7 +1002,8 @@ struct QueryInfoKeyForms
 
 struct EnumerateWhileChanging
 {
-    template <class Api> void operator()(
+    template <class Api>
+    void operator()(
         Api& api,
         const HKEY hRoot,
         Recorder& record
@@ -1001,14 +1030,14 @@ struct EnumerateWhileChanging
             RECORD("enum key", status, {cchName}, {Bytes(name)});
             if (status == ERROR_SUCCESS)
                 RECORD(
-                    "delete enumerated",
-                    api.RegDeleteKeyExW(
-                        hRoot,
-                        name.data(),
-                        0,
-                        0
-                    )
-                );
+                "delete enumerated",
+                api.RegDeleteKeyExW(
+                    hRoot,
+                    name.data(),
+                    0,
+                    0
+                )
+            );
         }
 
         for (DWORD dwIndex = 0; dwIndex < 5; ++dwIndex)
@@ -1028,12 +1057,12 @@ struct EnumerateWhileChanging
             RECORD("enum value", status, {cchName}, {Bytes(name)});
             if (status == ERROR_SUCCESS)
                 RECORD(
-                    "delete enumerated",
-                    api.RegDeleteValueW(
-                        hRoot,
-                        name.data()
-                    )
-                );
+                "delete enumerated",
+                api.RegDeleteValueW(
+                    hRoot,
+                    name.data()
+                )
+            );
         }
 
         for (DWORD dwIndex = 0; dwIndex < 3; ++dwIndex)

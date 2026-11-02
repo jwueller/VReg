@@ -29,49 +29,45 @@ std::vector<std::byte> Counting(const int count)
 std::vector<Entry> AsciiEntries()
 {
     const std::wstring withNul(L"a\0b", 3);
+    // @formatter:off
     return {
-        {L"RT", L"", {REG_SZ, StringBytes(L"default")}},
-        {L"RT", L"plain", {REG_SZ, StringBytes(L"text")}},
-        {L"RT", L"escapes", {REG_SZ, StringBytes(L"C:\\dir\\\"quoted\"\\")}},
-        {L"RT", L"empty", {REG_SZ, StringBytes(L"")}},
-        {L"RT", L"unterminated", {REG_SZ, BytesOf(L"ab")}},
-        {L"RT", L"embedded nul", {REG_SZ, StringBytes(withNul)}},
-        {L"RT", L"newline", {REG_SZ, StringBytes(L"a\r\nb\nc")}},
-        {L"RT", L"tab and semicolon", {REG_SZ, StringBytes(L"a\tb;c")}},
-        {
-            L"RT",
-            L"odd",
-            {REG_SZ, {std::byte{0x61}, std::byte{0}, std::byte{0x62}}}
-        },
-        {L"RT", L"zero bytes", {REG_SZ, {}}},
-        {L"RT", L"expand", {REG_EXPAND_SZ, StringBytes(L"%SystemRoot%\\x")}},
-        {L"RT", L"multi", {REG_MULTI_SZ, BytesOf(
-            std::wstring(L"one\0two\0\0", 9)
-        )}},
-        {L"RT", L"dword", {REG_DWORD, DwordBytes(0xDEADBEEF)}},
-        {L"RT", L"dword zero", {REG_DWORD, DwordBytes(0)}},
-        {L"RT", L"dword short", {REG_DWORD, Counting(3)}},
-        {L"RT", L"dword long", {REG_DWORD, Counting(5)}},
-        {L"RT", L"dword big endian", {REG_DWORD_BIG_ENDIAN, Counting(4)}},
-        {L"RT", L"qword", {REG_QWORD, Counting(8)}},
-        {L"RT", L"binary empty", {REG_BINARY, {}}},
-        {L"RT", L"binary 1", {REG_BINARY, Counting(1)}},
-        {L"RT", L"binary 200", {REG_BINARY, Counting(200)}},
-        {L"RT", L"none", {REG_NONE, {}}},
-        {L"RT", L"none data", {REG_NONE, Counting(5)}},
-        {L"RT", L"link", {REG_LINK, BytesOf(L"link")}},
-        {L"RT", L"resource list", {REG_RESOURCE_LIST, Counting(30)}},
-        {L"RT", L"unknown type", {0x12345, Counting(4)}},
-        {L"RT", L"@", {REG_DWORD, DwordBytes(1)}},
-        {L"RT", L"quote\"and\\slash", {REG_DWORD, DwordBytes(2)}},
-        {L"RT", L" padded ", {REG_DWORD, DwordBytes(3)}},
-        {L"RT", L"hex:01", {REG_DWORD, DwordBytes(4)}},
-        {L"RT", L"; not a comment", {REG_DWORD, DwordBytes(5)}},
-        {L"RT\\Sub", L"inner", {REG_SZ, StringBytes(L"x")}},
-        {L"RT\\Sub\\Deeper", L"", {REG_BINARY, Counting(60)}},
-        {L"RT\\a]b", L"closing bracket", {REG_DWORD, DwordBytes(6)}},
-        {L"RT\\Empty", L"", {REG_NONE, {}}},
+        {L"RT",              L"",                  {REG_SZ, StringBytes(L"default")}},
+        {L"RT",              L"plain",             {REG_SZ, StringBytes(L"text")}},
+        {L"RT",              L"escapes",           {REG_SZ, StringBytes(L"C:\\dir\\\"quoted\"\\")}},
+        {L"RT",              L"empty",             {REG_SZ, StringBytes(L"")}},
+        {L"RT",              L"unterminated",      {REG_SZ, BytesOf(L"ab")}},
+        {L"RT",              L"embedded nul",      {REG_SZ, StringBytes(withNul)}},
+        {L"RT",              L"newline",           {REG_SZ, StringBytes(L"a\r\nb\nc")}},
+        {L"RT",              L"tab and semicolon", {REG_SZ, StringBytes(L"a\tb;c")}},
+        {L"RT",              L"odd",               {REG_SZ, {std::byte{0x61}, std::byte{0}, std::byte{0x62}}}},
+        {L"RT",              L"zero bytes",        {REG_SZ, {}}},
+        {L"RT",              L"expand",            {REG_EXPAND_SZ, StringBytes(L"%SystemRoot%\\x")}},
+        {L"RT",              L"multi",             {REG_MULTI_SZ, BytesOf(std::wstring(L"one\0two\0\0", 9))}},
+        {L"RT",              L"dword",             {REG_DWORD, DwordBytes(0xDEADBEEF)}},
+        {L"RT",              L"dword zero",        {REG_DWORD, DwordBytes(0)}},
+        {L"RT",              L"dword short",       {REG_DWORD, Counting(3)}},
+        {L"RT",              L"dword long",        {REG_DWORD, Counting(5)}},
+        {L"RT",              L"dword big endian",  {REG_DWORD_BIG_ENDIAN, Counting(4)}},
+        {L"RT",              L"qword",             {REG_QWORD, Counting(8)}},
+        {L"RT",              L"binary empty",      {REG_BINARY, {}}},
+        {L"RT",              L"binary 1",          {REG_BINARY, Counting(1)}},
+        {L"RT",              L"binary 200",        {REG_BINARY, Counting(200)}},
+        {L"RT",              L"none",              {REG_NONE, {}}},
+        {L"RT",              L"none data",         {REG_NONE, Counting(5)}},
+        {L"RT",              L"link",              {REG_LINK, BytesOf(L"link")}},
+        {L"RT",              L"resource list",     {REG_RESOURCE_LIST, Counting(30)}},
+        {L"RT",              L"unknown type",      {0x12345, Counting(4)}},
+        {L"RT",              L"@",                 {REG_DWORD, DwordBytes(1)}},
+        {L"RT",              L"quote\"and\\slash", {REG_DWORD, DwordBytes(2)}},
+        {L"RT",              L" padded ",          {REG_DWORD, DwordBytes(3)}},
+        {L"RT",              L"hex:01",            {REG_DWORD, DwordBytes(4)}},
+        {L"RT",              L"; not a comment",   {REG_DWORD, DwordBytes(5)}},
+        {L"RT\\Sub",         L"inner",             {REG_SZ, StringBytes(L"x")}},
+        {L"RT\\Sub\\Deeper", L"",                  {REG_BINARY, Counting(60)}},
+        {L"RT\\a]b",         L"closing bracket",   {REG_DWORD, DwordBytes(6)}},
+        {L"RT\\Empty",       L"",                  {REG_NONE, {}}},
     };
+    // @formatter:on
 }
 
 void Populate(Registry& registry, const std::vector<Entry>& entries)
@@ -160,15 +156,13 @@ TEST_CASE("Every value type survives a round trip in every format")
 TEST_CASE("Non-ASCII names and strings survive Unicode and UTF-8")
 {
     const auto format = GENERATE(Format::Unicode, Format::Utf8);
+    // @formatter:off
     const std::vector<Entry> entries = {
-        {
-            L"RT\\\u4e2d\u6587",
-            L"caf\u00e9",
-            {REG_SZ, StringBytes(L"\u00e9\u4e2d \U0001F600")}
-        },
-        {L"RT\\\u4e2d\u6587", L"", {REG_EXPAND_SZ, StringBytes(L"%\u00e9%")}},
-        {L"RT", L"\U0001F600", {REG_DWORD, DwordBytes(7)}},
+        {L"RT\\\u4e2d\u6587", L"caf\u00e9",  {REG_SZ, StringBytes(L"\u00e9\u4e2d \U0001F600")}},
+        {L"RT\\\u4e2d\u6587", L"",           {REG_EXPAND_SZ, StringBytes(L"%\u00e9%")}},
+        {L"RT",               L"\U0001F600", {REG_DWORD, DwordBytes(7)}},
     };
+    // @formatter:on
     RoundTrip(entries, format);
 }
 

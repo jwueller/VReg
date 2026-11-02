@@ -239,11 +239,13 @@ DWORD DwordOr(Registry& registry, const HKEY hKey, const wchar_t* const pszName)
 {
     DWORD dwValue{};
     return QueryDword(
-        registry,
-        hKey,
-        pszName,
-        dwValue
-    ) == ERROR_SUCCESS ? dwValue : 0xFFFFFFFF;
+               registry,
+               hKey,
+               pszName,
+               dwValue
+           ) == ERROR_SUCCESS
+               ? dwValue
+               : 0xFFFFFFFF;
 }
 
 /// Everything an enumeration returns, and the status that ended it.
@@ -729,10 +731,17 @@ TEST_CASE("Enumeration merges both layers")
             Names(
                 keys.names.begin(),
                 keys.names.begin() + 3
-            ) == Names{L"b", L"c", L"d"}
+            ) == Names {
+                L"b",
+                L"c",
+                L"d",
+            }
         );
         CHECK(
-            Names(keys.names.begin() + 3, keys.names.end()) == Names{L"a", L"e"}
+            Names(keys.names.begin() + 3, keys.names.end()) == Names {
+                L"a",
+                L"e",
+            }
         );
 
         const auto values = ListValues(reg, fx.Root());
@@ -887,30 +896,17 @@ TEST_CASE("A failed lower query is never a smaller successful view")
     REQUIRE(SetDword(reg, fx.Root(), L"v", 2) == ERROR_SUCCESS);
     REQUIRE(SetDword(reg, fx.Root(), L"uv", 2) == ERROR_SUCCESS);
 
+    // @formatter:off
     const auto [call, status] = GENERATE(
-        std::pair<const char*, LSTATUS>{"RegOpenKeyExW", ERROR_ACCESS_DENIED},
-        std::pair<const char*, LSTATUS>{
-            "RegOpenKeyExW",
-            ERROR_NOT_ENOUGH_MEMORY
-        },
-        std::pair<const char*, LSTATUS>{
-            "RegQueryInfoKeyW",
-            ERROR_ACCESS_DENIED
-        },
-        std::pair<const char*, LSTATUS>{
-            "RegQueryInfoKeyW",
-            ERROR_INVALID_FUNCTION
-        },
-        std::pair<const char*, LSTATUS>{
-            "RegQueryValueExW",
-            ERROR_INVALID_FUNCTION
-        },
-        std::pair<const char*, LSTATUS>{
-            "RegEnumKeyExW",
-            ERROR_INVALID_FUNCTION
-        },
-        std::pair<const char*, LSTATUS>{"RegEnumValueW", ERROR_INVALID_FUNCTION}
+        std::pair<const char*, LSTATUS>{"RegOpenKeyExW",    ERROR_ACCESS_DENIED},
+        std::pair<const char*, LSTATUS>{"RegOpenKeyExW",    ERROR_NOT_ENOUGH_MEMORY},
+        std::pair<const char*, LSTATUS>{"RegQueryInfoKeyW", ERROR_ACCESS_DENIED},
+        std::pair<const char*, LSTATUS>{"RegQueryInfoKeyW", ERROR_INVALID_FUNCTION},
+        std::pair<const char*, LSTATUS>{"RegQueryValueExW", ERROR_INVALID_FUNCTION},
+        std::pair<const char*, LSTATUS>{"RegEnumKeyExW",    ERROR_INVALID_FUNCTION},
+        std::pair<const char*, LSTATUS>{"RegEnumValueW",    ERROR_INVALID_FUNCTION}
     );
+    // @formatter:on
     INFO(call << " " << status);
     fx.Lower().failures[call] = status;
     const std::string name = call;
@@ -1657,98 +1653,118 @@ TEST_CASE("The hive lock is never held across a call into the lower registry")
         CHECK(cBusy == 0);
     };
 
-    check("open",
-          [&]
-          {
-              HKEY hKey{};
-              CHECK(Open(reg, fx.Root(), L"L\\s1", hKey) == ERROR_SUCCESS);
-          });
-    check("create",
-          [&]
-          {
-              HKEY hKey{};
-              CHECK(
-                  reg.RegCreateKeyExW(
-                      fx.Root(),
-                      L"L\\New\\Deeper",
-                      0,
-                      nullptr,
-                      0,
-                      KEY_ALL_ACCESS,
-                      nullptr,
-                      &hKey,
-                      nullptr
-                  ) == ERROR_SUCCESS
-              );
-          });
-    check("query value",
-          [&]
-          {
-              DWORD dwValue{};
-              CHECK(QueryDword(reg, hL, L"v", dwValue) == ERROR_SUCCESS);
-          });
-    check("enumerate keys",
-          [&]
-          {
-              CHECK(ListKeys(reg, hL).end == ERROR_NO_MORE_ITEMS);
-          });
-    check("enumerate values",
-          [&]
-          {
-              CHECK(ListValues(reg, hL).end == ERROR_NO_MORE_ITEMS);
-          });
-    check("query info",
-          [&]
-          {
-              CHECK(QueryInfo(reg, hL).status == ERROR_SUCCESS);
-          });
-    check("delete key",
-          [&]
-          {
-              CHECK(
-                  reg.RegDeleteKeyExW(
-                      fx.Root(),
-                      L"L\\Empty",
-                      0,
-                      0
-                  ) == ERROR_SUCCESS
-              );
-          });
-    check("delete value",
-          [&]
-          {
-              CHECK(
-                  reg.RegDeleteValueW(
-                      hL,
-                      L"w"
-                  ) == ERROR_SUCCESS
-              );
-          });
-    check("load MUI string",
-          [&]
-          {
-              DWORD cb = 0;
-              wchar_t text[8]{};
-              reg.RegLoadMUIStringW(
-                  hL,
-                  L"v",
-                  text,
-                  sizeof(text),
-                  &cb,
-                  0,
-                  nullptr
-              );
-          });
-    check("delete tree",
-          [&]
-          {
-              CHECK(
-                  reg.RegDeleteTreeW(
-                      fx.Root(),
-                      L"L\\s1"
-                  ) == ERROR_SUCCESS
-              );
-          });
+    check(
+        "open",
+        [&]
+        {
+            HKEY hKey{};
+            CHECK(Open(reg, fx.Root(), L"L\\s1", hKey) == ERROR_SUCCESS);
+        }
+    );
+    check(
+        "create",
+        [&]
+        {
+            HKEY hKey{};
+            CHECK(
+                reg.RegCreateKeyExW(
+                    fx.Root(),
+                    L"L\\New\\Deeper",
+                    0,
+                    nullptr,
+                    0,
+                    KEY_ALL_ACCESS,
+                    nullptr,
+                    &hKey,
+                    nullptr
+                ) == ERROR_SUCCESS
+            );
+        }
+    );
+    check(
+        "query value",
+        [&]
+        {
+            DWORD dwValue{};
+            CHECK(QueryDword(reg, hL, L"v", dwValue) == ERROR_SUCCESS);
+        }
+    );
+    check(
+        "enumerate keys",
+        [&]
+        {
+            CHECK(ListKeys(reg, hL).end == ERROR_NO_MORE_ITEMS);
+        }
+    );
+    check(
+        "enumerate values",
+        [&]
+        {
+            CHECK(ListValues(reg, hL).end == ERROR_NO_MORE_ITEMS);
+        }
+    );
+    check(
+        "query info",
+        [&]
+        {
+            CHECK(QueryInfo(reg, hL).status == ERROR_SUCCESS);
+        }
+    );
+    check(
+        "delete key",
+        [&]
+        {
+            CHECK(
+                reg.RegDeleteKeyExW(
+                    fx.Root(),
+                    L"L\\Empty",
+                    0,
+                    0
+                ) == ERROR_SUCCESS
+            );
+        }
+    );
+    check(
+        "delete value",
+        [&]
+        {
+            CHECK(
+                reg.RegDeleteValueW(
+                    hL,
+                    L"w"
+                ) == ERROR_SUCCESS
+            );
+        }
+    );
+    check(
+        "load MUI string",
+        [&]
+        {
+            DWORD cb = 0;
+            wchar_t text[8]{};
+            reg.RegLoadMUIStringW(
+                hL,
+                L"v",
+                text,
+                sizeof(text),
+                &cb,
+                0,
+                nullptr
+            );
+        }
+    );
+    check(
+        "delete tree",
+        [&]
+        {
+            CHECK(
+                reg.RegDeleteTreeW(
+                    fx.Root(),
+                    L"L\\s1"
+                ) == ERROR_SUCCESS
+            );
+        }
+    );
 
     fx.Lower().onCall = nullptr;
 }

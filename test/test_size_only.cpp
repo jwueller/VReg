@@ -34,6 +34,7 @@ void* Allocate(const std::size_t cb)
 
     if (void* const p = std::malloc(cb ? cb : 1))
         return p;
+
     throw std::bad_alloc();
 }
 
@@ -49,6 +50,7 @@ void* AllocateAligned(const std::size_t cb, const std::align_val_t align)
         )
     )
         return p;
+
     throw std::bad_alloc();
 }
 
@@ -298,6 +300,7 @@ void operator delete(
     void* const p,
     const std::align_val_t align,
     const std::nothrow_t&
+
 ) noexcept
 {
     (void)align;
@@ -308,6 +311,7 @@ void operator delete[](
     void* const p,
     const std::align_val_t align,
     const std::nothrow_t&
+
 ) noexcept
 {
     (void)align;

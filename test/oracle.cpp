@@ -19,12 +19,11 @@ AppHive::AppHive()
 
     static std::atomic<unsigned> s_counter;
 
-    m_directory = std::filesystem::temp_directory_path()
-                  / std::format(
-                      L"VReg-oracle-{}-{}",
-                      GetCurrentProcessId(),
-                      s_counter++
-                  );
+    m_directory = std::filesystem::temp_directory_path() / std::format(
+        L"VReg-oracle-{}-{}",
+        GetCurrentProcessId(),
+        s_counter++
+    );
     std::filesystem::remove_all(m_directory);
     std::filesystem::create_directories(m_directory);
 

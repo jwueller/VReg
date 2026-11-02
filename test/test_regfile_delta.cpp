@@ -137,19 +137,17 @@ public:
     {
         HKEY hKey{};
         REQUIRE(
-            m_modifiedRegistry
-                .RegCreateKeyExW(
-                    HKEY_CURRENT_USER,
-                    Full(path).c_str(),
-                    0,
-                    nullptr,
-                    0,
-                    KEY_READ,
-                    nullptr,
-                    &hKey,
-                    nullptr
-                )
-            == ERROR_SUCCESS
+            m_modifiedRegistry.RegCreateKeyExW(
+                HKEY_CURRENT_USER,
+                Full(path).c_str(),
+                0,
+                nullptr,
+                0,
+                KEY_READ,
+                nullptr,
+                &hKey,
+                nullptr
+            ) == ERROR_SUCCESS
         );
         m_modifiedRegistry.RegCloseKey(
             hKey
@@ -296,8 +294,8 @@ private:
     {
         return
             path.empty()
-            ? std::wstring(MOUNT)
-            : std::wstring(MOUNT) + L'\\' + path;
+                ? std::wstring(MOUNT)
+                : std::wstring(MOUNT) + L'\\' + path;
     }
 
     AppHive m_appHive;
@@ -370,10 +368,12 @@ TEST_CASE("Delta names its keys after the mount point")
 TEST_CASE("Delta writes value and key tombstones")
 {
     DeltaFixture f;
-    f.LowerSet(L"", L"Keep", REG_DWORD, DwordBytes(1));
-    f.LowerSet(L"", L"Drop", REG_DWORD, DwordBytes(2));
-    f.LowerSet(L"Gone", L"x", REG_DWORD, DwordBytes(3));
-    f.LowerSet(L"Stay", L"y", REG_DWORD, DwordBytes(4));
+    // @formatter:off
+    f.LowerSet(L"",     L"Keep", REG_DWORD, DwordBytes(1));
+    f.LowerSet(L"",     L"Drop", REG_DWORD, DwordBytes(2));
+    f.LowerSet(L"Gone", L"x",    REG_DWORD, DwordBytes(3));
+    f.LowerSet(L"Stay", L"y",    REG_DWORD, DwordBytes(4));
+    // @formatter:on
     f.DeleteValue(L"", L"Drop");
     f.DeleteKey(L"Gone");
 
@@ -503,30 +503,24 @@ TEST_CASE("Delta lists values and keys in sorted order")
 TEST_CASE("A delta reproduces a mix of changes over a lower registry")
 {
     DeltaFixture f;
-    f.LowerSet(L"", L"", REG_SZ, StringBytes(L"root default"));
-    f.LowerSet(L"A", L"v1", REG_SZ, StringBytes(L"one"));
-    f.LowerSet(L"A", L"v2", REG_DWORD, DwordBytes(2));
-    f.LowerSet(L"A\\B", L"w", REG_BINARY, {std::byte{1}, std::byte{2}});
-    f.LowerSet(
-        L"A\\B\\C",
-        L"z",
-        REG_MULTI_SZ,
-        BytesOf(std::wstring(L"p\0q\0\0", 5))
-    );
-    f.LowerSet(L"D", L"d", REG_DWORD, DwordBytes(4));
-    f.LowerSet(L"D\\E", L"e", REG_DWORD, DwordBytes(5));
-    f.LowerSet(
-        L"D\\E\\Deep",
-        L"f",
-        REG_QWORD,
-        std::vector<std::byte>(8, std::byte{9})
-    );
+    // @formatter:off
+    f.LowerSet(L"",           L"",   REG_SZ,       StringBytes(L"root default"));
+    f.LowerSet(L"A",          L"v1", REG_SZ,       StringBytes(L"one"));
+    f.LowerSet(L"A",          L"v2", REG_DWORD,    DwordBytes(2));
+    f.LowerSet(L"A\\B",       L"w",  REG_BINARY,   {std::byte{1}, std::byte{2}});
+    f.LowerSet(L"A\\B\\C",    L"z",  REG_MULTI_SZ, BytesOf(std::wstring(L"p\0q\0\0", 5)));
+    f.LowerSet(L"D",          L"d",  REG_DWORD,    DwordBytes(4));
+    f.LowerSet(L"D\\E",       L"e",  REG_DWORD,    DwordBytes(5));
+    f.LowerSet(L"D\\E\\Deep", L"f",  REG_QWORD,    std::vector<std::byte>(8, std::byte{9}));
+    // @formatter:on
     f.LowerKey(L"Untouched\\Child");
 
-    f.Set(L"A", L"v1", REG_EXPAND_SZ, StringBytes(L"%TEMP%"));
-    f.Set(L"A", L"v3", REG_DWORD, DwordBytes(3));
-    f.Set(L"A\\New\\Nested", L"n", REG_SZ, StringBytes(L"nested"));
-    f.Set(L"A\\B", L"w2", REG_DWORD, DwordBytes(6));
+    // @formatter:off
+    f.Set(L"A",              L"v1", REG_EXPAND_SZ, StringBytes(L"%TEMP%"));
+    f.Set(L"A",              L"v3", REG_DWORD,     DwordBytes(3));
+    f.Set(L"A\\New\\Nested", L"n",  REG_SZ,        StringBytes(L"nested"));
+    f.Set(L"A\\B",           L"w2", REG_DWORD,     DwordBytes(6));
+    // @formatter:on
     f.DeleteValue(L"A", L"v2");
     f.DeleteKey(L"A\\B\\C");
     f.DeleteTree(L"D");

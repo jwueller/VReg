@@ -68,10 +68,9 @@ int HexDigit(const wchar_t ch)
 
 wchar_t Lower(const wchar_t ch)
 {
-    return
-        (ch >= L'A' && ch <= L'Z')
-        ? static_cast<wchar_t>(ch - L'A' + L'a')
-        : ch;
+    return (ch >= L'A' && ch <= L'Z')
+               ? static_cast<wchar_t>(ch - L'A' + L'a')
+               : ch;
 }
 
 bool EqualsIgnoreCase(const std::wstring_view a, const std::wstring_view b)
@@ -330,8 +329,8 @@ private:
         Operation operation;
         operation.kind =
             isDelete
-            ? OperationKind::DeleteKey
-            : OperationKind::CreateKey;
+                ? OperationKind::DeleteKey
+                : OperationKind::CreateKey;
         operation.hRoot = hRoot;
         operation.path = path;
         operation.line = m_line;

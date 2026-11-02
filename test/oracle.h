@@ -116,7 +116,8 @@ private:
 };
 
 /// Runs @p Scenario against a `VirtualRegistry` over a fresh `MemoryHive`.
-template <class Scenario> Recording RecordVirtual()
+template <class Scenario>
+Recording RecordVirtual()
 {
     VirtualHive hive;
     Recorder recorder;
@@ -155,7 +156,8 @@ private:
 };
 
 /// Runs @p Scenario against a writable `OverlayHive` over an empty lower key.
-template <class Scenario> Recording RecordOverlay()
+template <class Scenario>
+Recording RecordOverlay()
 {
     OverlayMount mount;
     Recorder recorder;

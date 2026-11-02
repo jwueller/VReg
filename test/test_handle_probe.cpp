@@ -95,17 +95,18 @@ TEST_CASE("No route to a real key handle sets bit 0")
         GetModuleHandleW(L"ntdll.dll"),
         "wine_get_version"
     ) != nullptr;
-    const auto hTransaction = isWine
-        ? INVALID_HANDLE_VALUE
-        : CreateTransaction(
-            nullptr,
-            nullptr,
-            0,
-            0,
-            0,
-            0,
-            nullptr
-        );
+    const auto hTransaction =
+        isWine
+            ? INVALID_HANDLE_VALUE
+            : CreateTransaction(
+                nullptr,
+                nullptr,
+                0,
+                0,
+                0,
+                0,
+                nullptr
+            );
     if (hTransaction != INVALID_HANDLE_VALUE)
     {
         e = RegOpenKeyTransactedW(

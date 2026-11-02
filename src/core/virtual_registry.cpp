@@ -115,8 +115,8 @@ bool IsWow6432Node(const std::wstring_view name) noexcept
 
 constexpr MountView PROCESS_VIEW =
     sizeof(void*) == 8
-    ? MountView::Only64
-    : MountView::Only32;
+        ? MountView::Only64
+        : MountView::Only32;
 
 MountView ViewFromSam(const REGSAM samDesired) noexcept
 {
@@ -918,7 +918,7 @@ LSTATUS VirtualRegistry::RegEnumKeyExW(
     _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) const LPWSTR lpName,
     _Inout_ const LPDWORD lpcchName,
     _Reserved_ const LPDWORD lpReserved,
-    _Out_writes_to_opt_(*lpcchClass,*lpcchClass + 1) const LPWSTR lpClass,
+    _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) const LPWSTR lpClass,
     _Inout_opt_ const LPDWORD lpcchClass,
     _Out_opt_ const PFILETIME lpftLastWriteTime
 ) const noexcept
@@ -1463,17 +1463,17 @@ try
     };
     const DWORD dwTypeFlag =
         dwType < std::size(TYPE_FLAGS)
-        ? TYPE_FLAGS[dwType]
-        : 0;
+            ? TYPE_FLAGS[dwType]
+            : 0;
     const bool isAllowed =
         dwTypeFlag
-        ? (dwFlags & dwTypeFlag) != 0
-        : (dwFlags & RRF_RT_ANY) == RRF_RT_ANY;
+            ? (dwFlags & dwTypeFlag) != 0
+            : (dwFlags & RRF_RT_ANY) == RRF_RT_ANY;
 
     const auto& final =
         stages[2].empty()
-        ? (stages[1].empty() ? stages[0] : stages[1])
-        : stages[2];
+            ? (stages[1].empty() ? stages[0] : stages[1])
+            : stages[2];
     const bool isFit = pvData && final.size() <= cbBuffer;
     if (pvData)
     {
@@ -1497,15 +1497,15 @@ try
         // may lack.
         const DWORD cbTerminators =
             dwType == REG_MULTI_SZ
-            ? 4
-            : (isString ? 2 : 0);
+                ? 4
+                : (isString ? 2 : 0);
         const DWORD cbReserved =
             static_cast<DWORD>(stages[0].size())
             + cbTerminators;
         *pcbData =
             !stages[2].empty()
-            ? cbReported
-            : (isFit ? cbReported : std::max(cbReported, cbReserved));
+                ? cbReported
+                : (isFit ? cbReported : std::max(cbReported, cbReserved));
     }
 
     // Binary data passes as a DWORD only when it is empty or has that size.

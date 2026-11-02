@@ -46,19 +46,26 @@ constexpr DWORD FILL_SIZE = 0xCCCCCCCC;
 /// An API as the reference for a virtual run: scenarios skip the calls whose
 /// answer virtual keys cannot match (one handle per node, no per-open access
 /// rights), for the reference and the virtual registry alike.
-template <class Api> struct Reduced : Api
+template <class Api>
+struct Reduced : Api
 {
 };
 
 /// Whether a scenario runs in the reduced form for virtual keys.
-template <class Api> inline constexpr bool VIRTUAL_KEYS = false;
-template <> inline constexpr bool VIRTUAL_KEYS<VirtualRegistry> = true;
-template <class Api> inline constexpr bool VIRTUAL_KEYS<Reduced<Api>> = true;
+template <class Api>
+inline constexpr bool VIRTUAL_KEYS = false;
+
+template <>
+inline constexpr bool VIRTUAL_KEYS<VirtualRegistry> = true;
+
+template <class Api>
+inline constexpr bool VIRTUAL_KEYS<Reduced<Api>> = true;
 
 /// Whether an `Ex` open or create handed back @p hParent. Native always
 /// returns a new handle, even for an empty subkey; a virtual key has one
 /// handle per node, so the reduced form reports a new handle for both.
-template <class Api> bool HandedBack(
+template <class Api>
+bool HandedBack(
     const HKEY hKey,
     const HKEY hParent
 ) noexcept
@@ -113,7 +120,8 @@ inline std::string Narrow(const std::wstring_view text)
     return narrow;
 }
 
-template <class T> const BYTE* Raw(const T* p) noexcept
+template <class T>
+const BYTE* Raw(const T* p) noexcept
 {
     return reinterpret_cast<const BYTE*>(p);
 }
@@ -151,7 +159,8 @@ struct StoredValue
 /// nonzero guard: the native wide function reads one wide character past the
 /// data to decide whether the string is terminated, so what follows the
 /// buffer would otherwise decide what is stored.
-template <class Api> LSTATUS SetStored(
+template <class Api>
+LSTATUS SetStored(
     Api& api,
     const HKEY hKey,
     const StoredValue& value
@@ -159,18 +168,18 @@ template <class Api> LSTATUS SetStored(
 {
     auto guarded = value.data;
     guarded.insert(guarded.end(), 4, BYTE{0x58});
-    return api
-        .RegSetValueExW(
-            hKey,
-            value.name.c_str(),
-            0,
-            value.type,
-            guarded.data(),
-            static_cast<DWORD>(value.data.size())
-        );
+    return api.RegSetValueExW(
+        hKey,
+        value.name.c_str(),
+        0,
+        value.type,
+        guarded.data(),
+        static_cast<DWORD>(value.data.size())
+    );
 }
 
-template <class T> std::vector<BYTE> BytesOf(
+template <class T>
+std::vector<BYTE> BytesOf(
     const T* const p,
     const std::size_t count
 )
@@ -243,7 +252,10 @@ void QueryMatrix(
     RECORD(
         label + " size",
         QueryEx(api, hKey, pszName, &dwType, nullptr, &cbData),
-        {dwType, cbData}
+        {
+            dwType,
+            cbData,
+        }
     );
 
     cbData = FILL_SIZE;
@@ -270,7 +282,10 @@ void QueryMatrix(
         RECORD(
             label + std::format(" buffer {}", cbBuffer),
             QueryEx(api, hKey, pszName, &dwType, data.data(), &cbData),
-            {dwType, cbData},
+            {
+                dwType,
+                cbData,
+            },
             {Bytes(data)}
         );
     }

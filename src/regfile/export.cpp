@@ -277,8 +277,8 @@ LSTATUS ExportDelta(
                 values.push_back(
                     {
                         .kind = value.isTombstone
-                        ? Record::Kind::DeleteValue
-                        : Record::Kind::Value,
+                                    ? Record::Kind::DeleteValue
+                                    : Record::Kind::Value,
                         .key = {},
                         .name = std::move(value.name),
                         .dwType = value.dwType,

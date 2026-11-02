@@ -110,11 +110,7 @@ TEST_CASE("A node has one handle however it is reached")
 
     const HKEY hCreated = CreateKey(registry, hRoot, L"A\\B");
     const HKEY hOpened = OpenKey(registry, hRoot, L"a\\b");
-    const HKEY hViaParent = OpenKey(
-        registry,
-        OpenKey(registry, hRoot, L"A"),
-        L"B"
-    );
+    const HKEY hViaParent = OpenKey(registry, OpenKey(registry, hRoot, L"A"), L"B");
     const HKEY hViaPath = OpenKey(registry, HKEY_CURRENT_USER, L"Test\\A\\B");
 
     CHECK(IsVirtualHKey(hCreated));
@@ -944,9 +940,7 @@ TEST_CASE("A real parent handle is resolved by its native path")
             1,
             L"\\REGISTRY\\MACHINE\\SOFTWARE\\VRegNative"
         );
-        CHECK(
-            OpenVia(registry, hParent, L"app", KEY_READ, hKey) == ERROR_SUCCESS
-        );
+        CHECK(OpenVia(registry, hParent, L"app", KEY_READ, hKey) == ERROR_SUCCESS);
         CHECK(hKey == hRoot);
         CHECK(
             OpenVia(
@@ -1290,16 +1284,8 @@ TEST_CASE("A mount answers only the calls of its view")
         CHECK(isVirtual(hSoftware, L"VRegViewTestBoth", sam32));
         CHECK(isVirtual(hSoftware, L"VRegViewTestBoth", sam64));
 
-        CHECK(
-            isVirtual(hSoftware, L"VRegViewTest64", KEY_READ) == IS_64BIT_PROCESS
-        );
-        CHECK(
-            isVirtual(
-                hSoftware,
-                L"VRegViewTest32",
-                KEY_READ
-            ) == !IS_64BIT_PROCESS
-        );
+        CHECK(isVirtual(hSoftware, L"VRegViewTest64", KEY_READ) == IS_64BIT_PROCESS);
+        CHECK(isVirtual(hSoftware, L"VRegViewTest32", KEY_READ) == !IS_64BIT_PROCESS);
     }
 
     SECTION("A path that contained WOW6432Node is the 32-bit view")
@@ -1313,9 +1299,7 @@ TEST_CASE("A mount answers only the calls of its view")
 
     SECTION("Through a predefined root")
     {
-        CHECK(
-            isVirtual(HKEY_LOCAL_MACHINE, L"Software\\VRegViewTest64", sam64)
-        );
+        CHECK(isVirtual(HKEY_LOCAL_MACHINE, L"Software\\VRegViewTest64", sam64));
         CHECK(
             OpenVia(
                 registry,
@@ -1325,9 +1309,7 @@ TEST_CASE("A mount answers only the calls of its view")
                 hKey
             ) == ERROR_FILE_NOT_FOUND
         );
-        CHECK(
-            isVirtual(HKEY_LOCAL_MACHINE, L"Software\\VRegViewTest32", sam32)
-        );
+        CHECK(isVirtual(HKEY_LOCAL_MACHINE, L"Software\\VRegViewTest32", sam32));
         CHECK(
             OpenVia(
                 registry,
@@ -1337,12 +1319,8 @@ TEST_CASE("A mount answers only the calls of its view")
                 hKey
             ) == ERROR_FILE_NOT_FOUND
         );
-        CHECK(
-            isVirtual(HKEY_LOCAL_MACHINE, L"Software\\VRegViewTestBoth", sam32)
-        );
-        CHECK(
-            isVirtual(HKEY_LOCAL_MACHINE, L"Software\\VRegViewTestBoth", sam64)
-        );
+        CHECK(isVirtual(HKEY_LOCAL_MACHINE, L"Software\\VRegViewTestBoth", sam32));
+        CHECK(isVirtual(HKEY_LOCAL_MACHINE, L"Software\\VRegViewTestBoth", sam64));
     }
 }
 
