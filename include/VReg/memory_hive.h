@@ -23,19 +23,19 @@ public:
 
     void Freeze() noexcept override;
     [[nodiscard]] bool IsFrozen() const noexcept override;
-    [[nodiscard]] Node* Root() const noexcept override;
+    [[nodiscard]] _Ret_notnull_ Node* Root() const noexcept override;
 
     LSTATUS OpenKey(
-        Node* pParent,
+        _In_ Node* pParent,
         KeyPath path,
         REGSAM samDesired,
         OpenResult& result
     ) const noexcept override;
 
     LSTATUS CreateKey(
-        Node* pParent,
+        _Inout_ Node* pParent,
         KeyPath path,
-        std::wstring_view className,
+        _In_z_ LPCWSTR pszClassName,
         DWORD dwOptions,
         REGSAM samDesired,
         OpenResult& result,
@@ -43,48 +43,48 @@ public:
     ) noexcept override;
 
     LSTATUS DeleteKey(
-        Node* pParent,
+        _Inout_ Node* pParent,
         KeyPath path
     ) noexcept override;
 
     LSTATUS DeleteTree(
-        Node* pNode
+        _Inout_ Node* pNode
     ) noexcept override;
 
     LSTATUS QueryValue(
-        Node* pNode,
-        std::wstring_view name,
+        _In_ Node* pNode,
+        _In_z_ LPCWSTR pszName,
         DWORD& dwType,
         DWORD& cbData,
-        std::vector<std::byte>* pData
+        _Out_opt_ std::vector<std::byte>* pData
     ) const noexcept override;
 
     LSTATUS SetValue(
-        Node* pNode,
-        std::wstring_view name,
+        _Inout_ Node* pNode,
+        _In_z_ LPCWSTR pszName,
         DWORD dwType,
         std::span<const std::byte> data
     ) noexcept override;
 
     LSTATUS DeleteValue(
-        Node* pNode,
-        std::wstring_view name
+        _Inout_ Node* pNode,
+        _In_z_ LPCWSTR pszName
     ) noexcept override;
 
     LSTATUS SetMuiTextValue(
-        Node* pNode,
-        std::wstring_view name,
-        std::wstring_view text
+        _Inout_ Node* pNode,
+        _In_z_ LPCWSTR pszName,
+        _In_z_ LPCWSTR pszText
     ) noexcept override;
 
     LSTATUS QueryMuiText(
-        Node* pNode,
-        std::wstring_view name,
+        _In_ Node* pNode,
+        _In_z_ LPCWSTR pszName,
         std::wstring& text
     ) const noexcept override;
 
     LSTATUS EnumKey(
-        Node* pNode,
+        _In_ Node* pNode,
         DWORD dwIndex,
         std::wstring& name,
         std::wstring& className,
@@ -92,26 +92,26 @@ public:
     ) const noexcept override;
 
     LSTATUS EnumValue(
-        Node* pNode,
+        _In_ Node* pNode,
         DWORD dwIndex,
         std::wstring& name,
         DWORD& dwType,
         DWORD& cbData,
-        std::vector<std::byte>* pData
+        _Out_opt_ std::vector<std::byte>* pData
     ) const noexcept override;
 
     LSTATUS QueryInfo(
-        Node* pNode,
+        _In_ Node* pNode,
         KeyInfo& info
     ) const noexcept override;
 
     LSTATUS CheckKey(
-        Node* pNode
+        _In_ Node* pNode
     ) const noexcept override;
 
     LSTATUS Watch(
-        Node* pNode,
-        bool isSubtree,
+        _In_ Node* pNode,
+        BOOL bWatchSubtree,
         DWORD dwFilter,
         HANDLE hEvent
     ) const noexcept override;

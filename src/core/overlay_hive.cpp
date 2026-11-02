@@ -183,12 +183,12 @@ bool Exists(const LSTATUS status) noexcept
 OverlayHive::OverlayHive(
     Registry& lower,
     const HKEY hLowerRoot,
-    const std::wstring_view lowerPath,
+    _In_z_ const LPCWSTR pszLowerPath,
     const REGSAM samLowerView
 ) :
     m_lower(lower),
     m_hLowerRoot(hLowerRoot),
-    m_lowerPath(lowerPath),
+    m_lowerPath(pszLowerPath),
     m_samLowerView(samLowerView),
     m_pTree(std::make_unique<Tree>(*this))
 {
@@ -208,12 +208,12 @@ bool OverlayHive::IsFrozen() const noexcept
     return m_pTree->IsFrozen();
 }
 
-Node* OverlayHive::Root() const noexcept
+_Ret_notnull_ Node* OverlayHive::Root() const noexcept
 {
     return m_pTree->Root();
 }
 
-Registry* OverlayHive::Lower() const noexcept
+_Ret_maybenull_ Registry* OverlayHive::Lower() const noexcept
 {
     return &m_lower;
 }
@@ -305,7 +305,7 @@ catch (...)
 }
 
 LSTATUS OverlayHive::OpenKey(
-    Node* const pParent,
+    _In_ Node* const pParent,
     const KeyPath path,
     const REGSAM samDesired,
     OpenResult& result
@@ -400,9 +400,9 @@ catch (...)
 }
 
 LSTATUS OverlayHive::CreateKey(
-    Node* const pParent,
+    _Inout_ Node* const pParent,
     const KeyPath path,
-    const std::wstring_view className,
+    _In_z_ const LPCWSTR pszClassName,
     const DWORD dwOptions,
     const REGSAM samDesired,
     OpenResult& result,
@@ -410,6 +410,7 @@ LSTATUS OverlayHive::CreateKey(
 ) noexcept
 try
 {
+    const std::wstring_view className(pszClassName);
     if (IsFrozen())
     {
         const auto status = OpenKey(pParent, path, samDesired, result);
@@ -473,7 +474,7 @@ try
         return CreateKey(
             pParent,
             path,
-            className,
+            pszClassName,
             dwOptions,
             samDesired,
             result,
@@ -549,7 +550,7 @@ catch (...)
 }
 
 LSTATUS OverlayHive::DeleteKey(
-    Node* const pParent,
+    _Inout_ Node* const pParent,
     const KeyPath path
 ) noexcept
 try
@@ -667,7 +668,7 @@ catch (...)
 }
 
 LSTATUS OverlayHive::DeleteTree(
-    Node* const pNode
+    _Inout_ Node* const pNode
 ) noexcept
 {
     Tree::WriteLock lock(*m_pTree);
@@ -690,14 +691,15 @@ LSTATUS OverlayHive::DeleteTree(
 }
 
 LSTATUS OverlayHive::QueryValue(
-    Node* const pNode,
-    const std::wstring_view name,
+    _In_ Node* const pNode,
+    _In_z_ const LPCWSTR pszName,
     DWORD& dwType,
     DWORD& cbData,
-    std::vector<std::byte>* const pData
+    _Out_opt_ std::vector<std::byte>* const pData
 ) const noexcept
 try
 {
+    const std::wstring_view name(pszName);
     LowerView view;
     {
         Tree::ReadLock lock(*m_pTree);
@@ -762,22 +764,25 @@ catch (...)
 }
 
 LSTATUS OverlayHive::SetValue(
-    Node* const pNode,
-    const std::wstring_view name,
+    _Inout_ Node* const pNode,
+    _In_z_ const LPCWSTR pszName,
     const DWORD dwType,
     const std::span<const std::byte> data
 ) noexcept
 {
+    const std::wstring_view name(pszName);
     return StoreValue(pNode, name, dwType, data, false);
 }
 
 LSTATUS OverlayHive::SetMuiTextValue(
-    Node* const pNode,
-    const std::wstring_view name,
-    const std::wstring_view text
+    _Inout_ Node* const pNode,
+    _In_z_ const LPCWSTR pszName,
+    _In_z_ const LPCWSTR pszText
 ) noexcept
 try
 {
+    const std::wstring_view name(pszName);
+    const std::wstring_view text(pszText);
     return StoreValue(pNode, name, REG_SZ, StringData(text), true);
 }
 catch (...)
@@ -786,12 +791,13 @@ catch (...)
 }
 
 LSTATUS OverlayHive::QueryMuiText(
-    Node* const pNode,
-    const std::wstring_view name,
+    _In_ Node* const pNode,
+    _In_z_ const LPCWSTR pszName,
     std::wstring& text
 ) const noexcept
 try
 {
+    const std::wstring_view name(pszName);
     {
         Tree::ReadLock lock(*m_pTree);
         if (pNode->isDeleted)
@@ -806,7 +812,7 @@ try
 
     DWORD dwType{};
     DWORD cbData = 0;
-    const auto status = QueryValue(pNode, name, dwType, cbData, nullptr);
+    const auto status = QueryValue(pNode, pszName, dwType, cbData, nullptr);
     return status == ERROR_SUCCESS ? ERROR_INVALID_DATA : status;
 }
 catch (...)
@@ -859,11 +865,12 @@ catch (...)
 }
 
 LSTATUS OverlayHive::DeleteValue(
-    Node* const pNode,
-    const std::wstring_view name
+    _Inout_ Node* const pNode,
+    _In_z_ const LPCWSTR pszName
 ) noexcept
 try
 {
+    const std::wstring_view name(pszName);
     if (IsFrozen())
         return ERROR_ACCESS_DENIED;
 
@@ -963,7 +970,7 @@ catch (...)
 }
 
 LSTATUS OverlayHive::EnumKey(
-    Node* const pNode,
+    _In_ Node* const pNode,
     const DWORD dwIndex,
     std::wstring& name,
     std::wstring& className,
@@ -1081,12 +1088,12 @@ catch (...)
 }
 
 LSTATUS OverlayHive::EnumValue(
-    Node* const pNode,
+    _In_ Node* const pNode,
     const DWORD dwIndex,
     std::wstring& name,
     DWORD& dwType,
     DWORD& cbData,
-    std::vector<std::byte>* const pData
+    _Out_opt_ std::vector<std::byte>* const pData
 ) const noexcept
 try
 {
@@ -1196,7 +1203,7 @@ catch (...)
 }
 
 LSTATUS OverlayHive::QueryInfo(
-    Node* const pNode,
+    _In_ Node* const pNode,
     KeyInfo& info
 ) const noexcept
 try
@@ -1387,7 +1394,7 @@ catch (...)
 }
 
 LSTATUS OverlayHive::CheckKey(
-    Node* const pNode
+    _In_ Node* const pNode
 ) const noexcept
 {
     Tree::ReadLock lock(*m_pTree);
@@ -1395,22 +1402,23 @@ LSTATUS OverlayHive::CheckKey(
 }
 
 LSTATUS OverlayHive::Watch(
-    Node* const pNode,
-    const bool isSubtree,
+    _In_ Node* const pNode,
+    const BOOL bWatchSubtree,
     const DWORD dwFilter,
     const HANDLE hEvent
 ) const noexcept
 {
-    return m_pTree->Watch(*pNode, isSubtree, dwFilter, hEvent);
+    return m_pTree->Watch(*pNode, bWatchSubtree != FALSE, dwFilter, hEvent);
 }
 
 LSTATUS OverlayHive::OpenLowerValueKey(
-    Node* const pNode,
-    const std::wstring_view name,
+    _In_ Node* const pNode,
+    _In_z_ const LPCWSTR pszName,
     HKEY& hLower
 ) const noexcept
 try
 {
+    const std::wstring_view name(pszName);
     hLower = nullptr;
     LowerView view;
     {

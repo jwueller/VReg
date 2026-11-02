@@ -41,13 +41,13 @@ bool MemoryHive::IsFrozen() const noexcept
     return m_pTree->IsFrozen();
 }
 
-Node* MemoryHive::Root() const noexcept
+_Ret_notnull_ Node* MemoryHive::Root() const noexcept
 {
     return m_pTree->Root();
 }
 
 LSTATUS MemoryHive::OpenKey(
-    Node* const pParent,
+    _In_ Node* const pParent,
     const KeyPath path,
     const REGSAM samDesired,
     OpenResult& result
@@ -68,9 +68,9 @@ LSTATUS MemoryHive::OpenKey(
 }
 
 LSTATUS MemoryHive::CreateKey(
-    Node* const pParent,
+    _Inout_ Node* const pParent,
     const KeyPath path,
-    const std::wstring_view className,
+    _In_z_ const LPCWSTR pszClassName,
     const DWORD dwOptions,
     const REGSAM samDesired,
     OpenResult& result,
@@ -78,6 +78,7 @@ LSTATUS MemoryHive::CreateKey(
 ) noexcept
 try
 {
+    const std::wstring_view className(pszClassName);
     if (IsFrozen())
     {
         const auto status = OpenKey(pParent, path, samDesired, result);
@@ -94,7 +95,7 @@ try
         return CreateKey(
             pParent,
             path,
-            className,
+            pszClassName,
             dwOptions,
             samDesired,
             result,
@@ -143,7 +144,7 @@ catch (...)
 }
 
 LSTATUS MemoryHive::DeleteKey(
-    Node* const pParent,
+    _Inout_ Node* const pParent,
     const KeyPath path
 ) noexcept
 {
@@ -165,7 +166,7 @@ LSTATUS MemoryHive::DeleteKey(
 }
 
 LSTATUS MemoryHive::DeleteTree(
-    Node* const pNode
+    _Inout_ Node* const pNode
 ) noexcept
 {
     Tree::WriteLock lock(*m_pTree);
@@ -184,14 +185,15 @@ LSTATUS MemoryHive::DeleteTree(
 }
 
 LSTATUS MemoryHive::QueryValue(
-    Node* const pNode,
-    const std::wstring_view name,
+    _In_ Node* const pNode,
+    _In_z_ const LPCWSTR pszName,
     DWORD& dwType,
     DWORD& cbData,
-    std::vector<std::byte>* const pData
+    _Out_opt_ std::vector<std::byte>* const pData
 ) const noexcept
 try
 {
+    const std::wstring_view name(pszName);
     Tree::ReadLock lock(*m_pTree);
     if (pNode->isDeleted)
         return ERROR_KEY_DELETED;
@@ -212,22 +214,25 @@ catch (...)
 }
 
 LSTATUS MemoryHive::SetValue(
-    Node* const pNode,
-    const std::wstring_view name,
+    _Inout_ Node* const pNode,
+    _In_z_ const LPCWSTR pszName,
     const DWORD dwType,
     const std::span<const std::byte> data
 ) noexcept
 {
+    const std::wstring_view name(pszName);
     return StoreValue(pNode, name, dwType, data, false);
 }
 
 LSTATUS MemoryHive::SetMuiTextValue(
-    Node* const pNode,
-    const std::wstring_view name,
-    const std::wstring_view text
+    _Inout_ Node* const pNode,
+    _In_z_ const LPCWSTR pszName,
+    _In_z_ const LPCWSTR pszText
 ) noexcept
 try
 {
+    const std::wstring_view name(pszName);
+    const std::wstring_view text(pszText);
     return StoreValue(pNode, name, REG_SZ, StringData(text), true);
 }
 catch (...)
@@ -236,12 +241,13 @@ catch (...)
 }
 
 LSTATUS MemoryHive::QueryMuiText(
-    Node* const pNode,
-    const std::wstring_view name,
+    _In_ Node* const pNode,
+    _In_z_ const LPCWSTR pszName,
     std::wstring& text
 ) const noexcept
 try
 {
+    const std::wstring_view name(pszName);
     Tree::ReadLock lock(*m_pTree);
     if (pNode->isDeleted)
         return ERROR_KEY_DELETED;
@@ -301,10 +307,11 @@ catch (...)
 }
 
 LSTATUS MemoryHive::DeleteValue(
-    Node* const pNode,
-    const std::wstring_view name
+    _Inout_ Node* const pNode,
+    _In_z_ const LPCWSTR pszName
 ) noexcept
 {
+    const std::wstring_view name(pszName);
     Tree::WriteLock lock(*m_pTree);
     if (!lock)
         return ERROR_ACCESS_DENIED;
@@ -324,7 +331,7 @@ LSTATUS MemoryHive::DeleteValue(
 }
 
 LSTATUS MemoryHive::EnumKey(
-    Node* const pNode,
+    _In_ Node* const pNode,
     const DWORD dwIndex,
     std::wstring& name,
     std::wstring& className,
@@ -351,12 +358,12 @@ catch (...)
 }
 
 LSTATUS MemoryHive::EnumValue(
-    Node* const pNode,
+    _In_ Node* const pNode,
     const DWORD dwIndex,
     std::wstring& name,
     DWORD& dwType,
     DWORD& cbData,
-    std::vector<std::byte>* const pData
+    _Out_opt_ std::vector<std::byte>* const pData
 ) const noexcept
 try
 {
@@ -381,7 +388,7 @@ catch (...)
 }
 
 LSTATUS MemoryHive::QueryInfo(
-    Node* const pNode,
+    _In_ Node* const pNode,
     KeyInfo& info
 ) const noexcept
 try
@@ -427,7 +434,7 @@ catch (...)
 }
 
 LSTATUS MemoryHive::CheckKey(
-    Node* const pNode
+    _In_ Node* const pNode
 ) const noexcept
 {
     Tree::ReadLock lock(*m_pTree);
@@ -435,12 +442,12 @@ LSTATUS MemoryHive::CheckKey(
 }
 
 LSTATUS MemoryHive::Watch(
-    Node* const pNode,
-    const bool isSubtree,
+    _In_ Node* const pNode,
+    const BOOL bWatchSubtree,
     const DWORD dwFilter,
     const HANDLE hEvent
 ) const noexcept
 {
-    return m_pTree->Watch(*pNode, isSubtree, dwFilter, hEvent);
+    return m_pTree->Watch(*pNode, bWatchSubtree != FALSE, dwFilter, hEvent);
 }
 } // namespace VReg

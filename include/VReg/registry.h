@@ -50,145 +50,158 @@ public:
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopenkeyexw
     virtual LSTATUS RegOpenKeyExW(
-        HKEY hKey,
-        LPCWSTR lpSubKey,
-        DWORD ulOptions,
-        REGSAM samDesired,
-        PHKEY phkResult
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR lpSubKey,
+        _In_ DWORD ulOptions,
+        _In_ REGSAM samDesired,
+        _Out_ PHKEY phkResult
     ) noexcept = 0;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcreatekeyexw
     virtual LSTATUS RegCreateKeyExW(
-        HKEY hKey,
-        LPCWSTR lpSubKey,
-        DWORD Reserved,
-        LPWSTR lpClass,
-        DWORD dwOptions,
-        REGSAM samDesired,
-        LPSECURITY_ATTRIBUTES lpSecurityAttributes,
-        PHKEY phkResult,
-        LPDWORD lpdwDisposition
+        _In_ HKEY hKey,
+        _In_ LPCWSTR lpSubKey,
+        _Reserved_ DWORD Reserved,
+        _In_opt_ LPWSTR lpClass,
+        _In_ DWORD dwOptions,
+        _In_ REGSAM samDesired,
+        _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+        _Out_ PHKEY phkResult,
+        _Out_opt_ LPDWORD lpdwDisposition
     ) noexcept = 0;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regclosekey
     virtual LSTATUS RegCloseKey(
-        HKEY hKey
+        _In_ HKEY hKey
     ) noexcept = 0;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryvalueexw
     virtual LSTATUS RegQueryValueExW(
-        HKEY hKey,
-        LPCWSTR lpValueName,
-        LPDWORD lpReserved,
-        LPDWORD lpType,
-        LPBYTE lpData,
-        LPDWORD lpcbData
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR lpValueName,
+        _Reserved_ LPDWORD lpReserved,
+        _Out_opt_ LPDWORD lpType,
+        _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPBYTE lpData,
+        _When_(lpData == NULL, _Out_opt_) _When_(lpData != NULL, _Inout_opt_) LPDWORD lpcbData
     ) const noexcept = 0;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetvalueexw
     virtual LSTATUS RegSetValueExW(
-        HKEY hKey,
-        LPCWSTR lpValueName,
-        DWORD Reserved,
-        DWORD dwType,
-        const BYTE* lpData,
-        DWORD cbData
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR lpValueName,
+        _Reserved_ DWORD Reserved,
+        _In_ DWORD dwType,
+        _In_reads_bytes_opt_(cbData) const BYTE* lpData,
+        _In_ DWORD cbData
     ) noexcept = 0;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletevaluew
     virtual LSTATUS RegDeleteValueW(
-        HKEY hKey,
-        LPCWSTR lpValueName
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR lpValueName
     ) noexcept = 0;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeyexw
     virtual LSTATUS RegDeleteKeyExW(
-        HKEY hKey,
-        LPCWSTR lpSubKey,
-        REGSAM samDesired,
-        DWORD Reserved
+        _In_ HKEY hKey,
+        _In_ LPCWSTR lpSubKey,
+        _In_ REGSAM samDesired,
+        _Reserved_ DWORD Reserved
     ) noexcept = 0;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletetreew
     virtual LSTATUS RegDeleteTreeW(
-        HKEY hKey,
-        LPCWSTR lpSubKey
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR lpSubKey
     ) noexcept = 0;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumkeyexw
     virtual LSTATUS RegEnumKeyExW(
-        HKEY hKey,
-        DWORD dwIndex,
-        LPWSTR lpName,
-        LPDWORD lpcchName,
-        LPDWORD lpReserved,
-        LPWSTR lpClass,
-        LPDWORD lpcchClass,
-        PFILETIME lpftLastWriteTime
+        _In_ HKEY hKey,
+        _In_ DWORD dwIndex,
+        _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) LPWSTR lpName,
+        _Inout_ LPDWORD lpcchName,
+        _Reserved_ LPDWORD lpReserved,
+        _Out_writes_to_opt_(*lpcchClass,*lpcchClass + 1) LPWSTR lpClass,
+        _Inout_opt_ LPDWORD lpcchClass,
+        _Out_opt_ PFILETIME lpftLastWriteTime
     ) const noexcept = 0;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumvaluew
     virtual LSTATUS RegEnumValueW(
-        HKEY hKey,
-        DWORD dwIndex,
-        LPWSTR lpValueName,
-        LPDWORD lpcchValueName,
-        LPDWORD lpReserved,
-        LPDWORD lpType,
-        LPBYTE lpData,
-        LPDWORD lpcbData
+        _In_ HKEY hKey,
+        _In_ DWORD dwIndex,
+        _Out_writes_to_opt_(*lpcchValueName, *lpcchValueName + 1) LPWSTR lpValueName,
+        _Inout_ LPDWORD lpcchValueName,
+        _Reserved_ LPDWORD lpReserved,
+        _Out_opt_ LPDWORD lpType,
+        _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPBYTE lpData,
+        _Inout_opt_ LPDWORD lpcbData
     ) const noexcept = 0;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryinfokeyw
     virtual LSTATUS RegQueryInfoKeyW(
-        HKEY hKey,
-        LPWSTR lpClass,
-        LPDWORD lpcchClass,
-        LPDWORD lpReserved,
-        LPDWORD lpcSubKeys,
-        LPDWORD lpcbMaxSubKeyLen,
-        LPDWORD lpcbMaxClassLen,
-        LPDWORD lpcValues,
-        LPDWORD lpcbMaxValueNameLen,
-        LPDWORD lpcbMaxValueLen,
-        LPDWORD lpcbSecurityDescriptor,
-        PFILETIME lpftLastWriteTime
+        _In_ HKEY hKey,
+        _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) LPWSTR lpClass,
+        _Inout_opt_ LPDWORD lpcchClass,
+        _Reserved_ LPDWORD lpReserved,
+        _Out_opt_ LPDWORD lpcSubKeys,
+        _Out_opt_ LPDWORD lpcbMaxSubKeyLen,
+        _Out_opt_ LPDWORD lpcbMaxClassLen,
+        _Out_opt_ LPDWORD lpcValues,
+        _Out_opt_ LPDWORD lpcbMaxValueNameLen,
+        _Out_opt_ LPDWORD lpcbMaxValueLen,
+        _Out_opt_ LPDWORD lpcbSecurityDescriptor,
+        _Out_opt_ PFILETIME lpftLastWriteTime
     ) const noexcept = 0;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regloadmuistringw
     virtual LSTATUS RegLoadMUIStringW(
-        HKEY hKey,
-        LPCWSTR pszValue,
-        LPWSTR pszOutBuf,
-        DWORD cbOutBuf,
-        LPDWORD pcbData,
-        DWORD Flags,
-        LPCWSTR pszDirectory
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR pszValue,
+        _Out_writes_bytes_opt_(cbOutBuf) LPWSTR pszOutBuf,
+        _In_ DWORD cbOutBuf,
+        _Out_opt_ LPDWORD pcbData,
+        _In_ DWORD Flags,
+        _In_opt_ LPCWSTR pszDirectory
     ) const noexcept = 0;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-reggetvaluew
     virtual LSTATUS RegGetValueW(
-        HKEY hkey,
-        LPCWSTR lpSubKey,
-        LPCWSTR lpValue,
-        DWORD dwFlags,
-        LPDWORD pdwType,
-        PVOID pvData,
-        LPDWORD pcbData
+        _In_ HKEY hkey,
+        _In_opt_ LPCWSTR lpSubKey,
+        _In_opt_ LPCWSTR lpValue,
+        _In_ DWORD dwFlags,
+        _Out_opt_ LPDWORD pdwType,
+        _When_(
+            (dwFlags & 0x7F) == RRF_RT_REG_SZ
+            || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
+            || (dwFlags & 0x7F) == (RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ)
+            || *pdwType == REG_SZ
+            || *pdwType == REG_EXPAND_SZ,
+            _Post_z_
+        )
+        _When_(
+            (dwFlags & 0x7F) == RRF_RT_REG_MULTI_SZ
+            || *pdwType == REG_MULTI_SZ,
+            _Post_ _NullNull_terminated_
+        )
+        _Out_writes_bytes_to_opt_(*pcbData, *pcbData) PVOID pvData,
+        _Inout_opt_ LPDWORD pcbData
     ) const noexcept = 0;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regnotifychangekeyvalue
     virtual LSTATUS RegNotifyChangeKeyValue(
-        HKEY hKey,
-        BOOL bWatchSubtree,
-        DWORD dwNotifyFilter,
-        HANDLE hEvent,
-        BOOL fAsynchronous
+        _In_ HKEY hKey,
+        _In_ BOOL bWatchSubtree,
+        _In_ DWORD dwNotifyFilter,
+        _In_opt_ HANDLE hEvent,
+        _In_ BOOL fAsynchronous
     ) noexcept = 0;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regflushkey
     virtual LSTATUS RegFlushKey(
-        HKEY hKey
+        _In_ HKEY hKey
     ) noexcept = 0;
 
     /// @}
@@ -198,128 +211,141 @@ public:
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopenkeyexa
     virtual LSTATUS RegOpenKeyExA(
-        HKEY hKey,
-        LPCSTR lpSubKey,
-        DWORD ulOptions,
-        REGSAM samDesired,
-        PHKEY phkResult
+        _In_ HKEY hKey,
+        _In_opt_ LPCSTR lpSubKey,
+        _In_ DWORD ulOptions,
+        _In_ REGSAM samDesired,
+        _Out_ PHKEY phkResult
     ) noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcreatekeyexa
     virtual LSTATUS RegCreateKeyExA(
-        HKEY hKey,
-        LPCSTR lpSubKey,
-        DWORD Reserved,
-        LPSTR lpClass,
-        DWORD dwOptions,
-        REGSAM samDesired,
-        LPSECURITY_ATTRIBUTES lpSecurityAttributes,
-        PHKEY phkResult,
-        LPDWORD lpdwDisposition
+        _In_ HKEY hKey,
+        _In_ LPCSTR lpSubKey,
+        _Reserved_ DWORD Reserved,
+        _In_opt_ LPSTR lpClass,
+        _In_ DWORD dwOptions,
+        _In_ REGSAM samDesired,
+        _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+        _Out_ PHKEY phkResult,
+        _Out_opt_ LPDWORD lpdwDisposition
     ) noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryvalueexa
     virtual LSTATUS RegQueryValueExA(
-        HKEY hKey,
-        LPCSTR lpValueName,
-        LPDWORD lpReserved,
-        LPDWORD lpType,
-        LPBYTE lpData,
-        LPDWORD lpcbData
+        _In_ HKEY hKey,
+        _In_opt_ LPCSTR lpValueName,
+        _Reserved_ LPDWORD lpReserved,
+        _Out_opt_ LPDWORD lpType,
+        _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPBYTE lpData,
+        _When_(lpData == NULL, _Out_opt_) _When_(lpData != NULL, _Inout_opt_) LPDWORD lpcbData
     ) const noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetvalueexa
     virtual LSTATUS RegSetValueExA(
-        HKEY hKey,
-        LPCSTR lpValueName,
-        DWORD Reserved,
-        DWORD dwType,
-        const BYTE* lpData,
-        DWORD cbData
+        _In_ HKEY hKey,
+        _In_opt_ LPCSTR lpValueName,
+        _Reserved_ DWORD Reserved,
+        _In_ DWORD dwType,
+        _In_reads_bytes_opt_(cbData) const BYTE* lpData,
+        _In_ DWORD cbData
     ) noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletevaluea
     virtual LSTATUS RegDeleteValueA(
-        HKEY hKey,
-        LPCSTR lpValueName
+        _In_ HKEY hKey,
+        _In_opt_ LPCSTR lpValueName
     ) noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeyexa
     virtual LSTATUS RegDeleteKeyExA(
-        HKEY hKey,
-        LPCSTR lpSubKey,
-        REGSAM samDesired,
-        DWORD Reserved
+        _In_ HKEY hKey,
+        _In_ LPCSTR lpSubKey,
+        _In_ REGSAM samDesired,
+        _Reserved_ DWORD Reserved
     ) noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletetreea
     virtual LSTATUS RegDeleteTreeA(
-        HKEY hKey,
-        LPCSTR lpSubKey
+        _In_ HKEY hKey,
+        _In_opt_ LPCSTR lpSubKey
     ) noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumkeyexa
     virtual LSTATUS RegEnumKeyExA(
-        HKEY hKey,
-        DWORD dwIndex,
-        LPSTR lpName,
-        LPDWORD lpcchName,
-        LPDWORD lpReserved,
-        LPSTR lpClass,
-        LPDWORD lpcchClass,
-        PFILETIME lpftLastWriteTime
+        _In_ HKEY hKey,
+        _In_ DWORD dwIndex,
+        _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) LPSTR lpName,
+        _Inout_ LPDWORD lpcchName,
+        _Reserved_ LPDWORD lpReserved,
+        _Out_writes_to_opt_(*lpcchClass,*lpcchClass + 1) LPSTR lpClass,
+        _Inout_opt_ LPDWORD lpcchClass,
+        _Out_opt_ PFILETIME lpftLastWriteTime
     ) const noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumvaluea
     virtual LSTATUS RegEnumValueA(
-        HKEY hKey,
-        DWORD dwIndex,
-        LPSTR lpValueName,
-        LPDWORD lpcchValueName,
-        LPDWORD lpReserved,
-        LPDWORD lpType,
-        LPBYTE lpData,
-        LPDWORD lpcbData
+        _In_ HKEY hKey,
+        _In_ DWORD dwIndex,
+        _Out_writes_to_opt_(*lpcchValueName, *lpcchValueName + 1) LPSTR lpValueName,
+        _Inout_ LPDWORD lpcchValueName,
+        _Reserved_ LPDWORD lpReserved,
+        _Out_opt_ LPDWORD lpType,
+        _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPBYTE lpData,
+        _Inout_opt_ LPDWORD lpcbData
     ) const noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryinfokeya
     virtual LSTATUS RegQueryInfoKeyA(
-        HKEY hKey,
-        LPSTR lpClass,
-        LPDWORD lpcchClass,
-        LPDWORD lpReserved,
-        LPDWORD lpcSubKeys,
-        LPDWORD lpcbMaxSubKeyLen,
-        LPDWORD lpcbMaxClassLen,
-        LPDWORD lpcValues,
-        LPDWORD lpcbMaxValueNameLen,
-        LPDWORD lpcbMaxValueLen,
-        LPDWORD lpcbSecurityDescriptor,
-        PFILETIME lpftLastWriteTime
+        _In_ HKEY hKey,
+        _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) LPSTR lpClass,
+        _Inout_opt_ LPDWORD lpcchClass,
+        _Reserved_ LPDWORD lpReserved,
+        _Out_opt_ LPDWORD lpcSubKeys,
+        _Out_opt_ LPDWORD lpcbMaxSubKeyLen,
+        _Out_opt_ LPDWORD lpcbMaxClassLen,
+        _Out_opt_ LPDWORD lpcValues,
+        _Out_opt_ LPDWORD lpcbMaxValueNameLen,
+        _Out_opt_ LPDWORD lpcbMaxValueLen,
+        _Out_opt_ LPDWORD lpcbSecurityDescriptor,
+        _Out_opt_ PFILETIME lpftLastWriteTime
     ) const noexcept;
 
     /// Answers @ref ERROR_CALL_NOT_IMPLEMENTED on every input, as the native
     /// function does.
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regloadmuistringa
     virtual LSTATUS RegLoadMUIStringA(
-        HKEY hKey,
-        LPCSTR pszValue,
-        LPSTR pszOutBuf,
-        DWORD cbOutBuf,
-        LPDWORD pcbData,
-        DWORD Flags,
-        LPCSTR pszDirectory
+        _In_ HKEY hKey,
+        _In_opt_ LPCSTR pszValue,
+        _Out_writes_bytes_opt_(cbOutBuf) LPSTR pszOutBuf,
+        _In_ DWORD cbOutBuf,
+        _Out_opt_ LPDWORD pcbData,
+        _In_ DWORD Flags,
+        _In_opt_ LPCSTR pszDirectory
     ) const noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-reggetvaluea
     virtual LSTATUS RegGetValueA(
-        HKEY hkey,
-        LPCSTR lpSubKey,
-        LPCSTR lpValue,
-        DWORD dwFlags,
-        LPDWORD pdwType,
-        PVOID pvData,
-        LPDWORD pcbData
+        _In_ HKEY hkey,
+        _In_opt_ LPCSTR lpSubKey,
+        _In_opt_ LPCSTR lpValue,
+        _In_ DWORD dwFlags,
+        _Out_opt_ LPDWORD pdwType,
+        _When_(
+            (dwFlags & 0x7F) == RRF_RT_REG_SZ
+            || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
+            || (dwFlags & 0x7F) == (RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ)
+            || *pdwType == REG_SZ
+            || *pdwType == REG_EXPAND_SZ,
+            _Post_z_
+        )
+        _When_(
+            (dwFlags & 0x7F) == RRF_RT_REG_MULTI_SZ
+            || *pdwType == REG_MULTI_SZ,
+            _Post_ _NullNull_terminated_
+        )
+        _Out_writes_bytes_to_opt_(*pcbData, *pcbData) PVOID pvData,
+        _Inout_opt_ LPDWORD pcbData
     ) const noexcept;
 
     /// @}
@@ -329,92 +355,92 @@ public:
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopenkeya
     virtual LSTATUS RegOpenKeyA(
-        HKEY hKey,
-        LPCSTR lpSubKey,
-        PHKEY phkResult
+        _In_ HKEY hKey,
+        _In_opt_ LPCSTR lpSubKey,
+        _Out_ PHKEY phkResult
     ) noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopenkeyw
     LSTATUS RegOpenKeyW(
-        HKEY hKey,
-        LPCWSTR lpSubKey,
-        PHKEY phkResult
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR lpSubKey,
+        _Out_ PHKEY phkResult
     ) noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcreatekeya
     virtual LSTATUS RegCreateKeyA(
-        HKEY hKey,
-        LPCSTR lpSubKey,
-        PHKEY phkResult
+        _In_ HKEY hKey,
+        _In_opt_ LPCSTR lpSubKey,
+        _Out_ PHKEY phkResult
     ) noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcreatekeyw
     LSTATUS RegCreateKeyW(
-        HKEY hKey,
-        LPCWSTR lpSubKey,
-        PHKEY phkResult
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR lpSubKey,
+        _Out_ PHKEY phkResult
     ) noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryvaluea
     virtual LSTATUS RegQueryValueA(
-        HKEY hKey,
-        LPCSTR lpSubKey,
-        LPSTR lpData,
-        PLONG lpcbData
+        _In_ HKEY hKey,
+        _In_opt_ LPCSTR lpSubKey,
+        _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPSTR lpData,
+        _Inout_opt_ PLONG lpcbData
     ) noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryvaluew
     LSTATUS RegQueryValueW(
-        HKEY hKey,
-        LPCWSTR lpSubKey,
-        LPWSTR lpData,
-        PLONG lpcbData
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR lpSubKey,
+        _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPWSTR lpData,
+        _Inout_opt_ PLONG lpcbData
     ) noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetvaluea
     virtual LSTATUS RegSetValueA(
-        HKEY hKey,
-        LPCSTR lpSubKey,
-        DWORD dwType,
-        LPCSTR lpData,
-        DWORD cbData
+        _In_ HKEY hKey,
+        _In_opt_ LPCSTR lpSubKey,
+        _In_ DWORD dwType,
+        _In_reads_bytes_opt_(cbData) LPCSTR lpData,
+        _In_ DWORD cbData
     ) noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetvaluew
     LSTATUS RegSetValueW(
-        HKEY hKey,
-        LPCWSTR lpSubKey,
-        DWORD dwType,
-        LPCWSTR lpData,
-        DWORD cbData
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR lpSubKey,
+        _In_ DWORD dwType,
+        _In_reads_bytes_opt_(cbData) LPCWSTR lpData,
+        _In_ DWORD cbData
     ) noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeya
     virtual LSTATUS RegDeleteKeyA(
-        HKEY hKey,
-        LPCSTR lpSubKey
+        _In_ HKEY hKey,
+        _In_ LPCSTR lpSubKey
     ) noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeyw
     LSTATUS RegDeleteKeyW(
-        HKEY hKey,
-        LPCWSTR lpSubKey
+        _In_ HKEY hKey,
+        _In_ LPCWSTR lpSubKey
     ) noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumkeya
     virtual LSTATUS RegEnumKeyA(
-        HKEY hKey,
-        DWORD dwIndex,
-        LPSTR lpName,
-        DWORD cchName
+        _In_ HKEY hKey,
+        _In_ DWORD dwIndex,
+        _Out_writes_opt_(cchName) LPSTR lpName,
+        _In_ DWORD cchName
     ) const noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumkeyw
     LSTATUS RegEnumKeyW(
-        HKEY hKey,
-        DWORD dwIndex,
-        LPWSTR lpName,
-        DWORD cchName
+        _In_ HKEY hKey,
+        _In_ DWORD dwIndex,
+        _Out_writes_opt_(cchName) LPWSTR lpName,
+        _In_ DWORD cchName
     ) const noexcept;
 
     /// @}
@@ -424,54 +450,54 @@ public:
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetkeyvaluea
     virtual LSTATUS RegSetKeyValueA(
-        HKEY hKey,
-        LPCSTR lpSubKey,
-        LPCSTR lpValueName,
-        DWORD dwType,
-        LPCVOID lpData,
-        DWORD cbData
+        _In_ HKEY hKey,
+        _In_opt_ LPCSTR lpSubKey,
+        _In_opt_ LPCSTR lpValueName,
+        _In_ DWORD dwType,
+        _In_reads_bytes_opt_(cbData) LPCVOID lpData,
+        _In_ DWORD cbData
     ) noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetkeyvaluew
     LSTATUS RegSetKeyValueW(
-        HKEY hKey,
-        LPCWSTR lpSubKey,
-        LPCWSTR lpValueName,
-        DWORD dwType,
-        LPCVOID lpData,
-        DWORD cbData
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR lpSubKey,
+        _In_opt_ LPCWSTR lpValueName,
+        _In_ DWORD dwType,
+        _In_reads_bytes_opt_(cbData) LPCVOID lpData,
+        _In_ DWORD cbData
     ) noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeyvaluea
     virtual LSTATUS RegDeleteKeyValueA(
-        HKEY hKey,
-        LPCSTR lpSubKey,
-        LPCSTR lpValueName
+        _In_ HKEY hKey,
+        _In_opt_ LPCSTR lpSubKey,
+        _In_opt_ LPCSTR lpValueName
     ) noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeyvaluew
     LSTATUS RegDeleteKeyValueW(
-        HKEY hKey,
-        LPCWSTR lpSubKey,
-        LPCWSTR lpValueName
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR lpSubKey,
+        _In_opt_ LPCWSTR lpValueName
     ) noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regquerymultiplevaluesa
     virtual LSTATUS RegQueryMultipleValuesA(
-        HKEY hKey,
-        PVALENTA val_list,
-        DWORD num_vals,
-        LPSTR lpValueBuf,
-        LPDWORD ldwTotsize
+        _In_ HKEY hKey,
+        _Out_writes_(num_vals) PVALENTA val_list,
+        _In_ DWORD num_vals,
+        _Out_writes_bytes_to_opt_(*ldwTotsize, *ldwTotsize) __out_data_source(REGISTRY) LPSTR lpValueBuf,
+        _Inout_opt_ LPDWORD ldwTotsize
     ) const noexcept;
 
     /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regquerymultiplevaluesw
     LSTATUS RegQueryMultipleValuesW(
-        HKEY hKey,
-        PVALENTW val_list,
-        DWORD num_vals,
-        LPWSTR lpValueBuf,
-        LPDWORD ldwTotsize
+        _In_ HKEY hKey,
+        _Out_writes_(num_vals) PVALENTW val_list,
+        _In_ DWORD num_vals,
+        _Out_writes_bytes_to_opt_(*ldwTotsize, *ldwTotsize) __out_data_source(REGISTRY) LPWSTR lpValueBuf,
+        _Inout_opt_ LPDWORD ldwTotsize
     ) const noexcept;
 
     /// @}

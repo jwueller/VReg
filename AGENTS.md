@@ -78,6 +78,18 @@ the API it reimplements. Change them freely before the first release.
   [Supported functions](./README.md#supported-functions) lists
   every `Reg*` function with the same links.
 - Win32-shaped entry points are `noexcept` and return `LSTATUS`.
+- Win32-shaped functions carry the SDK's SAL annotations verbatim
+  (`ulOptions` is `_In_`, since the analyzer rejects the SDK's `_In_opt_` on
+  a value), repeated on every override and definition, because `/analyze`
+  checks a body only against its own annotations and warns when a definition
+  drops them. VReg's own pointer parameters and nullable pointer returns
+  carry SAL too; references, spans and views carry none.
+- A parameter and its annotations share one line, however long, so every
+  parameter reads the same way. Only a long `_When_` condition (the ones on
+  `RegGetValueW`'s `pvData`) spans lines above its parameter, laid out as
+  the IDE formatter lays out a call: `_When_(` at the parameter's indent,
+  one operand per line one level deeper with `||` leading, and `)` back at
+  the parameter's indent.
 - Conversions that return their result are named `YFromX`.
 - Parameter names are never omitted or commented out; an unused one is
   `(void)name;` in the body.

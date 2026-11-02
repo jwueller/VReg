@@ -22,7 +22,7 @@ std::vector<std::byte> Sequence(const int first, const int count)
 
 std::vector<std::byte> Export(
     Registry& registry,
-    const std::wstring_view path,
+    const LPCWSTR pszPath,
     const Format format
 )
 {
@@ -31,7 +31,7 @@ std::vector<std::byte> Export(
         ExportSnapshot(
             registry,
             HKEY_CURRENT_USER,
-            path,
+            pszPath,
             format,
             file
         ) == ERROR_SUCCESS

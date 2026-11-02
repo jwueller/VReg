@@ -44,32 +44,33 @@ LSTATUS MuiTextOf(const Value& value, std::wstring& text)
     return ERROR_SUCCESS;
 }
 
-HKEY Hive::HandleOf(const Node* const pNode) noexcept
+HKEY Hive::HandleOf(_In_ const Node* const pNode) noexcept
 {
     return pNode->hKey;
 }
 
-Node* Hive::NodeOf(const HKEY hKey) noexcept
+_Ret_maybenull_ Node* Hive::NodeOf(const HKEY hKey) noexcept
 {
     return static_cast<Node*>(HandleSpace::Process().Find(hKey));
 }
 
-Hive* Hive::HiveOf(const Node* const pNode) noexcept
+_Ret_notnull_ Hive* Hive::HiveOf(_In_ const Node* const pNode) noexcept
 {
     return pNode->pHive;
 }
 
-Registry* Hive::Lower() const noexcept
+_Ret_maybenull_ Registry* Hive::Lower() const noexcept
 {
     return nullptr;
 }
 
 LSTATUS Hive::OpenLowerValueKey(
-    Node* const pNode,
-    const std::wstring_view name,
+    _In_ Node* const pNode,
+    _In_z_ const LPCWSTR pszName,
     HKEY& hLower
 ) const noexcept
 {
+    const std::wstring_view name(pszName);
     (void)pNode;
     (void)name;
     hLower = nullptr;

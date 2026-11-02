@@ -14,7 +14,7 @@ FileVersion GetFileVersion() noexcept
     };
 }
 
-LPCSTR GetVersion() noexcept
+_Ret_z_ LPCSTR GetVersion() noexcept
 {
     return VREG_VERSION;
 }

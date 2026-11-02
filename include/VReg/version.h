@@ -67,7 +67,7 @@ static_assert(
 /// below their release. A build outside a git checkout, as from a release
 /// archive, is the version alone unless the `VREG_SOURCE_COMMIT` CMake
 /// variable gives the commit.
-[[nodiscard]] LPCSTR GetVersion() noexcept;
+[[nodiscard]] _Ret_z_ LPCSTR GetVersion() noexcept;
 
 /// The numbers of @ref GetVersion, for comparing builds and for version
 /// resources; its revision is 0 for a build outside a git checkout. At build

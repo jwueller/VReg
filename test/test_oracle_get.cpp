@@ -566,7 +566,7 @@ struct LoadMUIStringForms
                 Hive::HiveOf(pNode)->SetMuiTextValue(
                     pNode,
                     L"Indirect",
-                    ResolvedIndirect()
+                    ResolvedIndirect().c_str()
                 ) == ERROR_SUCCESS
             );
         }

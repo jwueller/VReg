@@ -23,18 +23,18 @@ namespace VReg
 LSTATUS QueryValue(
     const Registry& registry,
     HKEY hKey,
-    LPCWSTR lpValueName,
-    LPDWORD lpType,
+    _In_opt_z_ LPCWSTR lpValueName,
+    _Out_opt_ LPDWORD lpType,
     std::vector<std::byte>& data
 ) noexcept;
 
 LSTATUS GetValue(
     const Registry& registry,
     HKEY hKey,
-    LPCWSTR lpSubKey,
-    LPCWSTR lpValue,
+    _In_opt_z_ LPCWSTR lpSubKey,
+    _In_opt_z_ LPCWSTR lpValue,
     DWORD dwFlags,
-    LPDWORD pdwType,
+    _Out_opt_ LPDWORD pdwType,
     std::vector<std::byte>& data
 ) noexcept;
 
@@ -45,8 +45,8 @@ LSTATUS GetValue(
 LSTATUS GetString(
     const Registry& registry,
     HKEY hKey,
-    LPCWSTR lpSubKey,
-    LPCWSTR lpValue,
+    _In_opt_z_ LPCWSTR lpSubKey,
+    _In_opt_z_ LPCWSTR lpValue,
     DWORD dwFlags,
     std::wstring& text
 ) noexcept;
@@ -63,16 +63,16 @@ LSTATUS EnumValue(
     HKEY hKey,
     DWORD dwIndex,
     std::wstring& name,
-    LPDWORD lpType,
-    std::vector<std::byte>* pData
+    _Out_opt_ LPDWORD lpType,
+    _Out_opt_ std::vector<std::byte>* pData
 ) noexcept;
 
 LSTATUS LoadMUIString(
     const Registry& registry,
     HKEY hKey,
-    LPCWSTR pszValue,
+    _In_opt_z_ LPCWSTR pszValue,
     DWORD Flags,
-    LPCWSTR pszDirectory,
+    _In_opt_z_ LPCWSTR pszDirectory,
     std::wstring& text
 ) noexcept;
 } // namespace VReg

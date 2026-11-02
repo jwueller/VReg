@@ -94,14 +94,14 @@ struct ParseError
 LSTATUS Parse(
     std::span<const std::byte> file,
     Script& script,
-    ParseError* pError
+    _Out_opt_ ParseError* pError
 ) noexcept;
 
 /// Reads @p path, then @ref Parse. Failures to read answer the Win32 error.
 LSTATUS ParseFile(
     const std::filesystem::path& path,
     Script& script,
-    ParseError* pError
+    _Out_opt_ ParseError* pError
 ) noexcept;
 
 /**
@@ -114,11 +114,11 @@ LSTATUS ParseFile(
 LSTATUS Apply(
     const Script& script,
     Registry& registry,
-    std::size_t* pFailed
+    _On_failure_(_Out_opt_) std::size_t* pFailed
 ) noexcept;
 
 /**
- * @brief Writes the key @p path below the predefined root @p hRoot and
+ * @brief Writes the key @p pszPath below the predefined root @p hRoot and
  *  everything below it.
  *
  *  Keys and values are sorted ordinal case-insensitive. The output reproduces
@@ -133,7 +133,7 @@ LSTATUS Apply(
 LSTATUS ExportSnapshot(
     Registry& registry,
     HKEY hRoot,
-    std::wstring_view path,
+    _In_z_ LPCWSTR pszPath,
     Format format,
     std::vector<std::byte>& file
 ) noexcept;
@@ -143,7 +143,7 @@ LSTATUS ExportSnapshot(
 LSTATUS ExportSnapshotToFile(
     Registry& registry,
     HKEY hRoot,
-    std::wstring_view path,
+    _In_z_ LPCWSTR pszPath,
     Format format,
     const std::filesystem::path& fileName
 ) noexcept;
@@ -153,7 +153,7 @@ LSTATUS ExportSnapshotToFile(
  *  reproduces the hive's merged view when it is applied over the same lower
  *  registry.
  *
- *  @p hRoot and @p path name where the hive is mounted: key names in the file
+ *  @p hRoot and @p pszPath name where the hive is mounted: key names in the file
  *  are that prefix plus the key's path in the hive. Upper keys are written as
  *  `[key]` with their upper values, a deleted lower value as `"name"=-`, a
  *  deleted lower key as `[-key]`, and a key that hides its lower counterpart as
@@ -168,7 +168,7 @@ LSTATUS ExportSnapshotToFile(
 LSTATUS ExportDelta(
     OverlayHive& hive,
     HKEY hRoot,
-    std::wstring_view path,
+    _In_z_ LPCWSTR pszPath,
     Format format,
     std::vector<std::byte>& file
 ) noexcept;
@@ -178,7 +178,7 @@ LSTATUS ExportDelta(
 LSTATUS ExportDeltaToFile(
     OverlayHive& hive,
     HKEY hRoot,
-    std::wstring_view path,
+    _In_z_ LPCWSTR pszPath,
     Format format,
     const std::filesystem::path& fileName
 ) noexcept;

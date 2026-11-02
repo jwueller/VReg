@@ -53,11 +53,11 @@ NativeRegistry::Functions& NativeRegistry::GetFunctions() noexcept
 }
 
 LSTATUS NativeRegistry::RegOpenKeyExW(
-    const HKEY hKey,
-    const LPCWSTR lpSubKey,
-    const DWORD ulOptions,
-    const REGSAM samDesired,
-    const PHKEY phkResult
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR lpSubKey,
+    _In_ const DWORD ulOptions,
+    _In_ const REGSAM samDesired,
+    _Out_ const PHKEY phkResult
 ) noexcept
 {
     return m_functions.RegOpenKeyExW(
@@ -70,15 +70,15 @@ LSTATUS NativeRegistry::RegOpenKeyExW(
 }
 
 LSTATUS NativeRegistry::RegCreateKeyExW(
-    const HKEY hKey,
-    const LPCWSTR lpSubKey,
-    const DWORD Reserved,
-    const LPWSTR lpClass,
-    const DWORD dwOptions,
-    const REGSAM samDesired,
-    const LPSECURITY_ATTRIBUTES lpSecurityAttributes,
-    const PHKEY phkResult,
-    const LPDWORD lpdwDisposition
+    _In_ const HKEY hKey,
+    _In_ const LPCWSTR lpSubKey,
+    _Reserved_ const DWORD Reserved,
+    _In_opt_ const LPWSTR lpClass,
+    _In_ const DWORD dwOptions,
+    _In_ const REGSAM samDesired,
+    _In_opt_ const LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+    _Out_ const PHKEY phkResult,
+    _Out_opt_ const LPDWORD lpdwDisposition
 ) noexcept
 {
     return m_functions.RegCreateKeyExW(
@@ -95,7 +95,7 @@ LSTATUS NativeRegistry::RegCreateKeyExW(
 }
 
 LSTATUS NativeRegistry::RegCloseKey(
-    const HKEY hKey
+    _In_ const HKEY hKey
 ) noexcept
 {
     return m_functions.RegCloseKey(
@@ -104,12 +104,12 @@ LSTATUS NativeRegistry::RegCloseKey(
 }
 
 LSTATUS NativeRegistry::RegQueryValueExW(
-    const HKEY hKey,
-    const LPCWSTR lpValueName,
-    const LPDWORD lpReserved,
-    const LPDWORD lpType,
-    const LPBYTE lpData,
-    const LPDWORD lpcbData
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR lpValueName,
+    _Reserved_ const LPDWORD lpReserved,
+    _Out_opt_ const LPDWORD lpType,
+    _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) const LPBYTE lpData,
+    _When_(lpData == NULL, _Out_opt_) _When_(lpData != NULL, _Inout_opt_) const LPDWORD lpcbData
 ) const noexcept
 {
     return m_functions.RegQueryValueExW(
@@ -123,12 +123,12 @@ LSTATUS NativeRegistry::RegQueryValueExW(
 }
 
 LSTATUS NativeRegistry::RegSetValueExW(
-    const HKEY hKey,
-    const LPCWSTR lpValueName,
-    const DWORD Reserved,
-    const DWORD dwType,
-    const BYTE* const lpData,
-    const DWORD cbData
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR lpValueName,
+    _Reserved_ const DWORD Reserved,
+    _In_ const DWORD dwType,
+    _In_reads_bytes_opt_(cbData) const BYTE* const lpData,
+    _In_ const DWORD cbData
 ) noexcept
 {
     return m_functions.RegSetValueExW(
@@ -142,8 +142,8 @@ LSTATUS NativeRegistry::RegSetValueExW(
 }
 
 LSTATUS NativeRegistry::RegDeleteValueW(
-    const HKEY hKey,
-    const LPCWSTR lpValueName
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR lpValueName
 ) noexcept
 {
     return m_functions.RegDeleteValueW(
@@ -153,10 +153,10 @@ LSTATUS NativeRegistry::RegDeleteValueW(
 }
 
 LSTATUS NativeRegistry::RegDeleteKeyExW(
-    const HKEY hKey,
-    const LPCWSTR lpSubKey,
-    const REGSAM samDesired,
-    const DWORD Reserved
+    _In_ const HKEY hKey,
+    _In_ const LPCWSTR lpSubKey,
+    _In_ const REGSAM samDesired,
+    _Reserved_ const DWORD Reserved
 ) noexcept
 {
     return m_functions.RegDeleteKeyExW(
@@ -168,8 +168,8 @@ LSTATUS NativeRegistry::RegDeleteKeyExW(
 }
 
 LSTATUS NativeRegistry::RegDeleteTreeW(
-    const HKEY hKey,
-    const LPCWSTR lpSubKey
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR lpSubKey
 ) noexcept
 {
     return m_functions.RegDeleteTreeW(
@@ -179,14 +179,14 @@ LSTATUS NativeRegistry::RegDeleteTreeW(
 }
 
 LSTATUS NativeRegistry::RegEnumKeyExW(
-    const HKEY hKey,
-    const DWORD dwIndex,
-    const LPWSTR lpName,
-    const LPDWORD lpcchName,
-    const LPDWORD lpReserved,
-    const LPWSTR lpClass,
-    const LPDWORD lpcchClass,
-    const PFILETIME lpftLastWriteTime
+    _In_ const HKEY hKey,
+    _In_ const DWORD dwIndex,
+    _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) const LPWSTR lpName,
+    _Inout_ const LPDWORD lpcchName,
+    _Reserved_ const LPDWORD lpReserved,
+    _Out_writes_to_opt_(*lpcchClass,*lpcchClass + 1) const LPWSTR lpClass,
+    _Inout_opt_ const LPDWORD lpcchClass,
+    _Out_opt_ const PFILETIME lpftLastWriteTime
 ) const noexcept
 {
     return m_functions.RegEnumKeyExW(
@@ -202,14 +202,14 @@ LSTATUS NativeRegistry::RegEnumKeyExW(
 }
 
 LSTATUS NativeRegistry::RegEnumValueW(
-    const HKEY hKey,
-    const DWORD dwIndex,
-    const LPWSTR lpValueName,
-    const LPDWORD lpcchValueName,
-    const LPDWORD lpReserved,
-    const LPDWORD lpType,
-    const LPBYTE lpData,
-    const LPDWORD lpcbData
+    _In_ const HKEY hKey,
+    _In_ const DWORD dwIndex,
+    _Out_writes_to_opt_(*lpcchValueName, *lpcchValueName + 1) const LPWSTR lpValueName,
+    _Inout_ const LPDWORD lpcchValueName,
+    _Reserved_ const LPDWORD lpReserved,
+    _Out_opt_ const LPDWORD lpType,
+    _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) const LPBYTE lpData,
+    _Inout_opt_ const LPDWORD lpcbData
 ) const noexcept
 {
     return m_functions.RegEnumValueW(
@@ -225,18 +225,18 @@ LSTATUS NativeRegistry::RegEnumValueW(
 }
 
 LSTATUS NativeRegistry::RegQueryInfoKeyW(
-    const HKEY hKey,
-    const LPWSTR lpClass,
-    const LPDWORD lpcchClass,
-    const LPDWORD lpReserved,
-    const LPDWORD lpcSubKeys,
-    const LPDWORD lpcbMaxSubKeyLen,
-    const LPDWORD lpcbMaxClassLen,
-    const LPDWORD lpcValues,
-    const LPDWORD lpcbMaxValueNameLen,
-    const LPDWORD lpcbMaxValueLen,
-    const LPDWORD lpcbSecurityDescriptor,
-    const PFILETIME lpftLastWriteTime
+    _In_ const HKEY hKey,
+    _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) const LPWSTR lpClass,
+    _Inout_opt_ const LPDWORD lpcchClass,
+    _Reserved_ const LPDWORD lpReserved,
+    _Out_opt_ const LPDWORD lpcSubKeys,
+    _Out_opt_ const LPDWORD lpcbMaxSubKeyLen,
+    _Out_opt_ const LPDWORD lpcbMaxClassLen,
+    _Out_opt_ const LPDWORD lpcValues,
+    _Out_opt_ const LPDWORD lpcbMaxValueNameLen,
+    _Out_opt_ const LPDWORD lpcbMaxValueLen,
+    _Out_opt_ const LPDWORD lpcbSecurityDescriptor,
+    _Out_opt_ const PFILETIME lpftLastWriteTime
 ) const noexcept
 {
     return m_functions.RegQueryInfoKeyW(
@@ -256,13 +256,13 @@ LSTATUS NativeRegistry::RegQueryInfoKeyW(
 }
 
 LSTATUS NativeRegistry::RegLoadMUIStringW(
-    const HKEY hKey,
-    const LPCWSTR pszValue,
-    const LPWSTR pszOutBuf,
-    const DWORD cbOutBuf,
-    const LPDWORD pcbData,
-    const DWORD Flags,
-    const LPCWSTR pszDirectory
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR pszValue,
+    _Out_writes_bytes_opt_(cbOutBuf) const LPWSTR pszOutBuf,
+    _In_ const DWORD cbOutBuf,
+    _Out_opt_ const LPDWORD pcbData,
+    _In_ const DWORD Flags,
+    _In_opt_ const LPCWSTR pszDirectory
 ) const noexcept
 {
     return m_functions.RegLoadMUIStringW(
@@ -276,14 +276,30 @@ LSTATUS NativeRegistry::RegLoadMUIStringW(
     );
 }
 
+// The SDK's _Post_z_ holds on every return, truncated reads and failures
+// included; the analyzer cannot see the terminators written at run time.
+#pragma warning(suppress: 6054)
 LSTATUS NativeRegistry::RegGetValueW(
-    const HKEY hkey,
-    const LPCWSTR lpSubKey,
-    const LPCWSTR lpValue,
-    const DWORD dwFlags,
-    const LPDWORD pdwType,
-    const PVOID pvData,
-    const LPDWORD pcbData
+    _In_ const HKEY hkey,
+    _In_opt_ const LPCWSTR lpSubKey,
+    _In_opt_ const LPCWSTR lpValue,
+    _In_ const DWORD dwFlags,
+    _Out_opt_ const LPDWORD pdwType,
+    _When_(
+        (dwFlags & 0x7F) == RRF_RT_REG_SZ
+        || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
+        || (dwFlags & 0x7F) == (RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ)
+        || *pdwType == REG_SZ
+        || *pdwType == REG_EXPAND_SZ,
+        _Post_z_
+    )
+    _When_(
+        (dwFlags & 0x7F) == RRF_RT_REG_MULTI_SZ
+        || *pdwType == REG_MULTI_SZ,
+        _Post_ _NullNull_terminated_
+    )
+    _Out_writes_bytes_to_opt_(*pcbData, *pcbData) const PVOID pvData,
+    _Inout_opt_ const LPDWORD pcbData
 ) const noexcept
 {
     return m_functions.RegGetValueW(
@@ -298,11 +314,11 @@ LSTATUS NativeRegistry::RegGetValueW(
 }
 
 LSTATUS NativeRegistry::RegNotifyChangeKeyValue(
-    const HKEY hKey,
-    const BOOL bWatchSubtree,
-    const DWORD dwNotifyFilter,
-    const HANDLE hEvent,
-    const BOOL fAsynchronous
+    _In_ const HKEY hKey,
+    _In_ const BOOL bWatchSubtree,
+    _In_ const DWORD dwNotifyFilter,
+    _In_opt_ const HANDLE hEvent,
+    _In_ const BOOL fAsynchronous
 ) noexcept
 {
     return m_functions.RegNotifyChangeKeyValue(
@@ -315,7 +331,7 @@ LSTATUS NativeRegistry::RegNotifyChangeKeyValue(
 }
 
 LSTATUS NativeRegistry::RegFlushKey(
-    const HKEY hKey
+    _In_ const HKEY hKey
 ) noexcept
 {
     return m_functions.RegFlushKey(

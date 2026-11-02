@@ -27,11 +27,11 @@ public:
     std::function<void(const std::string&)> onCall;
 
     LSTATUS RegOpenKeyExW(
-        HKEY hKey,
-        LPCWSTR lpSubKey,
-        DWORD ulOptions,
-        REGSAM samDesired,
-        PHKEY phkResult
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR lpSubKey,
+        _In_ DWORD ulOptions,
+        _In_ REGSAM samDesired,
+        _Out_ PHKEY phkResult
     ) noexcept override
     {
         if (const auto status = Enter("RegOpenKeyExW"))
@@ -46,15 +46,15 @@ public:
     }
 
     LSTATUS RegCreateKeyExW(
-        HKEY hKey,
-        LPCWSTR lpSubKey,
-        DWORD Reserved,
-        LPWSTR lpClass,
-        DWORD dwOptions,
-        REGSAM samDesired,
-        LPSECURITY_ATTRIBUTES lpSecurityAttributes,
-        PHKEY phkResult,
-        LPDWORD lpdwDisposition
+        _In_ HKEY hKey,
+        _In_ LPCWSTR lpSubKey,
+        _Reserved_ DWORD Reserved,
+        _In_opt_ LPWSTR lpClass,
+        _In_ DWORD dwOptions,
+        _In_ REGSAM samDesired,
+        _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+        _Out_ PHKEY phkResult,
+        _Out_opt_ LPDWORD lpdwDisposition
     ) noexcept override
     {
         if (const auto status = Enter("RegCreateKeyExW"))
@@ -73,7 +73,7 @@ public:
     }
 
     LSTATUS RegCloseKey(
-        HKEY hKey
+        _In_ HKEY hKey
     ) noexcept override
     {
         return m_inner.RegCloseKey(
@@ -82,12 +82,12 @@ public:
     }
 
     LSTATUS RegQueryValueExW(
-        HKEY hKey,
-        LPCWSTR lpValueName,
-        LPDWORD lpReserved,
-        LPDWORD lpType,
-        LPBYTE lpData,
-        LPDWORD lpcbData
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR lpValueName,
+        _Reserved_ LPDWORD lpReserved,
+        _Out_opt_ LPDWORD lpType,
+        _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPBYTE lpData,
+        _When_(lpData == NULL, _Out_opt_) _When_(lpData != NULL, _Inout_opt_) LPDWORD lpcbData
     ) const noexcept override
     {
         if (const auto status = Enter("RegQueryValueExW"))
@@ -103,12 +103,12 @@ public:
     }
 
     LSTATUS RegSetValueExW(
-        HKEY hKey,
-        LPCWSTR lpValueName,
-        DWORD Reserved,
-        DWORD dwType,
-        const BYTE* lpData,
-        DWORD cbData
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR lpValueName,
+        _Reserved_ DWORD Reserved,
+        _In_ DWORD dwType,
+        _In_reads_bytes_opt_(cbData) const BYTE* lpData,
+        _In_ DWORD cbData
     ) noexcept override
     {
         if (const auto status = Enter("RegSetValueExW"))
@@ -124,8 +124,8 @@ public:
     }
 
     LSTATUS RegDeleteValueW(
-        HKEY hKey,
-        LPCWSTR lpValueName
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR lpValueName
     ) noexcept override
     {
         if (const auto status = Enter("RegDeleteValueW"))
@@ -137,10 +137,10 @@ public:
     }
 
     LSTATUS RegDeleteKeyExW(
-        HKEY hKey,
-        LPCWSTR lpSubKey,
-        REGSAM samDesired,
-        DWORD Reserved
+        _In_ HKEY hKey,
+        _In_ LPCWSTR lpSubKey,
+        _In_ REGSAM samDesired,
+        _Reserved_ DWORD Reserved
     ) noexcept override
     {
         if (const auto status = Enter("RegDeleteKeyExW"))
@@ -154,8 +154,8 @@ public:
     }
 
     LSTATUS RegDeleteTreeW(
-        HKEY hKey,
-        LPCWSTR lpSubKey
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR lpSubKey
     ) noexcept override
     {
         if (const auto status = Enter("RegDeleteTreeW"))
@@ -167,14 +167,14 @@ public:
     }
 
     LSTATUS RegEnumKeyExW(
-        HKEY hKey,
-        DWORD dwIndex,
-        LPWSTR lpName,
-        LPDWORD lpcchName,
-        LPDWORD lpReserved,
-        LPWSTR lpClass,
-        LPDWORD lpcchClass,
-        PFILETIME lpftLastWriteTime
+        _In_ HKEY hKey,
+        _In_ DWORD dwIndex,
+        _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) LPWSTR lpName,
+        _Inout_ LPDWORD lpcchName,
+        _Reserved_ LPDWORD lpReserved,
+        _Out_writes_to_opt_(*lpcchClass,*lpcchClass + 1) LPWSTR lpClass,
+        _Inout_opt_ LPDWORD lpcchClass,
+        _Out_opt_ PFILETIME lpftLastWriteTime
     ) const noexcept override
     {
         if (const auto status = Enter("RegEnumKeyExW"))
@@ -192,14 +192,14 @@ public:
     }
 
     LSTATUS RegEnumValueW(
-        HKEY hKey,
-        DWORD dwIndex,
-        LPWSTR lpValueName,
-        LPDWORD lpcchValueName,
-        LPDWORD lpReserved,
-        LPDWORD lpType,
-        LPBYTE lpData,
-        LPDWORD lpcbData
+        _In_ HKEY hKey,
+        _In_ DWORD dwIndex,
+        _Out_writes_to_opt_(*lpcchValueName, *lpcchValueName + 1) LPWSTR lpValueName,
+        _Inout_ LPDWORD lpcchValueName,
+        _Reserved_ LPDWORD lpReserved,
+        _Out_opt_ LPDWORD lpType,
+        _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPBYTE lpData,
+        _Inout_opt_ LPDWORD lpcbData
     ) const noexcept override
     {
         if (const auto status = Enter("RegEnumValueW"))
@@ -217,18 +217,18 @@ public:
     }
 
     LSTATUS RegQueryInfoKeyW(
-        HKEY hKey,
-        LPWSTR lpClass,
-        LPDWORD lpcchClass,
-        LPDWORD lpReserved,
-        LPDWORD lpcSubKeys,
-        LPDWORD lpcbMaxSubKeyLen,
-        LPDWORD lpcbMaxClassLen,
-        LPDWORD lpcValues,
-        LPDWORD lpcbMaxValueNameLen,
-        LPDWORD lpcbMaxValueLen,
-        LPDWORD lpcbSecurityDescriptor,
-        PFILETIME lpftLastWriteTime
+        _In_ HKEY hKey,
+        _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) LPWSTR lpClass,
+        _Inout_opt_ LPDWORD lpcchClass,
+        _Reserved_ LPDWORD lpReserved,
+        _Out_opt_ LPDWORD lpcSubKeys,
+        _Out_opt_ LPDWORD lpcbMaxSubKeyLen,
+        _Out_opt_ LPDWORD lpcbMaxClassLen,
+        _Out_opt_ LPDWORD lpcValues,
+        _Out_opt_ LPDWORD lpcbMaxValueNameLen,
+        _Out_opt_ LPDWORD lpcbMaxValueLen,
+        _Out_opt_ LPDWORD lpcbSecurityDescriptor,
+        _Out_opt_ PFILETIME lpftLastWriteTime
     ) const noexcept override
     {
         if (const auto status = Enter("RegQueryInfoKeyW"))
@@ -250,13 +250,13 @@ public:
     }
 
     LSTATUS RegLoadMUIStringW(
-        HKEY hKey,
-        LPCWSTR pszValue,
-        LPWSTR pszOutBuf,
-        DWORD cbOutBuf,
-        LPDWORD pcbData,
-        DWORD Flags,
-        LPCWSTR pszDirectory
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR pszValue,
+        _Out_writes_bytes_opt_(cbOutBuf) LPWSTR pszOutBuf,
+        _In_ DWORD cbOutBuf,
+        _Out_opt_ LPDWORD pcbData,
+        _In_ DWORD Flags,
+        _In_opt_ LPCWSTR pszDirectory
     ) const noexcept override
     {
         if (const auto status = Enter("RegLoadMUIStringW"))
@@ -273,13 +273,26 @@ public:
     }
 
     LSTATUS RegGetValueW(
-        HKEY hkey,
-        LPCWSTR lpSubKey,
-        LPCWSTR lpValue,
-        DWORD dwFlags,
-        LPDWORD pdwType,
-        PVOID pvData,
-        LPDWORD pcbData
+        _In_ HKEY hkey,
+        _In_opt_ LPCWSTR lpSubKey,
+        _In_opt_ LPCWSTR lpValue,
+        _In_ DWORD dwFlags,
+        _Out_opt_ LPDWORD pdwType,
+        _When_(
+            (dwFlags & 0x7F) == RRF_RT_REG_SZ
+            || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
+            || (dwFlags & 0x7F) == (RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ)
+            || *pdwType == REG_SZ
+            || *pdwType == REG_EXPAND_SZ,
+            _Post_z_
+        )
+        _When_(
+            (dwFlags & 0x7F) == RRF_RT_REG_MULTI_SZ
+            || *pdwType == REG_MULTI_SZ,
+            _Post_ _NullNull_terminated_
+        )
+        _Out_writes_bytes_to_opt_(*pcbData, *pcbData) PVOID pvData,
+        _Inout_opt_ LPDWORD pcbData
     ) const noexcept override
     {
         if (const auto status = Enter("RegGetValueW"))
@@ -296,13 +309,26 @@ public:
     }
 
     LSTATUS RegGetValueA(
-        HKEY hkey,
-        LPCSTR lpSubKey,
-        LPCSTR lpValue,
-        DWORD dwFlags,
-        LPDWORD pdwType,
-        PVOID pvData,
-        LPDWORD pcbData
+        _In_ HKEY hkey,
+        _In_opt_ LPCSTR lpSubKey,
+        _In_opt_ LPCSTR lpValue,
+        _In_ DWORD dwFlags,
+        _Out_opt_ LPDWORD pdwType,
+        _When_(
+            (dwFlags & 0x7F) == RRF_RT_REG_SZ
+            || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
+            || (dwFlags & 0x7F) == (RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ)
+            || *pdwType == REG_SZ
+            || *pdwType == REG_EXPAND_SZ,
+            _Post_z_
+        )
+        _When_(
+            (dwFlags & 0x7F) == RRF_RT_REG_MULTI_SZ
+            || *pdwType == REG_MULTI_SZ,
+            _Post_ _NullNull_terminated_
+        )
+        _Out_writes_bytes_to_opt_(*pcbData, *pcbData) PVOID pvData,
+        _Inout_opt_ LPDWORD pcbData
     ) const noexcept override
     {
         if (const auto status = Enter("RegGetValueA"))
@@ -319,11 +345,11 @@ public:
     }
 
     LSTATUS RegNotifyChangeKeyValue(
-        HKEY hKey,
-        BOOL bWatchSubtree,
-        DWORD dwNotifyFilter,
-        HANDLE hEvent,
-        BOOL fAsynchronous
+        _In_ HKEY hKey,
+        _In_ BOOL bWatchSubtree,
+        _In_ DWORD dwNotifyFilter,
+        _In_opt_ HANDLE hEvent,
+        _In_ BOOL fAsynchronous
     ) noexcept override
     {
         if (const auto status = Enter("RegNotifyChangeKeyValue"))
@@ -338,7 +364,7 @@ public:
     }
 
     LSTATUS RegFlushKey(
-        HKEY hKey
+        _In_ HKEY hKey
     ) noexcept override
     {
         if (const auto status = Enter("RegFlushKey"))

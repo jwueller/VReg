@@ -465,7 +465,7 @@ TEST_CASE("Mount rejects what cannot be mounted")
     CHECK(
         registry.Mount(
             HKEY_CURRENT_USER,
-            std::wstring(300, L'k'),
+            std::wstring(300, L'k').c_str(),
             hive
         ) == ERROR_BAD_PATHNAME
     );
@@ -1355,7 +1355,7 @@ TEST_CASE("A real key above a mount reaches it through the real NtQueryKey")
         L"VRegNativePathTest-{}",
         GetCurrentProcessId()
     );
-    REQUIRE(registry.Mount(HKEY_CURRENT_USER, name, hive) == ERROR_SUCCESS);
+    REQUIRE(registry.Mount(HKEY_CURRENT_USER, name.c_str(), hive) == ERROR_SUCCESS);
     const HKEY hSub = CreateKey(
         registry,
         HKEY_CURRENT_USER,

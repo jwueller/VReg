@@ -33,6 +33,9 @@ struct Emulated<LSTATUS(APIENTRY*)(Args...), Member>
 {
     static LSTATUS APIENTRY Body(Args... args) noexcept
     {
+        // The arguments reach the registry as the caller passed them, a nonzero
+        // _Reserved_ one included; the registry answers what native answers.
+#pragma warning(suppress: 6388)
         return (g_pRegistry.load(std::memory_order_acquire)->*Member)(args...);
     }
 };

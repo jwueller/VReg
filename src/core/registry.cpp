@@ -73,15 +73,17 @@ bool CopyAnsiClass(
 } // namespace
 
 LSTATUS Registry::RegOpenKeyExA(
-    const HKEY hKey,
-    const LPCSTR lpSubKey,
-    const DWORD ulOptions,
-    const REGSAM samDesired,
-    const PHKEY phkResult
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCSTR lpSubKey,
+    _In_ const DWORD ulOptions,
+    _In_ const REGSAM samDesired,
+    _Out_ const PHKEY phkResult
 ) noexcept
 try
 {
     const WideArg subKey(lpSubKey);
+    // Deliberately reads the _Out_ parameter, to restore it below.
+#pragma warning(suppress: 6001)
     const HKEY hPrevious = phkResult ? *phkResult : nullptr;
     const auto status = RegOpenKeyExW(
         hKey,
@@ -102,20 +104,22 @@ catch (...)
 }
 
 LSTATUS Registry::RegCreateKeyExA(
-    const HKEY hKey,
-    const LPCSTR lpSubKey,
-    const DWORD Reserved,
-    const LPSTR lpClass,
-    const DWORD dwOptions,
-    const REGSAM samDesired,
-    const LPSECURITY_ATTRIBUTES lpSecurityAttributes,
-    const PHKEY phkResult,
-    const LPDWORD lpdwDisposition
+    _In_ const HKEY hKey,
+    _In_ const LPCSTR lpSubKey,
+    _Reserved_ const DWORD Reserved,
+    _In_opt_ const LPSTR lpClass,
+    _In_ const DWORD dwOptions,
+    _In_ const REGSAM samDesired,
+    _In_opt_ const LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+    _Out_ const PHKEY phkResult,
+    _Out_opt_ const LPDWORD lpdwDisposition
 ) noexcept
 try
 {
     const WideArg subKey(lpSubKey);
     WideArg className(lpClass);
+    // Deliberately reads the _Out_ parameter, to restore it below.
+#pragma warning(suppress: 6001)
     const HKEY hPrevious = phkResult ? *phkResult : nullptr;
     const auto status = RegCreateKeyExW(
         hKey,
@@ -138,12 +142,12 @@ catch (...)
 }
 
 LSTATUS Registry::RegQueryValueExA(
-    const HKEY hKey,
-    const LPCSTR lpValueName,
-    const LPDWORD lpReserved,
-    const LPDWORD lpType,
-    const LPBYTE lpData,
-    const LPDWORD lpcbData
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCSTR lpValueName,
+    _Reserved_ const LPDWORD lpReserved,
+    _Out_opt_ const LPDWORD lpType,
+    _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) const LPBYTE lpData,
+    _When_(lpData == NULL, _Out_opt_) _When_(lpData != NULL, _Inout_opt_) const LPDWORD lpcbData
 ) const noexcept
 try
 {
@@ -161,6 +165,8 @@ try
             nullptr
         );
 
+    // Deliberately reads the _Out_ parameter: a failure below writes it back.
+#pragma warning(suppress: 6001)
     DWORD dwType = lpType ? *lpType : 0;
     DWORD cbSize = (!lpData && lpcbData) ? *lpcbData : 0;
     const auto sized = RegQueryValueExW(
@@ -242,12 +248,12 @@ catch (...)
 }
 
 LSTATUS Registry::RegSetValueExA(
-    const HKEY hKey,
-    const LPCSTR lpValueName,
-    const DWORD Reserved,
-    const DWORD dwType,
-    const BYTE* const lpData,
-    const DWORD cbData
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCSTR lpValueName,
+    _Reserved_ const DWORD Reserved,
+    _In_ const DWORD dwType,
+    _In_reads_bytes_opt_(cbData) const BYTE* const lpData,
+    _In_ const DWORD cbData
 ) noexcept
 try
 {
@@ -288,8 +294,8 @@ catch (...)
 }
 
 LSTATUS Registry::RegDeleteValueA(
-    const HKEY hKey,
-    const LPCSTR lpValueName
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCSTR lpValueName
 ) noexcept
 try
 {
@@ -305,10 +311,10 @@ catch (...)
 }
 
 LSTATUS Registry::RegDeleteKeyExA(
-    const HKEY hKey,
-    const LPCSTR lpSubKey,
-    const REGSAM samDesired,
-    const DWORD Reserved
+    _In_ const HKEY hKey,
+    _In_ const LPCSTR lpSubKey,
+    _In_ const REGSAM samDesired,
+    _Reserved_ const DWORD Reserved
 ) noexcept
 try
 {
@@ -326,8 +332,8 @@ catch (...)
 }
 
 LSTATUS Registry::RegDeleteTreeA(
-    const HKEY hKey,
-    const LPCSTR lpSubKey
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCSTR lpSubKey
 ) noexcept
 try
 {
@@ -343,14 +349,14 @@ catch (...)
 }
 
 LSTATUS Registry::RegEnumKeyExA(
-    const HKEY hKey,
-    const DWORD dwIndex,
-    const LPSTR lpName,
-    const LPDWORD lpcchName,
-    const LPDWORD lpReserved,
-    const LPSTR lpClass,
-    const LPDWORD lpcchClass,
-    const PFILETIME lpftLastWriteTime
+    _In_ const HKEY hKey,
+    _In_ const DWORD dwIndex,
+    _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) const LPSTR lpName,
+    _Inout_ const LPDWORD lpcchName,
+    _Reserved_ const LPDWORD lpReserved,
+    _Out_writes_to_opt_(*lpcchClass,*lpcchClass + 1) const LPSTR lpClass,
+    _Inout_opt_ const LPDWORD lpcchClass,
+    _Out_opt_ const PFILETIME lpftLastWriteTime
 ) const noexcept
 try
 {
@@ -427,14 +433,14 @@ catch (...)
 }
 
 LSTATUS Registry::RegEnumValueA(
-    const HKEY hKey,
-    const DWORD dwIndex,
-    const LPSTR lpValueName,
-    const LPDWORD lpcchValueName,
-    const LPDWORD lpReserved,
-    const LPDWORD lpType,
-    const LPBYTE lpData,
-    const LPDWORD lpcbData
+    _In_ const HKEY hKey,
+    _In_ const DWORD dwIndex,
+    _Out_writes_to_opt_(*lpcchValueName, *lpcchValueName + 1) const LPSTR lpValueName,
+    _Inout_ const LPDWORD lpcchValueName,
+    _Reserved_ const LPDWORD lpReserved,
+    _Out_opt_ const LPDWORD lpType,
+    _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) const LPBYTE lpData,
+    _Inout_opt_ const LPDWORD lpcbData
 ) const noexcept
 try
 {
@@ -500,6 +506,9 @@ try
             if (cbValue > 0)
             {
                 std::memcpy(lpData, text.data(), cbValue);
+                // The capacity is the caller's *lpcbData, which was overwritten
+                // above; cbBuffer holds it.
+#pragma warning(suppress: 6386)
                 if (cbValue < cbBuffer && lpData[cbValue - 1] != 0)
                     lpData[cbValue] = 0;
             }
@@ -520,19 +529,22 @@ catch (...)
     return StatusFromException();
 }
 
+// Native answers success without writing lpClass when only the class length is
+// asked for, which the annotation's terminator guarantee does not allow for.
+#pragma warning(suppress: 6054)
 LSTATUS Registry::RegQueryInfoKeyA(
-    const HKEY hKey,
-    const LPSTR lpClass,
-    const LPDWORD lpcchClass,
-    const LPDWORD lpReserved,
-    const LPDWORD lpcSubKeys,
-    const LPDWORD lpcbMaxSubKeyLen,
-    const LPDWORD lpcbMaxClassLen,
-    const LPDWORD lpcValues,
-    const LPDWORD lpcbMaxValueNameLen,
-    const LPDWORD lpcbMaxValueLen,
-    const LPDWORD lpcbSecurityDescriptor,
-    const PFILETIME lpftLastWriteTime
+    _In_ const HKEY hKey,
+    _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) const LPSTR lpClass,
+    _Inout_opt_ const LPDWORD lpcchClass,
+    _Reserved_ const LPDWORD lpReserved,
+    _Out_opt_ const LPDWORD lpcSubKeys,
+    _Out_opt_ const LPDWORD lpcbMaxSubKeyLen,
+    _Out_opt_ const LPDWORD lpcbMaxClassLen,
+    _Out_opt_ const LPDWORD lpcValues,
+    _Out_opt_ const LPDWORD lpcbMaxValueNameLen,
+    _Out_opt_ const LPDWORD lpcbMaxValueLen,
+    _Out_opt_ const LPDWORD lpcbSecurityDescriptor,
+    _Out_opt_ const PFILETIME lpftLastWriteTime
 ) const noexcept
 try
 {
@@ -620,13 +632,13 @@ catch (...)
 }
 
 LSTATUS Registry::RegLoadMUIStringA(
-    const HKEY hKey,
-    const LPCSTR pszValue,
-    const LPSTR pszOutBuf,
-    const DWORD cbOutBuf,
-    const LPDWORD pcbData,
-    const DWORD Flags,
-    const LPCSTR pszDirectory
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCSTR pszValue,
+    _Out_writes_bytes_opt_(cbOutBuf) const LPSTR pszOutBuf,
+    _In_ const DWORD cbOutBuf,
+    _Out_opt_ const LPDWORD pcbData,
+    _In_ const DWORD Flags,
+    _In_opt_ const LPCSTR pszDirectory
 ) const noexcept
 {
     (void)hKey;
@@ -639,14 +651,30 @@ LSTATUS Registry::RegLoadMUIStringA(
     return ERROR_CALL_NOT_IMPLEMENTED;
 }
 
+// The SDK's _Post_z_ holds on every return, truncated reads and failures
+// included; the analyzer cannot see the terminators written at run time.
+#pragma warning(suppress: 6054)
 LSTATUS Registry::RegGetValueA(
-    const HKEY hkey,
-    const LPCSTR lpSubKey,
-    const LPCSTR lpValue,
-    const DWORD dwFlags,
-    const LPDWORD pdwType,
-    const PVOID pvData,
-    const LPDWORD pcbData
+    _In_ const HKEY hkey,
+    _In_opt_ const LPCSTR lpSubKey,
+    _In_opt_ const LPCSTR lpValue,
+    _In_ const DWORD dwFlags,
+    _Out_opt_ const LPDWORD pdwType,
+    _When_(
+        (dwFlags & 0x7F) == RRF_RT_REG_SZ
+        || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
+        || (dwFlags & 0x7F) == (RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ)
+        || *pdwType == REG_SZ
+        || *pdwType == REG_EXPAND_SZ,
+        _Post_z_
+    )
+    _When_(
+        (dwFlags & 0x7F) == RRF_RT_REG_MULTI_SZ
+        || *pdwType == REG_MULTI_SZ,
+        _Post_ _NullNull_terminated_
+    )
+    _Out_writes_bytes_to_opt_(*pcbData, *pcbData) const PVOID pvData,
+    _Inout_opt_ const LPDWORD pcbData
 ) const noexcept
 try
 {
@@ -901,9 +929,9 @@ catch (...)
 }
 
 LSTATUS Registry::RegOpenKeyA(
-    const HKEY hKey,
-    const LPCSTR lpSubKey,
-    const PHKEY phkResult
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCSTR lpSubKey,
+    _Out_ const PHKEY phkResult
 ) noexcept
 {
     if (!phkResult)
@@ -923,9 +951,9 @@ LSTATUS Registry::RegOpenKeyA(
 }
 
 LSTATUS Registry::RegOpenKeyW(
-    const HKEY hKey,
-    const LPCWSTR lpSubKey,
-    const PHKEY phkResult
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR lpSubKey,
+    _Out_ const PHKEY phkResult
 ) noexcept
 {
     if (!phkResult)
@@ -945,9 +973,9 @@ LSTATUS Registry::RegOpenKeyW(
 }
 
 LSTATUS Registry::RegCreateKeyA(
-    const HKEY hKey,
-    const LPCSTR lpSubKey,
-    const PHKEY phkResult
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCSTR lpSubKey,
+    _Out_ const PHKEY phkResult
 ) noexcept
 {
     if (!phkResult)
@@ -973,9 +1001,9 @@ LSTATUS Registry::RegCreateKeyA(
 }
 
 LSTATUS Registry::RegCreateKeyW(
-    const HKEY hKey,
-    const LPCWSTR lpSubKey,
-    const PHKEY phkResult
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR lpSubKey,
+    _Out_ const PHKEY phkResult
 ) noexcept
 {
     if (!phkResult)
@@ -1001,10 +1029,10 @@ LSTATUS Registry::RegCreateKeyW(
 }
 
 LSTATUS Registry::RegQueryValueA(
-    const HKEY hKey,
-    const LPCSTR lpSubKey,
-    const LPSTR lpData,
-    const PLONG lpcbData
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCSTR lpSubKey,
+    _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) const LPSTR lpData,
+    _Inout_opt_ const PLONG lpcbData
 ) noexcept
 {
     HKEY hSubKey = hKey;
@@ -1047,10 +1075,10 @@ LSTATUS Registry::RegQueryValueA(
 }
 
 LSTATUS Registry::RegQueryValueW(
-    const HKEY hKey,
-    const LPCWSTR lpSubKey,
-    const LPWSTR lpData,
-    const PLONG lpcbData
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR lpSubKey,
+    _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) const LPWSTR lpData,
+    _Inout_opt_ const PLONG lpcbData
 ) noexcept
 {
     HKEY hSubKey = hKey;
@@ -1093,11 +1121,11 @@ LSTATUS Registry::RegQueryValueW(
 }
 
 LSTATUS Registry::RegSetValueA(
-    const HKEY hKey,
-    const LPCSTR lpSubKey,
-    const DWORD dwType,
-    const LPCSTR lpData,
-    const DWORD cbData
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCSTR lpSubKey,
+    _In_ const DWORD dwType,
+    _In_reads_bytes_opt_(cbData) const LPCSTR lpData,
+    _In_ const DWORD cbData
 ) noexcept
 {
     // Native ignores the size and stores the string's own length.
@@ -1133,11 +1161,11 @@ LSTATUS Registry::RegSetValueA(
 }
 
 LSTATUS Registry::RegSetValueW(
-    const HKEY hKey,
-    const LPCWSTR lpSubKey,
-    const DWORD dwType,
-    const LPCWSTR lpData,
-    const DWORD cbData
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR lpSubKey,
+    _In_ const DWORD dwType,
+    _In_reads_bytes_opt_(cbData) const LPCWSTR lpData,
+    _In_ const DWORD cbData
 ) noexcept
 {
     // Native ignores the size and stores the string's own length.
@@ -1173,8 +1201,8 @@ LSTATUS Registry::RegSetValueW(
 }
 
 LSTATUS Registry::RegDeleteKeyA(
-    const HKEY hKey,
-    const LPCSTR lpSubKey
+    _In_ const HKEY hKey,
+    _In_ const LPCSTR lpSubKey
 ) noexcept
 {
     return RegDeleteKeyExA(
@@ -1186,8 +1214,8 @@ LSTATUS Registry::RegDeleteKeyA(
 }
 
 LSTATUS Registry::RegDeleteKeyW(
-    const HKEY hKey,
-    const LPCWSTR lpSubKey
+    _In_ const HKEY hKey,
+    _In_ const LPCWSTR lpSubKey
 ) noexcept
 {
     return RegDeleteKeyExW(
@@ -1199,10 +1227,10 @@ LSTATUS Registry::RegDeleteKeyW(
 }
 
 LSTATUS Registry::RegEnumKeyA(
-    const HKEY hKey,
-    const DWORD dwIndex,
-    const LPSTR lpName,
-    DWORD cchName
+    _In_ const HKEY hKey,
+    _In_ const DWORD dwIndex,
+    _Out_writes_opt_(cchName) const LPSTR lpName,
+    _In_ DWORD cchName
 ) const noexcept
 {
     return RegEnumKeyExA(
@@ -1218,10 +1246,10 @@ LSTATUS Registry::RegEnumKeyA(
 }
 
 LSTATUS Registry::RegEnumKeyW(
-    const HKEY hKey,
-    const DWORD dwIndex,
-    const LPWSTR lpName,
-    DWORD cchName
+    _In_ const HKEY hKey,
+    _In_ const DWORD dwIndex,
+    _Out_writes_opt_(cchName) const LPWSTR lpName,
+    _In_ DWORD cchName
 ) const noexcept
 {
     return RegEnumKeyExW(
@@ -1241,12 +1269,12 @@ LSTATUS Registry::RegEnumKeyW(
 // forms use, was passed over. Only a caller whose access is limited to
 // something else could tell.
 LSTATUS Registry::RegSetKeyValueA(
-    const HKEY hKey,
-    const LPCSTR lpSubKey,
-    const LPCSTR lpValueName,
-    const DWORD dwType,
-    const LPCVOID lpData,
-    const DWORD cbData
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCSTR lpSubKey,
+    _In_opt_ const LPCSTR lpValueName,
+    _In_ const DWORD dwType,
+    _In_reads_bytes_opt_(cbData) const LPCVOID lpData,
+    _In_ const DWORD cbData
 ) noexcept
 {
     HKEY hSubKey = hKey;
@@ -1283,12 +1311,12 @@ LSTATUS Registry::RegSetKeyValueA(
 }
 
 LSTATUS Registry::RegSetKeyValueW(
-    const HKEY hKey,
-    const LPCWSTR lpSubKey,
-    const LPCWSTR lpValueName,
-    const DWORD dwType,
-    const LPCVOID lpData,
-    const DWORD cbData
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR lpSubKey,
+    _In_opt_ const LPCWSTR lpValueName,
+    _In_ const DWORD dwType,
+    _In_reads_bytes_opt_(cbData) const LPCVOID lpData,
+    _In_ const DWORD cbData
 ) noexcept
 {
     HKEY hSubKey = hKey;
@@ -1325,9 +1353,9 @@ LSTATUS Registry::RegSetKeyValueW(
 }
 
 LSTATUS Registry::RegDeleteKeyValueA(
-    const HKEY hKey,
-    const LPCSTR lpSubKey,
-    const LPCSTR lpValueName
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCSTR lpSubKey,
+    _In_opt_ const LPCSTR lpValueName
 ) noexcept
 {
     HKEY hSubKey = hKey;
@@ -1356,9 +1384,9 @@ LSTATUS Registry::RegDeleteKeyValueA(
 }
 
 LSTATUS Registry::RegDeleteKeyValueW(
-    const HKEY hKey,
-    const LPCWSTR lpSubKey,
-    const LPCWSTR lpValueName
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR lpSubKey,
+    _In_opt_ const LPCWSTR lpValueName
 ) noexcept
 {
     HKEY hSubKey = hKey;
@@ -1404,11 +1432,11 @@ DWORD AlignedToDword(const DWORD cb) noexcept
 /// Native places each value on a @ref DWORD boundary, reads the ones that fit
 /// the buffer in order, and fills the entries only when all of them did.
 LSTATUS Registry::RegQueryMultipleValuesW(
-    const HKEY hKey,
-    const PVALENTW val_list,
-    const DWORD num_vals,
-    const LPWSTR lpValueBuf,
-    const LPDWORD ldwTotsize
+    _In_ const HKEY hKey,
+    _Out_writes_(num_vals) const PVALENTW val_list,
+    _In_ const DWORD num_vals,
+    _Out_writes_bytes_to_opt_(*ldwTotsize, *ldwTotsize) __out_data_source(REGISTRY) const LPWSTR lpValueBuf,
+    _Inout_opt_ const LPDWORD ldwTotsize
 ) const noexcept
 try
 {
@@ -1498,12 +1526,14 @@ catch (...)
 /// Places the narrowed values like the wide form places the stored ones, but
 /// leaves the gaps alone and rounds the total up. When they do not all fit,
 /// native answers the wide form's total for the stored values.
+// The SDK types lpValueBuf as a string, but it holds binary values.
+#pragma warning(suppress: 6054)
 LSTATUS Registry::RegQueryMultipleValuesA(
-    const HKEY hKey,
-    const PVALENTA val_list,
-    const DWORD num_vals,
-    const LPSTR lpValueBuf,
-    const LPDWORD ldwTotsize
+    _In_ const HKEY hKey,
+    _Out_writes_(num_vals) const PVALENTA val_list,
+    _In_ const DWORD num_vals,
+    _Out_writes_bytes_to_opt_(*ldwTotsize, *ldwTotsize) __out_data_source(REGISTRY) const LPSTR lpValueBuf,
+    _Inout_opt_ const LPDWORD ldwTotsize
 ) const noexcept
 try
 {

@@ -10,8 +10,8 @@ namespace VReg
 LSTATUS QueryValue(
     const Registry& registry,
     const HKEY hKey,
-    const LPCWSTR lpValueName,
-    const LPDWORD lpType,
+    _In_opt_z_ const LPCWSTR lpValueName,
+    _Out_opt_ const LPDWORD lpType,
     std::vector<std::byte>& data
 ) noexcept
 try
@@ -63,10 +63,10 @@ catch (...)
 LSTATUS GetValue(
     const Registry& registry,
     const HKEY hKey,
-    const LPCWSTR lpSubKey,
-    const LPCWSTR lpValue,
+    _In_opt_z_ const LPCWSTR lpSubKey,
+    _In_opt_z_ const LPCWSTR lpValue,
     const DWORD dwFlags,
-    const LPDWORD pdwType,
+    _Out_opt_ const LPDWORD pdwType,
     std::vector<std::byte>& data
 ) noexcept
 try
@@ -120,8 +120,8 @@ catch (...)
 LSTATUS GetString(
     const Registry& registry,
     const HKEY hKey,
-    const LPCWSTR lpSubKey,
-    const LPCWSTR lpValue,
+    _In_opt_z_ const LPCWSTR lpSubKey,
+    _In_opt_z_ const LPCWSTR lpValue,
     const DWORD dwFlags,
     std::wstring& text
 ) noexcept
@@ -198,8 +198,8 @@ LSTATUS EnumValue(
     const HKEY hKey,
     const DWORD dwIndex,
     std::wstring& name,
-    const LPDWORD lpType,
-    std::vector<std::byte>* const pData
+    _Out_opt_ const LPDWORD lpType,
+    _Out_opt_ std::vector<std::byte>* const pData
 ) noexcept
 try
 {
@@ -262,9 +262,9 @@ catch (...)
 LSTATUS LoadMUIString(
     const Registry& registry,
     const HKEY hKey,
-    const LPCWSTR pszValue,
+    _In_opt_z_ const LPCWSTR pszValue,
     const DWORD Flags,
-    const LPCWSTR pszDirectory,
+    _In_opt_z_ const LPCWSTR pszDirectory,
     std::wstring& text
 ) noexcept
 try

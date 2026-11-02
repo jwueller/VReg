@@ -160,11 +160,12 @@ private:
 LSTATUS ExportSnapshot(
     Registry& registry,
     const HKEY hRoot,
-    const std::wstring_view path,
+    _In_z_ const LPCWSTR pszPath,
     const Format format,
     std::vector<std::byte>& file
 ) noexcept
 {
+    const std::wstring_view path(pszPath);
     const wchar_t* const pszRoot = RootName(hRoot);
     if (!pszRoot)
         return ERROR_INVALID_HANDLE;
@@ -213,11 +214,12 @@ LSTATUS ExportSnapshot(
 LSTATUS ExportDelta(
     OverlayHive& hive,
     const HKEY hRoot,
-    const std::wstring_view path,
+    _In_z_ const LPCWSTR pszPath,
     const Format format,
     std::vector<std::byte>& file
 ) noexcept
 {
+    const std::wstring_view path(pszPath);
     const wchar_t* const pszRoot = RootName(hRoot);
     if (!pszRoot)
         return ERROR_INVALID_HANDLE;
@@ -305,7 +307,7 @@ LSTATUS ExportDelta(
 LSTATUS ExportDeltaToFile(
     OverlayHive& hive,
     const HKEY hRoot,
-    const std::wstring_view path,
+    _In_z_ const LPCWSTR pszPath,
     const Format format,
     const std::filesystem::path& fileName
 ) noexcept
@@ -316,7 +318,7 @@ LSTATUS ExportDeltaToFile(
         const auto status = ExportDelta(
             hive,
             hRoot,
-            path,
+            pszPath,
             format,
             file
         );
@@ -333,7 +335,7 @@ LSTATUS ExportDeltaToFile(
 LSTATUS ExportSnapshotToFile(
     Registry& registry,
     const HKEY hRoot,
-    const std::wstring_view path,
+    _In_z_ const LPCWSTR pszPath,
     const Format format,
     const std::filesystem::path& fileName
 ) noexcept
@@ -344,7 +346,7 @@ LSTATUS ExportSnapshotToFile(
         const auto status = ExportSnapshot(
             registry,
             hRoot,
-            path,
+            pszPath,
             format,
             file
         );

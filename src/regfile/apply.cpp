@@ -185,7 +185,7 @@ LSTATUS Perform(
 LSTATUS Apply(
     const Script& script,
     Registry& registry,
-    std::size_t* const pFailed
+    _On_failure_(_Out_opt_) std::size_t* const pFailed
 ) noexcept
 {
     for (std::size_t i = 0; i < script.operations.size(); ++i)

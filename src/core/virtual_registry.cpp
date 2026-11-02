@@ -69,6 +69,12 @@ std::wstring_view View(const LPCWSTR psz) noexcept
     return psz ? std::wstring_view(psz) : std::wstring_view();
 }
 
+/// @p psz, or an empty string for null: the hive layer takes no null names.
+LPCWSTR OrEmpty(const LPCWSTR psz) noexcept
+{
+    return psz ? psz : L"";
+}
+
 /// Copies @p value into a caller buffer of @p cbBuffer bytes that is known to
 /// hold it. Native adds a terminator after a string that lacks one, when it
 /// fits, without counting it in the size.
@@ -214,8 +220,8 @@ bool MatchesNative(
 } // namespace
 
 VirtualRegistry::VirtualRegistry(
-    Registry* const pBase,
-    const NtQueryKeyFunction pfnNtQueryKey
+    _In_opt_ Registry* const pBase,
+    _In_opt_ const NtQueryKeyFunction pfnNtQueryKey
 ) noexcept :
     m_pBase(pBase),
     m_pfnNtQueryKey(pfnNtQueryKey),
@@ -231,22 +237,22 @@ VirtualRegistry::VirtualRegistry(
 
 LSTATUS VirtualRegistry::Mount(
     const HKEY hRoot,
-    const std::wstring_view path,
+    _In_z_ const LPCWSTR pszPath,
     Hive& hive,
     const MountView view
 ) noexcept
 {
-    return MountHive(hRoot, path, hive, &hive, view);
+    return MountHive(hRoot, pszPath, hive, &hive, view);
 }
 
 LSTATUS VirtualRegistry::Mount(
     const HKEY hRoot,
-    const std::wstring_view path,
+    _In_z_ const LPCWSTR pszPath,
     const Hive& hive,
     const MountView view
 ) noexcept
 {
-    return MountHive(hRoot, path, hive, nullptr, view);
+    return MountHive(hRoot, pszPath, hive, nullptr, view);
 }
 
 LSTATUS VirtualRegistry::MountHive(
@@ -540,11 +546,11 @@ VirtualRegistry::Target VirtualRegistry::Resolve(
 }
 
 LSTATUS VirtualRegistry::RegOpenKeyExW(
-    const HKEY hKey,
-    const LPCWSTR lpSubKey,
-    const DWORD ulOptions,
-    const REGSAM samDesired,
-    const PHKEY phkResult
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR lpSubKey,
+    _In_ const DWORD ulOptions,
+    _In_ const REGSAM samDesired,
+    _Out_ const PHKEY phkResult
 ) noexcept
 try
 {
@@ -563,7 +569,7 @@ try
 
     *phkResult = nullptr;
     if (!target.pNode)
-        return target.status;
+        return FailureStatus(target.status);
 
     if (!samDesired)
         return ERROR_ACCESS_DENIED;
@@ -587,15 +593,15 @@ catch (...)
 }
 
 LSTATUS VirtualRegistry::RegCreateKeyExW(
-    const HKEY hKey,
-    const LPCWSTR lpSubKey,
-    const DWORD Reserved,
-    const LPWSTR lpClass,
-    const DWORD dwOptions,
-    const REGSAM samDesired,
-    const LPSECURITY_ATTRIBUTES lpSecurityAttributes,
-    const PHKEY phkResult,
-    const LPDWORD lpdwDisposition
+    _In_ const HKEY hKey,
+    _In_ const LPCWSTR lpSubKey,
+    _Reserved_ const DWORD Reserved,
+    _In_opt_ const LPWSTR lpClass,
+    _In_ const DWORD dwOptions,
+    _In_ const REGSAM samDesired,
+    _In_opt_ const LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+    _Out_ const PHKEY phkResult,
+    _Out_opt_ const LPDWORD lpdwDisposition
 ) noexcept
 try
 {
@@ -623,11 +629,11 @@ try
     if (Reserved)
         return ERROR_INVALID_PARAMETER;
     if (target.status == ERROR_INVALID_HANDLE)
-        return target.status;
+        return FailureStatus(target.status);
 
     *phkResult = nullptr;
     if (!target.pNode)
-        return target.status;
+        return FailureStatus(target.status);
 
     constexpr DWORD KNOWN_OPTIONS = 0x1F;
     if (dwOptions & ~KNOWN_OPTIONS)
@@ -639,7 +645,7 @@ try
                             ? target.pWritable->CreateKey(
                                 target.pNode,
                                 target.rest,
-                                View(lpClass),
+                                OrEmpty(lpClass),
                                 dwOptions,
                                 samDesired,
                                 result,
@@ -654,7 +660,7 @@ try
     if (status == ERROR_FILE_NOT_FOUND && !target.pWritable)
         return ERROR_ACCESS_DENIED;
     if (status != ERROR_SUCCESS)
-        return status;
+        return FailureStatus(status);
 
     *phkResult = result.hLower ? result.hLower : Hive::HandleOf(result.pNode);
     if (lpdwDisposition)
@@ -667,7 +673,7 @@ catch (...)
 }
 
 LSTATUS VirtualRegistry::RegCloseKey(
-    const HKEY hKey
+    _In_ const HKEY hKey
 ) noexcept
 {
     if (Hive::NodeOf(hKey) || IsPredefinedHKey(hKey))
@@ -682,12 +688,12 @@ LSTATUS VirtualRegistry::RegCloseKey(
 }
 
 LSTATUS VirtualRegistry::RegQueryValueExW(
-    const HKEY hKey,
-    const LPCWSTR lpValueName,
-    const LPDWORD lpReserved,
-    const LPDWORD lpType,
-    const LPBYTE lpData,
-    const LPDWORD lpcbData
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR lpValueName,
+    _Reserved_ const LPDWORD lpReserved,
+    _Out_opt_ const LPDWORD lpType,
+    _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) const LPBYTE lpData,
+    _When_(lpData == NULL, _Out_opt_) _When_(lpData != NULL, _Inout_opt_) const LPDWORD lpcbData
 ) const noexcept
 try
 {
@@ -705,7 +711,7 @@ try
     if ((lpData && !lpcbData) || lpReserved)
         return ERROR_INVALID_PARAMETER;
     if (!target.pNode)
-        return target.status;
+        return FailureStatus(target.status);
 
     if (lpType)
         *lpType = 0;
@@ -717,7 +723,7 @@ try
     std::vector<std::byte> value;
     const auto status = target.pHive->QueryValue(
         target.pNode,
-        View(lpValueName),
+        OrEmpty(lpValueName),
         dwType,
         cbValue,
         lpData ? &value : nullptr
@@ -749,12 +755,12 @@ catch (...)
 }
 
 LSTATUS VirtualRegistry::RegSetValueExW(
-    const HKEY hKey,
-    const LPCWSTR lpValueName,
-    const DWORD Reserved,
-    const DWORD dwType,
-    const BYTE* const lpData,
-    const DWORD cbData
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR lpValueName,
+    _Reserved_ const DWORD Reserved,
+    _In_ const DWORD dwType,
+    _In_reads_bytes_opt_(cbData) const BYTE* const lpData,
+    _In_ const DWORD cbData
 ) noexcept
 try
 {
@@ -772,7 +778,7 @@ try
     if (Reserved)
         return ERROR_INVALID_PARAMETER;
     if (!target.pNode)
-        return target.status;
+        return FailureStatus(target.status);
 
     if (!lpData && cbData)
         return ERROR_NOACCESS;
@@ -782,7 +788,7 @@ try
 
     return target.pWritable->SetValue(
         target.pNode,
-        View(lpValueName),
+        OrEmpty(lpValueName),
         dwType,
         AsBytes(lpData, cbData)
     );
@@ -793,8 +799,8 @@ catch (...)
 }
 
 LSTATUS VirtualRegistry::RegDeleteValueW(
-    const HKEY hKey,
-    const LPCWSTR lpValueName
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR lpValueName
 ) noexcept
 try
 {
@@ -806,14 +812,14 @@ try
         );
 
     if (!target.pNode)
-        return target.status;
+        return FailureStatus(target.status);
 
     if (!target.pWritable)
         return ERROR_ACCESS_DENIED;
 
     return target.pWritable->DeleteValue(
         target.pNode,
-        View(lpValueName)
+        OrEmpty(lpValueName)
     );
 }
 catch (...)
@@ -822,10 +828,10 @@ catch (...)
 }
 
 LSTATUS VirtualRegistry::RegDeleteKeyExW(
-    const HKEY hKey,
-    const LPCWSTR lpSubKey,
-    const REGSAM samDesired,
-    const DWORD Reserved
+    _In_ const HKEY hKey,
+    _In_ const LPCWSTR lpSubKey,
+    _In_ const REGSAM samDesired,
+    _Reserved_ const DWORD Reserved
 ) noexcept
 try
 {
@@ -841,7 +847,7 @@ try
     if (Reserved)
         return ERROR_INVALID_PARAMETER;
     if (!target.pNode)
-        return target.status;
+        return FailureStatus(target.status);
 
     if (!target.pWritable)
         return ERROR_ACCESS_DENIED;
@@ -854,8 +860,8 @@ catch (...)
 }
 
 LSTATUS VirtualRegistry::RegDeleteTreeW(
-    const HKEY hKey,
-    const LPCWSTR lpSubKey
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR lpSubKey
 ) noexcept
 try
 {
@@ -867,7 +873,7 @@ try
         );
 
     if (!target.pNode)
-        return target.status;
+        return FailureStatus(target.status);
 
     const auto* const pHive = target.pHive;
     OpenResult result;
@@ -883,7 +889,10 @@ try
     // Only a frozen hive hands out lower keys, and it refuses every write.
     if (result.hLower)
     {
-        pHive->Lower()->RegCloseKey(
+        auto* const pLower = pHive->Lower();
+        // A lower handle exists only where there is a lower registry.
+        _Analysis_assume_(pLower);
+        pLower->RegCloseKey(
             result.hLower
         );
         return ERROR_ACCESS_DENIED;
@@ -904,14 +913,14 @@ catch (...)
 }
 
 LSTATUS VirtualRegistry::RegEnumKeyExW(
-    const HKEY hKey,
-    const DWORD dwIndex,
-    const LPWSTR lpName,
-    const LPDWORD lpcchName,
-    const LPDWORD lpReserved,
-    const LPWSTR lpClass,
-    const LPDWORD lpcchClass,
-    const PFILETIME lpftLastWriteTime
+    _In_ const HKEY hKey,
+    _In_ const DWORD dwIndex,
+    _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) const LPWSTR lpName,
+    _Inout_ const LPDWORD lpcchName,
+    _Reserved_ const LPDWORD lpReserved,
+    _Out_writes_to_opt_(*lpcchClass,*lpcchClass + 1) const LPWSTR lpClass,
+    _Inout_opt_ const LPDWORD lpcchClass,
+    _Out_opt_ const PFILETIME lpftLastWriteTime
 ) const noexcept
 try
 {
@@ -934,7 +943,7 @@ try
     if (lpReserved || !lpcchName || (lpClass && !lpcchClass))
         return ERROR_INVALID_PARAMETER;
     if (!target.pNode)
-        return target.status;
+        return FailureStatus(target.status);
 
     const DWORD cchClassBuffer = lpClass ? *lpcchClass : 0;
     if (lpcchClass)
@@ -961,15 +970,11 @@ try
     if (!isNameFit || !isClassFit)
         return ERROR_MORE_DATA;
 
-    std::memcpy(lpName, name.c_str(), (name.size() + 1) * sizeof(wchar_t));
+    std::wmemcpy(lpName, name.c_str(), name.size() + 1);
     *lpcchName = static_cast<DWORD>(name.size());
     if (lpClass)
     {
-        std::memcpy(
-            lpClass,
-            className.c_str(),
-            (className.size() + 1) * sizeof(wchar_t)
-        );
+        std::wmemcpy(lpClass, className.c_str(), className.size() + 1);
         *lpcchClass = static_cast<DWORD>(className.size());
     }
 
@@ -981,14 +986,14 @@ catch (...)
 }
 
 LSTATUS VirtualRegistry::RegEnumValueW(
-    const HKEY hKey,
-    const DWORD dwIndex,
-    const LPWSTR lpValueName,
-    const LPDWORD lpcchValueName,
-    const LPDWORD lpReserved,
-    const LPDWORD lpType,
-    const LPBYTE lpData,
-    const LPDWORD lpcbData
+    _In_ const HKEY hKey,
+    _In_ const DWORD dwIndex,
+    _Out_writes_to_opt_(*lpcchValueName, *lpcchValueName + 1) const LPWSTR lpValueName,
+    _Inout_ const LPDWORD lpcchValueName,
+    _Reserved_ const LPDWORD lpReserved,
+    _Out_opt_ const LPDWORD lpType,
+    _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) const LPBYTE lpData,
+    _Inout_opt_ const LPDWORD lpcbData
 ) const noexcept
 try
 {
@@ -1011,7 +1016,7 @@ try
     if (lpReserved || !lpValueName || !lpcchValueName || (lpData && !lpcbData))
         return ERROR_INVALID_PARAMETER;
     if (!target.pNode)
-        return target.status;
+        return FailureStatus(target.status);
 
     if (lpType)
         *lpType = 0;
@@ -1048,11 +1053,7 @@ try
     const bool isNameFit = name.size() < *lpcchValueName;
     if (isNameFit)
     {
-        std::memcpy(
-            lpValueName,
-            name.c_str(),
-            (name.size() + 1) * sizeof(wchar_t)
-        );
+        std::wmemcpy(lpValueName, name.c_str(), name.size() + 1);
         *lpcchValueName = static_cast<DWORD>(name.size());
     }
 
@@ -1068,19 +1069,22 @@ catch (...)
     return StatusFromException();
 }
 
+// Native answers success without writing lpClass when *lpcchClass is zero,
+// which the annotation's terminator guarantee does not allow for.
+#pragma warning(suppress: 6054)
 LSTATUS VirtualRegistry::RegQueryInfoKeyW(
-    const HKEY hKey,
-    const LPWSTR lpClass,
-    const LPDWORD lpcchClass,
-    const LPDWORD lpReserved,
-    const LPDWORD lpcSubKeys,
-    const LPDWORD lpcbMaxSubKeyLen,
-    const LPDWORD lpcbMaxClassLen,
-    const LPDWORD lpcValues,
-    const LPDWORD lpcbMaxValueNameLen,
-    const LPDWORD lpcbMaxValueLen,
-    const LPDWORD lpcbSecurityDescriptor,
-    const PFILETIME lpftLastWriteTime
+    _In_ const HKEY hKey,
+    _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) const LPWSTR lpClass,
+    _Inout_opt_ const LPDWORD lpcchClass,
+    _Reserved_ const LPDWORD lpReserved,
+    _Out_opt_ const LPDWORD lpcSubKeys,
+    _Out_opt_ const LPDWORD lpcbMaxSubKeyLen,
+    _Out_opt_ const LPDWORD lpcbMaxClassLen,
+    _Out_opt_ const LPDWORD lpcValues,
+    _Out_opt_ const LPDWORD lpcbMaxValueNameLen,
+    _Out_opt_ const LPDWORD lpcbMaxValueLen,
+    _Out_opt_ const LPDWORD lpcbSecurityDescriptor,
+    _Out_opt_ const PFILETIME lpftLastWriteTime
 ) const noexcept
 try
 {
@@ -1106,7 +1110,7 @@ try
     if (lpReserved || (lpClass && !lpcchClass))
         return ERROR_INVALID_PARAMETER;
     if (!target.pNode)
-        return target.status;
+        return FailureStatus(target.status);
 
     KeyInfo info;
     const auto status = target.pHive->QueryInfo(
@@ -1146,10 +1150,10 @@ try
             *lpcchClass = cchClass - 1;
             return ERROR_INSUFFICIENT_BUFFER;
         }
-        std::memcpy(
+        std::wmemcpy(
             lpClass,
             info.className.c_str(),
-            (info.className.size() + 1) * sizeof(wchar_t)
+            info.className.size() + 1
         );
     }
 
@@ -1165,13 +1169,13 @@ catch (...)
 }
 
 LSTATUS VirtualRegistry::RegLoadMUIStringW(
-    const HKEY hKey,
-    const LPCWSTR pszValue,
-    const LPWSTR pszOutBuf,
-    const DWORD cbOutBuf,
-    const LPDWORD pcbData,
-    const DWORD Flags,
-    const LPCWSTR pszDirectory
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR pszValue,
+    _Out_writes_bytes_opt_(cbOutBuf) const LPWSTR pszOutBuf,
+    _In_ const DWORD cbOutBuf,
+    _Out_opt_ const LPDWORD pcbData,
+    _In_ const DWORD Flags,
+    _In_opt_ const LPCWSTR pszDirectory
 ) const noexcept
 try
 {
@@ -1190,7 +1194,7 @@ try
     if (!hKey)
         return ERROR_INVALID_PARAMETER;
     if (!target.pNode)
-        return target.status;
+        return FailureStatus(target.status);
 
     if (
         Flags & ~static_cast<DWORD>(REG_MUI_STRING_TRUNCATE)
@@ -1204,7 +1208,7 @@ try
     HKEY hLower{};
     const auto opened = pHive->OpenLowerValueKey(
         target.pNode,
-        View(pszValue),
+        OrEmpty(pszValue),
         hLower
     );
     if (opened != ERROR_SUCCESS)
@@ -1216,6 +1220,8 @@ try
     if (hLower)
     {
         auto* const pLower = pHive->Lower();
+        // A lower handle exists only where there is a lower registry.
+        _Analysis_assume_(pLower);
         const auto status = pLower->RegLoadMUIStringW(
             hLower,
             pszValue,
@@ -1234,7 +1240,7 @@ try
     std::wstring text;
     const auto status = pHive->QueryMuiText(
         target.pNode,
-        View(pszValue),
+        OrEmpty(pszValue),
         text
     );
     if (status != ERROR_SUCCESS)
@@ -1263,7 +1269,7 @@ try
     if (!pszOutBuf || cbOutBuf < cbText)
         return ERROR_MORE_DATA;
 
-    std::memcpy(pszOutBuf, text.c_str(), cbText);
+    std::wmemcpy(pszOutBuf, text.c_str(), text.size() + 1);
     return ERROR_SUCCESS;
 }
 catch (...)
@@ -1271,14 +1277,30 @@ catch (...)
     return StatusFromException();
 }
 
+// The SDK's _Post_z_ holds on every return, truncated reads and failures
+// included; the analyzer cannot see the terminators written at run time.
+#pragma warning(suppress: 6054)
 LSTATUS VirtualRegistry::RegGetValueW(
-    const HKEY hkey,
-    const LPCWSTR lpSubKey,
-    const LPCWSTR lpValue,
-    const DWORD dwFlags,
-    const LPDWORD pdwType,
-    const PVOID pvData,
-    const LPDWORD pcbData
+    _In_ const HKEY hkey,
+    _In_opt_ const LPCWSTR lpSubKey,
+    _In_opt_ const LPCWSTR lpValue,
+    _In_ const DWORD dwFlags,
+    _Out_opt_ const LPDWORD pdwType,
+    _When_(
+        (dwFlags & 0x7F) == RRF_RT_REG_SZ
+        || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
+        || (dwFlags & 0x7F) == (RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ)
+        || *pdwType == REG_SZ
+        || *pdwType == REG_EXPAND_SZ,
+        _Post_z_
+    )
+    _When_(
+        (dwFlags & 0x7F) == RRF_RT_REG_MULTI_SZ
+        || *pdwType == REG_MULTI_SZ,
+        _Post_ _NullNull_terminated_
+    )
+    _Out_writes_bytes_to_opt_(*pcbData, *pcbData) const PVOID pvData,
+    _Inout_opt_ const LPDWORD pcbData
 ) const noexcept
 try
 {
@@ -1336,6 +1358,8 @@ try
         if (result.hLower)
         {
             auto* const pLower = pHive->Lower();
+            // A lower handle exists only where there is a lower registry.
+            _Analysis_assume_(pLower);
             const auto status = pLower->RegGetValueW(
                 result.hLower,
                 nullptr,
@@ -1364,7 +1388,7 @@ try
     std::vector<std::byte> value;
     const auto queried = pHive->QueryValue(
         pNode,
-        View(lpValue),
+        OrEmpty(lpValue),
         dwType,
         cbQueried,
         &value
@@ -1507,11 +1531,11 @@ catch (...)
 }
 
 LSTATUS VirtualRegistry::RegNotifyChangeKeyValue(
-    const HKEY hKey,
-    const BOOL bWatchSubtree,
-    const DWORD dwNotifyFilter,
-    const HANDLE hEvent,
-    const BOOL fAsynchronous
+    _In_ const HKEY hKey,
+    _In_ const BOOL bWatchSubtree,
+    _In_ const DWORD dwNotifyFilter,
+    _In_opt_ const HANDLE hEvent,
+    _In_ const BOOL fAsynchronous
 ) noexcept
 try
 {
@@ -1526,7 +1550,7 @@ try
         );
 
     if (!target.pNode)
-        return target.status;
+        return FailureStatus(target.status);
 
     constexpr DWORD KNOWN_FILTERS =
         REG_NOTIFY_CHANGE_NAME
@@ -1571,7 +1595,7 @@ catch (...)
 }
 
 LSTATUS VirtualRegistry::RegFlushKey(
-    const HKEY hKey
+    _In_ const HKEY hKey
 ) noexcept
 try
 {
@@ -1582,7 +1606,7 @@ try
         );
 
     if (!target.pNode)
-        return target.status;
+        return FailureStatus(target.status);
 
     return target.pHive->CheckKey(target.pNode);
 }

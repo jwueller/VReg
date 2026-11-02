@@ -507,7 +507,7 @@ private:
 LSTATUS Parse(
     const std::span<const std::byte> file,
     Script& script,
-    ParseError* const pError
+    _Out_opt_ ParseError* const pError
 ) noexcept
 {
     try
@@ -532,7 +532,7 @@ LSTATUS Parse(
 LSTATUS ParseFile(
     const std::filesystem::path& path,
     Script& script,
-    ParseError* const pError
+    _Out_opt_ ParseError* const pError
 ) noexcept
 {
     try

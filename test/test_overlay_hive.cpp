@@ -53,7 +53,7 @@ public:
         REQUIRE(
             m_registry.Mount(
                 HKEY_CURRENT_USER,
-                mountPath,
+                mountPath.c_str(),
                 m_overlay
             ) == ERROR_SUCCESS
         );
