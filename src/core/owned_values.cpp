@@ -180,7 +180,7 @@ try
         );
         if (status == ERROR_MORE_DATA && cchName < MAX_CLASS_CHARS)
         {
-            cchName = std::min(Grown(cchName, cchRead), MAX_CLASS_CHARS);
+            cchName = (std::min)(Grown(cchName, cchRead), MAX_CLASS_CHARS);
             continue;
         }
         if (status == ERROR_SUCCESS)
@@ -226,7 +226,7 @@ try
         );
         if (status == ERROR_MORE_DATA)
         {
-            cchName = std::min(
+            cchName = (std::min)(
                 Grown(cchName, cchRead + 1),
                 MAX_VALUE_NAME_CHARS
             );

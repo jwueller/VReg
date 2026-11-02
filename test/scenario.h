@@ -76,9 +76,13 @@ bool HandedBack(
         return hKey == hParent;
 }
 
+/// Backs @ref FillKey: its address is a value no real or virtual handle takes.
+inline HKEY__ g_fillKey{};
+
+/// The value an out-handle starts as, to tell whether a call wrote it.
 inline HKEY FillKey() noexcept
 {
-    return reinterpret_cast<HKEY>(static_cast<std::uintptr_t>(FILL_SIZE));
+    return &g_fillKey;
 }
 
 /// 0 if untouched, 1 if null, 2 for any other handle.
@@ -196,7 +200,7 @@ LSTATUS QueryEx(
     LPDWORD pdwType,
     LPBYTE pData,
     LPDWORD pcbData
-)
+) noexcept
 {
     return api.RegQueryValueExW(
         hKey,
@@ -216,7 +220,7 @@ LSTATUS QueryEx(
     LPDWORD pdwType,
     LPBYTE pData,
     LPDWORD pcbData
-)
+) noexcept
 {
     return api.RegQueryValueExA(
         hKey,

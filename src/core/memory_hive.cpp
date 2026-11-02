@@ -402,11 +402,11 @@ try
     info.cSubKeys = static_cast<DWORD>(pNode->children.size());
     for (const auto* const pChild : pNode->children)
     {
-        info.cchMaxSubKey = std::max(
+        info.cchMaxSubKey = (std::max)(
             info.cchMaxSubKey,
             static_cast<DWORD>(pChild->name.size())
         );
-        info.cchMaxClass = std::max(
+        info.cchMaxClass = (std::max)(
             info.cchMaxClass,
             static_cast<DWORD>(pChild->className.size())
         );
@@ -415,11 +415,11 @@ try
     info.cValues = static_cast<DWORD>(pNode->values.size());
     for (const auto& value : pNode->values)
     {
-        info.cchMaxValueName = std::max(
+        info.cchMaxValueName = (std::max)(
             info.cchMaxValueName,
             static_cast<DWORD>(value.name.size())
         );
-        info.cbMaxValue = std::max(
+        info.cbMaxValue = (std::max)(
             info.cbMaxValue,
             static_cast<DWORD>(value.data.size())
         );

@@ -227,72 +227,33 @@ TEST_CASE("Keys")
 
     SECTION("roots by full name and short name, in any case")
     {
-        const auto root = GENERATE(
-            std::pair<const wchar_t*,
-            HKEY>{
-            L"HKEY_CLASSES_ROOT",
-            HKEY_CLASSES_ROOT
-            },
-            std::pair<const wchar_t*,
-            HKEY> {
-                L"HKCR",
-                HKEY_CLASSES_ROOT,
-            },
-            std::pair<const wchar_t*,
-            HKEY>{
-            L"hkey_current_user",
-            HKEY_CURRENT_USER
-            },
-            std::pair<const wchar_t*,
-            HKEY> {
-                L"HKCU",
-                HKEY_CURRENT_USER,
-
-            },
-            std::pair<const wchar_t*,
-            HKEY>{
-            L"HKEY_LOCAL_MACHINE",
-            HKEY_LOCAL_MACHINE
-
-            },
-            std::pair<const wchar_t*,
-            HKEY> {
-                L"hklm",
-                HKEY_LOCAL_MACHINE,
-            },
-            std::pair<const wchar_t*,
-            HKEY> {
-                L"HKEY_USERS",
-                HKEY_USERS,
-            },
-            std::pair<const wchar_t*,
-            HKEY> {
-                L"HKU",
-                HKEY_USERS,
-            },
-            std::pair<const wchar_t*,
-            HKEY>{
-            L"HKEY_CURRENT_CONFIG",
-            HKEY_CURRENT_CONFIG
-
-            },
-            std::pair<const wchar_t*,
-            HKEY> {
-                L"HKCC",
-                HKEY_CURRENT_CONFIG,
-            }
+        const auto [pszRoot, hRoot] = GENERATE(
+            // @formatter:off
+            std::pair<const wchar_t*, HKEY>{L"HKEY_CLASSES_ROOT",   HKEY_CLASSES_ROOT},
+            std::pair<const wchar_t*, HKEY>{L"HKCR",                HKEY_CLASSES_ROOT},
+            std::pair<const wchar_t*, HKEY>{L"hkey_current_user",   HKEY_CURRENT_USER},
+            std::pair<const wchar_t*, HKEY>{L"HKCU",                HKEY_CURRENT_USER},
+            std::pair<const wchar_t*, HKEY>{L"HKEY_LOCAL_MACHINE",  HKEY_LOCAL_MACHINE},
+            std::pair<const wchar_t*, HKEY>{L"hklm",                HKEY_LOCAL_MACHINE},
+            std::pair<const wchar_t*, HKEY>{L"HKEY_USERS",          HKEY_USERS},
+            std::pair<const wchar_t*, HKEY>{L"HKU",                 HKEY_USERS},
+            std::pair<const wchar_t*, HKEY>{L"HKEY_CURRENT_CONFIG", HKEY_CURRENT_CONFIG},
+            std::pair<const wchar_t*, HKEY>{L"HKCC",                HKEY_CURRENT_CONFIG}
+            // @formatter:on
         );
-        const auto script = MustParse(HEADER + L"[" + root.first + L"\\A]\r\n");
-        REQUIRE(script.operations.size() == 1);
-        CHECK(script.operations[0].hRoot == root.second);
 
+        const auto script = MustParse(HEADER + L"[" + pszRoot + L"\\A]\r\n");
+        REQUIRE(script.operations.size() == 1);
+        CHECK(script.operations[0].hRoot == hRoot);
         CHECK(script.operations[0].path == L"A");
     }
+
     SECTION("a root alone has an empty path")
     {
         const auto script = MustParse(HEADER + L"[HKLM]\r\n");
         CHECK(script.operations[0].path.empty());
     }
+
     SECTION("a ] inside the name stays in it")
     {
         const auto script = MustParse(HEADER + L"[HKLM\\a]b]  \r\n");
@@ -307,27 +268,26 @@ TEST_CASE("Strings")
         const auto script = ParseBody(
             L"\"a\"=\"text\"\r\n\"b\"=\"\"\r\n\"c\"=\"x\\\\y\\\"z\\\"\"\r\n"
         );
-
         REQUIRE(script.operations.size() == 4);
         CHECK(script.operations[1].dwType == REG_SZ);
         CHECK(script.operations[1].data == StringBytes(L"text"));
         CHECK(script.operations[2].data == StringBytes(L""));
         CHECK(script.operations[3].data == StringBytes(L"x\\y\"z\""));
     }
+
     SECTION("the default value and escaped names")
     {
         const auto script = ParseBody(
             L"@=\"d\"\r\n\"a\\\"b\\\\\"=\"v\"\r\n\"@\"=\"at\"\r\n"
         );
         REQUIRE(script.operations.size() == 4);
-
         CHECK(script.operations[1].name.empty());
         CHECK(script.operations[2].name == L"a\"b\\");
         CHECK(script.operations[3].name == L"@");
     }
+
     SECTION("whitespace around the parts")
     {
-
         const auto script = ParseBody(L"  \"a\" = \"b\"  \r\n\t@=\"c\"\r\n");
         REQUIRE(script.operations.size() == 3);
         CHECK(script.operations[1].data == StringBytes(L"b"));
@@ -343,11 +303,11 @@ TEST_CASE("Numbers and binary data")
         );
         REQUIRE(script.operations.size() == 4);
         CHECK(script.operations[1].dwType == REG_DWORD);
-
         CHECK(script.operations[1].data == DwordBytes(0x2a));
         CHECK(script.operations[2].data == DwordBytes(0xFFFFFFFF));
         CHECK(script.operations[3].data == DwordBytes(7));
     }
+
     SECTION("hex is binary")
     {
         const auto value = OnlyValue(ParseBody(L"\"a\"=hex:00,ff,A0\r\n"));
@@ -360,12 +320,14 @@ TEST_CASE("Numbers and binary data")
             }
         );
     }
+
     SECTION("hex with no bytes")
     {
         const auto value = OnlyValue(ParseBody(L"\"a\"=hex:\r\n"));
         CHECK(value.dwType == REG_BINARY);
         CHECK(value.data.empty());
     }
+
     SECTION("hex(n) for any type")
     {
         const auto script = ParseBody(
@@ -381,9 +343,9 @@ TEST_CASE("Numbers and binary data")
         CHECK(script.operations[5].dwType == REG_MULTI_SZ);
         CHECK(script.operations[6].data == std::vector{std::byte{1}});
     }
+
     SECTION("blanks around the commas")
     {
-
         const auto value = OnlyValue(ParseBody(L"\"a\"=hex: 01 , 02,03 \r\n"));
         CHECK(value.data.size() == 3);
     }
@@ -391,7 +353,6 @@ TEST_CASE("Numbers and binary data")
 
 TEST_CASE("Deleting values")
 {
-
     const auto script = ParseBody(L"\"a\"=-\r\n@=-\r\n");
     REQUIRE(script.operations.size() == 3);
     CHECK(script.operations[1].kind == OperationKind::DeleteValue);
@@ -401,7 +362,6 @@ TEST_CASE("Deleting values")
 }
 
 TEST_CASE("Value operations carry their key")
-
 {
     const auto script = MustParse(
         HEADER + L"[HKCU\\A]\r\n\"x\"=dword:1\r\n[HKLM\\B]\r\n\"y\"=-\r\n"
@@ -418,12 +378,12 @@ TEST_CASE("Continuations, comments and blank lines")
     SECTION("hex continues over lines with leading blanks")
     {
         const auto value = OnlyValue(
-    // @formatter:off
             ParseBody(L"\"a\"=hex:01,02,\\\r\n  03,04,\\\r\n  05\r\n")
         );
         CHECK(value.data.size() == 5);
         CHECK(value.data[4] == std::byte{5});
     }
+
     SECTION("a continuation without a next line is a syntax error")
     {
         Script script;
@@ -431,6 +391,7 @@ TEST_CASE("Continuations, comments and blank lines")
         const auto file = Utf16File(HEADER + KEY + L"\"a\"=hex:01,\\");
         CHECK(Parse(file, script, &error) == ERROR_INVALID_DATA);
     }
+
     SECTION("comments and blank lines are skipped anywhere between lines")
     {
         const auto script = MustParse(
@@ -440,6 +401,7 @@ TEST_CASE("Continuations, comments and blank lines")
         CHECK(script.operations.size() == 2);
         CHECK(script.operations[1].line == 8);
     }
+
     SECTION("the last line needs no line ending")
     {
         const auto script = MustParse(HEADER + L"[HKCU\\A]\r\n\"a\"=dword:1");
@@ -454,11 +416,11 @@ TEST_CASE("Malformed input names its line and column")
         const char* pszWhy;
         std::wstring text;
         std::size_t line;
-    // @formatter:on
         std::size_t column;
     };
-    const Case cases[] = {
-        {"unterminated key",                     HEADER + L"[HKEY_CURRENT_USER\\x\r\n",                                  2, 21},
+    // @formatter:off
+    const auto c = GENERATE(values<Case>({
+        {"unterminated key",                    HEADER + L"[HKEY_CURRENT_USER\\x\r\n",                                  2, 21},
         {"text after a key",                     HEADER + L"[HKEY_CURRENT_USER]junk\r\n",                                2, 20},
         {"unknown root",                         HEADER + L"[BOGUS\\x]\r\n",                                             2, 2},
         {"unknown root when deleting",           HEADER + L"[-BOGUS\\x]\r\n",                                            2, 3},
@@ -491,21 +453,19 @@ TEST_CASE("Malformed input names its line and column")
         {"hex without a colon",                  HEADER + KEY + L"\"a\"=hex\r\n",                                        3, 8},
         {"an error on a continuation line",      HEADER + KEY + L"\"a\"=hex:01,\\\r\n  zz\r\n",                          4, 3},
         {"an error after comments and blanks",   HEADER + KEY + L"; c\r\n\r\n\"a\"=hex:zz\r\n",                          5, 9},
-    };
+    }));
+    // @formatter:on
 
-    for (const auto& c : cases)
-    {
-        INFO(c.pszWhy);
-        Script script;
-        script.operations.emplace_back();
-        ParseError error;
-        const auto file = Utf16File(c.text);
-        CHECK(Parse(file, script, &error) == ERROR_INVALID_DATA);
-        CHECK(error.line == c.line);
-        CHECK(error.column == c.column);
-        CHECK(error.pszMessage != nullptr);
-        CHECK(script.operations.size() == 1);
-    }
+    INFO(c.pszWhy);
+    Script script;
+    script.operations.emplace_back();
+    ParseError error;
+    const auto file = Utf16File(c.text);
+    CHECK(Parse(file, script, &error) == ERROR_INVALID_DATA);
+    CHECK(error.line == c.line);
+    CHECK(error.column == c.column);
+    CHECK(error.pszMessage != nullptr);
+    CHECK(script.operations.size() == 1);
 }
 
 TEST_CASE("ParseFile reads a file and reports a missing one")

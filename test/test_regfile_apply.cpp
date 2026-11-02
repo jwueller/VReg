@@ -2,6 +2,7 @@
 
 #include "regfile_test.h"
 
+#include <catch2/generators/catch_generators.hpp>
 
 using namespace VReg;
 using namespace VReg::RegFile;
@@ -11,7 +12,7 @@ namespace
 {
 const std::wstring HEADER = L"Windows Registry Editor Version 5.00\r\n";
 
-bool KeyExists(Registry& registry, const wchar_t* const pszPath)
+bool KeyExists(Registry& registry, const wchar_t* const pszPath) noexcept
 {
     HKEY hKey{};
     const auto status = registry.RegOpenKeyExW(
@@ -273,19 +274,24 @@ TEST_CASE("Apply refuses operations that would cut a path short or delete a root
     nulInName.dwType = REG_DWORD;
     nulInName.data = DwordBytes(1);
 
-    for (const auto& operation : {deleteRoot, nulInPath, nulInName})
-    {
-        std::size_t failed = 99;
-        CHECK(
-            Apply(
-                Script{.operations = {operation}},
-                registry,
-                &failed
-            ) == ERROR_INVALID_PARAMETER
-        );
-        CHECK(failed == 0);
-    }
+    // @formatter:off
+    const auto [pszWhy, operation] = GENERATE_COPY(values<std::pair<const char*, Operation>>({
+        {"deleting a root",    deleteRoot},
+        {"a NUL in a path",    nulInPath},
+        {"a NUL in a name",    nulInName},
+    }));
+    // @formatter:on
+    INFO(pszWhy);
 
+    std::size_t failed = 99;
+    CHECK(
+        Apply(
+            Script{.operations = {operation}},
+            registry,
+            &failed
+        ) == ERROR_INVALID_PARAMETER
+    );
+    CHECK(failed == 0);
     CHECK(KeyExists(registry, L"Keep"));
 }
 

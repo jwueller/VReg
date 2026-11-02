@@ -17,7 +17,7 @@ namespace VReg::Test
 class Thread
 {
 public:
-    explicit Thread(std::function<void()> function) :
+    explicit Thread(std::function<void()> function) noexcept :
         m_function(std::move(function))
     {
         m_hThread = CreateThread(

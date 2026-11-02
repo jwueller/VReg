@@ -66,7 +66,7 @@ LSTATUS SetDword(
     const HKEY hKey,
     const wchar_t* const pszName,
     const DWORD dwValue
-)
+) noexcept
 {
     return registry.RegSetValueExW(
         hKey,
@@ -83,7 +83,7 @@ DWORD QueryDword(
     const HKEY hKey,
     const wchar_t* const pszName,
     LSTATUS& status
-)
+) noexcept
 {
     DWORD dwValue = 0;
     DWORD cbValue = sizeof(dwValue);
@@ -855,7 +855,7 @@ struct FakeNtQueryKey
         const PVOID pKeyInformation,
         const ULONG cbKeyInformation,
         const PULONG pcbResult
-    )
+    ) noexcept
     {
         ++s_cCalls;
         const auto it = s_paths.find(static_cast<HKEY>(hKey));
@@ -878,7 +878,7 @@ struct FakeNtQueryKey
         return 0;
     }
 
-    static void Reset()
+    static void Reset() noexcept
     {
         s_paths.clear();
         s_cCalls = 0;
@@ -899,7 +899,7 @@ LSTATUS OpenVia(
     const wchar_t* const pszPath,
     const REGSAM sam,
     HKEY& hKey
-)
+) noexcept
 {
     hKey = nullptr;
     return registry.RegOpenKeyExW(

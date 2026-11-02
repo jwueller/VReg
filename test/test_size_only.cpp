@@ -30,7 +30,7 @@ thread_local std::size_t t_cbLargest = 0;
 void* Allocate(const std::size_t cb)
 {
     if (t_isTracking)
-        t_cbLargest = std::max(t_cbLargest, cb);
+        t_cbLargest = (std::max)(t_cbLargest, cb);
 
     if (void* const p = std::malloc(cb ? cb : 1))
         return p;
@@ -41,7 +41,7 @@ void* Allocate(const std::size_t cb)
 void* AllocateAligned(const std::size_t cb, const std::align_val_t align)
 {
     if (t_isTracking)
-        t_cbLargest = std::max(t_cbLargest, cb);
+        t_cbLargest = (std::max)(t_cbLargest, cb);
 
     if (
         void* const p = _aligned_malloc(

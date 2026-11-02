@@ -39,7 +39,7 @@ HKEY Open(
     const wchar_t* lpszName,
     const REGSAM sam,
     LSTATUS& error
-)
+) noexcept
 {
     HKEY hKey{};
     error = RegOpenKeyExW(hkParent, lpszName, 0, sam, &hKey);

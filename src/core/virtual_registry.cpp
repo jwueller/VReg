@@ -48,7 +48,7 @@ LSTATUS SplitPath(
     std::size_t start = 0;
     while (start < path.size())
     {
-        const auto end = std::min(path.find(L'\\', start), path.size());
+        const auto end = (std::min)(path.find(L'\\', start), path.size());
         const auto component = path.substr(start, end - start);
         if (!component.empty())
         {
@@ -405,7 +405,7 @@ bool VirtualRegistry::ResolveNative(
     std::vector<std::wstring_view> full;
     for (std::size_t start = 0; start < pText->size();)
     {
-        const auto end = std::min(pText->find(L'\\', start), pText->size());
+        const auto end = (std::min)(pText->find(L'\\', start), pText->size());
         if (end > start)
             full.emplace_back(pText->data() + start, end - start);
 
@@ -1256,7 +1256,7 @@ try
         if (cbOutBuf == 0)
             return ERROR_SUCCESS;
 
-        const auto cch = std::min<std::size_t>(
+        const auto cch = (std::min<std::size_t>)(
             text.size(),
             cbOutBuf / sizeof(wchar_t) - 1
         );
@@ -1442,7 +1442,7 @@ try
                 cwchExpanded
             );
             const auto cbExpanded = static_cast<DWORD>(stages[2].size());
-            cbReported = std::max(cbReported, cbExpanded);
+            cbReported = (std::max)(cbReported, cbExpanded);
             dwType = REG_SZ;
         }
     }
@@ -1505,7 +1505,7 @@ try
         *pcbData =
             !stages[2].empty()
                 ? cbReported
-                : (isFit ? cbReported : std::max(cbReported, cbReserved));
+                : (isFit ? cbReported : (std::max)(cbReported, cbReserved));
     }
 
     // Binary data passes as a DWORD only when it is empty or has that size.

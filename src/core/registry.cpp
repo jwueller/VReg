@@ -65,7 +65,7 @@ bool CopyAnsiClass(
     if (cchBuffer == 0)
         return false;
 
-    const auto cchCopied = std::min<std::size_t>(text.size(), cchBuffer - 1);
+    const auto cchCopied = (std::min<std::size_t>)(text.size(), cchBuffer - 1);
     std::memcpy(pszBuffer, text.data(), cchCopied);
     pszBuffer[cchCopied] = '\0';
     return text.size() < cchBuffer;
@@ -395,9 +395,9 @@ try
             className.resize(cchClassOut);
             break;
         }
-        cchName = std::min(cchName * 2, MAX_CLASS_CHARS);
+        cchName = (std::min)(cchName * 2, MAX_CLASS_CHARS);
         if (wantClass)
-            cchClass = std::min(cchClass * 2, MAX_CLASS_CHARS);
+            cchClass = (std::min)(cchClass * 2, MAX_CLASS_CHARS);
     }
     if (status != ERROR_SUCCESS)
         return status;
@@ -600,7 +600,7 @@ try
             className.resize(cchClassOut);
             break;
         }
-        cchClass = std::min(cchClass * 2, MAX_CLASS_CHARS);
+        cchClass = (std::min)(cchClass * 2, MAX_CLASS_CHARS);
     }
     if (status != ERROR_SUCCESS)
     {
@@ -790,7 +790,7 @@ try
             nullptr,
             &cbStoredQuery
         );
-        cbStoredRaw = cbStoredQuery - std::min<DWORD>(cbStoredQuery, 2);
+        cbStoredRaw = cbStoredQuery - (std::min<DWORD>)(cbStoredQuery, 2);
     }
 
     const auto text
@@ -825,7 +825,7 @@ try
             ibNul == std::string::npos
                 ? cbText
                 : static_cast<DWORD>(ibNul + 1);
-        cbReported = std::max(
+        cbReported = (std::max)(
             cbRawText,
             cbExpanded
         ) + (cbExpanded > cbRawText ? 1 : 0);
@@ -864,7 +864,7 @@ try
                     std::memcpy(
                         pvData,
                         stored.data(),
-                        std::min<std::size_t>(
+                        (std::min<std::size_t>)(
                             cbStoredRaw,
                             stored.size()
                         )
@@ -894,19 +894,19 @@ try
             std::memcpy(
                 pbData,
                 stored.data(),
-                std::min<std::size_t>(cbStoredRaw, stored.size())
+                (std::min<std::size_t>)(cbStoredRaw, stored.size())
             );
     }
     else
     {
         const DWORD cbStored =
             cbQuery
-            - std::min<DWORD>(cbQuery, dwType == REG_MULTI_SZ ? 4 : 2);
+            - (std::min<DWORD>)(cbQuery, dwType == REG_MULTI_SZ ? 4 : 2);
         if (cbStored <= cbBuffer)
             std::memcpy(
                 pbData,
                 data.data(),
-                std::min<std::size_t>(cbStored, data.size())
+                (std::min<std::size_t>)(cbStored, data.size())
             );
     }
     if (cbText > 0)
@@ -1476,7 +1476,7 @@ try
             std::memset(
                 pbBuffer + cbEnd,
                 0,
-                std::min(ibValue, cbBuffer) - cbEnd
+                (std::min)(ibValue, cbBuffer) - cbEnd
             );
 
         placed[i].ibValue = ibValue;

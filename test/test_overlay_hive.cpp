@@ -140,7 +140,7 @@ LSTATUS Open(
     const HKEY hParent,
     const wchar_t* const pszPath,
     HKEY& hKey
-)
+) noexcept
 {
     hKey = nullptr;
     return registry.RegOpenKeyExW(
@@ -168,7 +168,7 @@ LSTATUS SetDword(
     const HKEY hKey,
     const wchar_t* const pszName,
     const DWORD dwValue
-)
+) noexcept
 {
     return registry.RegSetValueExW(
         hKey,
@@ -185,7 +185,7 @@ LSTATUS SetString(
     const HKEY hKey,
     const wchar_t* const pszName,
     const std::wstring& text
-)
+) noexcept
 {
     return registry.RegSetValueExW(
         hKey,
@@ -220,7 +220,7 @@ LSTATUS QueryDword(
     const HKEY hKey,
     const wchar_t* const pszName,
     DWORD& dwValue
-)
+) noexcept
 {
     dwValue = 0;
     DWORD cbValue = sizeof(dwValue);
@@ -235,7 +235,7 @@ LSTATUS QueryDword(
 }
 
 /// The value as a number, or 0xFFFFFFFF when the query fails.
-DWORD DwordOr(Registry& registry, const HKEY hKey, const wchar_t* const pszName)
+DWORD DwordOr(Registry& registry, const HKEY hKey, const wchar_t* const pszName) noexcept
 {
     DWORD dwValue{};
     return QueryDword(

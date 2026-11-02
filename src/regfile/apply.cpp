@@ -106,7 +106,7 @@ LSTATUS Perform(
     }
     case OperationKind::SetValue:
     {
-        if (operation.data.size() > std::numeric_limits<DWORD>::max())
+        if (operation.data.size() > (std::numeric_limits<DWORD>::max)())
             return ERROR_INVALID_PARAMETER;
         KeyHandle key(registry);
         const auto status = registry.RegOpenKeyExW(

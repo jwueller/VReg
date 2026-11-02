@@ -26,7 +26,7 @@ LSTATUS EnumKeyEx(
     LPWSTR pszClass,
     LPDWORD pcchClass,
     PFILETIME pft
-)
+) noexcept
 {
     return api.RegEnumKeyExW(
         hKey,
@@ -51,7 +51,7 @@ LSTATUS EnumKeyEx(
     LPSTR pszClass,
     LPDWORD pcchClass,
     PFILETIME pft
-)
+) noexcept
 {
     return api.RegEnumKeyExA(
         hKey,
@@ -76,7 +76,7 @@ LSTATUS EnumValueEx(
     LPDWORD pdwType,
     LPBYTE pData,
     LPDWORD pcbData
-)
+) noexcept
 {
     return api.RegEnumValueW(
         hKey,
@@ -101,7 +101,7 @@ LSTATUS EnumValueEx(
     LPDWORD pdwType,
     LPBYTE pData,
     LPDWORD pcbData
-)
+) noexcept
 {
     return api.RegEnumValueA(
         hKey,
@@ -130,7 +130,7 @@ LSTATUS QueryInfo(
     LPDWORD pcbMaxValueLen,
     LPDWORD pcbSecurityDescriptor,
     PFILETIME pft
-)
+) noexcept
 {
     return api.RegQueryInfoKeyW(
         hKey,
@@ -163,7 +163,7 @@ LSTATUS QueryInfo(
     LPDWORD pcbMaxValueLen,
     LPDWORD pcbSecurityDescriptor,
     PFILETIME pft
-)
+) noexcept
 {
     return api.RegQueryInfoKeyA(
         hKey,

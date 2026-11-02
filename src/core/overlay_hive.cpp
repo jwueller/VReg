@@ -1228,11 +1228,11 @@ try
                 continue;
 
             ++result.cSubKeys;
-            result.cchMaxSubKey = std::max(
+            result.cchMaxSubKey = (std::max)(
                 result.cchMaxSubKey,
                 static_cast<DWORD>(pChild->name.size())
             );
-            result.cchMaxClass = std::max(
+            result.cchMaxClass = (std::max)(
                 result.cchMaxClass,
                 static_cast<DWORD>(pChild->className.size())
             );
@@ -1245,11 +1245,11 @@ try
                 continue;
 
             ++result.cValues;
-            result.cchMaxValueName = std::max(
+            result.cchMaxValueName = (std::max)(
                 result.cchMaxValueName,
                 static_cast<DWORD>(value.name.size())
             );
-            result.cbMaxValue = std::max(
+            result.cbMaxValue = (std::max)(
                 result.cbMaxValue,
                 static_cast<DWORD>(value.data.size())
             );
@@ -1344,19 +1344,19 @@ try
 
             result.cSubKeys += lower.cSubKeys;
             result.cValues += lower.cValues;
-            result.cchMaxSubKey = std::max(
+            result.cchMaxSubKey = (std::max)(
                 result.cchMaxSubKey,
                 lower.cchMaxSubKey
             );
-            result.cchMaxClass = std::max(
+            result.cchMaxClass = (std::max)(
                 result.cchMaxClass,
                 lower.cchMaxClass
             );
-            result.cchMaxValueName = std::max(
+            result.cchMaxValueName = (std::max)(
                 result.cchMaxValueName,
                 lower.cchMaxValueName
             );
-            result.cbMaxValue = std::max(result.cbMaxValue, lower.cbMaxValue);
+            result.cbMaxValue = (std::max)(result.cbMaxValue, lower.cbMaxValue);
             if (isLowerBacked)
                 result.className = std::move(lower.className);
             if (isTransparent)

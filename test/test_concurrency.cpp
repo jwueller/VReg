@@ -53,7 +53,7 @@ std::wstring ValueName(const unsigned i)
 
 /// What every writer stores under value @p index, so a final read can tell a
 /// torn value from a written one.
-DWORD ValueData(const unsigned index)
+DWORD ValueData(const unsigned index) noexcept
 {
     return 1000 + index * 7;
 }
@@ -380,7 +380,7 @@ void ReaderLoop(
 }
 
 /// Registers one-shot watches on the whole hive and counts how many fire.
-void WatcherLoop(Registry& registry, const HKEY hRoot, Shared& shared)
+void WatcherLoop(Registry& registry, const HKEY hRoot, Shared& shared) noexcept
 {
     const HANDLE hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
     while (!shared.isStopped.load(std::memory_order_relaxed))

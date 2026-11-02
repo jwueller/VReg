@@ -110,6 +110,9 @@ the API it reimplements. Change them freely before the first release.
   each item, even a single one, on a line of its own; the IDE formatter
   keeps that layout. A multiline statement is set off by blank lines, with
   its comment attached.
+- `min` and `max` are called parenthesized, `(std::max)(a, b)` and
+  `(std::numeric_limits<DWORD>::max)()`, so the `windows.h` macros never
+  apply, even in a consumer that includes it without `NOMINMAX`.
 - No init-statement in an `if`, and no state-changing call inside its
   condition: assign the result in a statement of its own first. A single
   declaration as the condition is fine.

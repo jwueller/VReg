@@ -3,6 +3,7 @@
 #include "core/export_table.h"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 #include <array>
 #include <bit>
@@ -16,12 +17,15 @@ TEST_CASE("Export lookup agrees with the loader")
     const auto hKernelBase = GetModuleHandleW(L"KernelBase.dll");
     REQUIRE(hKernelBase);
 
-    for (
-        const auto* const pszName :
-        {"RegOpenKeyExW", "RegCloseKey", "RegQueryInfoKeyA", "CreateFileW"}
-    )
+    SECTION("a name the module exports resolves like GetProcAddress")
     {
-        INFO(pszName);
+        const auto* const pszName = GENERATE(
+            "RegOpenKeyExW",
+            "RegCloseKey",
+            "RegQueryInfoKeyA",
+            "CreateFileW"
+        );
+        CAPTURE(pszName);
         CHECK(
             FindExport(
                 hKernelBase,
@@ -30,8 +34,11 @@ TEST_CASE("Export lookup agrees with the loader")
         );
     }
 
-    CHECK(FindExport(hKernelBase, "NoSuchExport") == nullptr);
-    CHECK(FindExport(nullptr, "RegOpenKeyExW") == nullptr);
+    SECTION("a missing name or module resolves to nothing")
+    {
+        CHECK(FindExport(hKernelBase, "NoSuchExport") == nullptr);
+        CHECK(FindExport(nullptr, "RegOpenKeyExW") == nullptr);
+    }
 }
 
 namespace

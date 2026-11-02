@@ -45,7 +45,7 @@ LSTATUS GetEx(
     LPDWORD pdwType,
     PVOID pData,
     LPDWORD pcbData
-)
+) noexcept
 {
     return api.RegGetValueW(
         hKey,
@@ -68,7 +68,7 @@ LSTATUS GetEx(
     LPDWORD pdwType,
     PVOID pData,
     LPDWORD pcbData
-)
+) noexcept
 {
     return api.RegGetValueA(
         hKey,
@@ -842,7 +842,7 @@ LSTATUS QueryMultiple(
     DWORD cEntries,
     LPWSTR pBuffer,
     LPDWORD pcbTotal
-)
+) noexcept
 {
     return api.RegQueryMultipleValuesW(
         hKey,
@@ -861,7 +861,7 @@ LSTATUS QueryMultiple(
     DWORD cEntries,
     LPSTR pBuffer,
     LPDWORD pcbTotal
-)
+) noexcept
 {
     return api.RegQueryMultipleValuesA(
         hKey,

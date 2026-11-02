@@ -74,7 +74,7 @@ LSTATUS Watch(
     const bool isSubtree,
     const DWORD dwFilter,
     const Event& event
-)
+) noexcept
 {
     return registry.RegNotifyChangeKeyValue(
         hKey,
@@ -113,7 +113,7 @@ LSTATUS SetDword(
     const HKEY hKey,
     const wchar_t* const pszName,
     const DWORD dwValue
-)
+) noexcept
 {
     return registry.RegSetValueExW(
         hKey,

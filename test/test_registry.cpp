@@ -31,7 +31,7 @@ LSTATUS SetString(
     const wchar_t* const pszName,
     const DWORD dwType,
     const std::wstring& text
-)
+) noexcept
 {
     return registry.RegSetValueExW(
         hKey,
@@ -48,7 +48,7 @@ LSTATUS SetDword(
     const HKEY hKey,
     const wchar_t* const pszName,
     const DWORD dwValue
-)
+) noexcept
 {
     return registry.RegSetValueExW(
         hKey,
@@ -71,7 +71,7 @@ LSTATUS WINAPI GrowingQueryValueExW(
     const LPDWORD lpType,
     const LPBYTE lpData,
     const LPDWORD lpcbData
-)
+) noexcept
 {
     if (lpData != nullptr && lpcbData != nullptr && g_nGrowthsLeft > 0)
     {
@@ -109,7 +109,7 @@ LSTATUS WINAPI GrowingGetValueW(
     const LPDWORD pdwType,
     const PVOID pvData,
     const LPDWORD pcbData
-)
+) noexcept
 {
     if (pvData != nullptr && pcbData != nullptr && g_nGrowthsLeft > 0)
     {
@@ -141,7 +141,7 @@ LSTATUS WINAPI GrowingGetValueW(
     );
 }
 
-NativeRegistry GrowingRegistry()
+NativeRegistry GrowingRegistry() noexcept
 {
     auto functions = NativeRegistry::ResolveFunctions();
     functions.RegQueryValueExW = &GrowingQueryValueExW;
@@ -662,7 +662,7 @@ LSTATUS WINAPI StubLoadMUIStringW(
     const LPDWORD pcbData,
     const DWORD Flags,
     const LPCWSTR pszDirectory
-)
+) noexcept
 {
     (void)hKey;
     (void)pszValue;

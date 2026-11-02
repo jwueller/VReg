@@ -3,6 +3,7 @@
 #include "core/handle_space.h"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 #include <set>
 #include <string>
@@ -11,7 +12,7 @@ using namespace VReg;
 
 namespace
 {
-std::uintptr_t ValueOf(const HKEY hKey)
+std::uintptr_t ValueOf(const HKEY hKey) noexcept
 {
     return std::bit_cast<std::uintptr_t>(hKey);
 }
@@ -59,15 +60,15 @@ TEST_CASE("Virtual handles count down from the base in odd steps")
     CHECK(ValueOf(VirtualHKeyFromIndex(VREG_VIRTUAL_HKEY_COUNT - 1)) == 1);
     CHECK(VirtualHKeyFromIndex(VREG_VIRTUAL_HKEY_COUNT) == nullptr);
 
-    for (
-        const std::uintptr_t index :
-        {std::uintptr_t{0}, std::uintptr_t{12345}, VREG_VIRTUAL_HKEY_COUNT - 1}
-    )
-    {
-        const auto hKey = VirtualHKeyFromIndex(index);
-        CHECK(IsVirtualHKey(hKey));
-        CHECK(IndexFromVirtualHKey(hKey) == index);
-    }
+    const std::uintptr_t index = GENERATE(
+        std::uintptr_t{0},
+        std::uintptr_t{12345},
+        VREG_VIRTUAL_HKEY_COUNT - 1
+    );
+    CAPTURE(index);
+    const auto hKey = VirtualHKeyFromIndex(index);
+    CHECK(IsVirtualHKey(hKey));
+    CHECK(IndexFromVirtualHKey(hKey) == index);
 }
 
 TEST_CASE("Real and predefined handles are never virtual")
