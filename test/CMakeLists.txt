@@ -38,8 +38,7 @@ add_executable(VReg_Tests
 )
 
 target_link_libraries(VReg_Tests PRIVATE
-    VReg::RegFile
-    VReg::Core
+    VReg::VReg
     VReg_BuildSettings
     Catch2::Catch2WithMain
     Shlwapi

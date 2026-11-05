@@ -15,7 +15,7 @@ foreach(_module A B)
     )
 
     target_link_libraries(VReg_HookModule${_module} PRIVATE
-        VReg::Core
+        VReg::VReg
         VReg::Detours
         VReg_BuildSettings
     )
@@ -33,7 +33,7 @@ add_executable(VReg_HookTests
 )
 
 target_link_libraries(VReg_HookTests PRIVATE
-    VReg::Core
+    VReg::VReg
     VReg::Detours
     VReg_BuildSettings
     Catch2::Catch2WithMain

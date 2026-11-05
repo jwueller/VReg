@@ -8,16 +8,18 @@ the [README](./README.md), how to build, test and release it in
 
 ### Targets
 
-- `VReg::Core`: the `Registry` interface, `NativeRegistry`,
+- `VReg::VReg`: the `Registry` interface, `NativeRegistry`,
   `VirtualRegistry`, the `Hive` interface with `MemoryHive` and
-  `OverlayHive`, handle encoding and the shared handle namespace.
-- `VReg::RegFile`: `.reg` parse, apply and export; depends on `VReg::Core`.
+  `OverlayHive`, handle encoding and the shared handle namespace
+  (`src/core/`), and `.reg` parse, apply and export (`src/regfile/`).
 - `VReg::Detours`: the hook adapter; built only with `VREG_WITH_DETOURS`
-  (off by default).
+  (off by default), since it needs Microsoft Detours.
 
-The handle layer lives in `VReg::Core` rather than in a target of its own: every
-non-native implementation hands out handles, so none of them exists without
-it.
+One library target, not one per directory: nothing uses `.reg` support
+without the core, the single header merges them anyway, and a static library
+costs a consumer only the objects it links. The handle layer lives in the
+core: every non-native implementation hands out handles, so none of them
+exists without it.
 
 ### `Registry`: the `Reg*` function family
 
@@ -357,7 +359,7 @@ on a lock a loader-lock holder could own. Calls to the lower registry go
 only through the base registry (the trampolines), never `::Reg*` directly,
 which would re-enter the hooks and bypass test stubs.
 
-## `.reg` format (`VReg::RegFile`)
+## `.reg` format
 
 ### API
 

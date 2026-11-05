@@ -11,8 +11,7 @@ foreach(lean IN ITEMS 0 1)
 
             # Only for the include directories and the language standard.
             target_link_libraries(${_target} PRIVATE
-                VReg::Core
-                VReg::RegFile
+                VReg::VReg
             )
 
             target_compile_options(${_target} PRIVATE

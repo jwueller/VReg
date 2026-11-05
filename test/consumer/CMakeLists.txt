@@ -4,9 +4,9 @@ project(VRegConsumer LANGUAGES CXX)
 option(CONSUMER_WITH_DETOURS "Also link VReg::Detours" OFF)
 
 if(CONSUMER_WITH_DETOURS)
-    find_package(VReg CONFIG REQUIRED COMPONENTS Core RegFile Detours)
+    find_package(VReg CONFIG REQUIRED COMPONENTS Detours)
 else()
-    find_package(VReg CONFIG REQUIRED COMPONENTS Core RegFile)
+    find_package(VReg CONFIG REQUIRED)
 endif()
 
 add_executable(consumer
@@ -14,8 +14,7 @@ add_executable(consumer
 )
 
 target_link_libraries(consumer PRIVATE
-    VReg::Core
-    VReg::RegFile
+    VReg::VReg
 )
 
 # The version find_package found, which the linked copy must report.

@@ -16,7 +16,7 @@ function(vreg_amalgamation_check name)
         VReg_Amalgamation
     )
 
-    # Deliberately not VReg::Core: the consumer has no include/.
+    # Deliberately not VReg::VReg: the consumer has no include/.
     target_include_directories(${target} PRIVATE
         ${VREG_AMALGAMATION_DIR}
     )

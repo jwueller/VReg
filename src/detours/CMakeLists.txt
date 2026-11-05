@@ -11,7 +11,7 @@ target_sources(VReg_Detours PRIVATE
 )
 
 target_link_libraries(VReg_Detours PUBLIC
-    VReg::Core
+    VReg::VReg
     Detours::Detours
 )
 

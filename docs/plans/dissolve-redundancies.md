@@ -6,11 +6,11 @@ mechanical build changes land before the API changes, and the hive merge
 (the largest) comes after the small API changes it would otherwise
 conflict with.
 
-- [ ] 1. One predefined-key predicate: `IsPredefinedHKey` in `handle.h`,
+- [x] 1. One predefined-key predicate: `IsPredefinedHKey` in `handle.h`,
   replacing the copies in `registry.cpp` and `virtual_registry.cpp`.
-- [ ] 2. One private include convention: `"core/x.h"` and `"regfile/x.h"`
+- [x] 2. One private include convention: `"core/x.h"` and `"regfile/x.h"`
   from `src/`, for the library sources and the amalgamator alike.
-- [ ] 3. One library target `VReg::VReg` in place of `VReg::Core` and
+- [x] 3. One library target `VReg::VReg` in place of `VReg::Core` and
   `VReg::RegFile`; `VReg::Detours` stays separate for its dependency.
   Consumers, install, config, tests, port usage, README and ARCHITECTURE
   follow.

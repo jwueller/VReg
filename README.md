@@ -40,14 +40,14 @@ CMake 3.25 or later; the [single header](#as-a-single-header) needs no
 build system.
 
 CMake targets (static libraries):
-- `VReg::Core`: the interface, the registries, the hives and the handles.
-- `VReg::RegFile`: `.reg` import and export.
+- `VReg::VReg`: the library: the interface, the registries, the hives, the
+  handles, and `.reg` import and export.
 - `VReg::Detours`: the hooks. Enable it with `-DVREG_WITH_DETOURS=ON`;
   needs Detours.
 
 Consume it through `add_subdirectory`/`FetchContent` (VReg then installs
 nothing with your project unless you set `VREG_INSTALL`), or install it and use
-`find_package(VReg CONFIG COMPONENTS Core RegFile Detours)`.
+`find_package(VReg CONFIG)`, with `COMPONENTS Detours` for the hooks.
 
 ### Through vcpkg
 
