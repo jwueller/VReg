@@ -24,7 +24,7 @@ conflict with.
 - [x] 6. One hive class: `MemoryHive` and `OverlayHive` become one concrete
   `Hive` with an optional lower registry; the `Hive` interface, `Tree` as a
   separate class and the overlay-only flags' qualifiers go with them.
-- [ ] 7. `NativeRegistry::Functions` holds only the functions
+- [x] 7. `NativeRegistry::Functions` holds only the functions
   `NativeRegistry` calls; the Detours adapter keeps the trampoline storage
   for the rest, and the test oracle its own full table.
 - [ ] 8. Drop `VirtualRegistry::Mount(const Hive&)` unless a consumer

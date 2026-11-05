@@ -10,56 +10,67 @@
 #error "VReg needs _WIN32_WINNT 0x0600 (Windows Vista) or later."
 #endif
 
-/// Applies `X` to the name of every function the @ref VReg::Registry surface
-/// mirrors, A and pre-`Ex` forms included: the fields of
-/// @ref VReg::NativeRegistry::Functions, and the functions the hooks emulate.
-/// It serves VReg's own sources and tests; it is not part of the API.
-#define VREG_INTERNAL_REGISTRY_FUNCTIONS(X)                                    \
+/// Applies `X` to the name of every wide `Ex` form and every function with
+/// one form only: the virtual surface of @ref VReg::Registry, and the fields
+/// of @ref VReg::NativeRegistry::Functions. It serves VReg's own sources and
+/// tests; it is not part of the API.
+#define VREG_INTERNAL_REGISTRY_VIRTUALS(X)                                     \
     X(RegOpenKeyExW)                                                           \
+    X(RegCreateKeyExW)                                                         \
+    X(RegCloseKey)                                                             \
+    X(RegQueryValueExW)                                                        \
+    X(RegSetValueExW)                                                          \
+    X(RegDeleteValueW)                                                         \
+    X(RegDeleteKeyExW)                                                         \
+    X(RegDeleteTreeW)                                                          \
+    X(RegEnumKeyExW)                                                           \
+    X(RegEnumValueW)                                                           \
+    X(RegQueryInfoKeyW)                                                        \
+    X(RegLoadMUIStringW)                                                       \
+    X(RegGetValueW)                                                            \
+    X(RegNotifyChangeKeyValue)                                                 \
+    X(RegFlushKey)
+
+/// Applies `X` to the name of every other function @ref VReg::Registry
+/// mirrors: the ANSI forms, the pre-`Ex` forms and the conveniences Win32
+/// builds from the virtuals. The hooks emulate these too, but no registry
+/// calls them, so their trampolines stay with the hooks.
+#define VREG_INTERNAL_REGISTRY_FORMS(X)                                        \
     X(RegOpenKeyExA)                                                           \
     X(RegOpenKeyW)                                                             \
     X(RegOpenKeyA)                                                             \
-    X(RegCreateKeyExW)                                                         \
     X(RegCreateKeyExA)                                                         \
     X(RegCreateKeyW)                                                           \
     X(RegCreateKeyA)                                                           \
-    X(RegCloseKey)                                                             \
-    X(RegQueryValueExW)                                                        \
     X(RegQueryValueExA)                                                        \
     X(RegQueryValueW)                                                          \
     X(RegQueryValueA)                                                          \
-    X(RegSetValueExW)                                                          \
     X(RegSetValueExA)                                                          \
     X(RegSetValueW)                                                            \
     X(RegSetValueA)                                                            \
-    X(RegDeleteValueW)                                                         \
     X(RegDeleteValueA)                                                         \
-    X(RegDeleteKeyExW)                                                         \
     X(RegDeleteKeyExA)                                                         \
     X(RegDeleteKeyW)                                                           \
     X(RegDeleteKeyA)                                                           \
-    X(RegDeleteTreeW)                                                          \
     X(RegDeleteTreeA)                                                          \
-    X(RegEnumKeyExW)                                                           \
     X(RegEnumKeyExA)                                                           \
     X(RegEnumKeyW)                                                             \
     X(RegEnumKeyA)                                                             \
-    X(RegEnumValueW)                                                           \
     X(RegEnumValueA)                                                           \
-    X(RegQueryInfoKeyW)                                                        \
     X(RegQueryInfoKeyA)                                                        \
-    X(RegLoadMUIStringW)                                                       \
     X(RegLoadMUIStringA)                                                       \
-    X(RegGetValueW)                                                            \
     X(RegGetValueA)                                                            \
-    X(RegNotifyChangeKeyValue)                                                 \
-    X(RegFlushKey)                                                             \
     X(RegSetKeyValueW)                                                         \
     X(RegSetKeyValueA)                                                         \
     X(RegDeleteKeyValueW)                                                      \
     X(RegDeleteKeyValueA)                                                      \
     X(RegQueryMultipleValuesW)                                                 \
     X(RegQueryMultipleValuesA)
+
+/// Both lists: every function the @ref VReg::Registry surface mirrors.
+#define VREG_INTERNAL_REGISTRY_FUNCTIONS(X)                                    \
+    VREG_INTERNAL_REGISTRY_VIRTUALS(X)                                         \
+    VREG_INTERNAL_REGISTRY_FORMS(X)
 
 namespace VReg
 {
@@ -73,11 +84,11 @@ namespace VReg
  *  both are loaded before it runs), which makes it safe under the loader
  *  lock.
  *
- *  The table holds every function the @ref Registry surface mirrors, A and
- *  pre-`Ex` forms included, although only the virtual wide forms are called
- *  through it: the hooks attach to these fields, so once the hooks are
- *  committed the fields hold the trampolines and this registry is the one
- *  below them.
+ *  The table holds the virtual surface of @ref Registry, the functions this
+ *  class calls; the ANSI, pre-`Ex` and convenience forms come from
+ *  @ref Registry over them, as everywhere. The hooks attach to these
+ *  fields, so once the hooks are committed the fields hold the trampolines
+ *  and this registry is the one below them.
  */
 class NativeRegistry final : public Registry
 {
@@ -86,7 +97,7 @@ public:
 
     struct Functions
     {
-        VREG_INTERNAL_REGISTRY_FUNCTIONS(VREG_FIELD)
+        VREG_INTERNAL_REGISTRY_VIRTUALS(VREG_FIELD)
     };
 #undef VREG_FIELD
 

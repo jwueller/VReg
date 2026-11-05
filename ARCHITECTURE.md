@@ -53,12 +53,14 @@ exists without it.
 
 Implementations:
 
-- `NativeRegistry`: forwards through a table of function pointers. Defaults
-  resolve from the export tables of `KernelBase.dll` first and `advapi32.dll`
-  for the pre-`Ex` forms it alone exports, never via `GetProcAddress` (an
-  apphelp shim stub would otherwise stand in for the entry point). The
-  Detours adapter hands these fields to `DetourAttach`, so after the commit
-  they hold the trampolines.
+- `NativeRegistry`: forwards the virtual surface through a table of function
+  pointers, one per virtual, and takes the other forms from `Registry` like
+  every implementation. Defaults resolve from the export table of
+  `KernelBase.dll`, never via `GetProcAddress` (an apphelp shim stub would
+  otherwise stand in for the entry point). The Detours adapter hands these
+  fields to `DetourAttach`, so after the commit they hold the trampolines;
+  the trampolines of the ANSI and pre-`Ex` hooks, which no registry calls,
+  stay in the adapter.
 - `VirtualRegistry`: a mount table of hives plus an optional base
   `Registry`. Paths outside every mount go to the base; with no base they
   answer `ERROR_FILE_NOT_FOUND`. It owns the ANSI/wide and caller-buffer rules
@@ -282,7 +284,7 @@ would cost an `NtQueryKey` on every call on a real handle.
 Every `Reg*` export that accepts an HKEY is hooked, because a virtual handle
 reaching an unhooked API fails as an invalid handle. Targets resolve from
 the `KernelBase.dll` export table, falling back to `advapi32.dll` for the
-pre-`Ex` forms. KernelBase holds the bodies: advapi32's `Ex` exports only
+pre-`Ex` forms it alone exports. KernelBase holds the bodies: advapi32's `Ex` exports only
 forward to them, and callers that import the API set
 (`api-ms-win-core-registry-l1-1-0`, as system DLLs and `onecore.lib` builds
 do) reach KernelBase without passing through advapi32, so only a hook on

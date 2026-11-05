@@ -82,6 +82,21 @@ enum RefusedIndex : std::size_t
 
 std::array<void*, REFUSED_COUNT> g_refusedTargets{};
 
+// The forms the registry answers besides its virtual surface, by index into
+// their resolved entry points. The registry below the hooks never calls
+// them (an ANSI or pre-Ex call reaches it as the wide Ex form), so their
+// trampolines live here and serve Neutralize alone.
+enum FormIndex : std::size_t
+{
+#define VREG_INDEX(name) k##name,
+    VREG_INTERNAL_REGISTRY_FORMS(VREG_INDEX)
+#undef VREG_INDEX
+
+    FORM_COUNT
+};
+
+std::array<void*, FORM_COUNT> g_formTargets{};
+
 bool IsOwned(const HKEY hKey) noexcept
 {
     return HandleSpace::Process().Owns(hKey);
@@ -431,8 +446,23 @@ LONG Attach(Registry& registry, NativeRegistry& native) noexcept
             &Emulated<decltype(functions.name), &Registry::name>::Body         \
         )                                                                      \
     };
-    VREG_INTERNAL_REGISTRY_FUNCTIONS(VREG_EMULATED)
+    VREG_INTERNAL_REGISTRY_VIRTUALS(VREG_EMULATED)
 #undef VREG_EMULATED
+
+    // A form this system does not export has nothing to hook.
+#define VREG_FORM(name)                                                        \
+    g_formTargets[k##name] = FindRegistryExport(#name);                        \
+    if (g_formTargets[k##name])                                                \
+    {                                                                          \
+        hooks[cHooks++] = {                                                    \
+            &g_formTargets[k##name],                                           \
+            reinterpret_cast<void*>(                                           \
+                &Emulated<decltype(&::name), &Registry::name>::Body            \
+            )                                                                  \
+        };                                                                     \
+    }
+    VREG_INTERNAL_REGISTRY_FORMS(VREG_FORM)
+#undef VREG_FORM
 
     // A refused function this system does not export has nothing to hook.
 #define VREG_REFUSED(name)                                                     \
