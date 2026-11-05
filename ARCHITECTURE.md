@@ -262,12 +262,13 @@ into a mount. The last case is resolved by the parent's native path:
   Agent's choice: below the mount point the name is an ordinary key, since a
   hive's own tree is not a registry view; stripping the whole path was passed
   over. The longest matching mount wins.
-- Each mount has a `view`: `Both` (default), `Only64` or `Only32`. A call is
-  of the view `KEY_WOW64_64KEY` or `KEY_WOW64_32KEY` in its `samDesired`
-  names (`RRF_SUBKEY_WOW64*KEY` for `RegGetValue`), else of the process
-  bitness; a native path that contained `WOW6432Node` is always the 32-bit
-  view. A mount answers only calls of its view, through predefined roots as
-  well.
+- Each mount has a view, in the `REGSAM` vocabulary the `OverlayHive`
+  constructor uses for its lower view too: `KEY_WOW64_64KEY`,
+  `KEY_WOW64_32KEY`, or 0 (the default) for both. A call is of the view its
+  `samDesired` names (`RRF_SUBKEY_WOW64*KEY` for `RegGetValue`), else of the
+  process bitness; a native path that contained `WOW6432Node` is always the
+  32-bit view. A mount answers only calls of its view, through predefined
+  roots as well.
 
 Known gap, documented: a real handle opened before the hooks committed that
 points at or inside a mount keeps reaching the lower registry for calls made

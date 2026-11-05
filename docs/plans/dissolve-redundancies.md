@@ -18,7 +18,7 @@ conflict with.
   `VRegAmalgamate.cmake`, as `VRegVersion.cmake` already does), and the
   version emitted where `version_info.h` is included instead of as macros
   at the top and `#undef`s at the bottom.
-- [ ] 5. One WOW64 view vocabulary: `VirtualRegistry::Mount` takes a
+- [x] 5. One WOW64 view vocabulary: `VirtualRegistry::Mount` takes a
   `REGSAM` view (`KEY_WOW64_64KEY`, `KEY_WOW64_32KEY` or 0) like the
   `OverlayHive` constructor; `MountView` goes.
 - [ ] 6. One hive class: `MemoryHive` and `OverlayHive` become one concrete

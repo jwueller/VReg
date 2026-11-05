@@ -1237,7 +1237,7 @@ TEST_CASE("A mount answers only the calls of its view")
             HKEY_LOCAL_MACHINE,
             L"Software\\VRegViewTest64",
             hive64,
-            MountView::Only64
+            KEY_WOW64_64KEY
         ) == ERROR_SUCCESS
     );
     REQUIRE(
@@ -1245,7 +1245,7 @@ TEST_CASE("A mount answers only the calls of its view")
             HKEY_LOCAL_MACHINE,
             L"Software\\VRegViewTest32",
             hive32,
-            MountView::Only32
+            KEY_WOW64_32KEY
         ) == ERROR_SUCCESS
     );
     REQUIRE(

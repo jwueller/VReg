@@ -105,24 +105,27 @@ bool IsWow6432Node(const std::wstring_view name) noexcept
     return CompareNames(name, L"WOW6432Node") == 0;
 }
 
-constexpr MountView PROCESS_VIEW =
+constexpr REGSAM PROCESS_VIEW =
     sizeof(void*) == 8
-        ? MountView::Only64
-        : MountView::Only32;
+        ? KEY_WOW64_64KEY
+        : KEY_WOW64_32KEY;
 
-MountView ViewFromSam(const REGSAM samDesired) noexcept
+/// The view a call with @p samDesired is of: the one it names, else the
+/// process's.
+REGSAM CallView(const REGSAM samDesired) noexcept
 {
     if (samDesired & KEY_WOW64_64KEY)
-        return MountView::Only64;
+        return KEY_WOW64_64KEY;
     if (samDesired & KEY_WOW64_32KEY)
-        return MountView::Only32;
+        return KEY_WOW64_32KEY;
 
     return PROCESS_VIEW;
 }
 
-bool Admits(const MountView mountView, const MountView callView) noexcept
+/// Whether a mount of view @p samMount answers a call of view @p samCall.
+bool Admits(const REGSAM samMount, const REGSAM samCall) noexcept
 {
-    return mountView == MountView::Both || mountView == callView;
+    return samMount == 0 || samMount == samCall;
 }
 
 /// The string form of the current user's SID; empty when it cannot be read.
@@ -231,20 +234,20 @@ LSTATUS VirtualRegistry::Mount(
     const HKEY hRoot,
     _In_z_ const LPCWSTR pszPath,
     Hive& hive,
-    const MountView view
+    const REGSAM samView
 ) noexcept
 {
-    return MountHive(hRoot, pszPath, hive, &hive, view);
+    return MountHive(hRoot, pszPath, hive, &hive, samView);
 }
 
 LSTATUS VirtualRegistry::Mount(
     const HKEY hRoot,
     _In_z_ const LPCWSTR pszPath,
     const Hive& hive,
-    const MountView view
+    const REGSAM samView
 ) noexcept
 {
-    return MountHive(hRoot, pszPath, hive, nullptr, view);
+    return MountHive(hRoot, pszPath, hive, nullptr, samView);
 }
 
 LSTATUS VirtualRegistry::MountHive(
@@ -252,12 +255,18 @@ LSTATUS VirtualRegistry::MountHive(
     const std::wstring_view path,
     const Hive& hive,
     Hive* const pWritable,
-    const MountView view
+    const REGSAM samView
 ) noexcept
 try
 {
     if (!IsPredefinedHKey(hRoot))
         return ERROR_INVALID_HANDLE;
+    if (
+        samView != 0
+        && samView != KEY_WOW64_64KEY
+        && samView != KEY_WOW64_32KEY
+    )
+        return ERROR_INVALID_PARAMETER;
 
     std::vector<std::wstring_view> components;
     if (SplitPath(path, components) != ERROR_SUCCESS)
@@ -268,7 +277,7 @@ try
         .path = {components.begin(), components.end()},
         .pHive = &hive,
         .pWritable = pWritable,
-        .view = view,
+        .samView = samView,
         .nativePath = NativeRootPath(hRoot),
     };
     if (!mount.nativePath.empty())
@@ -406,7 +415,7 @@ bool VirtualRegistry::ResolveNative(
 
     full.insert(full.end(), subComponents.begin(), subComponents.end());
 
-    const auto callView = ViewFromSam(samDesired);
+    const auto samCall = CallView(samDesired);
     const MountPoint* pBest = nullptr;
     std::size_t iBestRest = 0;
     for (const auto& mount : mounts)
@@ -416,7 +425,7 @@ bool VirtualRegistry::ResolveNative(
         if (
             mount.nativePath.empty()
             || !MatchesNative(mount.nativePath, full, isWow, iRest)
-            || !Admits(mount.view, isWow ? MountView::Only32 : callView)
+            || !Admits(mount.samView, isWow ? KEY_WOW64_32KEY : samCall)
         )
             continue;
 
@@ -478,7 +487,7 @@ VirtualRegistry::Target VirtualRegistry::Resolve(
 
     if (IsPredefinedHKey(hKey))
     {
-        const auto callView = ViewFromSam(samDesired);
+        const auto samCall = CallView(samDesired);
         const MountPoint* pBest = nullptr;
         for (const auto& mount : Mounts().mounts)
         {
@@ -486,7 +495,7 @@ VirtualRegistry::Target VirtualRegistry::Resolve(
                 !isSplit
                 || mount.hRoot != hKey
                 || mount.path.size() > components.size()
-                || !Admits(mount.view, callView)
+                || !Admits(mount.samView, samCall)
             )
                 continue;
 

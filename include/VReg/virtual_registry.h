@@ -11,17 +11,6 @@
 
 namespace VReg
 {
-/// Which registry view of the native path a mount answers to.
-enum class MountView
-{
-    /// Calls of either view.
-    Both,
-    /// Only calls of the 64-bit view.
-    Only64,
-    /// Only calls of the 32-bit view (`WOW6432Node`).
-    Only32,
-};
-
 /// @ref NtQueryKey, the one `ntdll` function a @ref VirtualRegistry uses to
 /// find the native path of a real key.
 using NtQueryKeyFunction = LONG(NTAPI*)(
@@ -74,13 +63,15 @@ public:
     /// path mounts the root itself). @p hive MUST outlive this registry.
     /// Answers @ref ERROR_INVALID_HANDLE for a root that is not predefined,
     /// @ref ERROR_BAD_PATHNAME for a malformed path and
-    /// @ref ERROR_ALREADY_EXISTS for a path already mounted. @p view limits
-    /// the calls the mount answers to those of one registry view.
+    /// @ref ERROR_ALREADY_EXISTS for a path already mounted. @p samView limits
+    /// the calls the mount answers to those of one registry view:
+    /// @ref KEY_WOW64_64KEY or @ref KEY_WOW64_32KEY, or 0 for both; anything
+    /// else answers @ref ERROR_INVALID_PARAMETER.
     LSTATUS Mount(
         HKEY hRoot,
         _In_z_ LPCWSTR pszPath,
         Hive& hive,
-        MountView view = MountView::Both
+        REGSAM samView = 0
     ) noexcept;
 
     /// @ref Mount for reading only: this registry calls only the const
@@ -94,7 +85,7 @@ public:
         HKEY hRoot,
         _In_z_ LPCWSTR pszPath,
         const Hive& hive,
-        MountView view = MountView::Both
+        REGSAM samView = 0
     ) noexcept;
 
     LSTATUS RegOpenKeyExW(
@@ -248,7 +239,8 @@ private:
         /// @ref pHive for writing; null for a read-only mount.
         Hive* pWritable;
 
-        MountView view;
+        /// @ref KEY_WOW64_64KEY, @ref KEY_WOW64_32KEY or 0 for both views.
+        REGSAM samView;
 
         /// The native key path as components without `WOW6432Node`; empty
         /// when the mount has none.
@@ -294,7 +286,7 @@ private:
         std::wstring_view path,
         const Hive& hive,
         Hive* pWritable,
-        MountView view
+        REGSAM samView
     ) noexcept;
 
     /// Resolves @p hKey and @p subKey (null or empty for the key itself).
