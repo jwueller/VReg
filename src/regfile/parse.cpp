@@ -94,20 +94,7 @@ std::wstring_view TrimEnd(std::wstring_view text)
 
 bool FindRoot(const std::wstring_view name, HKEY& hRoot)
 {
-    struct Root
-    {
-        const wchar_t* pszLong;
-        const wchar_t* pszShort;
-        HKEY hKey;
-    };
-    const Root roots[] = {
-        {L"HKEY_CLASSES_ROOT", L"HKCR", HKEY_CLASSES_ROOT},
-        {L"HKEY_CURRENT_USER", L"HKCU", HKEY_CURRENT_USER},
-        {L"HKEY_LOCAL_MACHINE", L"HKLM", HKEY_LOCAL_MACHINE},
-        {L"HKEY_USERS", L"HKU", HKEY_USERS},
-        {L"HKEY_CURRENT_CONFIG", L"HKCC", HKEY_CURRENT_CONFIG},
-    };
-    for (const auto& root : roots)
+    for (const auto& root : ROOT_KEYS)
     {
         if (
             EqualsIgnoreCase(name, root.pszLong)

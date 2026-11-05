@@ -16,16 +16,11 @@ namespace
 {
 const wchar_t* RootName(const HKEY hRoot) noexcept
 {
-    if (hRoot == HKEY_CLASSES_ROOT)
-        return L"HKEY_CLASSES_ROOT";
-    if (hRoot == HKEY_CURRENT_USER)
-        return L"HKEY_CURRENT_USER";
-    if (hRoot == HKEY_LOCAL_MACHINE)
-        return L"HKEY_LOCAL_MACHINE";
-    if (hRoot == HKEY_USERS)
-        return L"HKEY_USERS";
-    if (hRoot == HKEY_CURRENT_CONFIG)
-        return L"HKEY_CURRENT_CONFIG";
+    for (const auto& root : ROOT_KEYS)
+    {
+        if (root.hKey == hRoot)
+            return root.pszLong;
+    }
     return nullptr;
 }
 
