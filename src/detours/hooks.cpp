@@ -406,7 +406,10 @@ struct NeutralizeOnUnload
     {
         Neutralize();
     }
-} g_neutralizeOnUnload;
+};
+
+// Never read: only its destructor matters.
+[[maybe_unused]] NeutralizeOnUnload g_neutralizeOnUnload;
 } // namespace
 
 LONG Attach(Registry& registry, NativeRegistry& native) noexcept
