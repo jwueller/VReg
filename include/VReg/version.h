@@ -57,20 +57,15 @@ static_assert(
     == 0x0001'0002'0003'0004
 );
 
-/// The version of the copy of VReg linked into the calling module, which can
-/// differ from the copies other modules in the same process link: a semver
-/// string with the full git commit it was built from as build metadata. The
-/// released commit, built unchanged, is the release
-/// (`0.3.0+0123456789abcdef0123456789abcdef01234567`); any other build is a
-/// preview of it that counts the commits since the last release and marks
-/// local changes (`0.3.0-preview.5+0123...4567-dirty`), so previews sort
-/// below their release. A build outside a git checkout, as from a release
-/// archive, is the version alone unless the `VREG_SOURCE_COMMIT` CMake
-/// variable gives the commit.
+/// The version of the copy of VReg linked into the calling module, as text
+/// for display and logs. Its format is unspecified and may change; compare
+/// versions with @ref GetFileVersion.
 [[nodiscard]] _Ret_z_ LPCSTR GetVersion() noexcept;
 
-/// The numbers of @ref GetVersion, for comparing builds and for version
-/// resources; its revision is 0 for a build outside a git checkout. At build
-/// time, `find_package(VReg)` reports the same major, minor and patch.
+/// The version of the copy of VReg linked into the calling module, which can
+/// differ from the copies other modules in the same process link. It is the
+/// one to compare builds against, and the one for version resources; its
+/// revision is 0 for a build outside a git checkout. At build time,
+/// `find_package(VReg)` reports the same major, minor and patch.
 [[nodiscard]] FileVersion GetFileVersion() noexcept;
 } // namespace VReg

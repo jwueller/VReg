@@ -7,9 +7,9 @@
 # vcpkg.json owns MAJOR.MINOR.PATCH: the version under development, which its
 # commit becomes once tagged v<version>. TWEAK counts the commits in the
 # history, so the four-part number orders every build. The string is semver:
-# the tagged commit built unchanged is the release (0.3.0+<commit>); any other
+# the tagged commit built unchanged is the release (X.Y.Z+<commit>); any other
 # build of a git checkout is a preview counting the commits since the last v*
-# tag (0.3.0-preview.5+<commit>, -dirty after the commit for local changes to
+# tag (X.Y.Z-preview.N+<commit>, -dirty after the commit for local changes to
 # tracked files), so previews sort below their release. Outside a checkout, as
 # from a release archive, TWEAK is 0 and the string the version alone, unless
 # a commit is given for the build metadata.

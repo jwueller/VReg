@@ -56,7 +56,7 @@ The `version-semver` in [vcpkg.json](./vcpkg.json) is the version under
 development and the one place it is written; CMake and the library derive
 everything else from it (`cmake/VRegVersion.cmake`). Every build but the
 tagged release reports itself as a preview of it
-(`0.3.0-preview.5+<commit>`). CI checks that a release tag names that
+(`X.Y.Z-preview.N+<commit>`). CI checks that a release tag names that
 version, that the port names a tagged release, and that `versions/` is up
 to date with the port.
 

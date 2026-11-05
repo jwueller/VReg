@@ -9,7 +9,7 @@ project(
 
 # vcpkg.json owns the version; cmake/VRegVersion.cmake derives the rest.
 # PROJECT_VERSION_MAJOR to _TWEAK are numeric (TWEAK counts the commits), and
-# PROJECT_VERSION is the full semver string (0.3.0-preview.5+<commit>).
+# PROJECT_VERSION is the full semver string (X.Y.Z-preview.N+<commit>).
 set(VREG_SOURCE_COMMIT "" CACHE STRING "The commit to report for a build outside a git checkout")
 if(NOT VREG_SOURCE_COMMIT MATCHES "^([0-9A-Za-z-]+([.][0-9A-Za-z-]+)*)?$")
     message(FATAL_ERROR "VREG_SOURCE_COMMIT is not semver build metadata: ${VREG_SOURCE_COMMIT}")
