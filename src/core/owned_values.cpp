@@ -1,7 +1,7 @@
 #include <VReg/owned_values.h>
 
-#include "retry.h"
-#include "status.h"
+#include "core/retry.h"
+#include "core/status.h"
 
 #include <algorithm>
 

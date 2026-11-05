@@ -1,7 +1,7 @@
-#include "writer.h"
+#include "regfile/writer.h"
 
 #include "core/status.h"
-#include "text.h"
+#include "regfile/text.h"
 
 #include <cstdio>
 #include <cstring>

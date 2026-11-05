@@ -1,6 +1,6 @@
-#include "handle_space.h"
+#include "core/handle_space.h"
 
-#include "lock.h"
+#include "core/lock.h"
 
 #include <cwchar>
 #include <new>

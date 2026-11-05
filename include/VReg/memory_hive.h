@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hive.h"
+#include <VReg/hive.h>
 
 #include <memory>
 

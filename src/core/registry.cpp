@@ -3,11 +3,11 @@
 #include <VReg/handle.h>
 #include <VReg/owned_values.h>
 
-#include "ansi.h"
-#include "retry.h"
-#include "rrf.h"
-#include "status.h"
-#include "value_type.h"
+#include "core/ansi.h"
+#include "core/retry.h"
+#include "core/rrf.h"
+#include "core/status.h"
+#include "core/value_type.h"
 
 #include <algorithm>
 #include <cstring>

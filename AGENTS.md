@@ -62,6 +62,10 @@ the API it reimplements. Change them freely before the first release.
   case-insensitive filesystem and breaks on a case-sensitive one, so case
   never carries meaning in a path. For the same reason, a Windows SDK header
   is included as the SDK spells its file (`Windows.h`, `Shlwapi.h`).
+- Public headers include each other as `<VReg/name.h>`, and a private header
+  is included by its path under `src/` (`"core/status.h"`) from every
+  module alike; `src/` is on the include path of every target that needs
+  them. The amalgamator resolves exactly these two forms.
 - Headers use `#pragma once`, not include guards: every compiler that builds
   VReg supports it, and where it fails (one header reached through two
   paths, as with two vendored copies) guards would silently mix versions

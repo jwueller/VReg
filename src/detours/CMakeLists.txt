@@ -15,7 +15,6 @@ target_link_libraries(VReg_Detours PUBLIC
     Detours::Detours
 )
 
-# The hooks resolve their targets the way NativeRegistry does.
 target_include_directories(VReg_Detours PRIVATE
     ${PROJECT_SOURCE_DIR}/src
 )

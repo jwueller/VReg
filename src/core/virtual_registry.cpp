@@ -2,13 +2,13 @@
 
 #include <VReg/handle.h>
 
-#include "export_table.h"
-#include "handle_space.h"
-#include "lock.h"
-#include "rrf.h"
-#include "status.h"
-#include "tree.h"
-#include "value_type.h"
+#include "core/export_table.h"
+#include "core/handle_space.h"
+#include "core/lock.h"
+#include "core/rrf.h"
+#include "core/status.h"
+#include "core/tree.h"
+#include "core/value_type.h"
 
 #include <algorithm>
 #include <cstring>

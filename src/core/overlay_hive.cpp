@@ -3,8 +3,8 @@
 #include <VReg/owned_values.h>
 #include <VReg/registry.h>
 
-#include "status.h"
-#include "tree.h"
+#include "core/status.h"
+#include "core/tree.h"
 
 #include <algorithm>
 #include <array>

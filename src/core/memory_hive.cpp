@@ -1,7 +1,7 @@
 #include <VReg/memory_hive.h>
 
-#include "status.h"
-#include "tree.h"
+#include "core/status.h"
+#include "core/tree.h"
 
 #include <algorithm>
 #include <new>

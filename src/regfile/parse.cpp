@@ -1,7 +1,7 @@
 #include <VReg/regfile.h>
 
 #include "core/status.h"
-#include "text.h"
+#include "regfile/text.h"
 
 #include <cstring>
 #include <new>

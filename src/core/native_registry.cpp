@@ -1,6 +1,6 @@
 #include <VReg/native_registry.h>
 
-#include "export_table.h"
+#include "core/export_table.h"
 
 namespace VReg
 {

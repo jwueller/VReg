@@ -66,5 +66,6 @@ add_dependencies(VReg_Core
 )
 
 target_include_directories(VReg_Core PRIVATE
+    ${PROJECT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_BINARY_DIR}/generated
 )

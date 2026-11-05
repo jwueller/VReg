@@ -5,8 +5,8 @@
 
 #include "core/status.h"
 #include "core/tree.h"
-#include "text.h"
-#include "writer.h"
+#include "regfile/text.h"
+#include "regfile/writer.h"
 
 #include <algorithm>
 #include <new>
