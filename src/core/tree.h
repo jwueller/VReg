@@ -81,6 +81,15 @@ struct Node
     std::wstring_view right
 ) noexcept;
 
+/// Whether @p left sorts before @p right by @ref CompareNames.
+[[nodiscard]] inline bool NameLess(
+    const std::wstring_view left,
+    const std::wstring_view right
+) noexcept
+{
+    return CompareNames(left, right) < 0;
+}
+
 /// @p text as the data of a terminated @ref REG_SZ. Throws @ref std::bad_alloc.
 [[nodiscard]] std::vector<std::byte> StringData(std::wstring_view text);
 

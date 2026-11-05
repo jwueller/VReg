@@ -194,10 +194,7 @@ Node* Tree::FindChild(const Node& parent, const std::wstring_view name) noexcept
     const auto it = std::ranges::lower_bound(
         parent.children,
         name,
-        [](const std::wstring_view left, const std::wstring_view right)
-        {
-            return CompareNames(left, right) < 0;
-        },
+        NameLess,
         [](const Node* const pChild) { return std::wstring_view(pChild->name); }
     );
     if (it == parent.children.end() || CompareNames((*it)->name, name) != 0)
@@ -233,10 +230,7 @@ Node* Tree::AddChild(
     const auto position = std::ranges::lower_bound(
             parent.children,
             name,
-            [](const std::wstring_view left, const std::wstring_view right)
-            {
-                return CompareNames(left, right) < 0;
-            },
+            NameLess,
             [](const Node* const pChild)
             {
                 return std::wstring_view(pChild->name);

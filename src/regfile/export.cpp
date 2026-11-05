@@ -4,6 +4,7 @@
 #include <VReg/owned_values.h>
 
 #include "core/status.h"
+#include "core/tree.h"
 #include "text.h"
 #include "writer.h"
 
@@ -22,17 +23,6 @@ const wchar_t* RootName(const HKEY hRoot) noexcept
             return root.pszLong;
     }
     return nullptr;
-}
-
-bool NameLess(const std::wstring& a, const std::wstring& b) noexcept
-{
-    return CompareStringOrdinal(
-        a.data(),
-        static_cast<int>(a.size()),
-        b.data(),
-        static_cast<int>(b.size()),
-        TRUE
-    ) == CSTR_LESS_THAN;
 }
 
 class SnapshotWalker

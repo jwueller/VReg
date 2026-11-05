@@ -44,25 +44,7 @@ bool ContainsName(
     const std::wstring_view name
 ) noexcept
 {
-    return std::ranges::binary_search(
-        names,
-        name,
-        [](const std::wstring_view left, const std::wstring_view right)
-        {
-            return CompareNames(left, right) < 0;
-        }
-    );
-}
-
-void SortNames(std::vector<std::wstring>& names)
-{
-    std::ranges::sort(
-        names,
-        [](const std::wstring& left, const std::wstring& right)
-        {
-            return CompareNames(left, right) < 0;
-        }
-    );
+    return std::ranges::binary_search(names, name, NameLess);
 }
 
 /// Appends @p node and everything below it to @p records, leaving out a
@@ -1134,7 +1116,7 @@ try
     if (opened != ERROR_SUCCESS)
         return opened == ERROR_FILE_NOT_FOUND ? ERROR_NO_MORE_ITEMS : opened;
 
-    SortNames(shadowed);
+    std::ranges::sort(shadowed, NameLess);
     auto dwSkip = dwIndex - cUpper;
     for (DWORD i = 0;; ++i)
     {
