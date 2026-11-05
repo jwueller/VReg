@@ -66,10 +66,11 @@ the API it reimplements. Change them freely before the first release.
   VReg supports it, and where it fails (one header reached through two
   paths, as with two vendored copies) guards would silently mix versions
   instead.
-- Constants are ALL_CAPS like the Win32 ones beside them; public ones carry
-  `VREG_` (`VREG_VIRTUAL_HKEY_BASE`). Macros ignore namespaces, so a name a
-  Windows header already defines (`TEXT`, `NO_DATA`) is taken by it: pick
-  another, or use the Win32 constant itself.
+- Constants are ALL_CAPS like the Win32 ones beside them, with no `VREG_`
+  prefix: the namespace already carries it (`VReg::VIRTUAL_HKEY_BASE`).
+  Macros ignore namespaces, so they do carry `VREG_`, and a name a Windows
+  header already defines (`TEXT`, `NO_DATA`) is taken by it: pick another,
+  or use the Win32 constant itself.
 - `Registry` members are the Win32 `Reg*` function family, `Reg` prefix
   included, and only their ANSI and wide names exist: a neutral name
   (`RegOpenKeyEx`) is a `winreg.h` macro. Nothing else joins the class;

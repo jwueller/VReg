@@ -57,13 +57,13 @@ TEST_CASE("Virtual handles count down from the base in odd steps")
 {
     CHECK(ValueOf(VirtualHKeyFromIndex(0)) == 0x7FFFFFFF);
     CHECK(ValueOf(VirtualHKeyFromIndex(1)) == 0x7FFFFFFD);
-    CHECK(ValueOf(VirtualHKeyFromIndex(VREG_VIRTUAL_HKEY_COUNT - 1)) == 1);
-    CHECK(VirtualHKeyFromIndex(VREG_VIRTUAL_HKEY_COUNT) == nullptr);
+    CHECK(ValueOf(VirtualHKeyFromIndex(VIRTUAL_HKEY_COUNT - 1)) == 1);
+    CHECK(VirtualHKeyFromIndex(VIRTUAL_HKEY_COUNT) == nullptr);
 
     const std::uintptr_t index = GENERATE(
         std::uintptr_t{0},
         std::uintptr_t{12345},
-        VREG_VIRTUAL_HKEY_COUNT - 1
+        VIRTUAL_HKEY_COUNT - 1
     );
     CAPTURE(index);
     const auto hKey = VirtualHKeyFromIndex(index);

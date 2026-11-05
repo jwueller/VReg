@@ -28,7 +28,7 @@ class HandleSpace
 public:
     static constexpr UINT_PTR BLOCK_SIZE = 4096;
     static constexpr UINT_PTR BLOCK_COUNT =
-        VREG_VIRTUAL_HKEY_COUNT / BLOCK_SIZE;
+        VIRTUAL_HKEY_COUNT / BLOCK_SIZE;
 
     /// The section's contents. Separately built copies of VReg read this
     /// layout, so it never changes; a different layout needs a different
