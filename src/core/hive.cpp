@@ -1,10 +1,11 @@
-#include <VReg/overlay_hive.h>
+#include <VReg/hive.h>
 
 #include <VReg/owned_values.h>
 #include <VReg/registry.h>
 
+#include "core/handle_space.h"
+#include "core/node.h"
 #include "core/status.h"
-#include "core/tree.h"
 
 #include <algorithm>
 #include <array>
@@ -160,49 +161,174 @@ bool Exists(const LSTATUS status) noexcept
         || status == ERROR_MORE_DATA
         || status == ERROR_ACCESS_DENIED;
 }
+
+void DropWatches(Node& node) noexcept
+{
+    for (const auto& watch : node.watches)
+        CloseHandle(watch.hEvent);
+
+    node.watches.clear();
+}
+
+/// Signals and drops the watches of @p node that @p dwFilter selects;
+/// @p isInherited limits them to those watching their subtree.
+void Fire(Node& node, const DWORD dwFilter, const bool isInherited) noexcept
+{
+    std::erase_if(
+        node.watches,
+        [&](const ChangeWatch& watch)
+        {
+            if (
+                !(watch.dwFilter & dwFilter)
+                || (isInherited && !watch.isSubtree)
+            )
+                return false;
+
+            SetEvent(watch.hEvent);
+            CloseHandle(watch.hEvent);
+            return true;
+        }
+    );
+}
 } // namespace
 
-OverlayHive::OverlayHive(
+int CompareNames(
+    const std::wstring_view left,
+    const std::wstring_view right
+) noexcept
+{
+    if (left.empty() || right.empty())
+        return left.empty() == right.empty() ? 0 : (left.empty() ? -1 : 1);
+
+    return CompareStringOrdinal(
+        left.data(),
+        static_cast<int>(left.size()),
+        right.data(),
+        static_cast<int>(right.size()),
+        TRUE
+    ) - CSTR_EQUAL;
+}
+
+std::vector<std::byte> StringData(const std::wstring_view text)
+{
+    const auto* const pb = reinterpret_cast<const std::byte*>(text.data());
+    std::vector<std::byte> data(pb, pb + text.size() * sizeof(wchar_t));
+    data.resize(data.size() + sizeof(wchar_t));
+    return data;
+}
+
+LSTATUS MuiTextOf(const Value& value, std::wstring& text)
+{
+    if (!value.isMuiText)
+        return ERROR_INVALID_DATA;
+
+    text.assign(
+        reinterpret_cast<const wchar_t*>(value.data.data()),
+        value.data.size() / sizeof(wchar_t) - 1
+    );
+    return ERROR_SUCCESS;
+}
+
+HKEY Hive::HandleOf(_In_ const Node* const pNode) noexcept
+{
+    return pNode->hKey;
+}
+
+_Ret_maybenull_ Node* Hive::NodeOf(const HKEY hKey) noexcept
+{
+    return static_cast<Node*>(HandleSpace::Process().Find(hKey));
+}
+
+_Ret_notnull_ Hive* Hive::HiveOf(_In_ const Node* const pNode) noexcept
+{
+    return pNode->pHive;
+}
+
+Hive::Hive(
+    Registry* const pLower,
+    const HKEY hLowerRoot,
+    const std::wstring_view lowerPath,
+    const REGSAM samLowerView
+) :
+    m_pLower(pLower),
+    m_hLowerRoot(hLowerRoot),
+    m_lowerPath(lowerPath),
+    m_samLowerView(samLowerView)
+{
+    auto pRoot = std::make_unique<Node>();
+    pRoot->pHive = this;
+    pRoot->hKey = HandleSpace::Process().Allocate(pRoot.get());
+    if (!pRoot->hKey)
+        throw std::bad_alloc();
+
+    Touch(*pRoot);
+    if (m_pLower)
+    {
+        pRoot->isTransparent = true;
+        pRoot->isLowerBacked = true;
+    }
+
+    m_pRoot = pRoot.get();
+    m_nodes.push_back(std::move(pRoot));
+}
+
+Hive::Hive() :
+    Hive(nullptr, nullptr, {}, 0)
+{
+}
+
+Hive::Hive(
     Registry& lower,
     const HKEY hLowerRoot,
     _In_z_ const LPCWSTR pszLowerPath,
     const REGSAM samLowerView
 ) :
-    m_lower(lower),
-    m_hLowerRoot(hLowerRoot),
-    m_lowerPath(pszLowerPath),
-    m_samLowerView(samLowerView),
-    m_pTree(std::make_unique<Tree>(*this))
+    Hive(&lower, hLowerRoot, pszLowerPath, samLowerView)
 {
-    m_pTree->Root()->isTransparent = true;
-    m_pTree->Root()->isLowerBacked = true;
 }
 
-OverlayHive::~OverlayHive() = default;
-
-void OverlayHive::Freeze() noexcept
+Hive::~Hive()
 {
-    m_pTree->Freeze();
+    for (const auto& pNode : m_nodes)
+    {
+        DropWatches(*pNode);
+        HandleSpace::Process().Release(pNode->hKey);
+    }
 }
 
-bool OverlayHive::IsFrozen() const noexcept
+void Hive::Freeze() noexcept
 {
-    return m_pTree->IsFrozen();
+    // Taking the lock once more waits out every writer still inside; readers
+    // that see the flag afterwards skip the lock and see all their writes.
+    AcquireSRWLockExclusive(&m_lock);
+    m_isFrozen.store(true, std::memory_order_release);
+    for (const auto& pNode : m_nodes)
+        DropWatches(*pNode);
+
+    ReleaseSRWLockExclusive(&m_lock);
 }
 
-_Ret_notnull_ Node* OverlayHive::Root() const noexcept
+bool Hive::IsFrozen() const noexcept
 {
-    return m_pTree->Root();
+    return m_isFrozen.load(std::memory_order_acquire);
 }
 
-_Ret_maybenull_ Registry* OverlayHive::Lower() const noexcept
+_Ret_notnull_ Node* Hive::Root() const noexcept
 {
-    return &m_lower;
+    return m_pRoot;
 }
 
-OverlayHive::LowerView OverlayHive::ViewOf(const Node& node) const
+_Ret_maybenull_ Registry* Hive::Lower() const noexcept
+{
+    return m_pLower;
+}
+
+Hive::LowerView Hive::ViewOf(const Node& node) const
 {
     LowerView view;
+    if (!m_pLower)
+        return view;
+
     std::vector<const Node*> chain;
     for (const auto* pNode = &node; pNode; pNode = pNode->pParent)
     {
@@ -224,13 +350,13 @@ OverlayHive::LowerView OverlayHive::ViewOf(const Node& node) const
     return view;
 }
 
-LSTATUS OverlayHive::OpenLower(
+LSTATUS Hive::OpenLower(
     const std::wstring& path,
     const REGSAM samDesired,
     HKEY& hKey
 ) const noexcept
 {
-    return m_lower.RegOpenKeyExW(
+    return m_pLower->RegOpenKeyExW(
         m_hLowerRoot,
         path.empty() ? nullptr : path.c_str(),
         0,
@@ -239,14 +365,14 @@ LSTATUS OverlayHive::OpenLower(
     );
 }
 
-LSTATUS OverlayHive::QueryLowerClass(
+LSTATUS Hive::QueryLowerClass(
     const std::wstring& path,
     std::wstring& className
 ) const noexcept
 try
 {
     className.clear();
-    LowerKey lowerKey(m_lower);
+    LowerKey lowerKey(*m_pLower);
     const auto opened = OpenLower(path, KEY_QUERY_VALUE, lowerKey.Receive());
     if (opened != ERROR_SUCCESS)
         return opened == ERROR_FILE_NOT_FOUND ? ERROR_SUCCESS : opened;
@@ -255,7 +381,7 @@ try
     for (;;)
     {
         DWORD cchClass = static_cast<DWORD>(buffer.size());
-        const auto status = m_lower.RegQueryInfoKeyW(
+        const auto status = m_pLower->RegQueryInfoKeyW(
             lowerKey.Get(),
             buffer.data(),
             &cchClass,
@@ -286,7 +412,7 @@ catch (...)
     return StatusFromException();
 }
 
-LSTATUS OverlayHive::OpenKey(
+LSTATUS Hive::OpenKey(
     _In_ Node* const pParent,
     const KeyPath path,
     const REGSAM samDesired,
@@ -298,14 +424,14 @@ try
     KeyPath rest;
     LowerView view;
     {
-        Tree::ReadLock lock(*m_pTree);
+        ReadLock lock(*this);
         if (pParent->isDeleted)
             return ERROR_KEY_DELETED;
 
         std::size_t i = 0;
         for (; i < path.size(); ++i)
         {
-            auto* const pChild = Tree::FindChild(*pCurrent, path[i]);
+            auto* const pChild = FindChild(*pCurrent, path[i]);
             if (!pChild)
                 break;
             if (pChild->isTombstone)
@@ -330,7 +456,7 @@ try
     // Nothing of the upper layer is at or below the key, so it is the lower
     // key's to answer.
     const auto lowerPath = JoinPath(std::move(view.path), rest);
-    LowerKey lowerKey(m_lower);
+    LowerKey lowerKey(*m_pLower);
     const REGSAM samLower =
         IsFrozen()
             ? samDesired
@@ -347,7 +473,7 @@ try
 
     // Writable: every open inside the mount answers with a node, or a write
     // through a lower handle handed out now would miss a later copy-up.
-    Tree::WriteLock lock(*m_pTree);
+    WriteLock lock(*this);
     if (!lock)
         return OpenKey(pParent, path, samDesired, result);
 
@@ -356,7 +482,7 @@ try
 
     for (const auto name : rest)
     {
-        if (auto* const pChild = Tree::FindChild(*pCurrent, name))
+        if (auto* const pChild = FindChild(*pCurrent, name))
         {
             if (pChild->isTombstone)
                 return ERROR_FILE_NOT_FOUND;
@@ -365,7 +491,7 @@ try
             continue;
         }
 
-        pCurrent = m_pTree->AddChild(*pCurrent, name, {}, false);
+        pCurrent = AddChild(*pCurrent, name, {}, false);
         if (!pCurrent)
             return ERROR_OUTOFMEMORY;
 
@@ -381,7 +507,7 @@ catch (...)
     return StatusFromException();
 }
 
-LSTATUS OverlayHive::CreateKey(
+LSTATUS Hive::CreateKey(
     _Inout_ Node* const pParent,
     const KeyPath path,
     _In_z_ const LPCWSTR pszClassName,
@@ -408,14 +534,14 @@ try
     bool isBehindTombstone = false;
     LowerView view;
     {
-        Tree::ReadLock lock(*m_pTree);
+        ReadLock lock(*this);
         if (pParent->isDeleted)
             return ERROR_KEY_DELETED;
 
         const Node* pCurrent = pParent;
         for (; cUpper < path.size(); ++cUpper)
         {
-            const auto* const pChild = Tree::FindChild(*pCurrent, path[cUpper]);
+            const auto* const pChild = FindChild(*pCurrent, path[cUpper]);
             if (!pChild)
                 break;
             if (pChild->isTombstone)
@@ -436,7 +562,7 @@ try
     {
         for (; cLower < path.size(); ++cLower)
         {
-            LowerKey lowerKey(m_lower);
+            LowerKey lowerKey(*m_pLower);
             const auto status = OpenLower(
                 JoinPath(view.path, path.subspan(cUpper, cLower + 1 - cUpper)),
                 KEY_QUERY_VALUE,
@@ -450,7 +576,7 @@ try
     }
 
     const bool isVolatile = (dwOptions & REG_OPTION_VOLATILE) != 0;
-    Tree::WriteLock lock(*m_pTree);
+    WriteLock lock(*this);
     if (!lock)
     {
         return CreateKey(
@@ -472,7 +598,7 @@ try
     for (std::size_t i = 0; i < path.size(); ++i)
     {
         const bool isLast = i + 1 == path.size();
-        auto* const pChild = Tree::FindChild(*pCurrent, path[i]);
+        auto* const pChild = FindChild(*pCurrent, path[i]);
         if (pChild && !pChild->isTombstone)
         {
             pCurrent = pChild;
@@ -485,9 +611,9 @@ try
             pChild->isTombstone = false;
             pChild->isOpaque = true;
             pChild->className = isLast ? className : std::wstring_view();
-            Tree::Touch(*pChild);
+            Touch(*pChild);
             Materialize(*pCurrent);
-            Tree::Notify(*pCurrent, REG_NOTIFY_CHANGE_NAME);
+            Notify(*pCurrent, REG_NOTIFY_CHANGE_NAME);
             pCurrent = pChild;
             if (isLast)
                 dwDisposition = REG_CREATED_NEW_KEY;
@@ -498,7 +624,7 @@ try
         if (!isInLower && pCurrent->isVolatile && !isVolatile)
             return ERROR_CHILD_MUST_BE_VOLATILE;
 
-        auto* const pNew = m_pTree->AddChild(
+        auto* const pNew = AddChild(
             *pCurrent,
             path[i],
             isLast && !isInLower ? className : std::wstring_view(),
@@ -515,7 +641,7 @@ try
         else
         {
             Materialize(*pCurrent);
-            Tree::Notify(*pCurrent, REG_NOTIFY_CHANGE_NAME);
+            Notify(*pCurrent, REG_NOTIFY_CHANGE_NAME);
             if (isLast)
                 dwDisposition = REG_CREATED_NEW_KEY;
         }
@@ -531,7 +657,7 @@ catch (...)
     return StatusFromException();
 }
 
-LSTATUS OverlayHive::DeleteKey(
+LSTATUS Hive::DeleteKey(
     _Inout_ Node* const pParent,
     const KeyPath path
 ) noexcept
@@ -548,7 +674,7 @@ try
     // Frozen since the check above, so the open answered with a lower key.
     if (!opened.pNode)
     {
-        LowerKey lowerKey(m_lower);
+        LowerKey lowerKey(*m_pLower);
         lowerKey.Receive() = opened.hLower;
         return ERROR_ACCESS_DENIED;
     }
@@ -559,7 +685,7 @@ try
     LowerView parentView;
     std::wstring keyName;
     {
-        Tree::ReadLock lock(*m_pTree);
+        ReadLock lock(*this);
         if (pNode->isDeleted)
             return ERROR_KEY_DELETED;
         if (!pNode->pParent)
@@ -584,7 +710,7 @@ try
     bool hasLower = false;
     if (parentView.isVisible)
     {
-        LowerKey lowerKey(m_lower);
+        LowerKey lowerKey(*m_pLower);
         const auto lowerPath = JoinPath(
             parentView.path,
             std::array<std::wstring_view, 1>{keyName}
@@ -602,7 +728,7 @@ try
         {
             std::wstring name;
             const auto enumStatus = VReg::EnumKey(
-                m_lower,
+                *m_pLower,
                 lowerKey.Get(),
                 i,
                 name
@@ -616,7 +742,7 @@ try
         }
     }
 
-    Tree::WriteLock lock(*m_pTree);
+    WriteLock lock(*this);
     if (!lock)
         return ERROR_ACCESS_DENIED;
     if (pNode->isDeleted)
@@ -631,10 +757,10 @@ try
 
     auto& parent = *pNode->pParent;
     const std::wstring name = pNode->name;
-    Tree::Remove(*pNode);
+    Remove(*pNode);
     if (hasLower)
     {
-        auto* const pTombstone = m_pTree->AddChild(parent, name, {}, false);
+        auto* const pTombstone = AddChild(parent, name, {}, false);
         if (!pTombstone)
             return ERROR_OUTOFMEMORY;
 
@@ -649,30 +775,30 @@ catch (...)
     return StatusFromException();
 }
 
-LSTATUS OverlayHive::DeleteTree(
+LSTATUS Hive::DeleteTree(
     _Inout_ Node* const pNode
 ) noexcept
 {
-    Tree::WriteLock lock(*m_pTree);
+    WriteLock lock(*this);
     if (!lock)
         return ERROR_ACCESS_DENIED;
     if (pNode->isDeleted)
         return ERROR_KEY_DELETED;
 
     while (!pNode->children.empty())
-        Tree::Remove(*pNode->children.back());
+        Remove(*pNode->children.back());
 
     pNode->values.clear();
-    pNode->isOpaque = true;
+    pNode->isOpaque = m_pLower != nullptr;
     pNode->isTransparent = false;
     pNode->isLowerBacked = false;
     Materialize(*pNode);
-    Tree::Touch(*pNode);
-    Tree::Notify(*pNode, REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_LAST_SET);
+    Touch(*pNode);
+    Notify(*pNode, REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_LAST_SET);
     return ERROR_SUCCESS;
 }
 
-LSTATUS OverlayHive::QueryValue(
+LSTATUS Hive::QueryValue(
     _In_ Node* const pNode,
     _In_z_ const LPCWSTR pszName,
     DWORD& dwType,
@@ -684,11 +810,11 @@ try
     const std::wstring_view name(pszName);
     LowerView view;
     {
-        Tree::ReadLock lock(*m_pTree);
+        ReadLock lock(*this);
         if (pNode->isDeleted)
             return ERROR_KEY_DELETED;
 
-        if (const auto* const pValue = Tree::FindValue(*pNode, name))
+        if (const auto* const pValue = FindValue(*pNode, name))
         {
             if (pValue->isTombstone)
                 return ERROR_FILE_NOT_FOUND;
@@ -706,7 +832,7 @@ try
     if (!view.isVisible)
         return ERROR_FILE_NOT_FOUND;
 
-    LowerKey lowerKey(m_lower);
+    LowerKey lowerKey(*m_pLower);
     const auto status = OpenLower(
         view.path,
         KEY_QUERY_VALUE,
@@ -719,7 +845,7 @@ try
     if (!pData)
     {
         cbData = 0;
-        return m_lower.RegQueryValueExW(
+        return m_pLower->RegQueryValueExW(
             lowerKey.Get(),
             valueName.c_str(),
             nullptr,
@@ -730,7 +856,7 @@ try
     }
 
     const auto queried = VReg::QueryValue(
-        m_lower,
+        *m_pLower,
         lowerKey.Get(),
         valueName.c_str(),
         &dwType,
@@ -745,7 +871,7 @@ catch (...)
     return StatusFromException();
 }
 
-LSTATUS OverlayHive::SetValue(
+LSTATUS Hive::SetValue(
     _Inout_ Node* const pNode,
     _In_z_ const LPCWSTR pszName,
     const DWORD dwType,
@@ -756,7 +882,7 @@ LSTATUS OverlayHive::SetValue(
     return StoreValue(pNode, name, dwType, data, false);
 }
 
-LSTATUS OverlayHive::SetMuiTextValue(
+LSTATUS Hive::SetMuiTextValue(
     _Inout_ Node* const pNode,
     _In_z_ const LPCWSTR pszName,
     _In_z_ const LPCWSTR pszText
@@ -772,7 +898,7 @@ catch (...)
     return StatusFromException();
 }
 
-LSTATUS OverlayHive::QueryMuiText(
+LSTATUS Hive::QueryMuiText(
     _In_ Node* const pNode,
     _In_z_ const LPCWSTR pszName,
     std::wstring& text
@@ -781,11 +907,11 @@ try
 {
     const std::wstring_view name(pszName);
     {
-        Tree::ReadLock lock(*m_pTree);
+        ReadLock lock(*this);
         if (pNode->isDeleted)
             return ERROR_KEY_DELETED;
 
-        if (const auto* const pValue = Tree::FindValue(*pNode, name))
+        if (const auto* const pValue = FindValue(*pNode, name))
             return pValue->isTombstone
                        ? ERROR_FILE_NOT_FOUND
                        : MuiTextOf(*pValue, text);
@@ -801,7 +927,7 @@ catch (...)
     return StatusFromException();
 }
 
-LSTATUS OverlayHive::StoreValue(
+LSTATUS Hive::StoreValue(
     Node* const pNode,
     const std::wstring_view name,
     const DWORD dwType,
@@ -811,13 +937,13 @@ LSTATUS OverlayHive::StoreValue(
 try
 {
     std::vector<std::byte> bytes(data.begin(), data.end());
-    Tree::WriteLock lock(*m_pTree);
+    WriteLock lock(*this);
     if (!lock)
         return ERROR_ACCESS_DENIED;
     if (pNode->isDeleted)
         return ERROR_KEY_DELETED;
 
-    if (auto* const pValue = Tree::FindValue(*pNode, name))
+    if (auto* const pValue = FindValue(*pNode, name))
         *pValue = {
             .name = std::move(pValue->name),
             .dwType = dwType,
@@ -836,8 +962,8 @@ try
         );
 
     Materialize(*pNode);
-    Tree::Touch(*pNode);
-    Tree::Notify(*pNode, REG_NOTIFY_CHANGE_LAST_SET);
+    Touch(*pNode);
+    Notify(*pNode, REG_NOTIFY_CHANGE_LAST_SET);
     return ERROR_SUCCESS;
 }
 catch (...)
@@ -845,7 +971,7 @@ catch (...)
     return StatusFromException();
 }
 
-LSTATUS OverlayHive::DeleteValue(
+LSTATUS Hive::DeleteValue(
     _Inout_ Node* const pNode,
     _In_z_ const LPCWSTR pszName
 ) noexcept
@@ -858,11 +984,11 @@ try
     bool isInUpper = false;
     LowerView view;
     {
-        Tree::ReadLock lock(*m_pTree);
+        ReadLock lock(*this);
         if (pNode->isDeleted)
             return ERROR_KEY_DELETED;
 
-        if (const auto* const pValue = Tree::FindValue(*pNode, name))
+        if (const auto* const pValue = FindValue(*pNode, name))
         {
             if (pValue->isTombstone)
                 return ERROR_FILE_NOT_FOUND;
@@ -876,7 +1002,7 @@ try
     bool isInLower = false;
     if (view.isVisible)
     {
-        LowerKey lowerKey(m_lower);
+        LowerKey lowerKey(*m_pLower);
         const auto status = OpenLower(
             view.path,
             KEY_QUERY_VALUE,
@@ -885,7 +1011,7 @@ try
         if (status == ERROR_SUCCESS)
         {
             const std::wstring valueName(name);
-            const auto queryStatus = m_lower.RegQueryValueExW(
+            const auto queryStatus = m_pLower->RegQueryValueExW(
                 lowerKey.Get(),
                 valueName.c_str(),
                 nullptr,
@@ -907,13 +1033,13 @@ try
     if (!isInUpper && !isInLower)
         return ERROR_FILE_NOT_FOUND;
 
-    Tree::WriteLock lock(*m_pTree);
+    WriteLock lock(*this);
     if (!lock)
         return ERROR_ACCESS_DENIED;
     if (pNode->isDeleted)
         return ERROR_KEY_DELETED;
 
-    auto* const pValue = Tree::FindValue(*pNode, name);
+    auto* const pValue = FindValue(*pNode, name);
     if (isInLower)
     {
         if (pValue)
@@ -941,8 +1067,8 @@ try
     }
 
     Materialize(*pNode);
-    Tree::Touch(*pNode);
-    Tree::Notify(*pNode, REG_NOTIFY_CHANGE_LAST_SET);
+    Touch(*pNode);
+    Notify(*pNode, REG_NOTIFY_CHANGE_LAST_SET);
     return ERROR_SUCCESS;
 }
 catch (...)
@@ -950,7 +1076,7 @@ catch (...)
     return StatusFromException();
 }
 
-LSTATUS OverlayHive::EnumKey(
+LSTATUS Hive::EnumKey(
     _In_ Node* const pNode,
     const DWORD dwIndex,
     std::wstring& name,
@@ -964,7 +1090,7 @@ try
     LowerView view;
     LowerView classView;
     {
-        Tree::ReadLock lock(*m_pTree);
+        ReadLock lock(*this);
         if (pNode->isDeleted)
             return ERROR_KEY_DELETED;
 
@@ -1004,7 +1130,7 @@ try
     if (!view.isVisible)
         return ERROR_NO_MORE_ITEMS;
 
-    LowerKey lowerKey(m_lower);
+    LowerKey lowerKey(*m_pLower);
     const auto opened = OpenLower(
         view.path,
         KEY_ENUMERATE_SUB_KEYS | KEY_QUERY_VALUE,
@@ -1014,7 +1140,7 @@ try
         return opened == ERROR_FILE_NOT_FOUND ? ERROR_NO_MORE_ITEMS : opened;
 
     DWORD cchMaxClass = 0;
-    const auto queried = m_lower.RegQueryInfoKeyW(
+    const auto queried = m_pLower->RegQueryInfoKeyW(
         lowerKey.Get(),
         nullptr,
         nullptr,
@@ -1040,7 +1166,7 @@ try
         DWORD cchName = static_cast<DWORD>(nameBuffer.size());
         DWORD cchClass = static_cast<DWORD>(classBuffer.size());
         FILETIME ft{};
-        const auto status = m_lower.RegEnumKeyExW(
+        const auto status = m_pLower->RegEnumKeyExW(
             lowerKey.Get(),
             i,
             nameBuffer.data(),
@@ -1068,7 +1194,7 @@ catch (...)
     return StatusFromException();
 }
 
-LSTATUS OverlayHive::EnumValue(
+LSTATUS Hive::EnumValue(
     _In_ Node* const pNode,
     const DWORD dwIndex,
     std::wstring& name,
@@ -1082,7 +1208,7 @@ try
     DWORD cUpper = 0;
     LowerView view;
     {
-        Tree::ReadLock lock(*m_pTree);
+        ReadLock lock(*this);
         if (pNode->isDeleted)
             return ERROR_KEY_DELETED;
 
@@ -1107,7 +1233,7 @@ try
     if (!view.isVisible)
         return ERROR_NO_MORE_ITEMS;
 
-    LowerKey lowerKey(m_lower);
+    LowerKey lowerKey(*m_pLower);
     const auto opened = OpenLower(
         view.path,
         KEY_QUERY_VALUE,
@@ -1123,7 +1249,7 @@ try
         std::wstring lowerName;
         DWORD dwLowerType{};
         const auto status = VReg::EnumValue(
-            m_lower,
+            *m_pLower,
             lowerKey.Get(),
             i,
             lowerName,
@@ -1145,7 +1271,7 @@ try
             std::wstring matchName;
             DWORD dwMatchType{};
             const auto fetched = VReg::EnumValue(
-                m_lower,
+                *m_pLower,
                 lowerKey.Get(),
                 i,
                 matchName,
@@ -1166,7 +1292,7 @@ try
         std::wstring sizeName(name.size() + 1, wchar_t{});
         DWORD cchName = static_cast<DWORD>(sizeName.size());
         cbData = 0;
-        return m_lower.RegEnumValueW(
+        return m_pLower->RegEnumValueW(
             lowerKey.Get(),
             i,
             sizeName.data(),
@@ -1183,7 +1309,7 @@ catch (...)
     return StatusFromException();
 }
 
-LSTATUS OverlayHive::QueryInfo(
+LSTATUS Hive::QueryInfo(
     _In_ Node* const pNode,
     KeyInfo& info
 ) const noexcept
@@ -1196,7 +1322,7 @@ try
     LowerView view;
     KeyInfo result;
     {
-        Tree::ReadLock lock(*m_pTree);
+        ReadLock lock(*this);
         if (pNode->isDeleted)
             return ERROR_KEY_DELETED;
 
@@ -1246,7 +1372,7 @@ try
 
     if (view.isVisible)
     {
-        LowerKey lowerKey(m_lower);
+        LowerKey lowerKey(*m_pLower);
         const auto status = OpenLower(
             view.path,
             KEY_QUERY_VALUE | KEY_ENUMERATE_SUB_KEYS,
@@ -1262,7 +1388,7 @@ try
             for (;;)
             {
                 DWORD cchClass = static_cast<DWORD>(classBuffer.size());
-                const auto infoStatus = m_lower.RegQueryInfoKeyW(
+                const auto infoStatus = m_pLower->RegQueryInfoKeyW(
                     lowerKey.Get(),
                     classBuffer.data(),
                     &cchClass,
@@ -1294,8 +1420,8 @@ try
             // An upper entry that shadows a lower one is counted once.
             for (const auto& name : shadowedKeys)
             {
-                LowerKey child(m_lower);
-                const auto childStatus = m_lower.RegOpenKeyExW(
+                LowerKey child(*m_pLower);
+                const auto childStatus = m_pLower->RegOpenKeyExW(
                     lowerKey.Get(),
                     name.c_str(),
                     0,
@@ -1310,7 +1436,7 @@ try
 
             for (const auto& name : shadowedValues)
             {
-                const auto valueStatus = m_lower.RegQueryValueExW(
+                const auto valueStatus = m_pLower->RegQueryValueExW(
                     lowerKey.Get(),
                     name.c_str(),
                     nullptr,
@@ -1354,7 +1480,7 @@ catch (...)
     return StatusFromException();
 }
 
-LSTATUS OverlayHive::SnapshotUpper(
+LSTATUS Hive::SnapshotUpper(
     std::vector<UpperRecord>& records
 ) const noexcept
 try
@@ -1362,8 +1488,8 @@ try
     std::vector<UpperRecord> result;
     std::wstring path;
     {
-        Tree::ReadLock lock(*m_pTree);
-        ListUpper(*m_pTree->Root(), path, result);
+        ReadLock lock(*this);
+        ListUpper(*m_pRoot, path, result);
     }
 
     records = std::move(result);
@@ -1374,25 +1500,66 @@ catch (...)
     return StatusFromException();
 }
 
-LSTATUS OverlayHive::CheckKey(
+LSTATUS Hive::CheckKey(
     _In_ Node* const pNode
 ) const noexcept
 {
-    Tree::ReadLock lock(*m_pTree);
+    ReadLock lock(*this);
     return pNode->isDeleted ? ERROR_KEY_DELETED : ERROR_SUCCESS;
 }
 
-LSTATUS OverlayHive::Watch(
+LSTATUS Hive::Watch(
     _In_ Node* const pNode,
     const BOOL bWatchSubtree,
     const DWORD dwFilter,
     const HANDLE hEvent
 ) const noexcept
 {
-    return m_pTree->Watch(*pNode, bWatchSubtree != FALSE, dwFilter, hEvent);
+    if (!(dwFilter & (REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_LAST_SET)))
+        return ERROR_SUCCESS;
+
+    HANDLE hOwn{};
+    if (
+        !DuplicateHandle(
+            GetCurrentProcess(),
+            hEvent,
+            GetCurrentProcess(),
+            &hOwn,
+            0,
+            FALSE,
+            DUPLICATE_SAME_ACCESS
+        )
+    )
+        return GetLastError();
+
+    WriteLock lock(*this);
+    LSTATUS status = ERROR_SUCCESS;
+    if (pNode->isDeleted)
+        status = ERROR_KEY_DELETED;
+    else if (lock)
+    {
+        try
+        {
+            pNode->watches.push_back(
+                {
+                    .hEvent = hOwn,
+                    .isSubtree = bWatchSubtree != FALSE,
+                    .dwFilter = dwFilter,
+                }
+            );
+            return ERROR_SUCCESS;
+        }
+        catch (const std::bad_alloc&)
+        {
+            status = ERROR_OUTOFMEMORY;
+        }
+    }
+
+    CloseHandle(hOwn);
+    return status;
 }
 
-LSTATUS OverlayHive::OpenLowerValueKey(
+LSTATUS Hive::OpenLowerValueKey(
     _In_ Node* const pNode,
     _In_z_ const LPCWSTR pszName,
     HKEY& hLower
@@ -1403,10 +1570,10 @@ try
     hLower = nullptr;
     LowerView view;
     {
-        Tree::ReadLock lock(*m_pTree);
+        ReadLock lock(*this);
         if (pNode->isDeleted)
             return ERROR_KEY_DELETED;
-        if (Tree::FindValue(*pNode, name))
+        if (FindValue(*pNode, name))
             return ERROR_SUCCESS;
 
         view = ViewOf(*pNode);
@@ -1415,7 +1582,7 @@ try
     if (!view.isVisible)
         return ERROR_SUCCESS;
 
-    LowerKey lowerKey(m_lower);
+    LowerKey lowerKey(*m_pLower);
     const auto opened = OpenLower(
         view.path,
         KEY_QUERY_VALUE,
@@ -1425,7 +1592,7 @@ try
         return opened == ERROR_FILE_NOT_FOUND ? ERROR_SUCCESS : opened;
 
     const std::wstring valueName(name);
-    const auto status = m_lower.RegQueryValueExW(
+    const auto status = m_pLower->RegQueryValueExW(
         lowerKey.Get(),
         valueName.c_str(),
         nullptr,
@@ -1444,5 +1611,143 @@ try
 catch (...)
 {
     return StatusFromException();
+}
+
+Hive::ReadLock::ReadLock(const Hive& hive) noexcept :
+    m_pLock(hive.IsFrozen() ? nullptr : &hive.m_lock)
+{
+    if (m_pLock)
+        AcquireSRWLockShared(m_pLock);
+}
+
+Hive::ReadLock::~ReadLock()
+{
+    if (m_pLock)
+        ReleaseSRWLockShared(m_pLock);
+}
+
+Hive::WriteLock::WriteLock(const Hive& hive) noexcept :
+    m_pLock(&hive.m_lock)
+{
+    AcquireSRWLockExclusive(m_pLock);
+    if (hive.IsFrozen())
+    {
+        ReleaseSRWLockExclusive(m_pLock);
+        m_pLock = nullptr;
+    }
+}
+
+Hive::WriteLock::~WriteLock()
+{
+    if (m_pLock)
+        ReleaseSRWLockExclusive(m_pLock);
+}
+
+Hive::WriteLock::operator bool() const noexcept
+{
+    return m_pLock != nullptr;
+}
+
+Node* Hive::FindChild(const Node& parent, const std::wstring_view name) noexcept
+{
+    const auto it = std::ranges::lower_bound(
+        parent.children,
+        name,
+        NameLess,
+        [](const Node* const pChild) { return std::wstring_view(pChild->name); }
+    );
+    if (it == parent.children.end() || CompareNames((*it)->name, name) != 0)
+        return nullptr;
+
+    return *it;
+}
+
+Value* Hive::FindValue(Node& node, const std::wstring_view name) noexcept
+{
+    const auto it = std::ranges::find_if(
+        node.values,
+        [&](const Value& value) { return CompareNames(value.name, name) == 0; }
+    );
+    return it == node.values.end() ? nullptr : &*it;
+}
+
+Node* Hive::AddChild(
+    Node& parent,
+    const std::wstring_view name,
+    const std::wstring_view className,
+    const bool isVolatile
+) const
+{
+    auto pNode = std::make_unique<Node>();
+    pNode->pHive = const_cast<Hive*>(this);
+    pNode->pParent = &parent;
+    pNode->name = name;
+    pNode->className = className;
+    pNode->isVolatile = isVolatile;
+    Touch(*pNode);
+
+    const auto position = std::ranges::lower_bound(
+            parent.children,
+            name,
+            NameLess,
+            [](const Node* const pChild)
+            {
+                return std::wstring_view(pChild->name);
+            }
+        )
+        - parent.children.begin();
+
+    // Every allocation happens before the handle is bound, so a throw leaves
+    // no handle pointing at a freed node.
+    m_nodes.reserve(m_nodes.size() + 1);
+    parent.children.reserve(parent.children.size() + 1);
+
+    pNode->hKey = HandleSpace::Process().Allocate(pNode.get());
+    if (!pNode->hKey)
+        return nullptr;
+
+    auto* const pResult = pNode.get();
+    parent.children.insert(parent.children.begin() + position, pResult);
+    m_nodes.push_back(std::move(pNode));
+    Touch(parent);
+    return pResult;
+}
+
+void Hive::Remove(Node& node) noexcept
+{
+    if (node.pParent)
+    {
+        auto& siblings = node.pParent->children;
+        siblings.erase(std::ranges::find(siblings, &node));
+        Touch(*node.pParent);
+    }
+
+    // Children of a deleted key answer as deleted too.
+    auto mark = [](auto& self, Node& current) -> void
+    {
+        current.isDeleted = true;
+        Fire(current, ~DWORD{0}, false);
+        for (auto* const pChild : current.children)
+            self(self, *pChild);
+    };
+    mark(mark, node);
+    if (node.pParent)
+        Notify(*node.pParent, REG_NOTIFY_CHANGE_NAME);
+}
+
+void Hive::Notify(Node& node, const DWORD dwFilter) noexcept
+{
+    Fire(node, dwFilter, false);
+    for (
+        auto* pAncestor = node.pParent;
+        pAncestor;
+        pAncestor = pAncestor->pParent
+    )
+        Fire(*pAncestor, dwFilter, true);
+}
+
+void Hive::Touch(Node& node) noexcept
+{
+    GetSystemTimeAsFileTime(&node.lastWrite);
 }
 } // namespace VReg

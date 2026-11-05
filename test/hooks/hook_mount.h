@@ -3,7 +3,7 @@
 #include "../intercept_registry.h"
 
 #include <VReg/detours.h>
-#include <VReg/memory_hive.h>
+#include <VReg/hive.h>
 #include <VReg/native_registry.h>
 #include <VReg/virtual_registry.h>
 
@@ -29,7 +29,7 @@ inline LONG InstallMount(
     InterceptRegistry** const ppIntercept = nullptr
 )
 {
-    auto* const pHive = new MemoryHive;
+    auto* const pHive = new Hive;
     auto* const pNative = new NativeRegistry;
     auto* const pRegistry = new VirtualRegistry(pNative);
 

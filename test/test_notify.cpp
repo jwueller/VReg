@@ -3,9 +3,8 @@
 #include "oracle.h"
 #include "thread.h"
 
-#include <VReg/memory_hive.h>
+#include <VReg/hive.h>
 #include <VReg/native_registry.h>
-#include <VReg/overlay_hive.h>
 #include <VReg/virtual_registry.h>
 
 #include <catch2/catch_test_macros.hpp>
@@ -145,7 +144,7 @@ public:
         return m_registry;
     }
 
-    [[nodiscard]] MemoryHive& Memory() noexcept
+    [[nodiscard]] Hive& Memory() noexcept
     {
         return m_hive;
     }
@@ -156,7 +155,7 @@ public:
     }
 
 private:
-    MemoryHive m_hive;
+    Hive m_hive;
     VirtualRegistry m_registry;
 };
 } // namespace

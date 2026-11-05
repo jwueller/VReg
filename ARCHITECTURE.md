@@ -9,8 +9,7 @@ the [README](./README.md), how to build, test and release it in
 ### Targets
 
 - `VReg::VReg`: the `Registry` interface, `NativeRegistry`,
-  `VirtualRegistry`, the `Hive` interface with `MemoryHive` and
-  `OverlayHive`, handle encoding and the shared handle namespace
+  `VirtualRegistry`, `Hive`, handle encoding and the shared handle namespace
   (`src/core/`), and `.reg` parse, apply and export (`src/regfile/`).
 - `VReg::Detours`: the hook adapter; built only with `VREG_WITH_DETOURS`
   (off by default), since it needs Microsoft Detours.
@@ -68,23 +67,24 @@ Implementations:
   - Overlay over native: base = native, overlay hives mounted where keys
     are added or overridden.
   - Pure in-memory: no base, `HKLM` and `HKCU` each mounted to an empty
-    `MemoryHive`.
+    `Hive`.
 
 ### `Hive`: storage
 
 A tree with one anonymous root, mounted at a path; several can be mounted at
 once, as with `RegLoadKey`. The interface is node-level with owned values;
-buffer and ANSI/wide rules stay in `VirtualRegistry`.
+buffer and ANSI/wide rules stay in `VirtualRegistry`. One concrete class
+covers both kinds of hive, since they differ only in whether reads fall
+through: an in-memory hive is a layered one with nothing below it, and the
+flags that describe a node's relation to the lower layer stay clear in it.
 
-- `MemoryHive`: starts empty.
-- `OverlayHive(lower: Registry&, lower root: HKEY, lower path)`: reads its
-  own upper tree first and falls through to the lower key. The upper tree is
-  the overlay's own node storage (not a separate `MemoryHive` object), and
-  the lower layer can be native or another `VirtualRegistry`. A frozen
-  overlay answers an untouched key with a handle of its lower registry, and
-  the `VirtualRegistry` it is mounted in sends later calls on that handle to
-  its base, so the lower registry must be that base or answer the same
-  handles.
+- `Hive()`: in memory, starts empty.
+- `Hive(lower: Registry&, lower root: HKEY, lower path)`: reads its own
+  upper tree first and falls through to the lower key. The lower layer can
+  be native or another `VirtualRegistry`. A frozen layered hive answers an
+  untouched key with a handle of its lower registry, and the
+  `VirtualRegistry` it is mounted in sends later calls on that handle to its
+  base, so the lower registry must be that base or answer the same handles.
   - Value and key **tombstones** hide lower entries.
   - An **opaque** key hides all lower children and values (a key deleted
     and recreated).
@@ -262,7 +262,7 @@ into a mount. The last case is resolved by the parent's native path:
   Agent's choice: below the mount point the name is an ordinary key, since a
   hive's own tree is not a registry view; stripping the whole path was passed
   over. The longest matching mount wins.
-- Each mount has a view, in the `REGSAM` vocabulary the `OverlayHive`
+- Each mount has a view, in the `REGSAM` vocabulary the layered `Hive`
   constructor uses for its lower view too: `KEY_WOW64_64KEY`,
   `KEY_WOW64_32KEY`, or 0 (the default) for both. A call is of the view its
   `samDesired` names (`RRF_SUBKEY_WOW64*KEY` for `RegGetValue`), else of the
@@ -372,13 +372,14 @@ In namespace `VReg::RegFile` (`include/VReg/regfile.h`):
   operation.
 - `ExportSnapshot(Registry&, root, path, format)`: the merged view, no
   deletion lines; for fixtures and inspection.
-- `ExportDelta(OverlayHive&, root, path, format)`: the upper layer, with
+- `ExportDelta(const Hive&, root, path, format)`: the hive's own layer, with
   tombstones as `[-K]` and `"Name"=-` and opaque keys as `[-K]` followed by
-  `[K]`; the persistence format for overlays. Re-importing over the same
-  lower registry reproduces the view. `root` and `path` name where the hive
-  is mounted; key names are that prefix plus the key's path in the hive. The
-  walk is `OverlayHive::SnapshotUpper`, which reads the upper tree under the
-  hive's read lock and never calls the lower registry. A key that only shows
+  `[K]`; the persistence format for overlays, and for an in-memory hive its
+  whole contents. Re-importing over the same lower registry reproduces the
+  view. `root` and `path` name where the hive is mounted; key names are that
+  prefix plus the key's path in the hive. The walk is `Hive::SnapshotUpper`,
+  which reads the upper tree under the hive's read lock and never calls the
+  lower registry. A key that only shows
   a lower key through and holds no value of its own is omitted, so opening
   keys does not change the delta; one with upper values or value tombstones
   appears as `[K]` (it exists below, so creating it is harmless).
@@ -446,7 +447,7 @@ Catch2.
 
 - **Native oracle**: each scenario runs against `NativeRegistry` on a
   private app hive (`RegLoadAppKey` on a temp file: real, no admin, no
-  machine state) and against a `VirtualRegistry` over a `MemoryHive`;
+  machine state) and against a `VirtualRegistry` over an in-memory `Hive`;
   statuses, sizes and bytes must match. Covers ANSI/wide, buffer sizes and
   `ERROR_MORE_DATA`.
 - **Ported unit tests**: overlay shadowing, enumeration index shifting,
@@ -454,8 +455,8 @@ Catch2.
   resolution, `WOW6432Node`.
 - **Concurrency**: reader and writer threads (opens, creates, value writes
   and deletes, key deletes, enumerations, `QueryInfoKey`, watches, snapshot
-  exports) on a writable `MemoryHive`, one frozen halfway through, and a
-  writable `OverlayHive` over an app hive, each for about two seconds. They
+  exports) on a writable in-memory `Hive`, one frozen halfway through, and a
+  writable `Hive` layered over an app hive, each for about two seconds. They
   require only plausible status codes, no hang, and a final state that
   agrees with itself.
 - **`.reg`**: byte-exact round trips, deltas with tombstones and opaque keys,

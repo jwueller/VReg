@@ -1,10 +1,10 @@
 #include <VReg/regfile.h>
 
-#include <VReg/overlay_hive.h>
+#include <VReg/hive.h>
 #include <VReg/owned_values.h>
 
 #include "core/status.h"
-#include "core/tree.h"
+#include "core/node.h"
 #include "regfile/text.h"
 #include "regfile/writer.h"
 
@@ -197,7 +197,7 @@ LSTATUS ExportSnapshot(
 }
 
 LSTATUS ExportDelta(
-    OverlayHive& hive,
+    const Hive& hive,
     const HKEY hRoot,
     _In_z_ const LPCWSTR pszPath,
     const Format format,
@@ -290,7 +290,7 @@ LSTATUS ExportDelta(
 }
 
 LSTATUS ExportDeltaToFile(
-    OverlayHive& hive,
+    const Hive& hive,
     const HKEY hRoot,
     _In_z_ const LPCWSTR pszPath,
     const Format format,

@@ -284,7 +284,7 @@ public:
         CHECK(AsString(again) == AsString(file));
     }
 
-    [[nodiscard]] OverlayHive& Modified() noexcept
+    [[nodiscard]] Hive& Modified() noexcept
     {
         return m_modified;
     }
@@ -301,8 +301,8 @@ private:
     AppHive m_appHive;
     NativeRegistry m_native;
     HKEY m_hLower{};
-    OverlayHive m_modified;
-    OverlayHive m_fresh;
+    Hive m_modified;
+    Hive m_fresh;
     VirtualRegistry m_modifiedRegistry;
     VirtualRegistry m_freshRegistry;
 };

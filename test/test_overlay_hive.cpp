@@ -4,7 +4,6 @@
 
 #include <VReg/handle.h>
 #include <VReg/native_registry.h>
-#include <VReg/overlay_hive.h>
 #include <VReg/owned_values.h>
 #include <VReg/virtual_registry.h>
 
@@ -85,7 +84,7 @@ public:
         return m_hLower;
     }
 
-    [[nodiscard]] OverlayHive& Overlay() noexcept
+    [[nodiscard]] Hive& Overlay() noexcept
     {
         return m_overlay;
     }
@@ -105,7 +104,7 @@ private:
     NativeRegistry m_native;
     InterceptRegistry m_lowerRegistry;
     HKEY m_hLower{};
-    OverlayHive m_overlay;
+    Hive m_overlay;
     VirtualRegistry m_registry;
 };
 
@@ -1589,7 +1588,7 @@ namespace
 {
 /// Whether the hive's lock is free, found by writing to an unrelated key
 /// from another thread and waiting for it with a timeout.
-bool IsLockFree(OverlayHive& overlay, Node* const pProbe)
+bool IsLockFree(Hive& overlay, Node* const pProbe)
 {
     const Thread writer(
         [&]

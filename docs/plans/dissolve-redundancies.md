@@ -21,7 +21,7 @@ conflict with.
 - [x] 5. One WOW64 view vocabulary: `VirtualRegistry::Mount` takes a
   `REGSAM` view (`KEY_WOW64_64KEY`, `KEY_WOW64_32KEY` or 0) like the
   `OverlayHive` constructor; `MountView` goes.
-- [ ] 6. One hive class: `MemoryHive` and `OverlayHive` become one concrete
+- [x] 6. One hive class: `MemoryHive` and `OverlayHive` become one concrete
   `Hive` with an optional lower registry; the `Hive` interface, `Tree` as a
   separate class and the overlay-only flags' qualifiers go with them.
 - [ ] 7. `NativeRegistry::Functions` holds only the functions

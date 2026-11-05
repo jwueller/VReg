@@ -99,7 +99,7 @@ else is the real registry.
 
 ```cpp
 VReg::NativeRegistry native;
-VReg::OverlayHive overlay(native, HKEY_CURRENT_USER, L"Software\\Vendor\\Game");
+VReg::Hive overlay(native, HKEY_CURRENT_USER, L"Software\\Vendor\\Game");
 VReg::VirtualRegistry registry(&native);
 registry.Mount(HKEY_CURRENT_USER, L"Software\\Vendor\\Game", overlay);
 
@@ -113,8 +113,8 @@ file that `VReg::RegFile::Apply` replays later.
 ### Held entirely in memory
 
 ```cpp
-VReg::MemoryHive machine;
-VReg::MemoryHive user;
+VReg::Hive machine;
+VReg::Hive user;
 VReg::VirtualRegistry registry;   // no base: nothing else exists
 registry.Mount(HKEY_LOCAL_MACHINE, L"", machine);
 registry.Mount(HKEY_CURRENT_USER, L"", user);
@@ -126,7 +126,7 @@ registry.Mount(HKEY_CURRENT_USER, L"", user);
 // Leaked on purpose: the hooks use them until the process ends.
 auto* native = new VReg::NativeRegistry;
 auto* registry = new VReg::VirtualRegistry(native);
-auto* hive = new VReg::MemoryHive;
+auto* hive = new VReg::Hive;
 registry->Mount(HKEY_LOCAL_MACHINE, L"Software\\Vendor\\Game", *hive);
 // Fill the hive through registry (or RegFile::Apply), then:
 hive->Freeze();
@@ -395,8 +395,8 @@ Measured by the oracle; each is an input no sane caller relies on.
 
 ### Virtual keys
 
-Measured by running the oracle catalogue against `VirtualRegistry` over a
-`MemoryHive`; the scenarios skip exactly these calls for the virtual run
+Measured by running the oracle catalogue against `VirtualRegistry` over an
+in-memory `Hive`; the scenarios skip exactly these calls for the virtual run
 (and for its native reference).
 
 - Access rights are per node, not per open: a key opened `KEY_READ` can

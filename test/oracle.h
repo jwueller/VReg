@@ -5,9 +5,8 @@
 // recordings of status codes, out-sizes and bytes must match the real Win32
 // API's exactly.
 
-#include <VReg/memory_hive.h>
+#include <VReg/hive.h>
 #include <VReg/native_registry.h>
-#include <VReg/overlay_hive.h>
 #include <VReg/virtual_registry.h>
 
 #include <Windows.h>
@@ -95,7 +94,7 @@ Recording Record(Api& api)
     return recorder.Take();
 }
 
-/// A `VirtualRegistry` without a base, with a `MemoryHive` mounted below
+/// A `VirtualRegistry` without a base, with a `Hive` mounted below
 /// `HKEY_CURRENT_USER`: the virtual counterpart of an @ref AppHive.
 class VirtualHive
 {
@@ -111,11 +110,11 @@ public:
     [[nodiscard]] HKEY Root() noexcept;
 
 private:
-    MemoryHive m_hive;
+    Hive m_hive;
     VirtualRegistry m_registry;
 };
 
-/// Runs @p Scenario against a `VirtualRegistry` over a fresh `MemoryHive`.
+/// Runs @p Scenario against a `VirtualRegistry` over a fresh `Hive`.
 template <class Scenario>
 Recording RecordVirtual()
 {
@@ -125,7 +124,7 @@ Recording RecordVirtual()
     return recorder.Take();
 }
 
-/// A writable `OverlayHive` over an empty key of an @ref AppHive, mounted below
+/// A writable `Hive` over an empty key of an @ref AppHive, mounted below
 /// `HKEY_CURRENT_USER` in a `VirtualRegistry` whose base is the native
 /// registry: the overlay counterpart of an @ref AppHive.
 class OverlayMount
@@ -139,7 +138,7 @@ public:
 
     [[nodiscard]] VirtualRegistry& Registry() noexcept;
     [[nodiscard]] NativeRegistry& Native() noexcept;
-    [[nodiscard]] OverlayHive& Overlay() noexcept;
+    [[nodiscard]] Hive& Overlay() noexcept;
 
     /// The key of the app hive the overlay sits on.
     [[nodiscard]] HKEY LowerRoot() const noexcept;
@@ -151,11 +150,11 @@ private:
     AppHive m_appHive;
     NativeRegistry m_native;
     HKEY m_hLower{};
-    OverlayHive m_hive;
+    Hive m_hive;
     VirtualRegistry m_registry;
 };
 
-/// Runs @p Scenario against a writable `OverlayHive` over an empty lower key.
+/// Runs @p Scenario against a writable `Hive` over an empty lower key.
 template <class Scenario>
 Recording RecordOverlay()
 {

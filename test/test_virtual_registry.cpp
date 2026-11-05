@@ -2,7 +2,7 @@
 #include "scenario.h"
 
 #include <VReg/handle.h>
-#include <VReg/memory_hive.h>
+#include <VReg/hive.h>
 #include <VReg/native_registry.h>
 #include <VReg/owned_values.h>
 #include <VReg/virtual_registry.h>
@@ -101,7 +101,7 @@ DWORD QueryDword(
 
 TEST_CASE("A node has one handle however it is reached")
 {
-    MemoryHive hive;
+    Hive hive;
     VirtualRegistry registry;
     REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"Test", hive) == ERROR_SUCCESS);
 
@@ -128,7 +128,7 @@ TEST_CASE("A node has one handle however it is reached")
 
 TEST_CASE("A deleted node and its children answer ERROR_KEY_DELETED")
 {
-    MemoryHive hive;
+    Hive hive;
     VirtualRegistry registry;
     REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"Test", hive) == ERROR_SUCCESS);
     const HKEY hRoot = Hive::HandleOf(hive.Root());
@@ -184,7 +184,7 @@ TEST_CASE("A deleted node and its children answer ERROR_KEY_DELETED")
 
 TEST_CASE("A frozen hive refuses writes and still answers reads")
 {
-    MemoryHive hive;
+    Hive hive;
     VirtualRegistry registry;
     REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"Test", hive) == ERROR_SUCCESS);
     const HKEY hRoot = Hive::HandleOf(hive.Root());
@@ -258,7 +258,7 @@ TEST_CASE("A frozen hive refuses writes and still answers reads")
 
 TEST_CASE("A value marked as MUI text loads as its text until written again")
 {
-    MemoryHive hive;
+    Hive hive;
     VirtualRegistry registry;
     REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"Test", hive) == ERROR_SUCCESS);
     const HKEY hRoot = Hive::HandleOf(hive.Root());
@@ -336,7 +336,7 @@ TEST_CASE("A value marked as MUI text loads as its text until written again")
 
 TEST_CASE("A hive mounted read-only answers reads and refuses writes")
 {
-    MemoryHive hive;
+    Hive hive;
     const HKEY hRoot = Hive::HandleOf(hive.Root());
     {
         VirtualRegistry writer;
@@ -439,8 +439,8 @@ TEST_CASE("A hive mounted read-only answers reads and refuses writes")
 
 TEST_CASE("Mount rejects what cannot be mounted")
 {
-    MemoryHive hive;
-    MemoryHive other;
+    Hive hive;
+    Hive other;
     VirtualRegistry registry;
 
     CHECK(registry.Mount(nullptr, L"A", hive) == ERROR_INVALID_HANDLE);
@@ -491,8 +491,8 @@ TEST_CASE("Mount rejects what cannot be mounted")
 
 TEST_CASE("Pure in-memory configuration")
 {
-    MemoryHive machine;
-    MemoryHive user;
+    Hive machine;
+    Hive user;
     VirtualRegistry registry;
     REQUIRE(registry.Mount(HKEY_LOCAL_MACHINE, L"", machine) == ERROR_SUCCESS);
     REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"", user) == ERROR_SUCCESS);
@@ -586,8 +586,8 @@ TEST_CASE("Pure in-memory configuration")
 
 TEST_CASE("The longest mount prefix wins")
 {
-    MemoryHive outer;
-    MemoryHive inner;
+    Hive outer;
+    Hive inner;
     VirtualRegistry registry;
     REQUIRE(
         registry.Mount(HKEY_CURRENT_USER, L"Software", outer) == ERROR_SUCCESS
@@ -653,7 +653,7 @@ TEST_CASE("Calls outside the mounts reach the base registry")
 {
     NativeRegistry native;
     VirtualRegistry registry(&native);
-    MemoryHive hive;
+    Hive hive;
     REQUIRE(
         registry.Mount(
             HKEY_CURRENT_USER,
@@ -812,7 +812,7 @@ TEST_CASE("A handle released with its hive is invalid")
     HKEY hRoot = nullptr;
     HKEY hChild = nullptr;
     {
-        MemoryHive hive;
+        Hive hive;
         VirtualRegistry mounted;
         REQUIRE(
             mounted.Mount(HKEY_CURRENT_USER, L"Test", hive) == ERROR_SUCCESS
@@ -917,7 +917,7 @@ TEST_CASE("A real parent handle is resolved by its native path")
     FakeNtQueryKey::Reset();
     NativeRegistry native;
     VirtualRegistry registry(&native, &FakeNtQueryKey::Query);
-    MemoryHive hive;
+    Hive hive;
     REQUIRE(
         registry.Mount(
             HKEY_LOCAL_MACHINE,
@@ -1118,7 +1118,7 @@ TEST_CASE("A real parent handle is resolved by its native path")
 
     SECTION("Roots without a native path are not reachable")
     {
-        MemoryHive classes;
+        Hive classes;
         REQUIRE(
             registry.Mount(
                 HKEY_CLASSES_ROOT,
@@ -1156,7 +1156,7 @@ TEST_CASE("WOW6432Node components are stripped whole and ordinal case-insensitiv
     FakeNtQueryKey::Reset();
     NativeRegistry native;
     VirtualRegistry registry(&native, &FakeNtQueryKey::Query);
-    MemoryHive hive;
+    Hive hive;
     REQUIRE(
         registry.Mount(
             HKEY_LOCAL_MACHINE,
@@ -1229,9 +1229,9 @@ TEST_CASE("A mount answers only the calls of its view")
     FakeNtQueryKey::Reset();
     NativeRegistry native;
     VirtualRegistry registry(&native, &FakeNtQueryKey::Query);
-    MemoryHive hive64;
-    MemoryHive hive32;
-    MemoryHive hiveBoth;
+    Hive hive64;
+    Hive hive32;
+    Hive hiveBoth;
     REQUIRE(
         registry.Mount(
             HKEY_LOCAL_MACHINE,
@@ -1328,7 +1328,7 @@ TEST_CASE("A real key above a mount reaches it through the real NtQueryKey")
 {
     NativeRegistry native;
     VirtualRegistry registry(&native);
-    MemoryHive hive;
+    Hive hive;
     const auto name = std::format(
         L"VRegNativePathTest-{}",
         GetCurrentProcessId()

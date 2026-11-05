@@ -7,7 +7,7 @@
 #include "core/lock.h"
 #include "core/rrf.h"
 #include "core/status.h"
-#include "core/tree.h"
+#include "core/node.h"
 #include "core/value_type.h"
 
 #include <algorithm>

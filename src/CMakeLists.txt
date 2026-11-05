@@ -4,9 +4,7 @@ target_sources(VReg_VReg PUBLIC FILE_SET HEADERS BASE_DIRS ${PROJECT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/include/VReg/core.h
     ${PROJECT_SOURCE_DIR}/include/VReg/handle.h
     ${PROJECT_SOURCE_DIR}/include/VReg/hive.h
-    ${PROJECT_SOURCE_DIR}/include/VReg/memory_hive.h
     ${PROJECT_SOURCE_DIR}/include/VReg/native_registry.h
-    ${PROJECT_SOURCE_DIR}/include/VReg/overlay_hive.h
     ${PROJECT_SOURCE_DIR}/include/VReg/owned_values.h
     ${PROJECT_SOURCE_DIR}/include/VReg/regfile.h
     ${PROJECT_SOURCE_DIR}/include/VReg/registry.h
@@ -22,16 +20,14 @@ target_sources(VReg_VReg PRIVATE
     core/handle_space.cpp
     core/handle_space.h
     core/lock.h
-    core/memory_hive.cpp
+    core/hive.cpp
     core/native_registry.cpp
-    core/overlay_hive.cpp
+    core/node.h
     core/owned_values.cpp
     core/registry.cpp
     core/retry.h
     core/rrf.h
     core/status.h
-    core/tree.cpp
-    core/tree.h
     core/value_type.h
     core/version.cpp
     core/virtual_registry.cpp

@@ -13,7 +13,7 @@
 
 namespace VReg
 {
-class OverlayHive;
+class Hive;
 }
 
 namespace VReg::RegFile
@@ -149,24 +149,24 @@ LSTATUS ExportSnapshotToFile(
 ) noexcept;
 
 /**
- * @brief Writes what the upper layer of @p hive holds, as a file that
- *  reproduces the hive's merged view when it is applied over the same lower
- *  registry.
+ * @brief Writes what @p hive holds itself, as a file that reproduces the
+ *  hive's merged view when it is applied over the same lower registry (or,
+ *  for a hive held entirely in memory, its contents).
  *
  *  @p hRoot and @p pszPath name where the hive is mounted: key names in the file
- *  are that prefix plus the key's path in the hive. Upper keys are written as
- *  `[key]` with their upper values, a deleted lower value as `"name"=-`, a
- *  deleted lower key as `[-key]`, and a key that hides its lower counterpart as
- *  `[-key]` followed by `[key]` and its contents. A key that only shows a lower
- *  key through is left out. Order and layout are those of @ref ExportSnapshot.
- *  A tombstone with no lower counterpart is kept, and does nothing when
- *  applied.
+ *  are that prefix plus the key's path in the hive. The hive's own keys are
+ *  written as `[key]` with their own values, a deleted lower value as
+ *  `"name"=-`, a deleted lower key as `[-key]`, and a key that hides its lower
+ *  counterpart as `[-key]` followed by `[key]` and its contents. A key that
+ *  only shows a lower key through is left out. Order and layout are those of
+ *  @ref ExportSnapshot. A tombstone with no lower counterpart is kept, and
+ *  does nothing when applied.
  *
  * @return As @ref ExportSnapshot, except that the hive is read instead of a
  *  registry.
  */
 LSTATUS ExportDelta(
-    OverlayHive& hive,
+    const Hive& hive,
     HKEY hRoot,
     _In_z_ LPCWSTR pszPath,
     Format format,
@@ -176,7 +176,7 @@ LSTATUS ExportDelta(
 /// @ref ExportDelta into a file. An existing file is replaced only once the
 /// export has succeeded.
 LSTATUS ExportDeltaToFile(
-    OverlayHive& hive,
+    const Hive& hive,
     HKEY hRoot,
     _In_z_ LPCWSTR pszPath,
     Format format,

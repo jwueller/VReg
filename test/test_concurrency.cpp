@@ -4,9 +4,8 @@
 
 #include "oracle.h"
 
-#include <VReg/memory_hive.h>
+#include <VReg/hive.h>
 #include <VReg/native_registry.h>
-#include <VReg/overlay_hive.h>
 #include <VReg/regfile.h>
 #include <VReg/virtual_registry.h>
 
@@ -677,9 +676,9 @@ void RunStress(
 }
 } // namespace
 
-TEST_CASE("Readers and writers on a writable MemoryHive")
+TEST_CASE("Readers and writers on a writable Hive")
 {
-    MemoryHive hive;
+    Hive hive;
     VirtualRegistry registry;
     REQUIRE(
         registry.Mount(HKEY_CURRENT_USER, L"VRegStress", hive) == ERROR_SUCCESS
@@ -693,9 +692,9 @@ TEST_CASE("Readers and writers on a writable MemoryHive")
     );
 }
 
-TEST_CASE("Readers and writers on a MemoryHive frozen halfway")
+TEST_CASE("Readers and writers on a Hive frozen halfway")
 {
-    MemoryHive hive;
+    Hive hive;
     VirtualRegistry registry;
     REQUIRE(
         registry.Mount(HKEY_CURRENT_USER, L"VRegStress", hive) == ERROR_SUCCESS
@@ -704,12 +703,12 @@ TEST_CASE("Readers and writers on a MemoryHive frozen halfway")
         registry,
         L"VRegStress",
         Hive::HandleOf(hive.Root()),
-        [](void* const pHive) { static_cast<MemoryHive*>(pHive)->Freeze(); },
+        [](void* const pHive) { static_cast<Hive*>(pHive)->Freeze(); },
         &hive
     );
 }
 
-TEST_CASE("Readers and writers on a writable OverlayHive over an app hive")
+TEST_CASE("Readers and writers on a writable Hive over an app hive")
 {
     OverlayMount mount;
     auto& native = mount.Native();

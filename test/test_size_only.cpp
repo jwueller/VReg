@@ -5,9 +5,8 @@
 #include "oracle.h"
 
 #include <VReg/handle.h>
-#include <VReg/memory_hive.h>
+#include <VReg/hive.h>
 #include <VReg/native_registry.h>
-#include <VReg/overlay_hive.h>
 #include <VReg/virtual_registry.h>
 
 #include <catch2/catch_test_macros.hpp>
@@ -318,9 +317,9 @@ void operator delete[](
     _aligned_free(p);
 }
 
-TEST_CASE("A size-only query of a MemoryHive value copies no data")
+TEST_CASE("A size-only query of a Hive value copies no data")
 {
-    MemoryHive hive;
+    Hive hive;
     VirtualRegistry registry;
     REQUIRE(
         registry.Mount(HKEY_CURRENT_USER, L"SizeOnly", hive) == ERROR_SUCCESS
@@ -330,11 +329,11 @@ TEST_CASE("A size-only query of a MemoryHive value copies no data")
     CheckSizeOnly(registry, Hive::HandleOf(hive.Root()));
 }
 
-TEST_CASE("A size-only query of an OverlayHive upper value copies no data")
+TEST_CASE("A size-only query of an Hive upper value copies no data")
 {
     AppHive appHive;
     NativeRegistry native;
-    OverlayHive overlay(native, appHive.Root(), L"");
+    Hive overlay(native, appHive.Root(), L"");
     VirtualRegistry registry(&native);
     REQUIRE(
         registry.Mount(HKEY_CURRENT_USER, L"SizeOnly", overlay) == ERROR_SUCCESS
@@ -344,13 +343,13 @@ TEST_CASE("A size-only query of an OverlayHive upper value copies no data")
     CheckSizeOnly(registry, Hive::HandleOf(overlay.Root()));
 }
 
-TEST_CASE("A size-only query of an OverlayHive lower value copies no data")
+TEST_CASE("A size-only query of an Hive lower value copies no data")
 {
     AppHive appHive;
     NativeRegistry native;
     SetBigValue(native, appHive.Root());
 
-    OverlayHive overlay(native, appHive.Root(), L"");
+    Hive overlay(native, appHive.Root(), L"");
     VirtualRegistry registry(&native);
     REQUIRE(
         registry.Mount(HKEY_CURRENT_USER, L"SizeOnly", overlay) == ERROR_SUCCESS

@@ -118,7 +118,7 @@ NativeRegistry& OverlayMount::Native() noexcept
     return m_native;
 }
 
-OverlayHive& OverlayMount::Overlay() noexcept
+Hive& OverlayMount::Overlay() noexcept
 {
     return m_hive;
 }
