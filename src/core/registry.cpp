@@ -4,6 +4,7 @@
 
 #include "ansi.h"
 #include "retry.h"
+#include "rrf.h"
 #include "status.h"
 #include "value_type.h"
 
@@ -698,7 +699,7 @@ try
 
     // Only string values are converted; anything else, and every failure to
     // find the value, is what the wide form answers.
-    constexpr DWORD WOW_FLAGS = RRF_SUBKEY_WOW6464KEY | RRF_SUBKEY_WOW6432KEY;
+    constexpr DWORD WOW_FLAGS = RRF_WOW6464_SUBKEY | RRF_WOW6432_SUBKEY;
     const DWORD dwFlagsStored =
         (dwFlags & WOW_FLAGS)
         | RRF_RT_ANY

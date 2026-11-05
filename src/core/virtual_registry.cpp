@@ -5,6 +5,7 @@
 #include "export_table.h"
 #include "handle_space.h"
 #include "lock.h"
+#include "rrf.h"
 #include "status.h"
 #include "tree.h"
 #include "value_type.h"
@@ -1307,8 +1308,8 @@ try
     const auto target = Resolve(
         hkey,
         View(lpSubKey),
-        (dwFlags & RRF_SUBKEY_WOW6464KEY ? KEY_WOW64_64KEY : 0)
-        | (dwFlags & RRF_SUBKEY_WOW6432KEY ? KEY_WOW64_32KEY : 0)
+        (dwFlags & RRF_WOW6464_SUBKEY ? KEY_WOW64_64KEY : 0)
+        | (dwFlags & RRF_WOW6432_SUBKEY ? KEY_WOW64_32KEY : 0)
     );
     if (target.isBase)
         return m_pBase->RegGetValueW(
@@ -1321,7 +1322,7 @@ try
             pcbData
         );
 
-    constexpr DWORD BOTH_VIEWS = RRF_SUBKEY_WOW6464KEY | RRF_SUBKEY_WOW6432KEY;
+    constexpr DWORD BOTH_VIEWS = RRF_WOW6464_SUBKEY | RRF_WOW6432_SUBKEY;
     if (
         !hkey
         || (pvData && !pcbData)

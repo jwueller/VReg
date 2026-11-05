@@ -4,6 +4,12 @@
 
 #include <Windows.h>
 
+// The functions below include Vista's (RegDeleteTreeW, RegGetValueW), which
+// the SDK declares only from that target on.
+#if _WIN32_WINNT < 0x0600
+#error "VReg needs _WIN32_WINNT 0x0600 (Windows Vista) or later."
+#endif
+
 /// Applies `X` to the name of every function the @ref VReg::Registry surface
 /// mirrors, A and pre-`Ex` forms included: the fields of
 /// @ref VReg::NativeRegistry::Functions, and the functions the hooks emulate.

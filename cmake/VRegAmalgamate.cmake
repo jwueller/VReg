@@ -144,6 +144,16 @@ ${license}
 #ifndef VREG_H_INCLUDED
 #define VREG_H_INCLUDED
 
+#if _MSVC_LANG < 202002L
+#error \"VReg needs C++20 (/std:c++20 or later).\"
+#endif
+
+// The libraries are built with exceptions; here, the consumer's options
+// apply, and the standard headers below already need them.
+#ifndef _CPPUNWIND
+#error \"VReg needs C++ exceptions (/EHsc): it answers allocation failure with a status.\"
+#endif
+
 ")
 vreg_inline("${SOURCE_DIR}/include/VReg/core.h")
 vreg_inline("${SOURCE_DIR}/include/VReg/regfile.h")

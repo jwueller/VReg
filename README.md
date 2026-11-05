@@ -34,7 +34,8 @@ Windows only (x86, x64 and ARM64), and runs under Wine and Proton.
 
 ## Using it
 
-Needs C++20 (MSVC 2022 or later, or clang-cl). The CMake targets also need
+Needs C++20 (MSVC 2022 or later, or clang-cl), with exceptions, and
+`_WIN32_WINNT` at `0x0600` (Windows Vista) or later. The CMake targets also need
 CMake 3.25 or later; the [single header](#as-a-single-header) needs no
 build system.
 

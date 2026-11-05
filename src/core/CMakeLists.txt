@@ -28,6 +28,7 @@ target_sources(VReg_Core PRIVATE
     owned_values.cpp
     registry.cpp
     retry.h
+    rrf.h
     status.h
     tree.cpp
     tree.h
