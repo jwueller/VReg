@@ -66,7 +66,8 @@ to date with the port.
    runs cover neither Wine nor clang-cl. Tag only a commit CI passed on.
 3. Tag it `vX.Y.Z` and push the tag. Once CI passes on the tag, it
    publishes the GitHub release, its notes the commit subjects since the
-   previous tag.
+   previous tag, with the single header `vreg.h` generated from the tag
+   attached.
 4. Point the port at the release: set `version-semver` in
    [ports/vreg/vcpkg.json](./ports/vreg/vcpkg.json), and in
    [ports/vreg/portfile.cmake](./ports/vreg/portfile.cmake) the SHA512 of

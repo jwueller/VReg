@@ -461,6 +461,10 @@ Catch2.
   statically, covering the shared handle namespace, chaining and
   neutralize-on-unload.
 - **Handle probe**: the parity measurement above as a permanent test.
+- **Single header**: the whole suite again, against the implementation
+  compiled from `vreg.h` alone; and that implementation compiled warning-free
+  after a plain `#include <Windows.h>`, without `/utf-8`, under every
+  combination of `WIN32_LEAN_AND_MEAN`, `UNICODE` and `NOMINMAX`.
 
 ### CI (GitHub Actions, public repository)
 
@@ -482,6 +486,25 @@ Catch2.
   tie every consumer to the DLL's compiler and CRT through the C++ API, and
   two modules shipping different builds of it would collide on its name. A
   DLL would only make sense behind a C API.
+- The single header `vreg.h` is generated on every build by
+  `cmake/VRegAmalgamate.cmake` and never edited: each file of `include/`
+  and `src/` inlined once where first included, the implementation behind
+  `VREG_IMPLEMENTATION` and the hooks also behind `VREG_WITH_DETOURS`. It
+  is the same code as the libraries, so it needs no tests of its own beyond
+  being compiled from one file (see "Single header" above).
+  - Its guards are explicit, not `#pragma once`: the file that defines
+    `VREG_IMPLEMENTATION` may include it a second time after an earlier
+    include without it.
+  - Anonymous namespaces of all sources merge into one, so a helper's name
+    must be unique across the library, not just its file.
+  - The implementation `#undef`s the macros it defines; only the public
+    headers' `VREG_` macros stay visible.
+  - It carries the full license text, since it is copied on its own, and a
+    UTF-8 BOM, since that text is not ASCII and MSVC otherwise reads it in
+    the consumer's code page.
+  - Agent's choice: the release attaches it, so a consumer needs neither
+    CMake nor vcpkg; committing it to the repository was passed over, since
+    every commit would then need a regenerated copy.
 - Tests build only when VReg is the top-level project.
 - Detours is found as the vcpkg port lays it out (header plus library, no
   CMake config).

@@ -1,35 +1,40 @@
 find_package(Catch2 3 CONFIG REQUIRED)
 include(Catch)
 
+# Shared with test/amalgamation, so the files are absolute.
+set(VREG_TEST_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/intercept_registry.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/no_dialogs.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/oracle.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/oracle.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/regfile_test.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/scenario.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_concurrency.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_handle.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_handle_probe.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_native_registry.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_notify.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_oracle.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_oracle_enum.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_oracle_get.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_oracle_values.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_overlay_hive.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_regfile_apply.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_regfile_delta.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_regfile_export.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_regfile_parse.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_regfile_roundtrip.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_registry.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_size_only.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_status.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_version.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_virtual_registry.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/thread.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/win32_api.h
+)
+
 add_executable(VReg_Tests
-    intercept_registry.h
-    no_dialogs.cpp
-    oracle.cpp
-    oracle.h
-    regfile_test.h
-    scenario.h
-    test_concurrency.cpp
-    test_handle.cpp
-    test_handle_probe.cpp
-    test_native_registry.cpp
-    test_notify.cpp
-    test_oracle.cpp
-    test_oracle_enum.cpp
-    test_oracle_get.cpp
-    test_oracle_values.cpp
-    test_overlay_hive.cpp
-    test_regfile_apply.cpp
-    test_regfile_delta.cpp
-    test_regfile_export.cpp
-    test_regfile_parse.cpp
-    test_regfile_roundtrip.cpp
-    test_registry.cpp
-    test_size_only.cpp
-    test_status.cpp
-    test_version.cpp
-    test_virtual_registry.cpp
-    thread.h
-    win32_api.h
+    ${VREG_TEST_SOURCES}
 )
 
 target_link_libraries(VReg_Tests PRIVATE
@@ -76,3 +81,4 @@ if(TARGET VReg_Detours)
 endif()
 
 add_subdirectory(headers)
+add_subdirectory(amalgamation)

@@ -36,6 +36,7 @@ option(VREG_ANALYZE "Run MSVC code analysis (/analyze) over the library sources"
 include(GNUInstallDirs)
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 include(cmake/VRegTarget.cmake)
+include(cmake/VRegAmalgamation.cmake)
 
 add_subdirectory(src)
 

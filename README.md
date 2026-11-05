@@ -34,7 +34,9 @@ Windows only (x86, x64 and ARM64), and runs under Wine and Proton.
 
 ## Using it
 
-Needs C++20 (MSVC 2022 or later, or clang-cl) and CMake 3.25 or later.
+Needs C++20 (MSVC 2022 or later, or clang-cl). The CMake targets also need
+CMake 3.25 or later; the [single header](#as-a-single-header) needs no
+build system.
 
 CMake targets (static libraries):
 - `VReg::Core`: the interface, the registries, the hives and the handles.
@@ -72,6 +74,22 @@ The hooks on ARM64 need a Detours newer than 4.0.1 (vcpkg's `detours`
 2025-06-20 or later, so a vcpkg baseline that has it): 4.0.1 overwrites more
 of each ARM64 function it hooks than it relocates, and every call passed
 through to the real registry crashes.
+
+### As a single header
+
+Each [release](https://github.com/jwueller/VReg/releases) attaches
+`vreg.h`, the whole library in one file (a build writes the same file to
+`amalgamation/` in its build directory). Include it anywhere; in exactly one
+`.cpp` file per module, compile the library there:
+
+```cpp
+#define VREG_IMPLEMENTATION
+#include "vreg.h"
+```
+
+It links `advapi32` by itself. For the hooks, define `VREG_WITH_DETOURS`
+wherever it is included, with `<detours/detours.h>` on the include path and
+the Detours library linked.
 
 ### Overlay over the real registry
 

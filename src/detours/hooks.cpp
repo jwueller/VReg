@@ -506,3 +506,5 @@ void Neutralize() noexcept
         InterlockedExchangePointer(g_thunks.Slot(i), *g_ppTargets[i]);
 }
 } // namespace VReg::Detours
+
+#undef VREG_REFUSED_HOOKS
