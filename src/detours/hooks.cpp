@@ -333,9 +333,11 @@ public:
         auto* const ppSlot = Slot(index);
         *ppSlot = pTarget;
 
-#if defined(_M_ARM64EC)
+#ifdef _M_ARM64EC
 #error "ARM64EC is not supported: its x64 and native callers need hooks of their own."
-#elif defined(_M_ARM64)
+#endif
+
+#ifdef _M_ARM64
         // ldr x16, slot (PC-relative, in words); br x16.
         const auto offset =
             reinterpret_cast<std::intptr_t>(ppSlot)
@@ -350,7 +352,7 @@ public:
         // jmp qword/dword ptr [slot]: RIP-relative on x64, absolute on x86.
         pbCode[0] = std::byte{0xFF};
         pbCode[1] = std::byte{0x25};
-#if defined(_M_X64)
+#ifdef _M_X64
         const auto displacement = static_cast<std::int32_t>(
             reinterpret_cast<std::intptr_t>(ppSlot)
             - reinterpret_cast<std::intptr_t>(pbCode + 6)

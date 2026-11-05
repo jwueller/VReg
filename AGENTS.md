@@ -114,6 +114,11 @@ the API it reimplements. Change them freely before the first release.
 - `min` and `max` are called parenthesized, `(std::max)(a, b)` and
   `(std::numeric_limits<DWORD>::max)()`, so the `windows.h` macros never
   apply, even in a consumer that includes it without `NOMINMAX`.
+- Macros are tested with `#ifdef` or `#ifndef`, never with `defined`: a
+  condition over several macros becomes nested or consecutive blocks, and an
+  `#elif` chain separate ones, since C++20 has no `#elifdef`. An include guard
+  (the generated `vreg.h` has them) keeps its usual shape and is never folded
+  into another condition.
 - No init-statement in an `if`, and no state-changing call inside its
   condition: assign the result in a statement of its own first. A single
   declaration as the condition is fine.
