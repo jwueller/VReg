@@ -699,9 +699,8 @@ try
 
     // Only string values are converted; anything else, and every failure to
     // find the value, is what the wide form answers.
-    constexpr DWORD WOW_FLAGS = RRF_WOW6464_SUBKEY | RRF_WOW6432_SUBKEY;
     const DWORD dwFlagsStored =
-        (dwFlags & WOW_FLAGS)
+        (dwFlags & RRF_WOW_SUBKEYS)
         | RRF_RT_ANY
         | RRF_NOEXPAND;
     DWORD dwStoredType{};
@@ -721,7 +720,7 @@ try
     // failure status.
     const DWORD dwFlagsTyped = dwFlags & ~RRF_ZEROONFAILURE;
     const DWORD dwFlagsAnyType =
-        (dwFlags & (WOW_FLAGS | RRF_NOEXPAND))
+        (dwFlags & (RRF_WOW_SUBKEYS | RRF_NOEXPAND))
         | RRF_RT_ANY;
     DWORD dwType = 0;
     DWORD cbQuery = 0;

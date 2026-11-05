@@ -11,6 +11,9 @@ namespace VReg
 inline constexpr DWORD RRF_WOW6464_SUBKEY = 0x00010000;
 inline constexpr DWORD RRF_WOW6432_SUBKEY = 0x00020000;
 
+/// Both view flags: what selects a view, and together an invalid request.
+inline constexpr DWORD RRF_WOW_SUBKEYS = RRF_WOW6464_SUBKEY | RRF_WOW6432_SUBKEY;
+
 #ifdef RRF_SUBKEY_WOW6464KEY
 static_assert(RRF_WOW6464_SUBKEY == RRF_SUBKEY_WOW6464KEY);
 #endif

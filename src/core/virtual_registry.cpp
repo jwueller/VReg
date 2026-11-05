@@ -1322,12 +1322,11 @@ try
             pcbData
         );
 
-    constexpr DWORD BOTH_VIEWS = RRF_WOW6464_SUBKEY | RRF_WOW6432_SUBKEY;
     if (
         !hkey
         || (pvData && !pcbData)
         || !(dwFlags & RRF_RT_ANY)
-        || (dwFlags & BOTH_VIEWS) == BOTH_VIEWS
+        || (dwFlags & RRF_WOW_SUBKEYS) == RRF_WOW_SUBKEYS
     )
         return ERROR_INVALID_PARAMETER;
 
