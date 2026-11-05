@@ -1,5 +1,6 @@
 #include <VReg/registry.h>
 
+#include <VReg/handle.h>
 #include <VReg/owned_values.h>
 
 #include "ansi.h"
@@ -17,16 +18,6 @@ namespace VReg
 {
 namespace
 {
-/// A predefined root such as @ref HKEY_CURRENT_USER: `winreg.h` builds them
-/// from a negative @ref LONG, sign-extended on x64. Neither a kernel handle
-/// nor a virtual one ever has bit 31 set, and a zero-extended value on x64
-/// does not survive the round trip.
-bool IsPredefinedKey(const HKEY hKey) noexcept
-{
-    const LONG value = HandleToLong(hKey);
-    return value < 0 && LongToHandle(value) == hKey;
-}
-
 /// Copies @p text and a terminator into a name buffer of @p cchBuffer bytes.
 /// False if it does not fit: native then writes nothing unless the buffer is
 /// exactly the text's length, in which case it writes the text with its last
@@ -980,7 +971,7 @@ LSTATUS Registry::RegCreateKeyA(
         return ERROR_INVALID_PARAMETER;
     if (!lpSubKey || !*lpSubKey)
     {
-        if (!IsPredefinedKey(hKey))
+        if (!IsPredefinedHKey(hKey))
             return ERROR_BADKEY;
         *phkResult = hKey;
         return ERROR_SUCCESS;
@@ -1008,7 +999,7 @@ LSTATUS Registry::RegCreateKeyW(
         return ERROR_INVALID_PARAMETER;
     if (!lpSubKey || !*lpSubKey)
     {
-        if (!IsPredefinedKey(hKey))
+        if (!IsPredefinedHKey(hKey))
             return ERROR_BADKEY;
         *phkResult = hKey;
         return ERROR_SUCCESS;

@@ -42,4 +42,15 @@ constexpr UINT_PTR IndexFromVirtualHKey(const HKEY hKey) noexcept
 {
     return (VIRTUAL_HKEY_BASE - std::bit_cast<UINT_PTR>(hKey)) >> 1;
 }
+
+/// Whether @p hKey is a predefined root, @ref HKEY_CLASSES_ROOT through
+/// @ref HKEY_CURRENT_USER_LOCAL_SETTINGS: `winreg.h` builds them from a
+/// negative @ref LONG, sign-extended on x64, where neither a kernel handle nor
+/// a virtual one ever lies.
+inline bool IsPredefinedHKey(const HKEY hKey) noexcept
+{
+    const auto value = std::bit_cast<UINT_PTR>(hKey);
+    return value >= std::bit_cast<UINT_PTR>(HKEY_CLASSES_ROOT)
+        && value <= std::bit_cast<UINT_PTR>(HKEY_CURRENT_USER_LOCAL_SETTINGS);
+}
 } // namespace VReg

@@ -22,15 +22,6 @@ namespace VReg
 {
 namespace
 {
-bool IsPredefinedHKey(const HKEY hKey) noexcept
-{
-    const auto value = reinterpret_cast<ULONG_PTR>(hKey);
-    return value >= reinterpret_cast<ULONG_PTR>(HKEY_CLASSES_ROOT)
-        && value <= reinterpret_cast<ULONG_PTR>(
-            HKEY_CURRENT_USER_LOCAL_SETTINGS
-        );
-}
-
 /// The longest key name component the registry accepts, in characters.
 constexpr std::size_t MAX_KEY_NAME_CHARS = 255;
 

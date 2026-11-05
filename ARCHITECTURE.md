@@ -113,7 +113,9 @@ buffer and ANSI/wide rules stay in `VirtualRegistry`.
 Virtual HKEYs are odd values counting down from `0x7FFFFFFF` on both x86 and
 x64. Real handles are even; predefined roots lie above the base
 (sign-extended to `0xFFFFFFFF8000000x` on x64). `IsVirtualHKey` is "nonzero,
-odd, at most the base".
+odd, at most the base"; `IsPredefinedHKey` is the range from
+`HKEY_CLASSES_ROOT` to `HKEY_CURRENT_USER_LOCAL_SETTINGS`, the one test for a
+root everywhere in the library.
 
 Agent's choice: the range stays 31-bit on x64 so code that truncates an
 HKEY to a `DWORD` survives; about 1G handles is far beyond any hive. The
