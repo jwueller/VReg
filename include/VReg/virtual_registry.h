@@ -74,20 +74,6 @@ public:
         REGSAM samView = 0
     ) noexcept;
 
-    /// @ref Mount for reading only: this registry calls only the const
-    /// members of @p hive and answers every write through the mount
-    /// @ref ERROR_ACCESS_DENIED, as a frozen hive does, while the hive itself
-    /// stays writable to whoever holds it non-const. One hive is mounted
-    /// either way within a registry, never both, since its handles belong to
-    /// its nodes and not to a mount: mounting it the other way answers
-    /// @ref ERROR_INVALID_PARAMETER.
-    LSTATUS Mount(
-        HKEY hRoot,
-        _In_z_ LPCWSTR pszPath,
-        const Hive& hive,
-        REGSAM samView = 0
-    ) noexcept;
-
     LSTATUS RegOpenKeyExW(
         _In_ HKEY hKey,
         _In_opt_ LPCWSTR lpSubKey,
@@ -234,10 +220,7 @@ private:
     {
         HKEY hRoot;
         std::vector<std::wstring> path;
-        const Hive* pHive;
-
-        /// @ref pHive for writing; null for a read-only mount.
-        Hive* pWritable;
+        Hive* pHive;
 
         /// @ref KEY_WOW64_64KEY, @ref KEY_WOW64_32KEY or 0 for both views.
         REGSAM samView;
@@ -258,10 +241,8 @@ private:
         /// The node, when the key is inside a mount.
         Node* pNode = nullptr;
 
-        /// The hive of @ref pNode, and the same hive for writing when it is
-        /// mounted writable here.
-        const Hive* pHive = nullptr;
-        Hive* pWritable = nullptr;
+        /// The hive of @ref pNode.
+        Hive* pHive = nullptr;
 
         /// The components below @ref pNode still to walk.
         std::vector<std::wstring_view> rest;
@@ -284,8 +265,7 @@ private:
     LSTATUS MountHive(
         HKEY hRoot,
         std::wstring_view path,
-        const Hive& hive,
-        Hive* pWritable,
+        Hive& hive,
         REGSAM samView
     ) noexcept;
 

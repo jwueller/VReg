@@ -237,24 +237,13 @@ LSTATUS VirtualRegistry::Mount(
     const REGSAM samView
 ) noexcept
 {
-    return MountHive(hRoot, pszPath, hive, &hive, samView);
-}
-
-LSTATUS VirtualRegistry::Mount(
-    const HKEY hRoot,
-    _In_z_ const LPCWSTR pszPath,
-    const Hive& hive,
-    const REGSAM samView
-) noexcept
-{
-    return MountHive(hRoot, pszPath, hive, nullptr, samView);
+    return MountHive(hRoot, pszPath, hive, samView);
 }
 
 LSTATUS VirtualRegistry::MountHive(
     const HKEY hRoot,
     const std::wstring_view path,
-    const Hive& hive,
-    Hive* const pWritable,
+    Hive& hive,
     const REGSAM samView
 ) noexcept
 try
@@ -276,7 +265,6 @@ try
         .hRoot = hRoot,
         .path = {components.begin(), components.end()},
         .pHive = &hive,
-        .pWritable = pWritable,
         .samView = samView,
         .nativePath = NativeRootPath(hRoot),
     };
@@ -294,12 +282,6 @@ try
     auto* const pNew = new MountTable(pOld ? *pOld : MountTable{});
     for (const auto& existing : pNew->mounts)
     {
-        if (existing.pHive == &hive && !existing.pWritable != !pWritable)
-        {
-            delete pNew;
-            return ERROR_INVALID_PARAMETER;
-        }
-
         if (existing.hRoot == hRoot && std::ranges::equal(
             existing.path,
             mount.path,
@@ -441,7 +423,6 @@ bool VirtualRegistry::ResolveNative(
 
     target.pNode = pBest->pHive->Root();
     target.pHive = pBest->pHive;
-    target.pWritable = pBest->pWritable;
     target.rest.assign(
         full.begin() + static_cast<std::ptrdiff_t>(iBestRest),
         full.end()
@@ -469,7 +450,6 @@ VirtualRegistry::Target VirtualRegistry::Resolve(
             {
                 target.pNode = pNode;
                 target.pHive = pMount->pHive;
-                target.pWritable = pMount->pWritable;
                 target.rest = std::move(components);
             }
             else
@@ -518,7 +498,6 @@ VirtualRegistry::Target VirtualRegistry::Resolve(
         {
             target.pNode = pBest->pHive->Root();
             target.pHive = pBest->pHive;
-            target.pWritable = pBest->pWritable;
             target.rest.assign(
                 components.begin() + pBest->path.size(),
                 components.end()
@@ -642,24 +621,15 @@ try
 
     OpenResult result;
     DWORD dwDisposition = REG_OPENED_EXISTING_KEY;
-    const auto status = target.pWritable
-                            ? target.pWritable->CreateKey(
-                                target.pNode,
-                                target.rest,
-                                OrEmpty(lpClass),
-                                dwOptions,
-                                samDesired,
-                                result,
-                                dwDisposition
-                            )
-                            : target.pHive->OpenKey(
-                                target.pNode,
-                                target.rest,
-                                samDesired,
-                                result
-                            );
-    if (status == ERROR_FILE_NOT_FOUND && !target.pWritable)
-        return ERROR_ACCESS_DENIED;
+    const auto status = target.pHive->CreateKey(
+        target.pNode,
+        target.rest,
+        OrEmpty(lpClass),
+        dwOptions,
+        samDesired,
+        result,
+        dwDisposition
+    );
     if (status != ERROR_SUCCESS)
         return FailureStatus(status);
 
@@ -784,10 +754,7 @@ try
     if (!lpData && cbData)
         return ERROR_NOACCESS;
 
-    if (!target.pWritable)
-        return ERROR_ACCESS_DENIED;
-
-    return target.pWritable->SetValue(
+    return target.pHive->SetValue(
         target.pNode,
         OrEmpty(lpValueName),
         dwType,
@@ -815,10 +782,7 @@ try
     if (!target.pNode)
         return FailureStatus(target.status);
 
-    if (!target.pWritable)
-        return ERROR_ACCESS_DENIED;
-
-    return target.pWritable->DeleteValue(
+    return target.pHive->DeleteValue(
         target.pNode,
         OrEmpty(lpValueName)
     );
@@ -850,10 +814,7 @@ try
     if (!target.pNode)
         return FailureStatus(target.status);
 
-    if (!target.pWritable)
-        return ERROR_ACCESS_DENIED;
-
-    return target.pWritable->DeleteKey(target.pNode, target.rest);
+    return target.pHive->DeleteKey(target.pNode, target.rest);
 }
 catch (...)
 {
@@ -876,7 +837,7 @@ try
     if (!target.pNode)
         return FailureStatus(target.status);
 
-    const auto* const pHive = target.pHive;
+    auto* const pHive = target.pHive;
     OpenResult result;
     const auto opened = pHive->OpenKey(
         target.pNode,
@@ -899,14 +860,11 @@ try
         return ERROR_ACCESS_DENIED;
     }
 
-    if (!target.pWritable)
-        return ERROR_ACCESS_DENIED;
-
-    const auto status = target.pWritable->DeleteTree(result.pNode);
+    const auto status = pHive->DeleteTree(result.pNode);
     if (status != ERROR_SUCCESS || target.rest.empty())
         return status;
 
-    return target.pWritable->DeleteKey(target.pNode, target.rest);
+    return pHive->DeleteKey(target.pNode, target.rest);
 }
 catch (...)
 {

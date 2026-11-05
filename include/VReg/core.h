@@ -1,6 +1,7 @@
 #pragma once
 
-/// Everything in `VReg::Core`.
+/// The registries, hives and handles: everything but `.reg` support
+/// (`regfile.h`) and the hooks (`detours.h`).
 
 #include <VReg/handle.h>
 #include <VReg/hive.h>

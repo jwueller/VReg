@@ -245,7 +245,7 @@ _Ret_notnull_ Hive* Hive::HiveOf(_In_ const Node* const pNode) noexcept
 }
 
 Hive::Hive(
-    Registry* const pLower,
+    _In_opt_ Registry* const pLower,
     const HKEY hLowerRoot,
     const std::wstring_view lowerPath,
     const REGSAM samLowerView
