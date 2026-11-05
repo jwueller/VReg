@@ -14,7 +14,7 @@ conflict with.
   `VReg::RegFile`; `VReg::Detours` stays separate for its dependency.
   Consumers, install, config, tests, port usage, README and ARCHITECTURE
   follow.
-- [ ] 4. One amalgamation CMake file (script and target in
+- [x] 4. One amalgamation CMake file (script and target in
   `VRegAmalgamate.cmake`, as `VRegVersion.cmake` already does), and the
   version emitted where `version_info.h` is included instead of as macros
   at the top and `#undef`s at the bottom.

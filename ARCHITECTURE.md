@@ -503,6 +503,9 @@ Catch2.
     must be unique across the library, not just its file.
   - The implementation `#undef`s the macros it defines; only the public
     headers' `VREG_` macros stay visible.
+  - The version is C++ constants in the generated `core/version_info.h`,
+    written by `cmake/VRegVersion.cmake` for the library build and emitted
+    in the header's place by the amalgamator, from the same function.
   - It carries the full license text, since it is copied on its own, and a
     UTF-8 BOM, since that text is not ASCII and MSVC otherwise reads it in
     the consumer's code page.

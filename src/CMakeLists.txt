@@ -53,7 +53,7 @@ target_link_libraries(VReg_VReg PUBLIC
 # GetFileVersion() and GetVersion() report the version computed on every
 # build (cmake/VRegVersion.cmake), so a commit made since configuring cannot
 # leave them stale.
-set(vreg_version_header ${CMAKE_CURRENT_BINARY_DIR}/generated/version_info.h)
+set(vreg_version_header ${CMAKE_CURRENT_BINARY_DIR}/generated/core/version_info.h)
 
 add_custom_target(
     VReg_Version

@@ -134,15 +134,31 @@ function(vreg_compute_version sourceDir commit strict)
     set(VREG_VERSION "${text}" PARENT_SCOPE)
 endfunction()
 
+# Sets ${var} to the body of core/version_info.h, the constants GetFileVersion()
+# and GetVersion() return, for the VREG_VERSION* variables in scope. The header
+# that includes <VReg/version.h> around it is written below; the amalgamator
+# emits the body alone where version.cpp includes the header.
+function(vreg_version_info_body var)
+    set(${var} "namespace VReg
+{
+inline constexpr FileVersion FILE_VERSION{
+    .wRevision = ${VREG_VERSION_TWEAK},
+    .wPatch = ${VREG_VERSION_PATCH},
+    .wMinor = ${VREG_VERSION_MINOR},
+    .wMajor = ${VREG_VERSION_MAJOR},
+};
+
+inline constexpr char VERSION_TEXT[] = \"${VREG_VERSION}\";
+} // namespace VReg
+" PARENT_SCOPE)
+endfunction()
+
 # Run with -P: writes OUTPUT for the sources at SOURCE_DIR, rewriting it only
 # when its text changes, so only what includes it rebuilds.
 if(CMAKE_SCRIPT_MODE_FILE STREQUAL CMAKE_CURRENT_LIST_FILE)
     vreg_compute_version("${SOURCE_DIR}" "${COMMIT}" "${STRICT}")
-    set(header "#pragma once\n\n")
-    foreach(part IN ITEMS MAJOR MINOR PATCH TWEAK)
-        string(APPEND header "#define VREG_VERSION_${part} ${VREG_VERSION_${part}}\n")
-    endforeach()
-    string(APPEND header "#define VREG_VERSION \"${VREG_VERSION}\"\n")
+    vreg_version_info_body(body)
+    set(header "#pragma once\n\n#include <VReg/version.h>\n\n${body}")
     if(EXISTS "${OUTPUT}")
         file(READ "${OUTPUT}" old)
     endif()

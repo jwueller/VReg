@@ -1,7 +1,10 @@
-# Run with -P: writes the single-header form of VReg (vreg.h) into OUTPUT_DIR
-# for the sources at SOURCE_DIR, rewriting it only when its text changes. COMMIT and STRICT mean what they do for
-# cmake/VRegVersion.cmake. The tree under include/ and src/ stays the source;
-# nothing generated is edited.
+# The single-header form of VReg (vreg.h). Included by the project, it adds
+# the target that generates the header on every build, so a commit made since
+# configuring cannot leave the version in it stale. Run with -P, it writes the
+# header into OUTPUT_DIR for the sources at SOURCE_DIR, rewriting it only when
+# its text changes; COMMIT and STRICT mean what they do for VRegVersion.cmake.
+# The tree under include/ and src/ stays the source; nothing generated is
+# edited.
 
 include(${CMAKE_CURRENT_LIST_DIR}/VRegVersion.cmake)
 
@@ -31,6 +34,9 @@ endfunction()
 
 # Emits a source file where it is first included. Every file is emitted once
 # across all output; `#pragma once` goes, since the output has explicit guards.
+# Public headers are included as <VReg/name.h> and private ones by their path
+# under src/; the generated core/version_info.h is emitted from the version
+# computed here.
 function(vreg_inline path)
     get_property(done GLOBAL PROPERTY VREG_EMITTED)
     if(path IN_LIST done)
@@ -64,8 +70,9 @@ function(vreg_inline path)
                 vreg_inline("${SOURCE_DIR}/include/${name}")
                 continue()
             elseif(open STREQUAL "\"")
-                if(name STREQUAL "version_info.h")
-                    continue()
+                if(name STREQUAL "core/version_info.h")
+                    vreg_version_info_body(body)
+                    vreg_put("${body}")
                 elseif(EXISTS "${SOURCE_DIR}/src/${name}")
                     vreg_inline("${SOURCE_DIR}/src/${name}")
                 else()
@@ -93,28 +100,30 @@ function(vreg_write name)
     endif()
 endfunction()
 
-vreg_compute_version("${SOURCE_DIR}" "${COMMIT}" "${STRICT}")
+function(vreg_amalgamate)
+    vreg_compute_version("${SOURCE_DIR}" "${COMMIT}" "${STRICT}")
 
-# MIT wants its notice in every copy, and a single header is copied on its own.
-file(READ "${SOURCE_DIR}/LICENSE" license)
-string(REPLACE "\r\n" "\n" license "${license}")
-string(STRIP "${license}" license)
-string(REPLACE "\n" "\n/// " license "/// ${license}")
-string(REPLACE "/// \n" "///\n" license "${license}")
+    # MIT wants its notice in every copy, and a single header is copied on its
+    # own.
+    file(READ "${SOURCE_DIR}/LICENSE" license)
+    string(REPLACE "\r\n" "\n" license "${license}")
+    string(STRIP "${license}" license)
+    string(REPLACE "\n" "\n/// " license "/// ${license}")
+    string(REPLACE "/// \n" "///\n" license "${license}")
 
-# Agent's choice: a BOM, since the license is UTF-8 and MSVC reads a file
-# without one in the consumer's code page, where /WX turns a misread comment
-# (C4819) into an error. Transliterating the license was passed over: it is
-# the copyright holder's name.
-string(ASCII 239 187 191 bom)
+    # Agent's choice: a BOM, since the license is UTF-8 and MSVC reads a file
+    # without one in the consumer's code page, where /WX turns a misread
+    # comment (C4819) into an error. Transliterating the license was passed
+    # over: it is the copyright holder's name.
+    string(ASCII 239 187 191 bom)
 
-set_property(GLOBAL PROPERTY VREG_EMITTED "")
-set_property(GLOBAL PROPERTY VREG_OUT "")
+    set_property(GLOBAL PROPERTY VREG_EMITTED "")
+    set_property(GLOBAL PROPERTY VREG_OUT "")
 
-# Agent's choice: the hooks are opt-in through a macro named like the CMake
-# option, rather than through a second header, so one file is all a consumer
-# copies.
-vreg_put("${bom}/// @file vreg.h
+    # Agent's choice: the hooks are opt-in through a macro named like the
+    # CMake option, rather than through a second header, so one file is all a
+    # consumer copies.
+    vreg_put("${bom}/// @file vreg.h
 /// @brief A virtual Windows registry for C++, as an overlay over the real one,
 ///  or held entirely in memory.
 /// @version ${VREG_VERSION}
@@ -152,17 +161,17 @@ ${license}
 #endif
 
 ")
-vreg_inline("${SOURCE_DIR}/include/VReg/core.h")
-vreg_inline("${SOURCE_DIR}/include/VReg/regfile.h")
-vreg_put("#endif // VREG_H_INCLUDED
+    vreg_inline("${SOURCE_DIR}/include/VReg/core.h")
+    vreg_inline("${SOURCE_DIR}/include/VReg/regfile.h")
+    vreg_put("#endif // VREG_H_INCLUDED
 
 #ifdef VREG_WITH_DETOURS
 #ifndef VREG_DETOURS_H_INCLUDED
 #define VREG_DETOURS_H_INCLUDED
 
 ")
-vreg_inline("${SOURCE_DIR}/include/VReg/detours.h")
-vreg_put("#endif // VREG_DETOURS_H_INCLUDED
+    vreg_inline("${SOURCE_DIR}/include/VReg/detours.h")
+    vreg_put("#endif // VREG_DETOURS_H_INCLUDED
 #endif // VREG_WITH_DETOURS
 
 #ifdef VREG_IMPLEMENTATION
@@ -172,26 +181,16 @@ vreg_put("#endif // VREG_DETOURS_H_INCLUDED
 #pragma comment(lib, \"advapi32\")
 
 ")
-foreach(part IN ITEMS MAJOR MINOR PATCH TWEAK)
-    vreg_put("#define VREG_VERSION_${part} ${VREG_VERSION_${part}}\n")
-endforeach()
-vreg_put("#define VREG_VERSION \"${VREG_VERSION}\"\n\n")
 
-# The sources in lexical order, core before regfile.
-file(GLOB core_sources "${SOURCE_DIR}/src/core/*.cpp")
-file(GLOB regfile_sources "${SOURCE_DIR}/src/regfile/*.cpp")
-list(SORT core_sources)
-list(SORT regfile_sources)
-foreach(source IN LISTS core_sources regfile_sources)
-    vreg_inline("${source}")
-endforeach()
-vreg_put("#undef VREG_VERSION_MAJOR
-#undef VREG_VERSION_MINOR
-#undef VREG_VERSION_PATCH
-#undef VREG_VERSION_TWEAK
-#undef VREG_VERSION
-
-#endif // VREG_IMPLEMENTATION_INCLUDED
+    # The sources in lexical order, core before regfile.
+    file(GLOB core_sources "${SOURCE_DIR}/src/core/*.cpp")
+    file(GLOB regfile_sources "${SOURCE_DIR}/src/regfile/*.cpp")
+    list(SORT core_sources)
+    list(SORT regfile_sources)
+    foreach(source IN LISTS core_sources regfile_sources)
+        vreg_inline("${source}")
+    endforeach()
+    vreg_put("#endif // VREG_IMPLEMENTATION_INCLUDED
 
 // The hooks use the private headers the implementation above brought in.
 #ifdef VREG_WITH_DETOURS
@@ -199,9 +198,30 @@ vreg_put("#undef VREG_VERSION_MAJOR
 #define VREG_DETOURS_IMPLEMENTATION_INCLUDED
 
 ")
-vreg_inline("${SOURCE_DIR}/src/detours/hooks.cpp")
-vreg_put("#endif // VREG_DETOURS_IMPLEMENTATION_INCLUDED
+    vreg_inline("${SOURCE_DIR}/src/detours/hooks.cpp")
+    vreg_put("#endif // VREG_DETOURS_IMPLEMENTATION_INCLUDED
 #endif // VREG_WITH_DETOURS
 #endif // VREG_IMPLEMENTATION
 ")
-vreg_write(vreg.h)
+    vreg_write(vreg.h)
+endfunction()
+
+if(CMAKE_SCRIPT_MODE_FILE STREQUAL CMAKE_CURRENT_LIST_FILE)
+    vreg_amalgamate()
+else()
+    set(VREG_AMALGAMATION_DIR ${PROJECT_BINARY_DIR}/amalgamation)
+
+    add_custom_target(
+        VReg_Amalgamation
+        COMMAND
+            ${CMAKE_COMMAND}
+            -D SOURCE_DIR=${PROJECT_SOURCE_DIR}
+            -D OUTPUT_DIR=${VREG_AMALGAMATION_DIR}
+            -D COMMIT=${VREG_SOURCE_COMMIT}
+            -D STRICT=${PROJECT_IS_TOP_LEVEL}
+            -P ${CMAKE_CURRENT_LIST_FILE}
+        BYPRODUCTS
+            ${VREG_AMALGAMATION_DIR}/vreg.h
+        VERBATIM
+    )
+endif()
