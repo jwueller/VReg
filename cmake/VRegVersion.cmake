@@ -139,17 +139,13 @@ endfunction()
 # that includes <VReg/version.h> around it is written below; the amalgamator
 # emits the body alone where version.cpp includes the header.
 function(vreg_version_info_body var)
-    set(${var} "namespace VReg
-{
-inline constexpr FileVersion FILE_VERSION{
-    .wRevision = ${VREG_VERSION_TWEAK},
-    .wPatch = ${VREG_VERSION_PATCH},
-    .wMinor = ${VREG_VERSION_MINOR},
-    .wMajor = ${VREG_VERSION_MAJOR},
-};
+    set(${var} "// Major, minor, patch and revision from the high word down, as MAKEDLLVERULL
+// packs them.
+#define VREG__FILE_VERSION \\
+    (((ULONGLONG)${VREG_VERSION_MAJOR} << 48) | ((ULONGLONG)${VREG_VERSION_MINOR} << 32) \\
+        | ((ULONGLONG)${VREG_VERSION_PATCH} << 16) | (ULONGLONG)${VREG_VERSION_TWEAK})
 
-inline constexpr char VERSION_TEXT[] = \"${VREG_VERSION}\";
-} // namespace VReg
+#define VREG__VERSION_TEXT \"${VREG_VERSION}\"
 " PARENT_SCOPE)
 endfunction()
 
@@ -158,7 +154,7 @@ endfunction()
 if(CMAKE_SCRIPT_MODE_FILE STREQUAL CMAKE_CURRENT_LIST_FILE)
     vreg_compute_version("${SOURCE_DIR}" "${COMMIT}" "${STRICT}")
     vreg_version_info_body(body)
-    set(header "#pragma once\n\n#include <VReg/version.h>\n\n${body}")
+    set(header "#pragma once\n\n#include <Windows.h>\n\n${body}")
     if(EXISTS "${OUTPUT}")
         file(READ "${OUTPUT}" old)
     endif()

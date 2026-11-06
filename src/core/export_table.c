@@ -18,7 +18,7 @@ static int VReg__CompareExportNames(_In_z_ const char* pszLeft, _In_z_ const cha
     return (int)(unsigned char)*pszLeft - (int)(unsigned char)*pszRight;
 }
 
-_Ret_maybenull_ void* VReg__FindExport(_In_opt_ const HMODULE hModule, _In_z_ const char* const pszName)
+VREGDEF _Ret_maybenull_ void* VReg__FindExport(_In_opt_ const HMODULE hModule, _In_z_ const char* const pszName)
 {
     const BYTE* pBase;
     const IMAGE_DOS_HEADER* pDos;
@@ -74,7 +74,7 @@ _Ret_maybenull_ void* VReg__FindExport(_In_opt_ const HMODULE hModule, _In_z_ co
     return NULL;
 }
 
-_Ret_maybenull_ void* VReg__FindRegistryExport(_In_z_ const char* const pszName)
+VREGDEF _Ret_maybenull_ void* VReg__FindRegistryExport(_In_z_ const char* const pszName)
 {
     void* const pFunction = VReg__FindExport(GetModuleHandleW(L"KernelBase.dll"), pszName);
     g_pfnImportAdvapi32 = (void*)&RegOpenKeyW;

@@ -230,7 +230,7 @@ static BOOL VReg__SameKey(_In_ const VRegOperation* const pLeft, _In_ const VReg
         && VReg__CompareNames(VReg__ViewOf(pLeft->pszPath), VReg__ViewOf(pRight->pszPath)) == 0;
 }
 
-LSTATUS WINAPI VRegWriteScript(
+VREGDEF LSTATUS WINAPI VRegWriteScript(
     _In_ const VRegScript* const pScript,
     _In_ const VRegFormat format,
     _Outptr_result_bytebuffer_(*pcbBytes) void** const ppBytes,
@@ -304,7 +304,7 @@ done:
     return status;
 }
 
-LSTATUS WINAPI VRegWriteScriptFile(_In_ const VRegScript* const pScript, _In_ const VRegFormat format, _In_z_ const LPCWSTR pszPath)
+VREGDEF LSTATUS WINAPI VRegWriteScriptFile(_In_ const VRegScript* const pScript, _In_ const VRegFormat format, _In_z_ const LPCWSTR pszPath)
 {
     void* pBytes = NULL;
     SIZE_T cbBytes = 0;

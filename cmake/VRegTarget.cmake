@@ -33,10 +33,6 @@ function(vreg_add_library name)
     add_library(VReg::${name} ALIAS VReg_${name})
     set_target_properties(VReg_${name} PROPERTIES EXPORT_NAME ${name})
 
-    target_compile_features(VReg_${name} PUBLIC
-        cxx_std_20
-    )
-
     target_link_libraries(VReg_${name} PRIVATE
         $<BUILD_INTERFACE:VReg_BuildSettings>
     )

@@ -1,6 +1,6 @@
 #include <VReg/registry.h>
 
-LSTATUS WINAPI VRegOpenKeyExW(
+VREGDEF LSTATUS WINAPI VRegOpenKeyExW(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
@@ -22,7 +22,7 @@ LSTATUS WINAPI VRegOpenKeyExW(
     );
 }
 
-LSTATUS WINAPI VRegCreateKeyExW(
+VREGDEF LSTATUS WINAPI VRegCreateKeyExW(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const LPCWSTR lpSubKey,
@@ -52,7 +52,7 @@ LSTATUS WINAPI VRegCreateKeyExW(
     );
 }
 
-LSTATUS WINAPI VRegCloseKey(
+VREGDEF LSTATUS WINAPI VRegCloseKey(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey
 )
@@ -66,7 +66,7 @@ LSTATUS WINAPI VRegCloseKey(
     );
 }
 
-LSTATUS WINAPI VRegQueryValueExW(
+VREGDEF LSTATUS WINAPI VRegQueryValueExW(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpValueName,
@@ -90,7 +90,7 @@ LSTATUS WINAPI VRegQueryValueExW(
     );
 }
 
-LSTATUS WINAPI VRegSetValueExW(
+VREGDEF LSTATUS WINAPI VRegSetValueExW(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpValueName,
@@ -114,7 +114,7 @@ LSTATUS WINAPI VRegSetValueExW(
     );
 }
 
-LSTATUS WINAPI VRegDeleteValueW(
+VREGDEF LSTATUS WINAPI VRegDeleteValueW(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpValueName
@@ -130,7 +130,7 @@ LSTATUS WINAPI VRegDeleteValueW(
     );
 }
 
-LSTATUS WINAPI VRegDeleteKeyExW(
+VREGDEF LSTATUS WINAPI VRegDeleteKeyExW(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const LPCWSTR lpSubKey,
@@ -150,7 +150,7 @@ LSTATUS WINAPI VRegDeleteKeyExW(
     );
 }
 
-LSTATUS WINAPI VRegDeleteTreeW(
+VREGDEF LSTATUS WINAPI VRegDeleteTreeW(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey
@@ -166,7 +166,7 @@ LSTATUS WINAPI VRegDeleteTreeW(
     );
 }
 
-LSTATUS WINAPI VRegEnumKeyExW(
+VREGDEF LSTATUS WINAPI VRegEnumKeyExW(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
@@ -194,7 +194,7 @@ LSTATUS WINAPI VRegEnumKeyExW(
     );
 }
 
-LSTATUS WINAPI VRegEnumValueW(
+VREGDEF LSTATUS WINAPI VRegEnumValueW(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
@@ -222,7 +222,7 @@ LSTATUS WINAPI VRegEnumValueW(
     );
 }
 
-LSTATUS WINAPI VRegQueryInfoKeyW(
+VREGDEF LSTATUS WINAPI VRegQueryInfoKeyW(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) const LPWSTR lpClass,
@@ -258,7 +258,7 @@ LSTATUS WINAPI VRegQueryInfoKeyW(
     );
 }
 
-LSTATUS WINAPI VRegLoadMUIStringW(
+VREGDEF LSTATUS WINAPI VRegLoadMUIStringW(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR pszValue,
@@ -287,7 +287,7 @@ LSTATUS WINAPI VRegLoadMUIStringW(
 // The slot's _Post_z_ on pvData holds on every return; the analyzer does not
 // carry it through the function pointer.
 #pragma warning(suppress: 6054)
-LSTATUS WINAPI VRegGetValueW(
+VREGDEF LSTATUS WINAPI VRegGetValueW(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hkey,
     _In_opt_ const LPCWSTR lpSubKey,
@@ -326,7 +326,7 @@ LSTATUS WINAPI VRegGetValueW(
     );
 }
 
-LSTATUS WINAPI VRegNotifyChangeKeyValue(
+VREGDEF LSTATUS WINAPI VRegNotifyChangeKeyValue(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const BOOL bWatchSubtree,
@@ -348,7 +348,7 @@ LSTATUS WINAPI VRegNotifyChangeKeyValue(
     );
 }
 
-LSTATUS WINAPI VRegFlushKey(
+VREGDEF LSTATUS WINAPI VRegFlushKey(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey
 )
@@ -362,7 +362,7 @@ LSTATUS WINAPI VRegFlushKey(
     );
 }
 
-void WINAPI VRegDestroyRegistry(_In_opt_ VRegRegistry* const pRegistry)
+VREGDEF void WINAPI VRegDestroyRegistry(_In_opt_ VRegRegistry* const pRegistry)
 {
     if (pRegistry && pRegistry->lpVtbl->Destroy)
         pRegistry->lpVtbl->Destroy(pRegistry);

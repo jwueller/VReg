@@ -1,6 +1,7 @@
 # The single-header form (vreg.h, generated) compiles warning-free from a
-# consumer that includes Windows.h first, with the definitions it sets. No
-# /utf-8 either: the header's BOM has to say how to read it.
+# consumer that includes Windows.h first, with the definitions it sets: the
+# implementation as C, the declarations as C++ too. No /utf-8 either: the
+# header's BOM has to say how to read it.
 if(TARGET VReg_Detours)
     find_package(Detours REQUIRED)
 endif()
@@ -9,7 +10,8 @@ function(vreg_amalgamation_check name)
     set(target VReg_AmalgamationCheck_${name})
 
     add_library(${target} OBJECT
-        impl.cpp
+        header.cpp
+        impl.c
     )
 
     add_dependencies(${target}
@@ -22,13 +24,14 @@ function(vreg_amalgamation_check name)
     )
 
     target_compile_features(${target} PRIVATE
+        c_std_99
         cxx_std_20
     )
 
     target_compile_options(${target} PRIVATE
         /W4
         /WX
-        /permissive-
+        $<$<COMPILE_LANGUAGE:CXX>:/permissive->
     )
 
     target_compile_definitions(${target} PRIVATE
@@ -71,7 +74,7 @@ endforeach()
 # amalgamation_impl.cpp alone, and advapi32 from the header's pragma.
 add_executable(VReg_AmalgamationTests
     ${VREG_TEST_SOURCES}
-    amalgamation_impl.cpp
+    amalgamation_impl.c
 )
 
 add_dependencies(VReg_AmalgamationTests

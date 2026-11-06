@@ -104,7 +104,7 @@ static BOOL VReg__CopyAnsiClass(
     return pText->cb < cchBuffer;
 }
 
-LSTATUS WINAPI VRegOpenKeyExA(
+VREGDEF LSTATUS WINAPI VRegOpenKeyExA(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
@@ -150,7 +150,7 @@ done:
     VReg__WideArgFree(pAllocContext, &subKey);
     return status;}
 
-LSTATUS WINAPI VRegCreateKeyExA(
+VREGDEF LSTATUS WINAPI VRegCreateKeyExA(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const LPCSTR lpSubKey,
@@ -215,7 +215,7 @@ done:
     VReg__WideArgFree(pAllocContext, &subKey);
     return status;}
 
-LSTATUS WINAPI VRegQueryValueExA(
+VREGDEF LSTATUS WINAPI VRegQueryValueExA(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpValueName,
@@ -354,7 +354,7 @@ done:
     VReg__WideArgFree(pAllocContext, &valueName);
     return status;}
 
-LSTATUS WINAPI VRegSetValueExA(
+VREGDEF LSTATUS WINAPI VRegSetValueExA(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpValueName,
@@ -428,7 +428,7 @@ done:
     VReg__WideArgFree(pAllocContext, &valueName);
     return status;}
 
-LSTATUS WINAPI VRegDeleteValueA(
+VREGDEF LSTATUS WINAPI VRegDeleteValueA(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpValueName
@@ -457,7 +457,7 @@ done:
     VReg__WideArgFree(pAllocContext, &valueName);
     return status;}
 
-LSTATUS WINAPI VRegDeleteKeyExA(
+VREGDEF LSTATUS WINAPI VRegDeleteKeyExA(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const LPCSTR lpSubKey,
@@ -495,7 +495,7 @@ done:
     VReg__WideArgFree(pAllocContext, &subKey);
     return status;}
 
-LSTATUS WINAPI VRegDeleteTreeA(
+VREGDEF LSTATUS WINAPI VRegDeleteTreeA(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey
@@ -524,7 +524,7 @@ done:
     VReg__WideArgFree(pAllocContext, &subKey);
     return status;}
 
-LSTATUS WINAPI VRegEnumKeyExA(
+VREGDEF LSTATUS WINAPI VRegEnumKeyExA(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
@@ -647,7 +647,7 @@ done:
     VReg__WStringFree(pAllocContext, &name);
     return status;}
 
-LSTATUS WINAPI VRegEnumValueA(
+VREGDEF LSTATUS WINAPI VRegEnumValueA(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
@@ -777,7 +777,7 @@ done:
 // Native answers success without writing lpClass when only the class length is
 // asked for, which the annotation's terminator guarantee does not allow for.
 #pragma warning(suppress: 6054)
-LSTATUS WINAPI VRegQueryInfoKeyA(
+VREGDEF LSTATUS WINAPI VRegQueryInfoKeyA(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) const LPSTR lpClass,
@@ -907,7 +907,7 @@ done:
     VReg__WStringFree(pAllocContext, &className);
     return status;}
 
-LSTATUS WINAPI VRegLoadMUIStringA(
+VREGDEF LSTATUS WINAPI VRegLoadMUIStringA(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR pszValue,
@@ -943,7 +943,7 @@ LSTATUS WINAPI VRegLoadMUIStringA(
 // The SDK's _Post_z_ holds on every return, truncated reads and failures
 // included; the analyzer cannot see the terminators written at run time.
 #pragma warning(suppress: 6054)
-LSTATUS WINAPI VRegGetValueA(
+VREGDEF LSTATUS WINAPI VRegGetValueA(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hkey,
     _In_opt_ const LPCSTR lpSubKey,
@@ -1257,7 +1257,7 @@ done:
     VReg__WideArgFree(pAllocContext, &subKey);
     return status;}
 
-LSTATUS WINAPI VRegOpenKeyA(
+VREGDEF LSTATUS WINAPI VRegOpenKeyA(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
@@ -1288,7 +1288,7 @@ LSTATUS WINAPI VRegOpenKeyA(
         phkResult
     );}
 
-LSTATUS WINAPI VRegOpenKeyW(
+VREGDEF LSTATUS WINAPI VRegOpenKeyW(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
@@ -1319,7 +1319,7 @@ LSTATUS WINAPI VRegOpenKeyW(
         phkResult
     );}
 
-LSTATUS WINAPI VRegCreateKeyA(
+VREGDEF LSTATUS WINAPI VRegCreateKeyA(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
@@ -1356,7 +1356,7 @@ LSTATUS WINAPI VRegCreateKeyA(
         NULL
     );}
 
-LSTATUS WINAPI VRegCreateKeyW(
+VREGDEF LSTATUS WINAPI VRegCreateKeyW(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
@@ -1393,7 +1393,7 @@ LSTATUS WINAPI VRegCreateKeyW(
         NULL
     );}
 
-LSTATUS WINAPI VRegQueryValueA(
+VREGDEF LSTATUS WINAPI VRegQueryValueA(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
@@ -1454,7 +1454,7 @@ LSTATUS WINAPI VRegQueryValueA(
     }
     return status;}
 
-LSTATUS WINAPI VRegQueryValueW(
+VREGDEF LSTATUS WINAPI VRegQueryValueW(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
@@ -1515,7 +1515,7 @@ LSTATUS WINAPI VRegQueryValueW(
     }
     return status;}
 
-LSTATUS WINAPI VRegSetValueA(
+VREGDEF LSTATUS WINAPI VRegSetValueA(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
@@ -1572,7 +1572,7 @@ LSTATUS WINAPI VRegSetValueA(
     }
     return status;}
 
-LSTATUS WINAPI VRegSetValueW(
+VREGDEF LSTATUS WINAPI VRegSetValueW(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
@@ -1629,7 +1629,7 @@ LSTATUS WINAPI VRegSetValueW(
     }
     return status;}
 
-LSTATUS WINAPI VRegDeleteKeyA(
+VREGDEF LSTATUS WINAPI VRegDeleteKeyA(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const LPCSTR lpSubKey
@@ -1650,7 +1650,7 @@ LSTATUS WINAPI VRegDeleteKeyA(
         0
     );}
 
-LSTATUS WINAPI VRegDeleteKeyW(
+VREGDEF LSTATUS WINAPI VRegDeleteKeyW(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const LPCWSTR lpSubKey
@@ -1671,7 +1671,7 @@ LSTATUS WINAPI VRegDeleteKeyW(
         0
     );}
 
-LSTATUS WINAPI VRegEnumKeyA(
+VREGDEF LSTATUS WINAPI VRegEnumKeyA(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
@@ -1701,7 +1701,7 @@ LSTATUS WINAPI VRegEnumKeyA(
         NULL
     );}
 
-LSTATUS WINAPI VRegEnumKeyW(
+VREGDEF LSTATUS WINAPI VRegEnumKeyW(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
@@ -1735,7 +1735,7 @@ LSTATUS WINAPI VRegEnumKeyW(
 // the one right the call needs; the maximum allowed access, as the pre-Ex
 // forms use, was passed over. Only a caller whose access is limited to
 // something else could tell.
-LSTATUS WINAPI VRegSetKeyValueA(
+VREGDEF LSTATUS WINAPI VRegSetKeyValueA(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
@@ -1794,7 +1794,7 @@ LSTATUS WINAPI VRegSetKeyValueA(
     }
     return status;}
 
-LSTATUS WINAPI VRegSetKeyValueW(
+VREGDEF LSTATUS WINAPI VRegSetKeyValueW(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
@@ -1853,7 +1853,7 @@ LSTATUS WINAPI VRegSetKeyValueW(
     }
     return status;}
 
-LSTATUS WINAPI VRegDeleteKeyValueA(
+VREGDEF LSTATUS WINAPI VRegDeleteKeyValueA(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
@@ -1898,7 +1898,7 @@ LSTATUS WINAPI VRegDeleteKeyValueA(
     }
     return status;}
 
-LSTATUS WINAPI VRegDeleteKeyValueW(
+VREGDEF LSTATUS WINAPI VRegDeleteKeyValueW(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
@@ -1948,7 +1948,7 @@ LSTATUS WINAPI VRegDeleteKeyValueW(
 /// native answers the wide form's total for the stored values.
 // The SDK types lpValueBuf as a string, but it holds binary values.
 #pragma warning(suppress: 6054)
-LSTATUS WINAPI VRegQueryMultipleValuesA(
+VREGDEF LSTATUS WINAPI VRegQueryMultipleValuesA(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _Out_writes_(num_vals) const PVALENTA val_list,
@@ -2074,7 +2074,7 @@ done:
 
 /// Native places each value on a @ref DWORD boundary, reads the ones that fit
 /// the buffer in order, and fills the entries only when all of them did.
-LSTATUS WINAPI VRegQueryMultipleValuesW(
+VREGDEF LSTATUS WINAPI VRegQueryMultipleValuesW(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _Out_writes_(num_vals) const PVALENTW val_list,

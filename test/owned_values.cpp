@@ -1,7 +1,6 @@
 #include "owned_values.h"
 
 #include "core/retry.h"
-#include "core/status.h"
 
 #include <algorithm>
 
@@ -59,7 +58,7 @@ try
 }
 catch (...)
 {
-    return StatusFromException();
+    return ERROR_OUTOFMEMORY;
 }
 
 LSTATUS GetValue(
@@ -118,7 +117,7 @@ try
 }
 catch (...)
 {
-    return StatusFromException();
+    return ERROR_OUTOFMEMORY;
 }
 
 LSTATUS GetString(
@@ -156,7 +155,7 @@ try
 }
 catch (...)
 {
-    return StatusFromException();
+    return ERROR_OUTOFMEMORY;
 }
 
 LSTATUS EnumKey(
@@ -195,7 +194,7 @@ try
 }
 catch (...)
 {
-    return StatusFromException();
+    return ERROR_OUTOFMEMORY;
 }
 
 LSTATUS EnumValue(
@@ -262,7 +261,7 @@ try
 }
 catch (...)
 {
-    return StatusFromException();
+    return ERROR_OUTOFMEMORY;
 }
 
 LSTATUS LoadMUIString(
@@ -307,6 +306,6 @@ try
 }
 catch (...)
 {
-    return StatusFromException();
+    return ERROR_OUTOFMEMORY;
 }
 } // namespace VReg

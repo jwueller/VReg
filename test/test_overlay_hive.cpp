@@ -1685,7 +1685,7 @@ namespace
 {
 /// Whether the hive's lock is free, found by writing to an unrelated key
 /// from another thread and waiting for it with a timeout.
-bool IsLockFree(VRegHive* const overlay, Node* const pProbe)
+bool IsLockFree(VRegHive* const overlay, VReg__Node* const pProbe)
 {
     const Thread writer(
         [&]

@@ -10,7 +10,6 @@
 #include <string>
 #include <vector>
 
-using namespace VReg;
 
 TEST_CASE("Export lookup agrees with the loader")
 {

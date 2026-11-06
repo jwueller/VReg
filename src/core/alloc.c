@@ -1,12 +1,12 @@
 #include "core/alloc.h"
 
-void VReg__AssertFailed(void)
+VREGDEF void VReg__AssertFailed(void)
 {
     if (IsDebuggerPresent())
         __debugbreak();
 }
 
-_Ret_maybenull_ void* VReg__Alloc(_In_opt_ void* const pAllocContext, const SIZE_T cb)
+VREGDEF _Ret_maybenull_ void* VReg__Alloc(_In_opt_ void* const pAllocContext, const SIZE_T cb)
 {
     (void)pAllocContext;
     if (cb == 0)
@@ -15,7 +15,7 @@ _Ret_maybenull_ void* VReg__Alloc(_In_opt_ void* const pAllocContext, const SIZE
     return VREG_MALLOC(pAllocContext, cb);
 }
 
-_Ret_maybenull_ void* VReg__AllocZeroed(_In_opt_ void* const pAllocContext, const SIZE_T cb)
+VREGDEF _Ret_maybenull_ void* VReg__AllocZeroed(_In_opt_ void* const pAllocContext, const SIZE_T cb)
 {
     void* const p = VReg__Alloc(pAllocContext, cb);
     if (p)
@@ -24,7 +24,7 @@ _Ret_maybenull_ void* VReg__AllocZeroed(_In_opt_ void* const pAllocContext, cons
     return p;
 }
 
-_Ret_maybenull_ void* VReg__Realloc(_In_opt_ void* const pAllocContext, _In_opt_ void* const p, const SIZE_T cb)
+VREGDEF _Ret_maybenull_ void* VReg__Realloc(_In_opt_ void* const pAllocContext, _In_opt_ void* const p, const SIZE_T cb)
 {
     (void)pAllocContext;
     if (!p)
@@ -38,7 +38,7 @@ _Ret_maybenull_ void* VReg__Realloc(_In_opt_ void* const pAllocContext, _In_opt_
     return VREG_REALLOC(pAllocContext, p, cb);
 }
 
-void VReg__Free(_In_opt_ void* const pAllocContext, _In_opt_ void* const p)
+VREGDEF void VReg__Free(_In_opt_ void* const pAllocContext, _In_opt_ void* const p)
 {
     (void)pAllocContext;
     if (p)

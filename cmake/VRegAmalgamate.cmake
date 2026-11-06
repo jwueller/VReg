@@ -124,18 +124,20 @@ function(vreg_amalgamate)
     # CMake option, rather than through a second header, so one file is all a
     # consumer copies.
     vreg_put("${bom}/// @file vreg.h
-/// @brief A virtual Windows registry for C++, as an overlay over the real one,
-///  or held entirely in memory.
+/// @brief A virtual Windows registry for C, as an overlay over the real one, or
+///  held entirely in memory.
 /// @version ${VREG_VERSION}
 /// @note Generated from VReg's sources: do not edit.
 ///
-/// @details Include it from any file. In exactly one `.cpp` file per module,
-///  define `VREG_IMPLEMENTATION` before including it to compile the library
-///  there; it links `advapi32` by itself.
+/// @details Include it from any C or C++ file. In exactly one C file per
+///  module, define `VREG_IMPLEMENTATION` before including it to compile the
+///  library there; it links `advapi32` by itself. `VREG_STATIC` makes every
+///  function static, and `VREG_MALLOC`, `VREG_REALLOC` and `VREG_FREE` replace
+///  the allocator (see `core/alloc.h` below).
 ///
-///  Defining `VREG_WITH_DETOURS` wherever it is included adds
-///  @ref VReg::Detours. That needs Microsoft Detours: `<detours/detours.h>`
-///  on the include path, and its library linked.
+///  Defining `VREG_WITH_DETOURS` wherever it is included adds the hooks
+///  (`VRegInstallHooks` and its companions). That needs Microsoft Detours:
+///  `<detours/detours.h>` on the include path, and its library linked.
 ///
 /// @copyright
 /// @verbatim
@@ -149,16 +151,6 @@ ${license}
 
 #ifndef VREG_H_INCLUDED
 #define VREG_H_INCLUDED
-
-#if _MSVC_LANG < 202002L
-#error \"VReg needs C++20 (/std:c++20 or later).\"
-#endif
-
-// The libraries are built with exceptions; here, the consumer's options
-// apply, and the standard headers below already need them.
-#ifndef _CPPUNWIND
-#error \"VReg needs C++ exceptions (/EHsc): it answers allocation failure with a status.\"
-#endif
 
 ")
     vreg_inline("${SOURCE_DIR}/include/VReg/core.h")
@@ -183,8 +175,8 @@ ${license}
 ")
 
     # The sources in lexical order, core before regfile.
-    file(GLOB core_sources "${SOURCE_DIR}/src/core/*.c" "${SOURCE_DIR}/src/core/*.cpp")
-    file(GLOB regfile_sources "${SOURCE_DIR}/src/regfile/*.c" "${SOURCE_DIR}/src/regfile/*.cpp")
+    file(GLOB core_sources "${SOURCE_DIR}/src/core/*.c")
+    file(GLOB regfile_sources "${SOURCE_DIR}/src/regfile/*.c")
     list(SORT core_sources)
     list(SORT regfile_sources)
     foreach(source IN LISTS core_sources regfile_sources)

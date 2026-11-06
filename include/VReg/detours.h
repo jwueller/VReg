@@ -1,5 +1,6 @@
 #pragma once
 
+#include <VReg/api.h>
 #include <VReg/registry.h>
 
 #include <Windows.h>
@@ -47,40 +48,15 @@ extern "C" {
 /// function table into the trampolines. Both MUST outlive the process.
 /// Answers the first Detours error, or @ref ERROR_ALREADY_INITIALIZED when
 /// this copy attached before.
-LONG WINAPI VRegAttachHooks(_In_ VRegRegistry* pRegistry, _In_ VRegRegistry* pNative);
+VREGDEF LONG WINAPI VRegAttachHooks(_In_ VRegRegistry* pRegistry, _In_ VRegRegistry* pNative);
 
 /// @ref VRegAttachHooks in a transaction of its own, enrolling only the
 /// calling thread.
-LONG WINAPI VRegInstallHooks(_In_ VRegRegistry* pRegistry, _In_ VRegRegistry* pNative);
+VREGDEF LONG WINAPI VRegInstallHooks(_In_ VRegRegistry* pRegistry, _In_ VRegRegistry* pNative);
 
 /// Makes every hook of this copy pass calls straight through, for good.
-void WINAPI VRegNeutralizeHooks(void);
+VREGDEF void WINAPI VRegNeutralizeHooks(void);
 
 #ifdef __cplusplus
 } // extern "C"
 #endif
-
-#ifdef __cplusplus
-
-#include <VReg/native_registry.h>
-
-/// The C++ shape of the hooks, over the functions above.
-namespace VReg::Detours
-{
-inline LONG Attach(Registry& registry, NativeRegistry& native) noexcept
-{
-    return VRegAttachHooks(registry.CObject(), native.CObject());
-}
-
-inline LONG Install(Registry& registry, NativeRegistry& native) noexcept
-{
-    return VRegInstallHooks(registry.CObject(), native.CObject());
-}
-
-inline void Neutralize() noexcept
-{
-    VRegNeutralizeHooks();
-}
-} // namespace VReg::Detours
-
-#endif // __cplusplus

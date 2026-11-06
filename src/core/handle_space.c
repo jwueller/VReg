@@ -21,7 +21,7 @@ static void* VReg__AllocateZeroed(const SIZE_T cb)
     return HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, cb);
 }
 
-void VReg__HandleSpaceInit(_Out_ VReg__HandleSpace* const pSpace, _In_z_ const LPCWSTR pszName)
+VREGDEF void VReg__HandleSpaceInit(_Out_ VReg__HandleSpace* const pSpace, _In_z_ const LPCWSTR pszName)
 {
     HANDLE hSection;
     VReg__HandleSpaceShared* pShared;
@@ -118,7 +118,7 @@ static BOOL CALLBACK VReg__InitProcessHandleSpace(
     return TRUE;
 }
 
-_Ret_notnull_ VReg__HandleSpace* VReg__ProcessHandleSpace(void)
+VREGDEF _Ret_notnull_ VReg__HandleSpace* VReg__ProcessHandleSpace(void)
 {
     // Handles issued from it outlive every teardown, so the instance is never
     // destroyed.
@@ -126,7 +126,7 @@ _Ret_notnull_ VReg__HandleSpace* VReg__ProcessHandleSpace(void)
     return &g_processSpace;
 }
 
-BOOL VReg__HandleSpaceIsUsable(_In_ const VReg__HandleSpace* const pSpace)
+VREGDEF BOOL VReg__HandleSpaceIsUsable(_In_ const VReg__HandleSpace* const pSpace)
 {
     return pSpace->pShared != NULL;
 }
@@ -174,7 +174,7 @@ static BOOL VReg__AddBlock(_Inout_ VReg__HandleSpace* const pSpace, const UINT_P
     return TRUE;
 }
 
-_Ret_maybenull_ HKEY VReg__HandleSpaceAllocate(_Inout_ VReg__HandleSpace* const pSpace, _In_opt_ void* const pTarget)
+VREGDEF _Ret_maybenull_ HKEY VReg__HandleSpaceAllocate(_Inout_ VReg__HandleSpace* const pSpace, _In_opt_ void* const pTarget)
 {
     HKEY hKey = NULL;
     UINT_PTR index;
@@ -209,14 +209,14 @@ _Ret_maybenull_ HKEY VReg__HandleSpaceAllocate(_Inout_ VReg__HandleSpace* const 
     return hKey;
 }
 
-BOOL VReg__HandleSpaceOwns(_In_ const VReg__HandleSpace* const pSpace, _In_opt_ const HKEY hKey)
+VREGDEF BOOL VReg__HandleSpaceOwns(_In_ const VReg__HandleSpace* const pSpace, _In_opt_ const HKEY hKey)
 {
     return
         VRegIsVirtualHKey(hKey)
         && VReg__FindBlock(pSpace, VReg__IndexFromVirtualHKey(hKey) / VREG__HANDLE_BLOCK_SIZE) != NULL;
 }
 
-void VReg__HandleSpaceRelease(_Inout_ VReg__HandleSpace* const pSpace, _In_opt_ const HKEY hKey)
+VREGDEF void VReg__HandleSpaceRelease(_Inout_ VReg__HandleSpace* const pSpace, _In_opt_ const HKEY hKey)
 {
     UINT_PTR index;
     VReg__HandleBlock* pBlock;
@@ -230,7 +230,7 @@ void VReg__HandleSpaceRelease(_Inout_ VReg__HandleSpace* const pSpace, _In_opt_ 
         VReg__StoreTarget(&pBlock->targets[index % VREG__HANDLE_BLOCK_SIZE], NULL);
 }
 
-_Ret_maybenull_ void* VReg__HandleSpaceFind(_In_ const VReg__HandleSpace* const pSpace, _In_opt_ const HKEY hKey)
+VREGDEF _Ret_maybenull_ void* VReg__HandleSpaceFind(_In_ const VReg__HandleSpace* const pSpace, _In_opt_ const HKEY hKey)
 {
     UINT_PTR index;
     const VReg__HandleBlock* pBlock;
@@ -246,7 +246,7 @@ _Ret_maybenull_ void* VReg__HandleSpaceFind(_In_ const VReg__HandleSpace* const 
     return ReadPointerAcquire((PVOID volatile*)&pBlock->targets[index % VREG__HANDLE_BLOCK_SIZE]);
 }
 
-_Ret_maybenull_ HKEY VReg__VirtualHKeyFromIndex(const UINT_PTR index)
+VREGDEF _Ret_maybenull_ HKEY VReg__VirtualHKeyFromIndex(const UINT_PTR index)
 {
     if (index >= VREG__VIRTUAL_HKEY_COUNT)
         return NULL;
@@ -254,7 +254,7 @@ _Ret_maybenull_ HKEY VReg__VirtualHKeyFromIndex(const UINT_PTR index)
     return (HKEY)(VREG_VIRTUAL_HKEY_BASE - (index << 1));
 }
 
-UINT_PTR VReg__IndexFromVirtualHKey(_In_opt_ const HKEY hKey)
+VREGDEF UINT_PTR VReg__IndexFromVirtualHKey(_In_opt_ const HKEY hKey)
 {
     return (VREG_VIRTUAL_HKEY_BASE - (UINT_PTR)hKey) >> 1;
 }

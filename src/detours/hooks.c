@@ -261,6 +261,9 @@ static LSTATUS APIENTRY VReg__HookRegLoadMUIStringW(
     );
 }
 
+// The SDK's _Post_z_ on pvData holds on every return; the analyzer does not
+// carry it through the flat function.
+#pragma warning(suppress: 6054)
 static LSTATUS APIENTRY VReg__HookRegGetValueW(
     _In_ const HKEY hkey,
     _In_opt_ const LPCWSTR lpSubKey,
@@ -550,6 +553,9 @@ static LSTATUS APIENTRY VReg__HookRegLoadMUIStringA(
     );
 }
 
+// The SDK's _Post_z_ on pvData holds on every return; the analyzer does not
+// carry it through the flat function.
+#pragma warning(suppress: 6054)
 static LSTATUS APIENTRY VReg__HookRegGetValueA(
     _In_ const HKEY hkey,
     _In_opt_ const LPCSTR lpSubKey,
@@ -1647,7 +1653,7 @@ static LSTATUS APIENTRY VReg__RefuseRegCreateKeyTransactedW(
 static LSTATUS APIENTRY VReg__RefuseRegOpenKeyTransactedA(
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
-    _In_opt_ const DWORD ulOptions,
+    _In_ const DWORD ulOptions,
     _In_ const REGSAM samDesired,
     _Out_ const PHKEY phkResult,
     _In_ const HANDLE hTransaction,
@@ -1678,7 +1684,7 @@ static LSTATUS APIENTRY VReg__RefuseRegOpenKeyTransactedA(
 static LSTATUS APIENTRY VReg__RefuseRegOpenKeyTransactedW(
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
-    _In_opt_ const DWORD ulOptions,
+    _In_ const DWORD ulOptions,
     _In_ const REGSAM samDesired,
     _Out_ const PHKEY phkResult,
     _In_ const HANDLE hTransaction,
@@ -1899,7 +1905,7 @@ typedef struct VReg__Hook
     void* pBody;
 } VReg__Hook;
 
-LONG WINAPI VRegAttachHooks(_In_ VRegRegistry* const pRegistry, _In_ VRegRegistry* const pNative)
+VREGDEF LONG WINAPI VRegAttachHooks(_In_ VRegRegistry* const pRegistry, _In_ VRegRegistry* const pNative)
 {
     static volatile LONG s_isAttached;
     VRegNativeFunctions* functions;
@@ -1991,7 +1997,7 @@ LONG WINAPI VRegAttachHooks(_In_ VRegRegistry* const pRegistry, _In_ VRegRegistr
     return NO_ERROR;
 }
 
-LONG WINAPI VRegInstallHooks(_In_ VRegRegistry* const pRegistry, _In_ VRegRegistry* const pNative)
+VREGDEF LONG WINAPI VRegInstallHooks(_In_ VRegRegistry* const pRegistry, _In_ VRegRegistry* const pNative)
 {
     LONG error = DetourTransactionBegin();
     if (error != NO_ERROR)
@@ -2010,7 +2016,7 @@ LONG WINAPI VRegInstallHooks(_In_ VRegRegistry* const pRegistry, _In_ VRegRegist
     return DetourTransactionCommit();
 }
 
-void WINAPI VRegNeutralizeHooks(void)
+VREGDEF void WINAPI VRegNeutralizeHooks(void)
 {
     // Whatever the target field holds is what lies below this layer: the
     // trampoline once committed, the function itself before.
@@ -2019,3 +2025,5 @@ void WINAPI VRegNeutralizeHooks(void)
     for (i = 0; i < cHooks; ++i)
         InterlockedExchangePointer(VReg__ThunkSlot((SIZE_T)i), *g_ppTargets[i]);
 }
+
+#undef VREG__REFUSED_HOOKS

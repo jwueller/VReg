@@ -1,5 +1,6 @@
 #pragma once
 
+#include <VReg/api.h>
 #include <VReg/hive.h>
 #include <VReg/registry.h>
 
@@ -88,7 +89,7 @@ typedef struct VRegParseError
  *  error (described by @p pError, which MAY be null and is zeroed for any
  *  other outcome), or @ref ERROR_OUTOFMEMORY.
  */
-LSTATUS WINAPI VRegParseScript(
+VREGDEF LSTATUS WINAPI VRegParseScript(
     _In_reads_bytes_(cbFile) const void* pFile,
     _In_ SIZE_T cbFile,
     _In_opt_ void* pAllocContext,
@@ -98,7 +99,7 @@ LSTATUS WINAPI VRegParseScript(
 
 /// Reads the file @p pszPath, then @ref VRegParseScript. Failures to read
 /// answer the Win32 error.
-LSTATUS WINAPI VRegParseScriptFile(
+VREGDEF LSTATUS WINAPI VRegParseScriptFile(
     _In_z_ LPCWSTR pszPath,
     _In_opt_ void* pAllocContext,
     _Outptr_ VRegScript** ppScript,
@@ -106,11 +107,11 @@ LSTATUS WINAPI VRegParseScriptFile(
 );
 
 /// Frees a script; null is ignored.
-void WINAPI VRegDestroyScript(_In_opt_ VRegScript* pScript);
+VREGDEF void WINAPI VRegDestroyScript(_In_opt_ VRegScript* pScript);
 
 /// The script's operations, in order, and how many; valid until the script is
 /// destroyed.
-_Ret_notnull_ const VRegOperation* WINAPI VRegGetScriptOperations(
+VREGDEF _Ret_notnull_ const VRegOperation* WINAPI VRegGetScriptOperations(
     _In_ const VRegScript* pScript,
     _Out_ SIZE_T* pcOperations
 );
@@ -125,7 +126,7 @@ _Ret_notnull_ const VRegOperation* WINAPI VRegGetScriptOperations(
  *  an empty path) answers @ref ERROR_INVALID_PARAMETER.
  */
 _Success_(return == ERROR_SUCCESS)
-LSTATUS WINAPI VRegApplyOperations(
+VREGDEF LSTATUS WINAPI VRegApplyOperations(
     _In_reads_(cOperations) const VRegOperation* pOperations,
     _In_ SIZE_T cOperations,
     _In_ VRegRegistry* pRegistry,
@@ -134,7 +135,7 @@ LSTATUS WINAPI VRegApplyOperations(
 
 /// @ref VRegApplyOperations over a script's operations.
 _Success_(return == ERROR_SUCCESS)
-LSTATUS WINAPI VRegApplyScript(
+VREGDEF LSTATUS WINAPI VRegApplyScript(
     _In_ const VRegScript* pScript,
     _In_ VRegRegistry* pRegistry,
     _On_failure_(_Out_opt_) SIZE_T* pFailedIndex
@@ -153,7 +154,7 @@ LSTATUS WINAPI VRegApplyScript(
  *  allows (a cycle through some other registry), otherwise the status of the
  *  registry calls.
  */
-LSTATUS WINAPI VRegSnapshotScript(
+VREGDEF LSTATUS WINAPI VRegSnapshotScript(
     _In_ VRegRegistry* pRegistry,
     _In_ HKEY hRoot,
     _In_opt_z_ LPCWSTR pszPath,
@@ -178,7 +179,7 @@ LSTATUS WINAPI VRegSnapshotScript(
  * @return As @ref VRegSnapshotScript, except that the hive is read instead of
  *  a registry.
  */
-LSTATUS WINAPI VRegDeltaScript(
+VREGDEF LSTATUS WINAPI VRegDeltaScript(
     _In_ VRegHive* pHive,
     _In_ HKEY hRoot,
     _In_opt_z_ LPCWSTR pszPath,
@@ -200,123 +201,23 @@ LSTATUS WINAPI VRegDeltaScript(
  *  (no format can write one), @ref ERROR_INVALID_HANDLE for a root a `.reg`
  *  file cannot name.
  */
-LSTATUS WINAPI VRegWriteScript(
+VREGDEF LSTATUS WINAPI VRegWriteScript(
     _In_ const VRegScript* pScript,
     _In_ VRegFormat format,
     _Outptr_result_bytebuffer_(*pcbBytes) void** ppBytes,
     _Out_ SIZE_T* pcbBytes
 );
 
-void WINAPI VRegFreeScriptBytes(_In_ const VRegScript* pScript, _In_opt_ void* pBytes);
+VREGDEF void WINAPI VRegFreeScriptBytes(_In_ const VRegScript* pScript, _In_opt_ void* pBytes);
 
 /// @ref VRegWriteScript into the file @p pszPath. An existing file is replaced
 /// only once the layout has succeeded.
-LSTATUS WINAPI VRegWriteScriptFile(_In_ const VRegScript* pScript, _In_ VRegFormat format, _In_z_ LPCWSTR pszPath);
+VREGDEF LSTATUS WINAPI VRegWriteScriptFile(
+    _In_ const VRegScript* pScript,
+    _In_ VRegFormat format,
+    _In_z_ LPCWSTR pszPath
+);
 
 #ifdef __cplusplus
 } // extern "C"
 #endif
-
-#ifdef __cplusplus
-
-#include <cstddef>
-#include <filesystem>
-#include <span>
-#include <string>
-#include <string_view>
-#include <vector>
-
-/// The C++ shape of the `.reg` support, over the C functions above.
-namespace VReg::RegFile
-{
-enum class Format
-{
-    Unicode = VREG_FORMAT_UNICODE,
-    Utf8 = VREG_FORMAT_UTF8,
-    Regedit4 = VREG_FORMAT_REGEDIT4,
-};
-
-enum class OperationKind
-{
-    CreateKey = VREG_OPERATION_CREATE_KEY,
-    DeleteKey = VREG_OPERATION_DELETE_KEY,
-    SetValue = VREG_OPERATION_SET_VALUE,
-    DeleteValue = VREG_OPERATION_DELETE_VALUE,
-};
-
-struct Operation
-{
-    OperationKind kind{};
-    HKEY hRoot{};
-    std::wstring path;
-    std::wstring name;
-    DWORD dwType{};
-    std::vector<std::byte> data;
-    std::size_t line{};
-};
-
-struct Script
-{
-    std::vector<Operation> operations;
-};
-
-struct ParseError
-{
-    std::size_t line{};
-    std::size_t column{};
-    const char* pszMessage{};
-};
-
-LSTATUS Parse(
-    std::span<const std::byte> file,
-    Script& script,
-    _Out_opt_ ParseError* pError
-) noexcept;
-
-LSTATUS ParseFile(
-    const std::filesystem::path& path,
-    Script& script,
-    _Out_opt_ ParseError* pError
-) noexcept;
-
-_Success_(return == ERROR_SUCCESS)
-LSTATUS Apply(
-    const Script& script,
-    Registry& registry,
-    _On_failure_(_Out_opt_) std::size_t* pFailed
-) noexcept;
-
-LSTATUS ExportSnapshot(
-    Registry& registry,
-    HKEY hRoot,
-    _In_z_ LPCWSTR pszPath,
-    Format format,
-    std::vector<std::byte>& file
-) noexcept;
-
-LSTATUS ExportSnapshotToFile(
-    Registry& registry,
-    HKEY hRoot,
-    _In_z_ LPCWSTR pszPath,
-    Format format,
-    const std::filesystem::path& fileName
-) noexcept;
-
-LSTATUS ExportDelta(
-    const Hive& hive,
-    HKEY hRoot,
-    _In_z_ LPCWSTR pszPath,
-    Format format,
-    std::vector<std::byte>& file
-) noexcept;
-
-LSTATUS ExportDeltaToFile(
-    const Hive& hive,
-    HKEY hRoot,
-    _In_z_ LPCWSTR pszPath,
-    Format format,
-    const std::filesystem::path& fileName
-) noexcept;
-} // namespace VReg::RegFile
-
-#endif // __cplusplus

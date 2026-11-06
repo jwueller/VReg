@@ -342,7 +342,7 @@ static const VRegRegistryVtbl VReg__NativeRegistryVtbl = {
     .RegFlushKey = &VReg__NativeRegFlushKey,
 };
 
-void WINAPI VRegResolveNativeFunctions(_Out_ VRegNativeFunctions* const pFunctions)
+VREGDEF void WINAPI VRegResolveNativeFunctions(_Out_ VRegNativeFunctions* const pFunctions)
 {
     ZeroMemory(pFunctions, sizeof(*pFunctions));
 
@@ -353,7 +353,7 @@ void WINAPI VRegResolveNativeFunctions(_Out_ VRegNativeFunctions* const pFunctio
 #undef VREG_RESOLVE
 }
 
-LSTATUS WINAPI VRegCreateNativeRegistry(
+VREGDEF LSTATUS WINAPI VRegCreateNativeRegistry(
     _In_opt_ const VRegNativeFunctions* const pFunctions,
     _In_opt_ void* const pAllocContext,
     _Outptr_ VRegRegistry** const ppRegistry
@@ -377,7 +377,7 @@ LSTATUS WINAPI VRegCreateNativeRegistry(
     return ERROR_SUCCESS;
 }
 
-_Ret_notnull_ VRegNativeFunctions* WINAPI VRegGetNativeFunctions(_In_ VRegRegistry* const pRegistry)
+VREGDEF _Ret_notnull_ VRegNativeFunctions* WINAPI VRegGetNativeFunctions(_In_ VRegRegistry* const pRegistry)
 {
     return &VReg__NativeOf(pRegistry)->functions;
 }

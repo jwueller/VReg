@@ -1,5 +1,7 @@
 #pragma once
 
+#include <VReg/api.h>
+
 #include <Windows.h>
 
 // Names and classes are read into a temporary buffer of 256 characters, which
@@ -15,7 +17,7 @@ extern "C" {
 
 /// The size to retry with: the one the call asked for, or more than before if
 /// it asked for no more than it was given.
-DWORD VReg__Grown(DWORD cbOld, DWORD cbRequired);
+VREGDEF DWORD VReg__Grown(DWORD cbOld, DWORD cbRequired);
 
 #ifdef __cplusplus
 } // extern "C"

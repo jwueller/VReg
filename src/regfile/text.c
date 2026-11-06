@@ -52,7 +52,7 @@ static LSTATUS VReg__Widen(
     return ERROR_SUCCESS;
 }
 
-LSTATUS VReg__DecodeFile(
+VREGDEF LSTATUS VReg__DecodeFile(
     _In_opt_ void* const pAllocContext,
     _In_reads_bytes_(cbFile) const void* const pFile,
     const SIZE_T cbFile,
@@ -89,7 +89,7 @@ LSTATUS VReg__DecodeFile(
     );
 }
 
-LSTATUS VReg__EncodeFile(
+VREGDEF LSTATUS VReg__EncodeFile(
     _In_opt_ void* const pAllocContext,
     _In_ const VReg__WString* const pText,
     const VRegFormat format,
@@ -145,7 +145,7 @@ LSTATUS VReg__EncodeFile(
     return ERROR_SUCCESS;
 }
 
-LSTATUS VReg__ReadWholeFile(_In_opt_ void* const pAllocContext, _In_z_ const LPCWSTR pszPath, _Inout_ VReg__Buffer* const pFile)
+VREGDEF LSTATUS VReg__ReadWholeFile(_In_opt_ void* const pAllocContext, _In_z_ const LPCWSTR pszPath, _Inout_ VReg__Buffer* const pFile)
 {
     LARGE_INTEGER size;
     LSTATUS status = ERROR_SUCCESS;
@@ -179,7 +179,7 @@ LSTATUS VReg__ReadWholeFile(_In_opt_ void* const pAllocContext, _In_z_ const LPC
     return status;
 }
 
-LSTATUS VReg__WriteWholeFile(_In_z_ const LPCWSTR pszPath, _In_reads_bytes_(cbFile) const void* const pFile, const SIZE_T cbFile)
+VREGDEF LSTATUS VReg__WriteWholeFile(_In_z_ const LPCWSTR pszPath, _In_reads_bytes_(cbFile) const void* const pFile, const SIZE_T cbFile)
 {
     LSTATUS status = ERROR_SUCCESS;
     DWORD cbWritten = 0;

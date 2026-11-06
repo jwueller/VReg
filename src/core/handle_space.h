@@ -64,37 +64,37 @@ typedef struct VReg__HandleSpace
 
 /// Opens or creates the section @p pszName. A failure leaves the instance
 /// unusable: @ref VReg__HandleSpaceAllocate then answers null.
-void VReg__HandleSpaceInit(_Out_ VReg__HandleSpace* pSpace, _In_z_ LPCWSTR pszName);
+VREGDEF void VReg__HandleSpaceInit(_Out_ VReg__HandleSpace* pSpace, _In_z_ LPCWSTR pszName);
 
 /// This copy's instance over this process's section, created on first use
 /// and never destroyed.
-_Ret_notnull_ VReg__HandleSpace* VReg__ProcessHandleSpace(void);
+VREGDEF _Ret_notnull_ VReg__HandleSpace* VReg__ProcessHandleSpace(void);
 
-BOOL VReg__HandleSpaceIsUsable(_In_ const VReg__HandleSpace* pSpace);
+VREGDEF BOOL VReg__HandleSpaceIsUsable(_In_ const VReg__HandleSpace* pSpace);
 
 /// A fresh handle owned by @p pSpace and bound to @p pTarget, or null when
 /// the section is unusable, the namespace is exhausted or memory ran out.
-_Ret_maybenull_ HKEY VReg__HandleSpaceAllocate(_Inout_ VReg__HandleSpace* pSpace, _In_opt_ void* pTarget);
+VREGDEF _Ret_maybenull_ HKEY VReg__HandleSpaceAllocate(_Inout_ VReg__HandleSpace* pSpace, _In_opt_ void* pTarget);
 
 /// Whether @p hKey is a virtual handle from one of @p pSpace's blocks.
 /// Lock-free.
-BOOL VReg__HandleSpaceOwns(_In_ const VReg__HandleSpace* pSpace, _In_opt_ HKEY hKey);
+VREGDEF BOOL VReg__HandleSpaceOwns(_In_ const VReg__HandleSpace* pSpace, _In_opt_ HKEY hKey);
 
 /// Unbinds @p hKey from its target. The value is never handed out again;
 /// later lookups answer null.
-void VReg__HandleSpaceRelease(_Inout_ VReg__HandleSpace* pSpace, _In_opt_ HKEY hKey);
+VREGDEF void VReg__HandleSpaceRelease(_Inout_ VReg__HandleSpace* pSpace, _In_opt_ HKEY hKey);
 
 /// The target @p hKey was allocated for; null when @p pSpace does not own
 /// it. Lock-free.
-_Ret_maybenull_ void* VReg__HandleSpaceFind(_In_ const VReg__HandleSpace* pSpace, _In_opt_ HKEY hKey);
+VREGDEF _Ret_maybenull_ void* VReg__HandleSpaceFind(_In_ const VReg__HandleSpace* pSpace, _In_opt_ HKEY hKey);
 
 /// The handle for @p index, counting down from @ref VREG_VIRTUAL_HKEY_BASE in
 /// odd steps; null when @p index is out of range.
-_Ret_maybenull_ HKEY VReg__VirtualHKeyFromIndex(UINT_PTR index);
+VREGDEF _Ret_maybenull_ HKEY VReg__VirtualHKeyFromIndex(UINT_PTR index);
 
 /// The inverse of @ref VReg__VirtualHKeyFromIndex; only meaningful when
 /// @ref VRegIsVirtualHKey holds.
-UINT_PTR VReg__IndexFromVirtualHKey(_In_opt_ HKEY hKey);
+VREGDEF UINT_PTR VReg__IndexFromVirtualHKey(_In_opt_ HKEY hKey);
 
 #ifdef __cplusplus
 } // extern "C"

@@ -161,7 +161,7 @@ static LSTATUS VReg__Perform(_In_ const VRegOperation* const pOperation, _In_ VR
 }
 
 _Success_(return == ERROR_SUCCESS)
-LSTATUS WINAPI VRegApplyOperations(
+VREGDEF LSTATUS WINAPI VRegApplyOperations(
     _In_reads_(cOperations) const VRegOperation* const pOperations,
     _In_ const SIZE_T cOperations,
     _In_ VRegRegistry* const pRegistry,
@@ -184,7 +184,7 @@ LSTATUS WINAPI VRegApplyOperations(
 }
 
 _Success_(return == ERROR_SUCCESS)
-LSTATUS WINAPI VRegApplyScript(
+VREGDEF LSTATUS WINAPI VRegApplyScript(
     _In_ const VRegScript* const pScript,
     _In_ VRegRegistry* const pRegistry,
     _On_failure_(_Out_opt_) SIZE_T* const pFailedIndex

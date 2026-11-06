@@ -1,5 +1,7 @@
 #pragma once
 
+#include <VReg/api.h>
+
 #include <Windows.h>
 
 #ifdef __cplusplus
@@ -17,13 +19,13 @@ extern "C" {
 
 /// Whether @p hKey is a virtual handle: nonzero, odd and at most
 /// @ref VREG_VIRTUAL_HKEY_BASE.
-BOOL WINAPI VRegIsVirtualHKey(_In_opt_ HKEY hKey);
+VREGDEF BOOL WINAPI VRegIsVirtualHKey(_In_opt_ HKEY hKey);
 
 /// Whether @p hKey is a predefined root, @ref HKEY_CLASSES_ROOT through
 /// @ref HKEY_CURRENT_USER_LOCAL_SETTINGS: `winreg.h` builds them from a
 /// negative @ref LONG, sign-extended on x64, where neither a kernel handle nor
 /// a virtual one ever lies.
-BOOL WINAPI VRegIsPredefinedHKey(_In_opt_ HKEY hKey);
+VREGDEF BOOL WINAPI VRegIsPredefinedHKey(_In_opt_ HKEY hKey);
 
 #ifdef __cplusplus
 } // extern "C"

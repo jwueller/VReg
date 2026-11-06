@@ -224,7 +224,7 @@ done:
     return status;
 }
 
-LSTATUS WINAPI VRegSnapshotScript(
+VREGDEF LSTATUS WINAPI VRegSnapshotScript(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hRoot,
     _In_opt_z_ const LPCWSTR pszPath,
@@ -357,7 +357,7 @@ static LSTATUS VReg__VisitUpper(_In_ void* const pContext, _In_ const VReg__Uppe
     );
 }
 
-LSTATUS WINAPI VRegDeltaScript(
+VREGDEF LSTATUS WINAPI VRegDeltaScript(
     _In_ VRegHive* const pHive,
     _In_ const HKEY hRoot,
     _In_opt_z_ const LPCWSTR pszPath,

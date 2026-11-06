@@ -1949,7 +1949,7 @@ static const VRegRegistryVtbl VReg__VirtualRegistryVtbl = {
     .RegFlushKey = &VReg__VirtualRegFlushKey,
 };
 
-LSTATUS WINAPI VRegCreateVirtualRegistry(
+VREGDEF LSTATUS WINAPI VRegCreateVirtualRegistry(
     _In_opt_ VRegRegistry* const pBase,
     _In_opt_ const VRegNtQueryKeyFunction pfnNtQueryKey,
     _In_opt_ void* const pAllocContext,
@@ -1975,7 +1975,7 @@ LSTATUS WINAPI VRegCreateVirtualRegistry(
     return ERROR_SUCCESS;
 }
 
-LSTATUS WINAPI VRegMount(
+VREGDEF LSTATUS WINAPI VRegMount(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hRoot,
     _In_opt_z_ const LPCWSTR pszPath,

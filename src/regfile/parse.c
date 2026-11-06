@@ -622,7 +622,7 @@ done:
     return status;
 }
 
-LSTATUS WINAPI VRegParseScript(
+VREGDEF LSTATUS WINAPI VRegParseScript(
     _In_reads_bytes_(cbFile) const void* const pFile,
     _In_ const SIZE_T cbFile,
     _In_opt_ void* const pAllocContext,
@@ -665,7 +665,7 @@ LSTATUS WINAPI VRegParseScript(
     return ERROR_SUCCESS;
 }
 
-LSTATUS WINAPI VRegParseScriptFile(
+VREGDEF LSTATUS WINAPI VRegParseScriptFile(
     _In_z_ const LPCWSTR pszPath,
     _In_opt_ void* const pAllocContext,
     _Outptr_ VRegScript** const ppScript,

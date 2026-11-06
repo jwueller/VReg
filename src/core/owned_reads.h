@@ -16,7 +16,7 @@
 extern "C" {
 #endif
 
-LSTATUS VReg__QueryValueOwned(
+VREGDEF LSTATUS VReg__QueryValueOwned(
     _In_ VRegRegistry* pRegistry,
     _In_ HKEY hKey,
     _In_opt_z_ LPCWSTR lpValueName,
@@ -25,7 +25,7 @@ LSTATUS VReg__QueryValueOwned(
     _Inout_ VReg__Buffer* pData
 );
 
-LSTATUS VReg__GetValueOwned(
+VREGDEF LSTATUS VReg__GetValueOwned(
     _In_ VRegRegistry* pRegistry,
     _In_ HKEY hKey,
     _In_opt_z_ LPCWSTR lpSubKey,
@@ -36,7 +36,7 @@ LSTATUS VReg__GetValueOwned(
     _Inout_ VReg__Buffer* pData
 );
 
-LSTATUS VReg__EnumKeyOwned(
+VREGDEF LSTATUS VReg__EnumKeyOwned(
     _In_ VRegRegistry* pRegistry,
     _In_ HKEY hKey,
     _In_ DWORD dwIndex,
@@ -45,7 +45,7 @@ LSTATUS VReg__EnumKeyOwned(
 );
 
 /// With a null @p pData only the name and type are read.
-LSTATUS VReg__EnumValueOwned(
+VREGDEF LSTATUS VReg__EnumValueOwned(
     _In_ VRegRegistry* pRegistry,
     _In_ HKEY hKey,
     _In_ DWORD dwIndex,

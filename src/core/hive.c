@@ -37,7 +37,7 @@ struct VRegHive
 
 static const VReg__WStringView VREG__NO_NAME = {NULL, 0};
 
-int VReg__CompareNames(const VReg__WStringView left, const VReg__WStringView right)
+VREGDEF int VReg__CompareNames(const VReg__WStringView left, const VReg__WStringView right)
 {
     if (left.cch == 0 || right.cch == 0)
         return (left.cch == 0) == (right.cch == 0) ? 0 : (left.cch == 0 ? -1 : 1);
@@ -518,12 +518,12 @@ static LSTATUS VReg__HiveCreate(
     return ERROR_SUCCESS;
 }
 
-LSTATUS WINAPI VRegCreateHive(_In_opt_ void* const pAllocContext, _Outptr_ VRegHive** const ppHive)
+VREGDEF LSTATUS WINAPI VRegCreateHive(_In_opt_ void* const pAllocContext, _Outptr_ VRegHive** const ppHive)
 {
     return VReg__HiveCreate(NULL, NULL, VREG__NO_NAME, 0, pAllocContext, ppHive);
 }
 
-LSTATUS WINAPI VRegCreateLayeredHive(
+VREGDEF LSTATUS WINAPI VRegCreateLayeredHive(
     _In_ VRegRegistry* const pLower,
     _In_ const HKEY hLowerRoot,
     _In_opt_z_ const LPCWSTR pszLowerPath,
@@ -535,7 +535,7 @@ LSTATUS WINAPI VRegCreateLayeredHive(
     return VReg__HiveCreate(pLower, hLowerRoot, VReg__ViewOf(pszLowerPath), samLowerView, pAllocContext, ppHive);
 }
 
-void WINAPI VRegDestroyHive(_In_opt_ VRegHive* const pHive)
+VREGDEF void WINAPI VRegDestroyHive(_In_opt_ VRegHive* const pHive)
 {
     SIZE_T i;
     if (!pHive)
@@ -554,7 +554,7 @@ void WINAPI VRegDestroyHive(_In_opt_ VRegHive* const pHive)
     VReg__Free(pHive->pAllocContext, pHive);
 }
 
-void WINAPI VRegFreezeHive(_In_ VRegHive* const pHive)
+VREGDEF void WINAPI VRegFreezeHive(_In_ VRegHive* const pHive)
 {
     SIZE_T i;
 
@@ -568,37 +568,37 @@ void WINAPI VRegFreezeHive(_In_ VRegHive* const pHive)
     ReleaseSRWLockExclusive(&pHive->lock);
 }
 
-BOOL WINAPI VRegIsHiveFrozen(_In_ VRegHive* const pHive)
+VREGDEF BOOL WINAPI VRegIsHiveFrozen(_In_ VRegHive* const pHive)
 {
     return VReg__HiveIsFrozen(pHive);
 }
 
-_Ret_notnull_ VReg__Node* VReg__HiveRoot(_In_ VRegHive* const pHive)
+VREGDEF _Ret_notnull_ VReg__Node* VReg__HiveRoot(_In_ VRegHive* const pHive)
 {
     return pHive->pRoot;
 }
 
-_Ret_maybenull_ VRegRegistry* VReg__HiveLower(_In_ VRegHive* const pHive)
+VREGDEF _Ret_maybenull_ VRegRegistry* VReg__HiveLower(_In_ VRegHive* const pHive)
 {
     return pHive->pLower;
 }
 
-_Ret_maybenull_ void* VReg__HiveAllocContext(_In_ VRegHive* const pHive)
+VREGDEF _Ret_maybenull_ void* VReg__HiveAllocContext(_In_ VRegHive* const pHive)
 {
     return pHive->pAllocContext;
 }
 
-HKEY VReg__NodeHandle(_In_ const VReg__Node* const pNode)
+VREGDEF HKEY VReg__NodeHandle(_In_ const VReg__Node* const pNode)
 {
     return pNode->hKey;
 }
 
-_Ret_maybenull_ VReg__Node* VReg__NodeOf(_In_opt_ const HKEY hKey)
+VREGDEF _Ret_maybenull_ VReg__Node* VReg__NodeOf(_In_opt_ const HKEY hKey)
 {
     return (VReg__Node*)VReg__HandleSpaceFind(VReg__ProcessHandleSpace(), hKey);
 }
 
-_Ret_notnull_ VRegHive* VReg__NodeHive(_In_ const VReg__Node* const pNode)
+VREGDEF _Ret_notnull_ VRegHive* VReg__NodeHive(_In_ const VReg__Node* const pNode)
 {
     return pNode->pHive;
 }
@@ -656,7 +656,7 @@ static LSTATUS VReg__HiveWalkUpper(
     return status;
 }
 
-LSTATUS VReg__HiveOpenKey(
+VREGDEF LSTATUS VReg__HiveOpenKey(
     _In_ VRegHive* const pHive,
     _In_ VReg__Node* const pParent,
     _In_reads_(cPath) const VReg__WStringView* const pPath,
@@ -815,7 +815,7 @@ static LSTATUS VReg__HiveMeasureUpper(
     return status;
 }
 
-LSTATUS VReg__HiveCreateKey(
+VREGDEF LSTATUS VReg__HiveCreateKey(
     _In_ VRegHive* const pHive,
     _Inout_ VReg__Node* const pParent,
     _In_reads_(cPath) const VReg__WStringView* const pPath,
@@ -1033,7 +1033,7 @@ static LSTATUS VReg__HiveInspectForDelete(
     return status;
 }
 
-LSTATUS VReg__HiveDeleteKey(
+VREGDEF LSTATUS VReg__HiveDeleteKey(
     _In_ VRegHive* const pHive,
     _Inout_ VReg__Node* const pParent,
     _In_reads_(cPath) const VReg__WStringView* const pPath,
@@ -1175,7 +1175,7 @@ done:
     return status;
 }
 
-LSTATUS VReg__HiveDeleteTree(_In_ VRegHive* const pHive, _Inout_ VReg__Node* const pNode)
+VREGDEF LSTATUS VReg__HiveDeleteTree(_In_ VRegHive* const pHive, _Inout_ VReg__Node* const pNode)
 {
     if (!VReg__HiveLockWrite(pHive))
         return ERROR_ACCESS_DENIED;
@@ -1253,7 +1253,7 @@ static LSTATUS VReg__HiveQueryUpperValue(
     return status;
 }
 
-LSTATUS VReg__HiveQueryValue(
+VREGDEF LSTATUS VReg__HiveQueryValue(
     _In_ VRegHive* const pHive,
     _In_ VReg__Node* const pNode,
     _In_z_ const LPCWSTR pszName,
@@ -1390,7 +1390,7 @@ static LSTATUS VReg__HiveStoreValue(
     return status;
 }
 
-LSTATUS VReg__HiveSetValue(
+VREGDEF LSTATUS VReg__HiveSetValue(
     _In_ VRegHive* const pHive,
     _Inout_ VReg__Node* const pNode,
     _In_z_ const LPCWSTR pszName,
@@ -1402,7 +1402,7 @@ LSTATUS VReg__HiveSetValue(
     return VReg__HiveStoreValue(pHive, pNode, VReg__ViewOf(pszName), dwType, pData, cbData, FALSE);
 }
 
-LSTATUS VReg__HiveSetMuiTextValue(
+VREGDEF LSTATUS VReg__HiveSetMuiTextValue(
     _In_ VRegHive* const pHive,
     _Inout_ VReg__Node* const pNode,
     _In_z_ const LPCWSTR pszName,
@@ -1421,7 +1421,7 @@ LSTATUS VReg__HiveSetMuiTextValue(
     );
 }
 
-LSTATUS VReg__HiveQueryMuiText(
+VREGDEF LSTATUS VReg__HiveQueryMuiText(
     _In_ VRegHive* const pHive,
     _In_ VReg__Node* const pNode,
     _In_z_ const LPCWSTR pszName,
@@ -1471,7 +1471,7 @@ LSTATUS VReg__HiveQueryMuiText(
     return status == ERROR_SUCCESS ? ERROR_INVALID_DATA : status;
 }
 
-LSTATUS VReg__HiveDeleteValue(_In_ VRegHive* const pHive, _Inout_ VReg__Node* const pNode, _In_z_ const LPCWSTR pszName)
+VREGDEF LSTATUS VReg__HiveDeleteValue(_In_ VRegHive* const pHive, _Inout_ VReg__Node* const pNode, _In_z_ const LPCWSTR pszName)
 {
     void* const pAllocContext = pHive->pAllocContext;
     const VReg__WStringView name = VReg__ViewOf(pszName);
@@ -1686,7 +1686,7 @@ static LSTATUS VReg__HiveEnumUpperKey(
     return status;
 }
 
-LSTATUS VReg__HiveEnumKey(
+VREGDEF LSTATUS VReg__HiveEnumKey(
     _In_ VRegHive* const pHive,
     _In_ VReg__Node* const pNode,
     const DWORD dwIndex,
@@ -1888,7 +1888,7 @@ static LSTATUS VReg__HiveEnumUpperValue(
     return status;
 }
 
-LSTATUS VReg__HiveEnumValue(
+VREGDEF LSTATUS VReg__HiveEnumValue(
     _In_ VRegHive* const pHive,
     _In_ VReg__Node* const pNode,
     const DWORD dwIndex,
@@ -2067,7 +2067,7 @@ static LSTATUS VReg__HiveQueryUpperInfo(
     return status;
 }
 
-LSTATUS VReg__HiveQueryInfo(
+VREGDEF LSTATUS VReg__HiveQueryInfo(
     _In_ VRegHive* const pHive,
     _In_ VReg__Node* const pNode,
     _Inout_ VReg__KeyInfo* const pInfo
@@ -2304,7 +2304,7 @@ static LSTATUS VReg__HiveListUpper(
     return ERROR_SUCCESS;
 }
 
-LSTATUS VReg__HiveSnapshotUpper(
+VREGDEF LSTATUS VReg__HiveSnapshotUpper(
     _In_ VRegHive* const pHive,
     _In_ const VReg__UpperVisitor pfnVisit,
     _In_opt_ void* const pContext
@@ -2318,7 +2318,7 @@ LSTATUS VReg__HiveSnapshotUpper(
     return status;
 }
 
-LSTATUS VReg__HiveCheckKey(_In_ VRegHive* const pHive, _In_ VReg__Node* const pNode)
+VREGDEF LSTATUS VReg__HiveCheckKey(_In_ VRegHive* const pHive, _In_ VReg__Node* const pNode)
 {
     const BOOL isLocked = VReg__HiveLockRead(pHive);
     const LSTATUS status = pNode->isDeleted ? ERROR_KEY_DELETED : ERROR_SUCCESS;
@@ -2326,7 +2326,7 @@ LSTATUS VReg__HiveCheckKey(_In_ VRegHive* const pHive, _In_ VReg__Node* const pN
     return status;
 }
 
-LSTATUS VReg__HiveWatch(
+VREGDEF LSTATUS VReg__HiveWatch(
     _In_ VRegHive* const pHive,
     _In_ VReg__Node* const pNode,
     const BOOL bWatchSubtree,
@@ -2368,7 +2368,7 @@ LSTATUS VReg__HiveWatch(
     return status;
 }
 
-LSTATUS VReg__HiveOpenLowerValueKey(
+VREGDEF LSTATUS VReg__HiveOpenLowerValueKey(
     _In_ VRegHive* const pHive,
     _In_ VReg__Node* const pNode,
     _In_z_ const LPCWSTR pszName,
@@ -2430,7 +2430,7 @@ done:
     return status;
 }
 
-LSTATUS WINAPI VRegSetHiveMuiTextValue(
+VREGDEF LSTATUS WINAPI VRegSetHiveMuiTextValue(
     _In_ VRegHive* const pHive,
     _In_opt_z_ const LPCWSTR pszPath,
     _In_opt_z_ const LPCWSTR pszName,

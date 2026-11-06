@@ -2,7 +2,7 @@
 
 #include "core/alloc.h"
 
-LSTATUS VReg__WideFromAnsi(
+VREGDEF LSTATUS VReg__WideFromAnsi(
     _In_opt_ void* const pAllocContext,
     _In_reads_(cch) const char* const pch,
     const SIZE_T cch,
@@ -24,7 +24,7 @@ LSTATUS VReg__WideFromAnsi(
     return ERROR_SUCCESS;
 }
 
-LSTATUS VReg__AnsiFromWide(
+VREGDEF LSTATUS VReg__AnsiFromWide(
     _In_opt_ void* const pAllocContext,
     _In_reads_(cch) const wchar_t* const pch,
     const SIZE_T cch,
@@ -46,7 +46,11 @@ LSTATUS VReg__AnsiFromWide(
     return ERROR_SUCCESS;
 }
 
-LSTATUS VReg__WideArgInit(_In_opt_ void* const pAllocContext, _In_opt_z_ const LPCSTR psz, _Out_ VReg__WideArg* const pArg)
+VREGDEF LSTATUS VReg__WideArgInit(
+    _In_opt_ void* const pAllocContext,
+    _In_opt_z_ const LPCSTR psz,
+    _Out_ VReg__WideArg* const pArg
+)
 {
     SIZE_T cch = 0;
     ZeroMemory(pArg, sizeof(*pArg));
@@ -60,12 +64,12 @@ LSTATUS VReg__WideArgInit(_In_opt_ void* const pAllocContext, _In_opt_z_ const L
     return VReg__WideFromAnsi(pAllocContext, psz, cch, &pArg->text);
 }
 
-_Ret_maybenull_z_ LPCWSTR VReg__WideArgText(_In_ const VReg__WideArg* const pArg)
+VREGDEF _Ret_maybenull_z_ LPCWSTR VReg__WideArgText(_In_ const VReg__WideArg* const pArg)
 {
     return pArg->isNull ? NULL : VReg__WStringText(&pArg->text);
 }
 
-_Ret_maybenull_ LPWSTR VReg__WideArgMutable(_In_ VReg__WideArg* const pArg)
+VREGDEF _Ret_maybenull_ LPWSTR VReg__WideArgMutable(_In_ VReg__WideArg* const pArg)
 {
     if (pArg->isNull)
         return NULL;
@@ -77,7 +81,7 @@ _Ret_maybenull_ LPWSTR VReg__WideArgMutable(_In_ VReg__WideArg* const pArg)
     return pArg->text.psz;
 }
 
-void VReg__WideArgFree(_In_opt_ void* const pAllocContext, _Inout_ VReg__WideArg* const pArg)
+VREGDEF void VReg__WideArgFree(_In_opt_ void* const pAllocContext, _Inout_ VReg__WideArg* const pArg)
 {
     VReg__WStringFree(pAllocContext, &pArg->text);
 }

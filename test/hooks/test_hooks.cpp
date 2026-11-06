@@ -1207,7 +1207,7 @@ TEST_CASE("Neutralize removes the mount and leaves real keys working")
     REQUIRE(InstallMount(name.c_str(), L"Exe") == NO_ERROR);
     REQUIRE(ReadMountModule(name) == L"Exe");
 
-    Detours::Neutralize();
+    VRegNeutralizeHooks();
 
     HKEY hKey{};
     CHECK(

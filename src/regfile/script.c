@@ -2,7 +2,8 @@
 
 #include "core/alloc.h"
 
-const VReg__RootKey VREG__ROOT_KEYS[] = {
+/// Every root a `.reg` file can name, the one list import and export share.
+static const VReg__RootKey VREG__ROOT_KEYS[] = {
     {L"HKEY_CLASSES_ROOT", L"HKCR", HKEY_CLASSES_ROOT},
     {L"HKEY_CURRENT_USER", L"HKCU", HKEY_CURRENT_USER},
     {L"HKEY_LOCAL_MACHINE", L"HKLM", HKEY_LOCAL_MACHINE},
@@ -30,10 +31,10 @@ static BOOL VReg__EqualsIgnoreAsciiCase(const VReg__WStringView left, const VReg
     return TRUE;
 }
 
-_Ret_maybenull_z_ const wchar_t* VReg__RootName(_In_opt_ const HKEY hRoot)
+VREGDEF _Ret_maybenull_z_ const wchar_t* VReg__RootName(_In_opt_ const HKEY hRoot)
 {
     SIZE_T i;
-    for (i = 0; i < VREG__ROOT_KEY_COUNT; ++i)
+    for (i = 0; i < sizeof(VREG__ROOT_KEYS) / sizeof(VREG__ROOT_KEYS[0]); ++i)
     {
         if (VREG__ROOT_KEYS[i].hKey == hRoot)
             return VREG__ROOT_KEYS[i].pszLong;
@@ -42,11 +43,11 @@ _Ret_maybenull_z_ const wchar_t* VReg__RootName(_In_opt_ const HKEY hRoot)
     return NULL;
 }
 
-BOOL VReg__FindRoot(const VReg__WStringView name, _Out_ PHKEY const phRoot)
+VREGDEF BOOL VReg__FindRoot(const VReg__WStringView name, _Out_ PHKEY const phRoot)
 {
     SIZE_T i;
     *phRoot = NULL;
-    for (i = 0; i < VREG__ROOT_KEY_COUNT; ++i)
+    for (i = 0; i < sizeof(VREG__ROOT_KEYS) / sizeof(VREG__ROOT_KEYS[0]); ++i)
     {
         const VReg__RootKey* const pRoot = &VREG__ROOT_KEYS[i];
         if (
@@ -62,7 +63,7 @@ BOOL VReg__FindRoot(const VReg__WStringView name, _Out_ PHKEY const phRoot)
     return FALSE;
 }
 
-LSTATUS VReg__ScriptCreate(_In_opt_ void* const pAllocContext, _Outptr_ VRegScript** const ppScript)
+VREGDEF LSTATUS VReg__ScriptCreate(_In_opt_ void* const pAllocContext, _Outptr_ VRegScript** const ppScript)
 {
     VRegScript* const pScript = (VRegScript*)VReg__AllocZeroed(pAllocContext, sizeof(VRegScript));
     *ppScript = NULL;
@@ -74,7 +75,7 @@ LSTATUS VReg__ScriptCreate(_In_opt_ void* const pAllocContext, _Outptr_ VRegScri
     return ERROR_SUCCESS;
 }
 
-LSTATUS VReg__ScriptAppend(
+VREGDEF LSTATUS VReg__ScriptAppend(
     _Inout_ VRegScript* const pScript,
     const VRegOperationKind kind,
     _In_ const HKEY hRoot,
@@ -118,7 +119,7 @@ LSTATUS VReg__ScriptAppend(
     return ERROR_SUCCESS;
 }
 
-void WINAPI VRegDestroyScript(_In_opt_ VRegScript* const pScript)
+VREGDEF void WINAPI VRegDestroyScript(_In_opt_ VRegScript* const pScript)
 {
     SIZE_T i;
     if (!pScript)
@@ -137,7 +138,7 @@ void WINAPI VRegDestroyScript(_In_opt_ VRegScript* const pScript)
     VReg__Free(pScript->pAllocContext, pScript);
 }
 
-_Ret_notnull_ const VRegOperation* WINAPI VRegGetScriptOperations(
+VREGDEF _Ret_notnull_ const VRegOperation* WINAPI VRegGetScriptOperations(
     _In_ const VRegScript* const pScript,
     _Out_ SIZE_T* const pcOperations
 )
@@ -147,7 +148,7 @@ _Ret_notnull_ const VRegOperation* WINAPI VRegGetScriptOperations(
     return pScript->operations.count == 0 ? &NONE : (const VRegOperation*)pScript->operations.p;
 }
 
-void WINAPI VRegFreeScriptBytes(_In_ const VRegScript* const pScript, _In_opt_ void* const pBytes)
+VREGDEF void WINAPI VRegFreeScriptBytes(_In_ const VRegScript* const pScript, _In_opt_ void* const pBytes)
 {
     VReg__Free(pScript->pAllocContext, pBytes);
 }

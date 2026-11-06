@@ -1,5 +1,7 @@
 #pragma once
 
+#include <VReg/api.h>
+
 #include <Windows.h>
 
 /// @file
@@ -20,10 +22,10 @@ typedef struct VReg__WStringView
     SIZE_T cch;
 } VReg__WStringView;
 
-VReg__WStringView VReg__ViewOf(_In_opt_z_ LPCWSTR psz);
+VREGDEF VReg__WStringView VReg__ViewOf(_In_opt_z_ LPCWSTR psz);
 
-DWORD VReg__MinDword(DWORD a, DWORD b);
-DWORD VReg__MaxDword(DWORD a, DWORD b);
+VREGDEF DWORD VReg__MinDword(DWORD a, DWORD b);
+VREGDEF DWORD VReg__MaxDword(DWORD a, DWORD b);
 
 typedef struct VReg__Buffer
 {
@@ -32,27 +34,27 @@ typedef struct VReg__Buffer
     SIZE_T cbCapacity;
 } VReg__Buffer;
 
-BOOL VReg__BufferReserve(_In_opt_ void* pAllocContext, _Inout_ VReg__Buffer* pBuffer, SIZE_T cbCapacity);
+VREGDEF BOOL VReg__BufferReserve(_In_opt_ void* pAllocContext, _Inout_ VReg__Buffer* pBuffer, SIZE_T cbCapacity);
 
 /// Sets the size to @p cb, growing the capacity if needed; new bytes are
 /// indeterminate.
-BOOL VReg__BufferResize(_In_opt_ void* pAllocContext, _Inout_ VReg__Buffer* pBuffer, SIZE_T cb);
+VREGDEF BOOL VReg__BufferResize(_In_opt_ void* pAllocContext, _Inout_ VReg__Buffer* pBuffer, SIZE_T cb);
 
-BOOL VReg__BufferAssign(
+VREGDEF BOOL VReg__BufferAssign(
     _In_opt_ void* pAllocContext,
     _Inout_ VReg__Buffer* pBuffer,
     _In_reads_bytes_opt_(cb) const void* p,
     SIZE_T cb
 );
 
-BOOL VReg__BufferAppend(
+VREGDEF BOOL VReg__BufferAppend(
     _In_opt_ void* pAllocContext,
     _Inout_ VReg__Buffer* pBuffer,
     _In_reads_bytes_(cb) const void* p,
     SIZE_T cb
 );
 
-void VReg__BufferFree(_In_opt_ void* pAllocContext, _Inout_ VReg__Buffer* pBuffer);
+VREGDEF void VReg__BufferFree(_In_opt_ void* pAllocContext, _Inout_ VReg__Buffer* pBuffer);
 
 /// A wide string, terminated whenever @ref psz is not null; empty and
 /// unallocated while it is.
@@ -64,37 +66,37 @@ typedef struct VReg__WString
 } VReg__WString;
 
 /// The text, `L""` for an unallocated string.
-_Ret_z_ LPCWSTR VReg__WStringText(_In_ const VReg__WString* pString);
+VREGDEF _Ret_z_ LPCWSTR VReg__WStringText(_In_ const VReg__WString* pString);
 
-VReg__WStringView VReg__WStringViewOf(_In_ const VReg__WString* pString);
+VREGDEF VReg__WStringView VReg__WStringViewOf(_In_ const VReg__WString* pString);
 
 /// Room for @p cch characters and the terminator.
-BOOL VReg__WStringReserve(_In_opt_ void* pAllocContext, _Inout_ VReg__WString* pString, SIZE_T cch);
+VREGDEF BOOL VReg__WStringReserve(_In_opt_ void* pAllocContext, _Inout_ VReg__WString* pString, SIZE_T cch);
 
 /// Sets the length to @p cch, growing if needed, and terminates; new
 /// characters are indeterminate.
-BOOL VReg__WStringResize(_In_opt_ void* pAllocContext, _Inout_ VReg__WString* pString, SIZE_T cch);
+VREGDEF BOOL VReg__WStringResize(_In_opt_ void* pAllocContext, _Inout_ VReg__WString* pString, SIZE_T cch);
 
-BOOL VReg__WStringAssign(
+VREGDEF BOOL VReg__WStringAssign(
     _In_opt_ void* pAllocContext,
     _Inout_ VReg__WString* pString,
     _In_reads_opt_(cch) const wchar_t* pch,
     SIZE_T cch
 );
 
-BOOL VReg__WStringAppend(
+VREGDEF BOOL VReg__WStringAppend(
     _In_opt_ void* pAllocContext,
     _Inout_ VReg__WString* pString,
     _In_reads_(cch) const wchar_t* pch,
     SIZE_T cch
 );
 
-BOOL VReg__WStringAppendChar(_In_opt_ void* pAllocContext, _Inout_ VReg__WString* pString, wchar_t ch);
+VREGDEF BOOL VReg__WStringAppendChar(_In_opt_ void* pAllocContext, _Inout_ VReg__WString* pString, wchar_t ch);
 
 /// Shortens the string to @p cch characters, which is at most its length.
-void VReg__WStringTruncate(_Inout_ VReg__WString* pString, SIZE_T cch);
+VREGDEF void VReg__WStringTruncate(_Inout_ VReg__WString* pString, SIZE_T cch);
 
-void VReg__WStringFree(_In_opt_ void* pAllocContext, _Inout_ VReg__WString* pString);
+VREGDEF void VReg__WStringFree(_In_opt_ void* pAllocContext, _Inout_ VReg__WString* pString);
 
 /// An array of @ref count elements of one size, given to every call.
 typedef struct VReg__Array
@@ -107,10 +109,10 @@ typedef struct VReg__Array
 /// The element at @p index of an array of @p T, as an lvalue.
 #define VREG__AT(pArray, T, index) (((T*)(pArray)->p)[index])
 
-BOOL VReg__ArrayReserve(_In_opt_ void* pAllocContext, _Inout_ VReg__Array* pArray, SIZE_T cbElement, SIZE_T capacity);
+VREGDEF BOOL VReg__ArrayReserve(_In_opt_ void* pAllocContext, _Inout_ VReg__Array* pArray, SIZE_T cbElement, SIZE_T capacity);
 
 /// Inserts a copy of @p pElement before @p index, which is at most the count.
-BOOL VReg__ArrayInsert(
+VREGDEF BOOL VReg__ArrayInsert(
     _In_opt_ void* pAllocContext,
     _Inout_ VReg__Array* pArray,
     SIZE_T cbElement,
@@ -118,7 +120,7 @@ BOOL VReg__ArrayInsert(
     _In_reads_bytes_(cbElement) const void* pElement
 );
 
-BOOL VReg__ArrayAppend(
+VREGDEF BOOL VReg__ArrayAppend(
     _In_opt_ void* pAllocContext,
     _Inout_ VReg__Array* pArray,
     SIZE_T cbElement,
@@ -126,24 +128,24 @@ BOOL VReg__ArrayAppend(
 );
 
 /// Removes the element at @p index, moving the later ones down.
-void VReg__ArrayRemoveAt(_Inout_ VReg__Array* pArray, SIZE_T cbElement, SIZE_T index);
+VREGDEF void VReg__ArrayRemoveAt(_Inout_ VReg__Array* pArray, SIZE_T cbElement, SIZE_T index);
 
-void VReg__ArrayFree(_In_opt_ void* pAllocContext, _Inout_ VReg__Array* pArray);
+VREGDEF void VReg__ArrayFree(_In_opt_ void* pAllocContext, _Inout_ VReg__Array* pArray);
 
 /// Appends a copy of @p text to @p pArray, an array of @ref VReg__WString.
-BOOL VReg__WStringArrayAppend(_In_opt_ void* pAllocContext, _Inout_ VReg__Array* pArray, VReg__WStringView text);
+VREGDEF BOOL VReg__WStringArrayAppend(_In_opt_ void* pAllocContext, _Inout_ VReg__Array* pArray, VReg__WStringView text);
 
 /// Adds a copy of @p text to @p pArray, an array of @ref VReg__WString sorted
 /// by @ref VReg__CompareNames, unless an equal name is there already.
-BOOL VReg__WStringArrayInsertSorted(_In_opt_ void* pAllocContext, _Inout_ VReg__Array* pArray, VReg__WStringView text);
+VREGDEF BOOL VReg__WStringArrayInsertSorted(_In_opt_ void* pAllocContext, _Inout_ VReg__Array* pArray, VReg__WStringView text);
 
 /// Whether the sorted @p pArray holds a name equal to @p text by
 /// @ref VReg__CompareNames.
-BOOL VReg__WStringArrayContainsSorted(_In_ const VReg__Array* pArray, VReg__WStringView text);
+VREGDEF BOOL VReg__WStringArrayContainsSorted(_In_ const VReg__Array* pArray, VReg__WStringView text);
 
 /// Frees the strings of @p pArray, an array of @ref VReg__WString, and the
 /// array itself.
-void VReg__WStringArrayFree(_In_opt_ void* pAllocContext, _Inout_ VReg__Array* pArray);
+VREGDEF void VReg__WStringArrayFree(_In_opt_ void* pAllocContext, _Inout_ VReg__Array* pArray);
 
 #ifdef __cplusplus
 } // extern "C"

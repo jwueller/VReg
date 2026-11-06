@@ -85,27 +85,27 @@ typedef struct VReg__UpperRecord
 /// snapshot and is answered.
 typedef LSTATUS (*VReg__UpperVisitor)(_In_opt_ void* pContext, _In_ const VReg__UpperRecord* pRecord);
 
-_Ret_notnull_ VReg__Node* VReg__HiveRoot(_In_ VRegHive* pHive);
+VREGDEF _Ret_notnull_ VReg__Node* VReg__HiveRoot(_In_ VRegHive* pHive);
 
 /// The registry below the hive, which answers the handles in
 /// @ref VReg__OpenResult::hLower; null for a hive with nothing below it.
-_Ret_maybenull_ VRegRegistry* VReg__HiveLower(_In_ VRegHive* pHive);
+VREGDEF _Ret_maybenull_ VRegRegistry* VReg__HiveLower(_In_ VRegHive* pHive);
 
-_Ret_maybenull_ void* VReg__HiveAllocContext(_In_ VRegHive* pHive);
+VREGDEF _Ret_maybenull_ void* VReg__HiveAllocContext(_In_ VRegHive* pHive);
 
 /// The virtual handle of @p pNode.
-HKEY VReg__NodeHandle(_In_ const VReg__Node* pNode);
+VREGDEF HKEY VReg__NodeHandle(_In_ const VReg__Node* pNode);
 
 /// The node a virtual handle of this copy of VReg belongs to; null for any
 /// other handle.
-_Ret_maybenull_ VReg__Node* VReg__NodeOf(_In_opt_ HKEY hKey);
+VREGDEF _Ret_maybenull_ VReg__Node* VReg__NodeOf(_In_opt_ HKEY hKey);
 
-_Ret_notnull_ VRegHive* VReg__NodeHive(_In_ const VReg__Node* pNode);
+VREGDEF _Ret_notnull_ VRegHive* VReg__NodeHive(_In_ const VReg__Node* pNode);
 
 /// Opens the key @p cPath components below @p pParent. On a writable
 /// layered hive the nodes that stand for lower keys are added on the way,
 /// which changes nothing the hive answers.
-LSTATUS VReg__HiveOpenKey(
+VREGDEF LSTATUS VReg__HiveOpenKey(
     _In_ VRegHive* pHive,
     _In_ VReg__Node* pParent,
     _In_reads_(cPath) const VReg__WStringView* pPath,
@@ -116,7 +116,7 @@ LSTATUS VReg__HiveOpenKey(
 
 /// On a frozen hive an existing key opens as with @ref VReg__HiveOpenKey, and
 /// a missing one answers @ref ERROR_ACCESS_DENIED.
-LSTATUS VReg__HiveCreateKey(
+VREGDEF LSTATUS VReg__HiveCreateKey(
     _In_ VRegHive* pHive,
     _Inout_ VReg__Node* pParent,
     _In_reads_(cPath) const VReg__WStringView* pPath,
@@ -130,7 +130,7 @@ LSTATUS VReg__HiveCreateKey(
 
 /// Deletes the last component of the path; a key with subkeys answers
 /// @ref ERROR_ACCESS_DENIED, as native does.
-LSTATUS VReg__HiveDeleteKey(
+VREGDEF LSTATUS VReg__HiveDeleteKey(
     _In_ VRegHive* pHive,
     _Inout_ VReg__Node* pParent,
     _In_reads_(cPath) const VReg__WStringView* pPath,
@@ -138,12 +138,12 @@ LSTATUS VReg__HiveDeleteKey(
 );
 
 /// Deletes every subkey and value of @p pNode, leaving the node itself.
-LSTATUS VReg__HiveDeleteTree(_In_ VRegHive* pHive, _Inout_ VReg__Node* pNode);
+VREGDEF LSTATUS VReg__HiveDeleteTree(_In_ VRegHive* pHive, _Inout_ VReg__Node* pNode);
 
 /// Reads value @p pszName of @p pNode. @p pcbData receives the size of the
 /// data in bytes; @p pData receives the data itself only when it is not
 /// null, so a null @p pData copies nothing.
-LSTATUS VReg__HiveQueryValue(
+VREGDEF LSTATUS VReg__HiveQueryValue(
     _In_ VRegHive* pHive,
     _In_ VReg__Node* pNode,
     _In_z_ LPCWSTR pszName,
@@ -152,7 +152,7 @@ LSTATUS VReg__HiveQueryValue(
     _Inout_opt_ VReg__Buffer* pData
 );
 
-LSTATUS VReg__HiveSetValue(
+VREGDEF LSTATUS VReg__HiveSetValue(
     _In_ VRegHive* pHive,
     _Inout_ VReg__Node* pNode,
     _In_z_ LPCWSTR pszName,
@@ -161,7 +161,7 @@ LSTATUS VReg__HiveSetValue(
     DWORD cbData
 );
 
-LSTATUS VReg__HiveDeleteValue(_In_ VRegHive* pHive, _Inout_ VReg__Node* pNode, _In_z_ LPCWSTR pszName);
+VREGDEF LSTATUS VReg__HiveDeleteValue(_In_ VRegHive* pHive, _Inout_ VReg__Node* pNode, _In_z_ LPCWSTR pszName);
 
 /**
  * @brief Sets value @p pszName of @p pNode to @p pszText as a @ref REG_SZ and
@@ -173,7 +173,7 @@ LSTATUS VReg__HiveDeleteValue(_In_ VRegHive* pHive, _Inout_ VReg__Node* pNode, _
  *  @p pszText itself. Any other write of the value drops the mark, and a
  *  `.reg` export carries it as a plain string.
  */
-LSTATUS VReg__HiveSetMuiTextValue(
+VREGDEF LSTATUS VReg__HiveSetMuiTextValue(
     _In_ VRegHive* pHive,
     _Inout_ VReg__Node* pNode,
     _In_z_ LPCWSTR pszName,
@@ -183,14 +183,14 @@ LSTATUS VReg__HiveSetMuiTextValue(
 /// The text of value @p pszName of @p pNode if @ref VReg__HiveSetMuiTextValue
 /// stored it, or @ref ERROR_INVALID_DATA for any other value; a value from
 /// below is never marked.
-LSTATUS VReg__HiveQueryMuiText(
+VREGDEF LSTATUS VReg__HiveQueryMuiText(
     _In_ VRegHive* pHive,
     _In_ VReg__Node* pNode,
     _In_z_ LPCWSTR pszName,
     _Inout_ VReg__WString* pText
 );
 
-LSTATUS VReg__HiveEnumKey(
+VREGDEF LSTATUS VReg__HiveEnumKey(
     _In_ VRegHive* pHive,
     _In_ VReg__Node* pNode,
     DWORD dwIndex,
@@ -202,7 +202,7 @@ LSTATUS VReg__HiveEnumKey(
 /// Reads the value of @p pNode at @p dwIndex. @p pcbData receives the size
 /// of the data in bytes; @p pData receives the data itself only when it
 /// is not null, so a null @p pData copies nothing.
-LSTATUS VReg__HiveEnumValue(
+VREGDEF LSTATUS VReg__HiveEnumValue(
     _In_ VRegHive* pHive,
     _In_ VReg__Node* pNode,
     DWORD dwIndex,
@@ -214,11 +214,11 @@ LSTATUS VReg__HiveEnumValue(
 
 /// Fills @p pInfo, whose @ref VReg__KeyInfo::className is the caller's
 /// string.
-LSTATUS VReg__HiveQueryInfo(_In_ VRegHive* pHive, _In_ VReg__Node* pNode, _Inout_ VReg__KeyInfo* pInfo);
+VREGDEF LSTATUS VReg__HiveQueryInfo(_In_ VRegHive* pHive, _In_ VReg__Node* pNode, _Inout_ VReg__KeyInfo* pInfo);
 
 /// What `RegFlushKey` on @p pNode needs from the hive: success, or
 /// @ref ERROR_KEY_DELETED.
-LSTATUS VReg__HiveCheckKey(_In_ VRegHive* pHive, _In_ VReg__Node* pNode);
+VREGDEF LSTATUS VReg__HiveCheckKey(_In_ VRegHive* pHive, _In_ VReg__Node* pNode);
 
 /**
  * @brief Registers a one-shot change notification on @p pNode.
@@ -236,7 +236,7 @@ LSTATUS VReg__HiveCheckKey(_In_ VRegHive* pHive, _In_ VReg__Node* pNode);
  * @note Only writes made through the hive are seen; a change in the
  *  registry below a layered hive is not.
  */
-LSTATUS VReg__HiveWatch(
+VREGDEF LSTATUS VReg__HiveWatch(
     _In_ VRegHive* pHive,
     _In_ VReg__Node* pNode,
     BOOL bWatchSubtree,
@@ -254,13 +254,13 @@ LSTATUS VReg__HiveWatch(
  *  of its own, is not listed; the hive's own keys below it are. Reads only
  *  the hive, never the lower registry.
  */
-LSTATUS VReg__HiveSnapshotUpper(_In_ VRegHive* pHive, _In_ VReg__UpperVisitor pfnVisit, _In_opt_ void* pContext);
+VREGDEF LSTATUS VReg__HiveSnapshotUpper(_In_ VRegHive* pHive, _In_ VReg__UpperVisitor pfnVisit, _In_opt_ void* pContext);
 
 /// A key of @ref VReg__HiveLower holding value @p pszName of @p pNode, when
 /// that value shows through from below; null (and success) when the hive
 /// holds it or nothing does. The caller closes it through the lower
 /// registry.
-LSTATUS VReg__HiveOpenLowerValueKey(
+VREGDEF LSTATUS VReg__HiveOpenLowerValueKey(
     _In_ VRegHive* pHive,
     _In_ VReg__Node* pNode,
     _In_z_ LPCWSTR pszName,

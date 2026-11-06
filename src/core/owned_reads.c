@@ -2,12 +2,12 @@
 
 #include "core/retry.h"
 
-DWORD VReg__Grown(const DWORD cbOld, const DWORD cbRequired)
+VREGDEF DWORD VReg__Grown(const DWORD cbOld, const DWORD cbRequired)
 {
     return cbRequired > cbOld ? cbRequired : cbOld * 2 + 16;
 }
 
-LSTATUS VReg__QueryValueOwned(
+VREGDEF LSTATUS VReg__QueryValueOwned(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_z_ const LPCWSTR lpValueName,
@@ -61,7 +61,7 @@ LSTATUS VReg__QueryValueOwned(
     }
 }
 
-LSTATUS VReg__GetValueOwned(
+VREGDEF LSTATUS VReg__GetValueOwned(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_z_ const LPCWSTR lpSubKey,
@@ -119,7 +119,7 @@ LSTATUS VReg__GetValueOwned(
     }
 }
 
-LSTATUS VReg__EnumKeyOwned(
+VREGDEF LSTATUS VReg__EnumKeyOwned(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
@@ -157,7 +157,7 @@ LSTATUS VReg__EnumKeyOwned(
     }
 }
 
-LSTATUS VReg__EnumValueOwned(
+VREGDEF LSTATUS VReg__EnumValueOwned(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,

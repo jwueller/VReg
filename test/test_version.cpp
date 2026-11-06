@@ -4,20 +4,25 @@
 
 #include <Shlwapi.h>
 
-#include <bit>
 #include <format>
 #include <regex>
 #include <string>
 
-TEST_CASE("The file version holds the project's numbers")
+TEST_CASE("The file version holds the project's numbers, packed as MAKEDLLVERULL does")
 {
-    const auto version = VReg::GetFileVersion();
+    const ULONGLONG version = VRegGetFileVersion();
 
-    CHECK(version.wMajor == VREG_TEST_VERSION_MAJOR);
-    CHECK(version.wMinor == VREG_TEST_VERSION_MINOR);
-    CHECK(version.wPatch == VREG_TEST_VERSION_PATCH);
+    CHECK(static_cast<WORD>(version >> 48) == VREG_TEST_VERSION_MAJOR);
+    CHECK(static_cast<WORD>(version >> 32) == VREG_TEST_VERSION_MINOR);
+    CHECK(static_cast<WORD>(version >> 16) == VREG_TEST_VERSION_PATCH);
     // The tests always build from a checkout, so the commits are counted.
-    CHECK(version.wRevision > 0);
+    CHECK(static_cast<WORD>(version) > 0);
+
+    const WORD wRevision = static_cast<WORD>(version);
+    CHECK(
+        version
+        == MAKEDLLVERULL(VREG_TEST_VERSION_MAJOR, VREG_TEST_VERSION_MINOR, VREG_TEST_VERSION_PATCH, wRevision)
+    );
 }
 
 TEST_CASE("The version is semver with the commit as build metadata")
@@ -29,46 +34,5 @@ TEST_CASE("The version is semver with the commit as build metadata")
         VREG_TEST_VERSION_MINOR,
         VREG_TEST_VERSION_PATCH
     );
-    CHECK(std::regex_match(VReg::GetVersion(), std::regex(expected)));
-}
-
-TEST_CASE("A file version lies in memory as its packed four-part number")
-{
-    constexpr VReg::FileVersion version{
-        .wRevision = 4,
-        .wPatch = 3,
-        .wMinor = 2,
-        .wMajor = 1
-    };
-
-    STATIC_CHECK(
-        std::bit_cast<ULONGLONG>(version) == MAKEDLLVERULL(1, 2, 3, 4)
-    );
-    constexpr VReg::FileVersion major{
-        .wRevision = 0,
-        .wPatch = 0,
-        .wMinor = 0,
-        .wMajor = 1
-    };
-    constexpr VReg::FileVersion minors{
-        .wRevision = 9,
-        .wPatch = 9,
-        .wMinor = 9,
-        .wMajor = 0
-    };
-    constexpr VReg::FileVersion patch{
-        .wRevision = 0,
-        .wPatch = 1,
-        .wMinor = 0,
-        .wMajor = 0
-    };
-    constexpr VReg::FileVersion minor{
-        .wRevision = 0,
-        .wPatch = 0,
-        .wMinor = 1,
-        .wMajor = 0
-    };
-    STATIC_CHECK(major > minors);
-    STATIC_CHECK(patch < minor);
-    STATIC_CHECK(version == version);
+    CHECK(std::regex_match(VRegGetVersion(), std::regex(expected)));
 }

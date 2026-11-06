@@ -1,5 +1,7 @@
 #pragma once
 
+#include <VReg/api.h>
+
 #include "core/buffer.h"
 
 #include <Windows.h>
@@ -16,7 +18,7 @@ extern "C" {
 /// @ref VReg__WStringView: empty components are skipped, a trailing backslash
 /// is ignored, a leading one answers @ref ERROR_BAD_PATHNAME and a component
 /// over @ref VREG__MAX_KEY_NAME_CHARS @ref ERROR_INVALID_PARAMETER.
-LSTATUS VReg__SplitPath(_In_opt_ void* pAllocContext, VReg__WStringView path, _Inout_ VReg__Array* pComponents);
+VREGDEF LSTATUS VReg__SplitPath(_In_opt_ void* pAllocContext, VReg__WStringView path, _Inout_ VReg__Array* pComponents);
 
 #ifdef __cplusplus
 } // extern "C"

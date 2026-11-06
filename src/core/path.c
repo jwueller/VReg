@@ -1,6 +1,6 @@
 #include "core/path.h"
 
-LSTATUS VReg__SplitPath(
+VREGDEF LSTATUS VReg__SplitPath(
     _In_opt_ void* const pAllocContext,
     const VReg__WStringView path,
     _Inout_ VReg__Array* const pComponents

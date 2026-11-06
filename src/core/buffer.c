@@ -11,17 +11,17 @@ static SIZE_T VReg__GrownCapacity(const SIZE_T capacity, const SIZE_T needed)
     return grown < needed ? needed : grown;
 }
 
-DWORD VReg__MinDword(const DWORD a, const DWORD b)
+VREGDEF DWORD VReg__MinDword(const DWORD a, const DWORD b)
 {
     return a < b ? a : b;
 }
 
-DWORD VReg__MaxDword(const DWORD a, const DWORD b)
+VREGDEF DWORD VReg__MaxDword(const DWORD a, const DWORD b)
 {
     return a > b ? a : b;
 }
 
-VReg__WStringView VReg__ViewOf(_In_opt_z_ const LPCWSTR psz)
+VREGDEF VReg__WStringView VReg__ViewOf(_In_opt_z_ const LPCWSTR psz)
 {
     VReg__WStringView view;
     view.pch = psz;
@@ -33,7 +33,7 @@ VReg__WStringView VReg__ViewOf(_In_opt_z_ const LPCWSTR psz)
     return view;
 }
 
-BOOL VReg__BufferReserve(
+VREGDEF BOOL VReg__BufferReserve(
     _In_opt_ void* const pAllocContext,
     _Inout_ VReg__Buffer* const pBuffer,
     const SIZE_T cbCapacity
@@ -52,7 +52,7 @@ BOOL VReg__BufferReserve(
     return TRUE;
 }
 
-BOOL VReg__BufferResize(_In_opt_ void* const pAllocContext, _Inout_ VReg__Buffer* const pBuffer, const SIZE_T cb)
+VREGDEF BOOL VReg__BufferResize(_In_opt_ void* const pAllocContext, _Inout_ VReg__Buffer* const pBuffer, const SIZE_T cb)
 {
     if (cb > pBuffer->cbCapacity)
     {
@@ -65,7 +65,7 @@ BOOL VReg__BufferResize(_In_opt_ void* const pAllocContext, _Inout_ VReg__Buffer
     return TRUE;
 }
 
-BOOL VReg__BufferAssign(
+VREGDEF BOOL VReg__BufferAssign(
     _In_opt_ void* const pAllocContext,
     _Inout_ VReg__Buffer* const pBuffer,
     _In_reads_bytes_opt_(cb) const void* const p,
@@ -85,7 +85,7 @@ BOOL VReg__BufferAssign(
     return TRUE;
 }
 
-BOOL VReg__BufferAppend(
+VREGDEF BOOL VReg__BufferAppend(
     _In_opt_ void* const pAllocContext,
     _Inout_ VReg__Buffer* const pBuffer,
     _In_reads_bytes_(cb) const void* const p,
@@ -102,7 +102,7 @@ BOOL VReg__BufferAppend(
     return TRUE;
 }
 
-void VReg__BufferFree(_In_opt_ void* const pAllocContext, _Inout_ VReg__Buffer* const pBuffer)
+VREGDEF void VReg__BufferFree(_In_opt_ void* const pAllocContext, _Inout_ VReg__Buffer* const pBuffer)
 {
     VReg__Free(pAllocContext, pBuffer->pb);
     pBuffer->pb = NULL;
@@ -110,12 +110,12 @@ void VReg__BufferFree(_In_opt_ void* const pAllocContext, _Inout_ VReg__Buffer* 
     pBuffer->cbCapacity = 0;
 }
 
-_Ret_z_ LPCWSTR VReg__WStringText(_In_ const VReg__WString* const pString)
+VREGDEF _Ret_z_ LPCWSTR VReg__WStringText(_In_ const VReg__WString* const pString)
 {
     return pString->psz ? pString->psz : L"";
 }
 
-VReg__WStringView VReg__WStringViewOf(_In_ const VReg__WString* const pString)
+VREGDEF VReg__WStringView VReg__WStringViewOf(_In_ const VReg__WString* const pString)
 {
     VReg__WStringView view;
     view.pch = VReg__WStringText(pString);
@@ -123,7 +123,7 @@ VReg__WStringView VReg__WStringViewOf(_In_ const VReg__WString* const pString)
     return view;
 }
 
-BOOL VReg__WStringReserve(_In_opt_ void* const pAllocContext, _Inout_ VReg__WString* const pString, const SIZE_T cch)
+VREGDEF BOOL VReg__WStringReserve(_In_opt_ void* const pAllocContext, _Inout_ VReg__WString* const pString, const SIZE_T cch)
 {
     wchar_t* psz;
     if (cch < pString->cchCapacity)
@@ -141,7 +141,7 @@ BOOL VReg__WStringReserve(_In_opt_ void* const pAllocContext, _Inout_ VReg__WStr
     return TRUE;
 }
 
-BOOL VReg__WStringResize(_In_opt_ void* const pAllocContext, _Inout_ VReg__WString* const pString, const SIZE_T cch)
+VREGDEF BOOL VReg__WStringResize(_In_opt_ void* const pAllocContext, _Inout_ VReg__WString* const pString, const SIZE_T cch)
 {
     if (cch >= pString->cchCapacity)
     {
@@ -157,7 +157,7 @@ BOOL VReg__WStringResize(_In_opt_ void* const pAllocContext, _Inout_ VReg__WStri
     return TRUE;
 }
 
-BOOL VReg__WStringAssign(
+VREGDEF BOOL VReg__WStringAssign(
     _In_opt_ void* const pAllocContext,
     _Inout_ VReg__WString* const pString,
     _In_reads_opt_(cch) const wchar_t* const pch,
@@ -177,7 +177,7 @@ BOOL VReg__WStringAssign(
     return TRUE;
 }
 
-BOOL VReg__WStringAppend(
+VREGDEF BOOL VReg__WStringAppend(
     _In_opt_ void* const pAllocContext,
     _Inout_ VReg__WString* const pString,
     _In_reads_(cch) const wchar_t* const pch,
@@ -194,12 +194,12 @@ BOOL VReg__WStringAppend(
     return TRUE;
 }
 
-BOOL VReg__WStringAppendChar(_In_opt_ void* const pAllocContext, _Inout_ VReg__WString* const pString, const wchar_t ch)
+VREGDEF BOOL VReg__WStringAppendChar(_In_opt_ void* const pAllocContext, _Inout_ VReg__WString* const pString, const wchar_t ch)
 {
     return VReg__WStringAppend(pAllocContext, pString, &ch, 1);
 }
 
-void VReg__WStringTruncate(_Inout_ VReg__WString* const pString, const SIZE_T cch)
+VREGDEF void VReg__WStringTruncate(_Inout_ VReg__WString* const pString, const SIZE_T cch)
 {
     VREG_ASSERT(cch <= pString->cch);
     pString->cch = cch;
@@ -207,7 +207,7 @@ void VReg__WStringTruncate(_Inout_ VReg__WString* const pString, const SIZE_T cc
         pString->psz[cch] = L'\0';
 }
 
-void VReg__WStringFree(_In_opt_ void* const pAllocContext, _Inout_ VReg__WString* const pString)
+VREGDEF void VReg__WStringFree(_In_opt_ void* const pAllocContext, _Inout_ VReg__WString* const pString)
 {
     VReg__Free(pAllocContext, pString->psz);
     pString->psz = NULL;
@@ -215,7 +215,7 @@ void VReg__WStringFree(_In_opt_ void* const pAllocContext, _Inout_ VReg__WString
     pString->cchCapacity = 0;
 }
 
-BOOL VReg__ArrayReserve(
+VREGDEF BOOL VReg__ArrayReserve(
     _In_opt_ void* const pAllocContext,
     _Inout_ VReg__Array* const pArray,
     const SIZE_T cbElement,
@@ -235,7 +235,7 @@ BOOL VReg__ArrayReserve(
     return TRUE;
 }
 
-BOOL VReg__ArrayInsert(
+VREGDEF BOOL VReg__ArrayInsert(
     _In_opt_ void* const pAllocContext,
     _Inout_ VReg__Array* const pArray,
     const SIZE_T cbElement,
@@ -259,7 +259,7 @@ BOOL VReg__ArrayInsert(
     return TRUE;
 }
 
-BOOL VReg__ArrayAppend(
+VREGDEF BOOL VReg__ArrayAppend(
     _In_opt_ void* const pAllocContext,
     _Inout_ VReg__Array* const pArray,
     const SIZE_T cbElement,
@@ -269,7 +269,7 @@ BOOL VReg__ArrayAppend(
     return VReg__ArrayInsert(pAllocContext, pArray, cbElement, pArray->count, pElement);
 }
 
-void VReg__ArrayRemoveAt(_Inout_ VReg__Array* const pArray, const SIZE_T cbElement, const SIZE_T index)
+VREGDEF void VReg__ArrayRemoveAt(_Inout_ VReg__Array* const pArray, const SIZE_T cbElement, const SIZE_T index)
 {
     BYTE* const pbAt = (BYTE*)pArray->p + index * cbElement;
     VREG_ASSERT(index < pArray->count);
@@ -277,7 +277,7 @@ void VReg__ArrayRemoveAt(_Inout_ VReg__Array* const pArray, const SIZE_T cbEleme
     --pArray->count;
 }
 
-void VReg__ArrayFree(_In_opt_ void* const pAllocContext, _Inout_ VReg__Array* const pArray)
+VREGDEF void VReg__ArrayFree(_In_opt_ void* const pAllocContext, _Inout_ VReg__Array* const pArray)
 {
     VReg__Free(pAllocContext, pArray->p);
     pArray->p = NULL;
@@ -285,7 +285,7 @@ void VReg__ArrayFree(_In_opt_ void* const pAllocContext, _Inout_ VReg__Array* co
     pArray->capacity = 0;
 }
 
-BOOL VReg__WStringArrayAppend(
+VREGDEF BOOL VReg__WStringArrayAppend(
     _In_opt_ void* const pAllocContext,
     _Inout_ VReg__Array* const pArray,
     const VReg__WStringView text
@@ -303,7 +303,7 @@ BOOL VReg__WStringArrayAppend(
     return TRUE;
 }
 
-void VReg__WStringArrayFree(_In_opt_ void* const pAllocContext, _Inout_ VReg__Array* const pArray)
+VREGDEF void VReg__WStringArrayFree(_In_opt_ void* const pAllocContext, _Inout_ VReg__Array* const pArray)
 {
     SIZE_T i;
     for (i = 0; i < pArray->count; ++i)
@@ -312,7 +312,7 @@ void VReg__WStringArrayFree(_In_opt_ void* const pAllocContext, _Inout_ VReg__Ar
     VReg__ArrayFree(pAllocContext, pArray);
 }
 
-BOOL VReg__WStringArrayInsertSorted(
+VREGDEF BOOL VReg__WStringArrayInsertSorted(
     _In_opt_ void* const pAllocContext,
     _Inout_ VReg__Array* const pList,
     const VReg__WStringView name
@@ -344,7 +344,7 @@ BOOL VReg__WStringArrayInsertSorted(
     return TRUE;
 }
 
-BOOL VReg__WStringArrayContainsSorted(_In_ const VReg__Array* const pList, const VReg__WStringView name)
+VREGDEF BOOL VReg__WStringArrayContainsSorted(_In_ const VReg__Array* const pList, const VReg__WStringView name)
 {
     SIZE_T lo = 0;
     SIZE_T hi = pList->count;

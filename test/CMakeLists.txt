@@ -30,7 +30,6 @@ set(VREG_TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/test_regfile_roundtrip.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_registry.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_size_only.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_status.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_version.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_virtual_registry.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/thread.h

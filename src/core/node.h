@@ -77,34 +77,8 @@ struct VReg__Node
 
 /// Ordinal comparison of uppercased names, the registry's own collation:
 /// negative, zero or positive.
-int VReg__CompareNames(VReg__WStringView left, VReg__WStringView right);
+VREGDEF int VReg__CompareNames(VReg__WStringView left, VReg__WStringView right);
 
 #ifdef __cplusplus
 } // extern "C"
 #endif
-
-#ifdef __cplusplus
-
-#include <string_view>
-
-namespace VReg
-{
-inline int CompareNames(
-    const std::wstring_view left,
-    const std::wstring_view right
-) noexcept
-{
-    return VReg__CompareNames({left.data(), left.size()}, {right.data(), right.size()});
-}
-
-/// Whether @p left sorts before @p right by @ref CompareNames.
-inline bool NameLess(
-    const std::wstring_view left,
-    const std::wstring_view right
-) noexcept
-{
-    return CompareNames(left, right) < 0;
-}
-} // namespace VReg
-
-#endif // __cplusplus

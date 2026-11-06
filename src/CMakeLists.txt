@@ -1,6 +1,7 @@
 vreg_add_library(VReg STATIC)
 
 target_sources(VReg_VReg PUBLIC FILE_SET HEADERS BASE_DIRS ${PROJECT_SOURCE_DIR}/include FILES
+    ${PROJECT_SOURCE_DIR}/include/VReg/api.h
     ${PROJECT_SOURCE_DIR}/include/VReg/core.h
     ${PROJECT_SOURCE_DIR}/include/VReg/handle.h
     ${PROJECT_SOURCE_DIR}/include/VReg/hive.h
@@ -15,7 +16,6 @@ target_sources(VReg_VReg PRIVATE
     core/alloc.c
     core/alloc.h
     core/ansi.c
-    core/ansi.cpp
     core/ansi.h
     core/buffer.c
     core/buffer.h
@@ -26,31 +26,25 @@ target_sources(VReg_VReg PRIVATE
     core/handle_space.c
     core/handle_space.h
     core/hive.c
-    core/hive.cpp
     core/hive.h
-    core/lock.h
     core/native_registry.c
-    core/native_registry.cpp
     core/node.h
     core/owned_reads.c
     core/owned_reads.h
     core/path.c
     core/path.h
     core/registry.c
-    core/registry.cpp
     core/retry.h
     core/rrf.h
     core/status.c
     core/status.h
     core/value_type.c
     core/value_type.h
-    core/version.cpp
+    core/version.c
     core/virtual_registry.c
-    core/virtual_registry.cpp
     regfile/apply.c
     regfile/export.c
     regfile/parse.c
-    regfile/regfile.cpp
     regfile/script.c
     regfile/script.h
     regfile/text.c

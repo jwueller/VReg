@@ -1,5 +1,7 @@
 #pragma once
 
+#include <VReg/api.h>
+
 #include <Windows.h>
 
 /// @file
@@ -34,20 +36,20 @@
 extern "C" {
 #endif
 
-void VReg__AssertFailed(void);
+VREGDEF void VReg__AssertFailed(void);
 
 /// Null for @p cb of zero or when memory ran out.
-_Ret_maybenull_ void* VReg__Alloc(_In_opt_ void* pAllocContext, SIZE_T cb);
+VREGDEF _Ret_maybenull_ void* VReg__Alloc(_In_opt_ void* pAllocContext, SIZE_T cb);
 
 /// Like @ref VReg__Alloc, zero-filled.
-_Ret_maybenull_ void* VReg__AllocZeroed(_In_opt_ void* pAllocContext, SIZE_T cb);
+VREGDEF _Ret_maybenull_ void* VReg__AllocZeroed(_In_opt_ void* pAllocContext, SIZE_T cb);
 
 /// Resizes @p p (null allocates) to @p cb bytes; null when memory ran out,
 /// leaving @p p as it was.
-_Ret_maybenull_ void* VReg__Realloc(_In_opt_ void* pAllocContext, _In_opt_ void* p, SIZE_T cb);
+VREGDEF _Ret_maybenull_ void* VReg__Realloc(_In_opt_ void* pAllocContext, _In_opt_ void* p, SIZE_T cb);
 
 /// Frees @p p; null is ignored.
-void VReg__Free(_In_opt_ void* pAllocContext, _In_opt_ void* p);
+VREGDEF void VReg__Free(_In_opt_ void* pAllocContext, _In_opt_ void* p);
 
 #ifdef __cplusplus
 } // extern "C"

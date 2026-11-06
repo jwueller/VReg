@@ -1,5 +1,6 @@
 #pragma once
 
+#include <VReg/api.h>
 #include <VReg/registry.h>
 
 #include <Windows.h>
@@ -48,12 +49,12 @@ typedef struct VReg__Node VReg__Node;
 
 /// A hive held entirely in memory; starts empty. @p pAllocContext is passed
 /// to every allocation the hive makes.
-LSTATUS WINAPI VRegCreateHive(_In_opt_ void* pAllocContext, _Outptr_ VRegHive** ppHive);
+VREGDEF LSTATUS WINAPI VRegCreateHive(_In_opt_ void* pAllocContext, _Outptr_ VRegHive** ppHive);
 
 /// A hive over the key @p pszLowerPath below @p hLowerRoot of @p pLower,
 /// which MUST outlive the hive. @p samLowerView (@ref KEY_WOW64_64KEY,
 /// @ref KEY_WOW64_32KEY or 0) is added to every lower open.
-LSTATUS WINAPI VRegCreateLayeredHive(
+VREGDEF LSTATUS WINAPI VRegCreateLayeredHive(
     _In_ VRegRegistry* pLower,
     _In_ HKEY hLowerRoot,
     _In_opt_z_ LPCWSTR pszLowerPath,
@@ -63,13 +64,13 @@ LSTATUS WINAPI VRegCreateLayeredHive(
 );
 
 /// Frees the hive and unbinds every handle it issued; null is ignored.
-void WINAPI VRegDestroyHive(_In_opt_ VRegHive* pHive);
+VREGDEF void WINAPI VRegDestroyHive(_In_opt_ VRegHive* pHive);
 
 /// Makes the hive immutable from now on, so its readers take no lock.
 /// Safe while it is mounted and in use; there is no way back.
-void WINAPI VRegFreezeHive(_In_ VRegHive* pHive);
+VREGDEF void WINAPI VRegFreezeHive(_In_ VRegHive* pHive);
 
-BOOL WINAPI VRegIsHiveFrozen(_In_ VRegHive* pHive);
+VREGDEF BOOL WINAPI VRegIsHiveFrozen(_In_ VRegHive* pHive);
 
 /**
  * @brief Creates the key @p pszPath below the hive's root if needed and sets
@@ -81,7 +82,7 @@ BOOL WINAPI VRegIsHiveFrozen(_In_ VRegHive* pHive);
  *  @p pszText itself. Any other write of the value drops the mark, and a
  *  `.reg` export carries it as a plain string.
  */
-LSTATUS WINAPI VRegSetHiveMuiTextValue(
+VREGDEF LSTATUS WINAPI VRegSetHiveMuiTextValue(
     _In_ VRegHive* pHive,
     _In_opt_z_ LPCWSTR pszPath,
     _In_opt_z_ LPCWSTR pszName,
@@ -91,234 +92,3 @@ LSTATUS WINAPI VRegSetHiveMuiTextValue(
 #ifdef __cplusplus
 } // extern "C"
 #endif
-
-#ifdef __cplusplus
-
-#include <cstddef>
-#include <span>
-#include <string>
-#include <string_view>
-#include <vector>
-
-namespace VReg
-{
-using Node = VReg__Node;
-
-/// A path below a key, one name per component, already split and validated.
-using KeyPath = std::span<const std::wstring_view>;
-
-/// What @ref Registry::RegQueryInfoKeyW reports, as owned values. Lengths
-/// are in characters without terminators, except @ref cbMaxValue.
-struct KeyInfo
-{
-    std::wstring className;
-    DWORD cSubKeys = 0;
-    DWORD cchMaxSubKey = 0;
-    DWORD cchMaxClass = 0;
-    DWORD cValues = 0;
-    DWORD cchMaxValueName = 0;
-    DWORD cbMaxValue = 0;
-    FILETIME lastWrite{};
-};
-
-/// Where an open landed: a node of the hive, or (for a key a frozen overlay
-/// leaves untouched) a handle @ref Hive::Lower opened, which the caller now
-/// owns.
-struct OpenResult
-{
-    Node* pNode = nullptr;
-    HKEY hLower = nullptr;
-};
-
-/// One entry of a hive's own layer, as @ref Hive::SnapshotUpper lists it.
-struct UpperRecord
-{
-    enum class Kind
-    {
-        Key,
-        Value,
-    } kind{};
-
-    /// The key, relative to the hive's root and separated by backslashes; empty
-    /// for the root itself.
-    std::wstring path;
-
-    /// Values only; empty for the default value.
-    std::wstring name;
-
-    /// Values only.
-    DWORD dwType = REG_NONE;
-
-    /// Values only.
-    std::vector<std::byte> data;
-
-    /// A key or value of the lower layer that is deleted here.
-    bool isTombstone = false;
-
-    /// Keys only: the key hides everything the lower key of this path holds (it
-    /// was deleted and created again, or emptied by
-    /// @ref Registry::RegDeleteTreeW).
-    bool isOpaque = false;
-};
-
-/// A @ref VRegHive owned by a C++ object, with the node-level interface of
-/// `core/hive.h` over owned STL values. The interface is node-level with owned
-/// values. Caller buffers, ANSI and wide, and handles stay in
-/// @ref VirtualRegistry, once for every hive.
-class Hive final
-{
-public:
-    /// A hive held entirely in memory; starts empty. Throws
-    /// @ref std::bad_alloc.
-    Hive();
-
-    /// A hive over the key @p pszLowerPath below @p hLowerRoot of @p lower,
-    /// which MUST outlive the hive. @p samLowerView (@ref KEY_WOW64_64KEY,
-    /// @ref KEY_WOW64_32KEY or 0) is added to every lower open. Throws
-    /// @ref std::bad_alloc.
-    Hive(
-        Registry& lower,
-        HKEY hLowerRoot,
-        _In_z_ LPCWSTR pszLowerPath,
-        REGSAM samLowerView = 0
-    );
-
-    ~Hive();
-
-    Hive(const Hive&) = delete;
-    Hive& operator=(const Hive&) = delete;
-
-    /// The C hive, for @ref VirtualRegistry::Mount and the C functions.
-    [[nodiscard]] _Ret_notnull_ VRegHive* Get() const noexcept;
-
-    void Freeze() noexcept;
-    [[nodiscard]] bool IsFrozen() const noexcept;
-
-    [[nodiscard]] _Ret_notnull_ Node* Root() const noexcept;
-
-    /// The virtual handle of @p pNode.
-    [[nodiscard]] static HKEY HandleOf(_In_ const Node* pNode) noexcept;
-
-    /// The node a virtual handle of this copy of VReg belongs to; null for
-    /// any other handle.
-    [[nodiscard]] static _Ret_maybenull_ Node* NodeOf(HKEY hKey) noexcept;
-
-    /// The C hive @p pNode belongs to.
-    [[nodiscard]] static _Ret_notnull_ VRegHive* HiveOf(
-        _In_ const Node* pNode
-    ) noexcept;
-
-    LSTATUS OpenKey(
-        _In_ Node* pParent,
-        KeyPath path,
-        REGSAM samDesired,
-        OpenResult& result
-    ) const noexcept;
-
-    LSTATUS CreateKey(
-        _Inout_ Node* pParent,
-        KeyPath path,
-        _In_z_ LPCWSTR pszClassName,
-        DWORD dwOptions,
-        REGSAM samDesired,
-        OpenResult& result,
-        DWORD& dwDisposition
-    ) noexcept;
-
-    LSTATUS DeleteKey(
-        _Inout_ Node* pParent,
-        KeyPath path
-    ) noexcept;
-
-    LSTATUS DeleteTree(
-        _Inout_ Node* pNode
-    ) noexcept;
-
-    /// @p pData receives the data only when it is not null.
-    LSTATUS QueryValue(
-        _In_ Node* pNode,
-        _In_z_ LPCWSTR pszName,
-        DWORD& dwType,
-        DWORD& cbData,
-        _Out_opt_ std::vector<std::byte>* pData
-    ) const noexcept;
-
-    LSTATUS SetValue(
-        _Inout_ Node* pNode,
-        _In_z_ LPCWSTR pszName,
-        DWORD dwType,
-        std::span<const std::byte> data
-    ) noexcept;
-
-    LSTATUS DeleteValue(
-        _Inout_ Node* pNode,
-        _In_z_ LPCWSTR pszName
-    ) noexcept;
-
-    LSTATUS SetMuiTextValue(
-        _Inout_ Node* pNode,
-        _In_z_ LPCWSTR pszName,
-        _In_z_ LPCWSTR pszText
-    ) noexcept;
-
-    LSTATUS QueryMuiText(
-        _In_ Node* pNode,
-        _In_z_ LPCWSTR pszName,
-        std::wstring& text
-    ) const noexcept;
-
-    LSTATUS EnumKey(
-        _In_ Node* pNode,
-        DWORD dwIndex,
-        std::wstring& name,
-        std::wstring& className,
-        FILETIME& lastWrite
-    ) const noexcept;
-
-    /// @p pData receives the data only when it is not null.
-    LSTATUS EnumValue(
-        _In_ Node* pNode,
-        DWORD dwIndex,
-        std::wstring& name,
-        DWORD& dwType,
-        DWORD& cbData,
-        _Out_opt_ std::vector<std::byte>* pData
-    ) const noexcept;
-
-    LSTATUS QueryInfo(
-        _In_ Node* pNode,
-        KeyInfo& info
-    ) const noexcept;
-
-    LSTATUS CheckKey(
-        _In_ Node* pNode
-    ) const noexcept;
-
-    LSTATUS Watch(
-        _In_ Node* pNode,
-        BOOL bWatchSubtree,
-        DWORD dwFilter,
-        HANDLE hEvent
-    ) const noexcept;
-
-    LSTATUS SnapshotUpper(std::vector<UpperRecord>& records) const noexcept;
-
-    /// The registry below this hive, which answers the handles in
-    /// @ref OpenResult::hLower; null for a hive with nothing below it.
-    [[nodiscard]] _Ret_maybenull_ VRegRegistry* Lower() const noexcept;
-
-    /// A key of @ref Lower holding value @p pszName of @p pNode, when that value
-    /// shows through from below; null (and success) when the hive holds it
-    /// or nothing does. The caller closes it through @ref Lower.
-    LSTATUS OpenLowerValueKey(
-        _In_ Node* pNode,
-        _In_z_ LPCWSTR pszName,
-        HKEY& hLower
-    ) const noexcept;
-
-private:
-    VRegHive* m_pHive;
-};
-} // namespace VReg
-
-#endif // __cplusplus
