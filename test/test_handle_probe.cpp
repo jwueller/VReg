@@ -2,7 +2,7 @@
 // opens keys through every route that might tag a handle and checks that
 // assumption against the running system (and against Wine in CI).
 
-#include <VReg/handle.h>
+#include <vreg.h>
 
 #include <catch2/catch_test_macros.hpp>
 

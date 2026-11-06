@@ -3,9 +3,7 @@
 
 #include "scenario.h"
 
-#include <VReg/hive.h>
-
-#include "core/hive.h"
+#include <vreg.h>
 
 #include <Shlwapi.h>
 

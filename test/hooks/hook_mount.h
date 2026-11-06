@@ -2,11 +2,7 @@
 
 #include "../intercept_registry.h"
 
-#include <VReg/detours.h>
-#include <VReg/hive.h>
-#include <VReg/native_registry.h>
-#include <VReg/registry.h>
-#include <VReg/virtual_registry.h>
+#include <vreg.h>
 
 #include <Windows.h>
 

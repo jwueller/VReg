@@ -4,12 +4,7 @@
 // a script is created through the C functions, freed when its owner goes, and
 // passed to the flat functions as the plain pointer the owner converts to.
 
-#include <VReg/hive.h>
-#include <VReg/native_registry.h>
-#include <VReg/regfile.h>
-#include <VReg/virtual_registry.h>
-
-#include "core/hive.h"
+#include <vreg.h>
 
 #include <catch2/catch_test_macros.hpp>
 

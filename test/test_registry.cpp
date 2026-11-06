@@ -1,7 +1,7 @@
 // The owned-value forms of Registry, over NativeRegistry on a private app
 // hive.
 
-#include <VReg/native_registry.h>
+#include <vreg.h>
 
 #include "oracle.h"
 #include "owned_values.h"

@@ -2,12 +2,7 @@
 #include "owned_values.h"
 #include "scenario.h"
 
-#include <VReg/handle.h>
-#include <VReg/hive.h>
-#include <VReg/native_registry.h>
-#include <VReg/virtual_registry.h>
-
-#include "core/hive.h"
+#include <vreg.h>
 
 #include <catch2/catch_test_macros.hpp>
 

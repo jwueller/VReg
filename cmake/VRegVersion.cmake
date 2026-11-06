@@ -1,11 +1,12 @@
 # The version of the sources at a directory, computed the same way when CMake
 # configures (include this file, then call vreg_compute_version) and on every
-# build (run it with -P, which writes the header GetFileVersion() and
-# GetVersion() report from, so a commit made since configuring cannot
+# build (run it with -P, which writes the macros VRegGetFileVersion and
+# VRegGetVersion report from, so a commit made since configuring cannot
 # leave them stale).
 #
-# vcpkg.json owns MAJOR.MINOR.PATCH: the version under development, which its
-# commit becomes once tagged v<version>. TWEAK counts the commits in the
+# vreg.h owns MAJOR.MINOR.PATCH (VREG_VERSION_MAJOR and its companions): the
+# version under development, which its commit becomes once tagged
+# v<version>. TWEAK counts the commits in the
 # history, so the four-part number orders every build. The string is semver:
 # the tagged commit built unchanged is the release (X.Y.Z+<commit>); any other
 # build of a git checkout is a preview counting the commits since the last v*
@@ -31,14 +32,15 @@ endmacro()
 # SOURCE_DIR; COMMIT, when not empty, replaces what git would say. STRICT is
 # true for a build of VReg itself.
 function(vreg_compute_version sourceDir commit strict)
-    file(READ "${sourceDir}/vcpkg.json" manifest)
-    string(JSON version GET "${manifest}" version-semver)
-    if(NOT version MATCHES "^([0-9]+)[.]([0-9]+)[.]([0-9]+)$")
-        message(FATAL_ERROR "vcpkg.json's version-semver is not MAJOR.MINOR.PATCH: ${version}")
-    endif()
-    set(major "${CMAKE_MATCH_1}")
-    set(minor "${CMAKE_MATCH_2}")
-    set(patch "${CMAKE_MATCH_3}")
+    file(STRINGS "${sourceDir}/vreg.h" defines REGEX "^#define VREG_VERSION_(MAJOR|MINOR|PATCH) ")
+    foreach(part IN ITEMS MAJOR MINOR PATCH)
+        if(NOT defines MATCHES "#define VREG_VERSION_${part} ([0-9]+)")
+            message(FATAL_ERROR "vreg.h does not define VREG_VERSION_${part} as a number.")
+        endif()
+        string(TOLOWER "${part}" name)
+        set(${name} "${CMAKE_MATCH_1}")
+    endforeach()
+    set(version "${major}.${minor}.${patch}")
     set(tweak 0)
     set(text "${version}")
     set(metadata "${commit}")
@@ -105,7 +107,7 @@ function(vreg_compute_version sourceDir commit strict)
             set(metadata "${CMAKE_MATCH_3}${CMAKE_MATCH_4}")
             if(tag STREQUAL version AND distance GREATER 0)
                 vreg_version_problem("v${version} is released and ${distance} commits follow it: "
-                                     "raise the version in vcpkg.json to the next one.")
+                                     "raise the version in vreg.h to the next one.")
             endif()
             if(NOT (tag STREQUAL version AND metadata MATCHES "^[0-9a-f]+$"))
                 string(APPEND text "-preview.${distance}")
@@ -134,27 +136,16 @@ function(vreg_compute_version sourceDir commit strict)
     set(VREG_VERSION "${text}" PARENT_SCOPE)
 endfunction()
 
-# Sets ${var} to the body of core/version_info.h, the constants GetFileVersion()
-# and GetVersion() return, for the VREG_VERSION* variables in scope. The header
-# that includes <VReg/version.h> around it is written below; the amalgamator
-# emits the body alone where version.cpp includes the header.
-function(vreg_version_info_body var)
-    set(${var} "// Major, minor, patch and revision from the high word down, as MAKEDLLVERULL
-// packs them.
-#define VREG__FILE_VERSION \\
-    (((ULONGLONG)${VREG_VERSION_MAJOR} << 48) | ((ULONGLONG)${VREG_VERSION_MINOR} << 32) \\
-        | ((ULONGLONG)${VREG_VERSION_PATCH} << 16) | (ULONGLONG)${VREG_VERSION_TWEAK})
-
-#define VREG__VERSION_TEXT \"${VREG_VERSION}\"
-" PARENT_SCOPE)
-endfunction()
-
-# Run with -P: writes OUTPUT for the sources at SOURCE_DIR, rewriting it only
-# when its text changes, so only what includes it rebuilds.
+# Run with -P: writes OUTPUT for the sources at SOURCE_DIR, the macros vreg.h
+# takes the revision and the text from, rewriting it only when its text
+# changes, so only what includes it rebuilds.
 if(CMAKE_SCRIPT_MODE_FILE STREQUAL CMAKE_CURRENT_LIST_FILE)
     vreg_compute_version("${SOURCE_DIR}" "${COMMIT}" "${STRICT}")
-    vreg_version_info_body(body)
-    set(header "#pragma once\n\n#include <Windows.h>\n\n${body}")
+    set(header "#pragma once
+
+#define VREG__VERSION_REVISION ${VREG_VERSION_TWEAK}
+#define VREG__VERSION_TEXT \"${VREG_VERSION}\"
+")
     if(EXISTS "${OUTPUT}")
         file(READ "${OUTPUT}" old)
     endif()

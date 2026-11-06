@@ -44,9 +44,8 @@ work is done; git keeps how it got there.
   separately built copies, so it never changes.
 - **Hooks are never detached**; they are neutralized through their slot.
   Nothing calls `DetourDetach`.
-- **No `std::mutex` in the library.** It locks with `SRWLOCK`
-  ([src/core/lock.h](./src/core/lock.h) says why); Wine's `msvcp140.dll`
-  aborts on the current `std::mutex`.
+- **No `std::mutex` in the library.** It locks with `SRWLOCK`; Wine's
+  `msvcp140.dll` aborts on the current `std::mutex`.
 
 ## Code conventions
 
@@ -61,8 +60,8 @@ the API it reimplements. Change them freely before the first release.
 - Public functions are `VReg` plus a PascalCase name, `WINAPI`, declared
   with `VREGDEF`; the `Reg*` family is `VReg` plus the Win32 name. Private
   functions, static ones included, are `VReg__Name` (double underscore)
-  with a name unique across every source file, since the amalgamation
-  compiles them all in one translation unit. Private types are
+  with a name unique across `vreg.h`, since its implementation is one
+  translation unit. Private types are
   `VReg__Name`, public ones `VRegName`.
 - Hungarian prefixes like the Win32 API beside them: parameters and locals
   (`pszPath`, `cbData`, `hKey`), struct members in Win32's shape without
@@ -71,15 +70,16 @@ the API it reimplements. Change them freely before the first release.
   case-insensitive filesystem and breaks on a case-sensitive one, so case
   never carries meaning in a path. For the same reason, a Windows SDK header
   is included as the SDK spells its file (`Windows.h`, `Shlwapi.h`).
-- Public headers include each other as `<VReg/name.h>`, and a private header
-  is included by its path under `src/` (`"core/status.h"`) from every
-  module alike; `src/` is on the include path of every target that needs
-  them. The amalgamator resolves exactly these two forms.
-- Headers use `#pragma once`, not include guards: every compiler that builds
-  VReg supports it, and where it fails (one header reached through two
-  paths, as with two vendored copies) guards would silently mix versions
-  instead. Every header wraps its declarations in `extern "C"` under
-  `__cplusplus`.
+- The library is `vreg.h` alone, included as `<vreg.h>`. A declaration or
+  definition goes in the part its visibility gives it (public, the hooks'
+  declarations, private, implementation, the hooks' implementation), inside
+  the titled section of its area; each declaration part is wrapped once in
+  `extern "C"` under `__cplusplus`.
+- `vreg.h` has explicit guards, one per part, since it is entered again
+  with `VREG_IMPLEMENTATION` after an earlier include. Other headers (the
+  tests') use `#pragma once`: every compiler that builds VReg supports it,
+  and where it fails (one header reached through two paths) guards would
+  silently mix versions instead.
 - Constants are macros, ALL_CAPS like the Win32 ones beside them, prefixed
   `VREG_` when public (`VREG_VIRTUAL_HKEY_BASE`) and `VREG__` when private
   (`VREG__INITIAL_NAME_CHARS`). A name a Windows header already defines
@@ -132,7 +132,7 @@ the API it reimplements. Change them freely before the first release.
   them parenthesized, `(std::max)(a, b)`.
 - Macros are tested with `#ifdef` or `#ifndef`, never with `defined`: a
   condition over several macros becomes nested or consecutive blocks, and an
-  `#elif` chain separate ones. An include guard (the generated `vreg.h` has
+  `#elif` chain separate ones. An include guard (`vreg.h` has
   them) keeps its usual shape and is never folded into another condition.
 - No init-statement in an `if`, and no state-changing call inside its
   condition: assign the result in a statement of its own first. A single

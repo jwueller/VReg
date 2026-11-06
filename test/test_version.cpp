@@ -1,4 +1,4 @@
-#include <VReg/core.h>
+#include <vreg.h>
 
 #include <catch2/catch_test_macros.hpp>
 

@@ -1,7 +1,6 @@
 find_package(Catch2 3 CONFIG REQUIRED)
 include(Catch)
 
-# Shared with test/amalgamation, so the files are absolute.
 set(VREG_TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/app_hive_registry.h
     ${CMAKE_CURRENT_SOURCE_DIR}/intercept_registry.h
@@ -47,13 +46,10 @@ target_link_libraries(VReg_Tests PRIVATE
     Shlwapi
 )
 
-# The tests reach internal headers as well as the public ones.
-target_include_directories(VReg_Tests PRIVATE
-    ${PROJECT_SOURCE_DIR}/src
-)
-
-# What GetFileVersion() must report.
+# The tests reach the private declarations as well as the public ones, and
+# check what VRegGetFileVersion reports.
 target_compile_definitions(VReg_Tests PRIVATE
+    VREG__INTERNAL
     VREG_TEST_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
     VREG_TEST_VERSION_MINOR=${PROJECT_VERSION_MINOR}
     VREG_TEST_VERSION_PATCH=${PROJECT_VERSION_PATCH}
@@ -83,4 +79,3 @@ if(TARGET VReg_Detours)
 endif()
 
 add_subdirectory(headers)
-add_subdirectory(amalgamation)

@@ -8,16 +8,31 @@ the [README](./README.md), how to build, test and release it in
 
 ### Targets
 
+The whole library is one hand-maintained file, `vreg.h`, in the stb style:
+public declarations, the hooks' declarations (behind `VREG_WITH_DETOURS`),
+private declarations, the implementation (behind `VREG_IMPLEMENTATION`) and
+the hooks' implementation, each part split into titled sections. The CMake
+targets compile it from one-line files under `src/`:
+
 - `VReg::VReg`: the registry function table and its flat functions, the
   native and virtual registries, hives, handle encoding and the shared
-  handle namespace (`src/core/`), and `.reg` parse, apply, snapshot, delta
-  and write (`src/regfile/`).
-- `VReg::Detours`: the hook adapter; built only with `VREG_WITH_DETOURS`
-  (off by default), since it needs Microsoft Detours.
+  handle namespace, and `.reg` parse, apply, snapshot, delta and write
+  (`src/vreg.c`).
+- `VReg::Detours`: the hook adapter (`src/detours/hooks.c`); built only with
+  `VREG_WITH_DETOURS` (off by default), since it needs Microsoft Detours. It
+  compiles the hooks' part alone (`VREG__HOOKS_IMPLEMENTATION`) over the
+  private declarations, and links `VReg::VReg` for the rest.
 
-One library target, not one per directory: nothing uses `.reg` support
-without the core, the single header merges them anyway, and a static library
-costs a consumer only the objects it links. The handle layer lives in the
+The private declarations show under `VREG__INTERNAL` without the
+implementation, for the tests, which reach into hives, the handle space and
+the export table. Agent's choice: one file rather than a tree of sources
+merged into a generated header, so what a consumer copies is what
+contributors edit; the cost is a long file, navigated by its section
+banners.
+
+One library target for the core, not one per area: nothing uses `.reg`
+support without the core, and a static library costs a consumer only the
+objects it links. The handle layer lives in the
 core: every non-native implementation hands out handles, so none of them
 exists without it.
 
@@ -43,7 +58,7 @@ function is declared `VREGDEF`, which `VREG_STATIC` turns into `static`.
 - Callers use the flat functions, `VReg` plus the Win32 name with the
   registry first (`VRegOpenKeyExW(pRegistry, hKey, ...)`). A flat function
   calls its slot when the table fills it; otherwise it derives the call from
-  the wide `Ex` forms, once, in `src/core/forms.c`: ANSI forms widen and
+  the wide `Ex` forms, once, in the "Derived forms" section: ANSI forms widen and
   narrow through `CP_ACP` in both directions (ANSI callers use the system
   code page; UTF-8 there corrupts non-ASCII names and data), and the
   conveniences are built as Win32 builds them. An implementation fills the
@@ -86,7 +101,7 @@ Implementations:
 A tree with one anonymous root, mounted at a path; several can be mounted at
 once, as with `RegLoadKey`. The public functions create, layer, freeze and
 destroy a `VRegHive` and set MUI text by path; the node-level interface the
-virtual registry uses (`src/core/hive.h`, `VReg__Hive*`) answers owned
+virtual registry uses (the private "Hive internals" section, `VReg__Hive*`) answers owned
 values, allocated with the hive's context, while buffer and ANSI/wide rules
 stay in the virtual registry. One struct covers both kinds of hive, since
 they differ only in whether reads fall through: an in-memory hive is a
@@ -374,7 +389,7 @@ which would re-enter the hooks and bypass test stubs.
 
 ### API
 
-In `include/VReg/regfile.h`, everything is a `VRegScript`: an ordered list
+In the ".reg scripts" section, everything is a `VRegScript`: an ordered list
 of `VRegOperation`s (create key, delete key, set value, delete value, each
 with its root, path, name, type and data), which parsing produces, applying
 performs, snapshot and delta produce, and one writer lays out. Parse and
@@ -480,12 +495,11 @@ Catch2.
   statically, covering the shared handle namespace, chaining and
   neutralize-on-unload.
 - **Handle probe**: the parity measurement above as a permanent test.
-- **Single header**: the whole suite again, against the implementation
-  compiled from `vreg.h` alone, as C; and that implementation compiled
-  warning-free as C, and its declarations as C++, after a plain
+- **Single header** (`test/headers`): the implementation compiled
+  warning-free as C, and the declarations as C++, after a plain
   `#include <Windows.h>`, without `/utf-8`, under every combination of
-  `WIN32_LEAN_AND_MEAN`, `UNICODE` and `NOMINMAX`. The public headers compile
-  as C and as C++ under the same combinations.
+  `WIN32_LEAN_AND_MEAN`, `UNICODE` and `NOMINMAX`, and for Windows Vista and
+  Windows 7 as `_WIN32_WINNT`.
 
 ### CI (GitHub Actions, public repository)
 
@@ -505,29 +519,27 @@ Catch2.
 - Static libraries only: each module links its own copy and the copies meet
   in the shared handle namespace, so a DLL would buy nothing, and two
   modules shipping different builds of it would collide on its name.
-- The single header `vreg.h` is generated on every build by
-  `cmake/VRegAmalgamate.cmake` and never edited: each file of `include/`
-  and `src/` inlined once where first included, the implementation behind
-  `VREG_IMPLEMENTATION` and the hooks also behind `VREG_WITH_DETOURS`. It
-  is the same code as the libraries, so it needs no tests of its own beyond
-  being compiled from one file (see "Single header" above).
+- `vreg.h` is the same code the libraries compile, so a consumer that
+  copies it needs neither CMake nor vcpkg; the release attaches it too.
   - Its guards are explicit, not `#pragma once`: the file that defines
     `VREG_IMPLEMENTATION` may include it a second time after an earlier
     include without it.
-  - All sources become one translation unit, so every static helper
-    carries `VReg__` and a name unique across the library, not just its
-    file. `VREG_STATIC` makes the library's own functions static as well.
-  - The implementation `#undef`s the macros it defines; only the public
-    headers' `VREG_` macros stay visible.
-  - The version is two macros in the generated `core/version_info.h`,
-    written by `cmake/VRegVersion.cmake` for the library build and emitted
-    in the header's place by the amalgamator, from the same function.
+  - The implementation is one translation unit, so every static helper
+    carries `VReg__` and a name unique across the file.
+    `VREG_STATIC` makes the library's own functions static as well.
+  - The implementation `#undef`s its local helper macros (X-macro
+    callbacks, the version's stringizing).
+  - The version: `VREG_VERSION_MAJOR`, `_MINOR` and `_PATCH` are written
+    in the header. The CMake build adds the revision and the preview text
+    git describes through a header `cmake/VRegVersion.cmake` writes on
+    every build, which `src/vreg.c` includes first; a copied header
+    reports the plain version with revision 0. Agent's choice: the header
+    owns the version, so a copied file says which it is; keeping it in
+    `vcpkg.json` with a checked copy in the header was passed over as two
+    places to bump.
   - It carries the full license text, since it is copied on its own, and a
     UTF-8 BOM, since that text is not ASCII and MSVC otherwise reads it in
     the consumer's code page.
-  - Agent's choice: the release attaches it, so a consumer needs neither
-    CMake nor vcpkg; committing it to the repository was passed over, since
-    every commit would then need a regenerated copy.
 - Tests build only when VReg is the top-level project.
 - Detours is found as the vcpkg port lays it out (header plus library, no
   CMake config).

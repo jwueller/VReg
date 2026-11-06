@@ -2,7 +2,7 @@
 
 // Shared pieces of the .reg tests.
 
-#include <VReg/regfile.h>
+#include <vreg.h>
 
 #include "app_hive_registry.h"
 #include "oracle.h"

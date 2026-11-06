@@ -1,6 +1,4 @@
-#include <VReg/native_registry.h>
-
-#include "core/export_table.h"
+#include <vreg.h>
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
@@ -9,7 +7,6 @@
 #include <bit>
 #include <string>
 #include <vector>
-
 
 TEST_CASE("Export lookup agrees with the loader")
 {

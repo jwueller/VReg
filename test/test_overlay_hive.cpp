@@ -3,9 +3,7 @@
 #include "oracle.h"
 #include "thread.h"
 
-#include <VReg/handle.h>
-#include <VReg/native_registry.h>
-#include <VReg/virtual_registry.h>
+#include <vreg.h>
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>

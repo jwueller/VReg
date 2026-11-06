@@ -40,8 +40,8 @@ target_link_libraries(VReg_HookTests PRIVATE
     ktmw32
 )
 
-target_include_directories(VReg_HookTests PRIVATE
-    ${PROJECT_SOURCE_DIR}/src
+target_compile_definitions(VReg_HookTests PRIVATE
+    VREG__INTERNAL
 )
 
 set_target_properties(VReg_HookTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${_dir})

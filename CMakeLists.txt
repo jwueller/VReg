@@ -7,7 +7,7 @@ project(
     LANGUAGES C CXX
 )
 
-# vcpkg.json owns the version; cmake/VRegVersion.cmake derives the rest.
+# vreg.h owns the version; cmake/VRegVersion.cmake derives the rest.
 # PROJECT_VERSION_MAJOR to _TWEAK are numeric (TWEAK counts the commits), and
 # PROJECT_VERSION is the full semver string (X.Y.Z-preview.N+<commit>).
 set(VREG_SOURCE_COMMIT "" CACHE STRING "The commit to report for a build outside a git checkout")
@@ -22,7 +22,7 @@ foreach(part IN ITEMS MAJOR MINOR PATCH TWEAK)
 endforeach()
 set(PROJECT_VERSION "${VREG_VERSION}")
 set(VReg_VERSION "${VREG_VERSION}")
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/vcpkg.json)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/vreg.h)
 
 if(NOT WIN32)
     message(FATAL_ERROR "VReg targets Windows only.")
@@ -36,7 +36,6 @@ option(VREG_ANALYZE "Run MSVC code analysis (/analyze) over the library sources"
 include(GNUInstallDirs)
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 include(cmake/VRegTarget.cmake)
-include(cmake/VRegAmalgamate.cmake)
 
 add_subdirectory(src)
 

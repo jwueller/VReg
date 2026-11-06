@@ -2,19 +2,16 @@ find_package(Detours REQUIRED)
 
 vreg_add_library(Detours STATIC)
 
-target_sources(VReg_Detours PUBLIC FILE_SET HEADERS BASE_DIRS ${PROJECT_SOURCE_DIR}/include FILES
-    ${PROJECT_SOURCE_DIR}/include/VReg/detours.h
-)
-
 target_sources(VReg_Detours PRIVATE
     hooks.c
+)
+
+# Consumers see the hooks' declarations in vreg.h through the same macro.
+target_compile_definitions(VReg_Detours PUBLIC
+    VREG_WITH_DETOURS
 )
 
 target_link_libraries(VReg_Detours PUBLIC
     VReg::VReg
     Detours::Detours
-)
-
-target_include_directories(VReg_Detours PRIVATE
-    ${PROJECT_SOURCE_DIR}/src
 )

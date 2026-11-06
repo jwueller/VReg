@@ -39,14 +39,16 @@ Needs a C99 compiler (MSVC 2013 or later, or clang-cl; the headers compile
 as C++ too) and `_WIN32_WINNT` at `0x0600` (Windows Vista) or later. Its
 one dependency is `windows.h`: no C runtime beyond what the compiler needs,
 and `VREG_MALLOC`, `VREG_REALLOC` and `VREG_FREE` replace the allocator (the
-defaults use the process heap). The CMake targets also need CMake 3.25 or
-later; the [single header](#as-a-single-header) needs no build system.
+defaults use the process heap). The whole library is one file,
+[`vreg.h`](./vreg.h): copy it [as a single header](#as-a-single-header) and
+no build system is needed. The CMake targets need CMake 3.25 or later.
 
-CMake targets (static libraries):
+CMake targets (static libraries, both included as `<vreg.h>`):
 - `VReg::VReg`: the library: the function table, the registries, the hives,
   the handles, and `.reg` import and export.
 - `VReg::Detours`: the hooks. Enable it with `-DVREG_WITH_DETOURS=ON`;
-  needs Detours.
+  needs Detours. Linking it defines `VREG_WITH_DETOURS`, which declares
+  the hooks.
 
 Consume it through `add_subdirectory`/`FetchContent` (VReg then installs
 nothing with your project unless you set `VREG_INSTALL`), or install it and use
@@ -81,10 +83,10 @@ through to the real registry crashes.
 
 ### As a single header
 
-Each [release](https://github.com/jwueller/VReg/releases) attaches
-`vreg.h`, the whole library in one file (a build writes the same file to
-`amalgamation/` in its build directory). Include it anywhere, from C or C++;
-in exactly one C file per module, compile the library there:
+[`vreg.h`](./vreg.h) is the whole library, and each
+[release](https://github.com/jwueller/VReg/releases) attaches it. Include it
+anywhere, from C or C++; in exactly one C file per module, compile the
+library there:
 
 ```c
 #define VREG_IMPLEMENTATION

@@ -5,7 +5,7 @@
 #include "../oracle.h"
 #include "hook_mount.h"
 
-#include <VReg/handle.h>
+#include <vreg.h>
 
 #include <ktmw32.h>
 #include <winternl.h>

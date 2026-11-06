@@ -45,9 +45,10 @@ vcpkg x-add-version vreg --x-builtin-ports-root=ports --x-builtin-registry-versi
 
 ## Releasing
 
-The `version-semver` in [vcpkg.json](./vcpkg.json) is the version under
-development and the one place it is written; CMake and the library derive
-everything else from it (`cmake/VRegVersion.cmake`). Every build but the
+`VREG_VERSION_MAJOR`, `VREG_VERSION_MINOR` and `VREG_VERSION_PATCH` in
+[vreg.h](./vreg.h) are the version under development and the one place it
+is written; CMake and the library derive everything else from them
+(`cmake/VRegVersion.cmake`). Every build but the
 tagged release reports itself as a preview of it
 (`X.Y.Z-preview.N+<commit>`). CI checks that a release tag names that
 version, that the port names a tagged release, and that `versions/` is up
@@ -59,14 +60,13 @@ to date with the port.
    runs cover neither Wine nor clang-cl. Tag only a commit CI passed on.
 3. Tag it `vX.Y.Z` and push the tag. Once CI passes on the tag, it
    publishes the GitHub release, its notes the commit subjects since the
-   previous tag, with the single header `vreg.h` generated from the tag
-   attached.
+   previous tag, with the tag's `vreg.h` attached.
 4. Point the port at the release: set `version-semver` in
    [ports/vreg/vcpkg.json](./ports/vreg/vcpkg.json), and in
    [ports/vreg/portfile.cmake](./ports/vreg/portfile.cmake) the SHA512 of
    `https://github.com/jwueller/VReg/archive/vX.Y.Z.tar.gz`. Commit, add
    the version entry as [The vcpkg port](#the-vcpkg-port) describes,
    commit, and push.
-5. Start the next version: raise the patch version in vcpkg.json,
-   commit, and push. Until then a build past the tag stops with a reminder, since
+5. Start the next version: raise the patch version in vreg.h, commit,
+   and push. Until then a build past the tag stops with a reminder, since
    a preview of the released version would sort below it.

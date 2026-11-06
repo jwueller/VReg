@@ -2,7 +2,7 @@
 
 #include "objects.h"
 
-#include <VReg/registry.h>
+#include <vreg.h>
 
 #include <Windows.h>
 

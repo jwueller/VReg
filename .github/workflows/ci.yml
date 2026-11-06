@@ -78,7 +78,7 @@ jobs:
             out/build/${{ matrix.compiler }}-${{ matrix.arch }}/test/hooks/Release/*.exe
             out/build/${{ matrix.compiler }}-${{ matrix.arch }}/test/hooks/Release/*.dll
 
-  # vcpkg.json owns the version; these are the copies that must agree with it
+  # vreg.h owns the version; these are the copies that must agree with it
   # (CONTRIBUTING.md, "Releasing").
   versions:
     name: Versions
@@ -91,9 +91,11 @@ jobs:
       - name: A release tag names the version
         if: github.ref_type == 'tag'
         run: |
-          version=$(jq -r '."version-semver"' vcpkg.json)
+          version=$(for part in MAJOR MINOR PATCH; do
+            sed -n "s/^#define VREG_VERSION_$part \([0-9]*\)$/\1/p" vreg.h
+          done | paste -sd.)
           if [ "$GITHUB_REF_NAME" != "v$version" ]; then
-            echo "The tag $GITHUB_REF_NAME does not name vcpkg.json's version $version."
+            echo "The tag $GITHUB_REF_NAME does not name vreg.h's version $version."
             exit 1
           fi
 
@@ -190,5 +192,4 @@ jobs:
           previous=$(git describe --tags --abbrev=0 --match 'v*' "$GITHUB_REF_NAME^")
           git log --reverse --format='- %s' "$previous..$GITHUB_REF_NAME" |
             sed -E 's/(^|[^`[:alnum:]])@([[:alnum:]-]+)/\1`@\2`/g' > notes.md
-          cmake -D SOURCE_DIR="$PWD" -D OUTPUT_DIR="$PWD/out" -D STRICT=ON -P cmake/VRegAmalgamate.cmake
-          gh release create "$GITHUB_REF_NAME" out/vreg.h --verify-tag --title "$GITHUB_REF_NAME" --notes-file notes.md
+          gh release create "$GITHUB_REF_NAME" vreg.h --verify-tag --title "$GITHUB_REF_NAME" --notes-file notes.md

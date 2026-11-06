@@ -1,9 +1,4 @@
-#include <VReg/core.h>
-#include <VReg/regfile.h>
-
-#ifdef CONSUMER_WITH_DETOURS
-#include <VReg/detours.h>
-#endif
+#include <vreg.h>
 
 #include <Shlwapi.h>
 
