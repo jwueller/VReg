@@ -198,7 +198,7 @@ ${license}
 #define VREG_DETOURS_IMPLEMENTATION_INCLUDED
 
 ")
-    vreg_inline("${SOURCE_DIR}/src/detours/hooks.cpp")
+    vreg_inline("${SOURCE_DIR}/src/detours/hooks.c")
     vreg_put("#endif // VREG_DETOURS_IMPLEMENTATION_INCLUDED
 #endif // VREG_WITH_DETOURS
 #endif // VREG_IMPLEMENTATION

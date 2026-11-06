@@ -7,7 +7,7 @@ target_sources(VReg_Detours PUBLIC FILE_SET HEADERS BASE_DIRS ${PROJECT_SOURCE_D
 )
 
 target_sources(VReg_Detours PRIVATE
-    hooks.cpp
+    hooks.c
 )
 
 target_link_libraries(VReg_Detours PUBLIC
