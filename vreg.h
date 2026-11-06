@@ -12123,7 +12123,7 @@ static int VReg__HexDigit(const wchar_t ch)
     return -1;
 }
 
-static wchar_t VReg__ParseLower(const wchar_t ch)
+static wchar_t VReg__LowerAscii(const wchar_t ch)
 {
     return (ch >= L'A' && ch <= L'Z') ? (wchar_t)(ch - L'A' + L'a') : ch;
 }
@@ -12143,7 +12143,7 @@ static BOOL VReg__ViewEquals(const VReg__WStringView left, const VReg__WStringVi
     return TRUE;
 }
 
-static BOOL VReg__ViewEqualsIgnoreCase(const VReg__WStringView left, const VReg__WStringView right)
+static BOOL VReg__EqualsIgnoreAsciiCase(const VReg__WStringView left, const VReg__WStringView right)
 {
     SIZE_T i;
     if (left.cch != right.cch)
@@ -12151,7 +12151,7 @@ static BOOL VReg__ViewEqualsIgnoreCase(const VReg__WStringView left, const VReg_
 
     for (i = 0; i < left.cch; ++i)
     {
-        if (VReg__ParseLower(left.pch[i]) != VReg__ParseLower(right.pch[i]))
+        if (VReg__LowerAscii(left.pch[i]) != VReg__LowerAscii(right.pch[i]))
             return FALSE;
     }
 
@@ -12242,7 +12242,7 @@ static BOOL VReg__Consume(_Inout_ VReg__Parser* const pParser, _In_z_ const wcha
     const VReg__WStringView text = VReg__WStringViewOf(&pParser->text);
     if (text.cch - pParser->pos < token.cch)
         return FALSE;
-    if (!VReg__ViewEqualsIgnoreCase(VReg__Substring(text, pParser->pos, token.cch), token))
+    if (!VReg__EqualsIgnoreAsciiCase(VReg__Substring(text, pParser->pos, token.cch), token))
         return FALSE;
 
     pParser->pos += token.cch;
@@ -12753,26 +12753,6 @@ static const VReg__RootKey VREG__ROOT_KEYS[] = {
     {L"HKEY_USERS", L"HKU", HKEY_USERS},
     {L"HKEY_CURRENT_CONFIG", L"HKCC", HKEY_CURRENT_CONFIG},
 };
-
-static wchar_t VReg__LowerAscii(const wchar_t ch)
-{
-    return (ch >= L'A' && ch <= L'Z') ? (wchar_t)(ch - L'A' + L'a') : ch;
-}
-
-static BOOL VReg__EqualsIgnoreAsciiCase(const VReg__WStringView left, const VReg__WStringView right)
-{
-    SIZE_T i;
-    if (left.cch != right.cch)
-        return FALSE;
-
-    for (i = 0; i < left.cch; ++i)
-    {
-        if (VReg__LowerAscii(left.pch[i]) != VReg__LowerAscii(right.pch[i]))
-            return FALSE;
-    }
-
-    return TRUE;
-}
 
 VREGDEF _Ret_maybenull_z_ const wchar_t* VReg__RootName(_In_opt_ const HKEY hRoot)
 {
