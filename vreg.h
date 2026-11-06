@@ -2901,8 +2901,14 @@ static SIZE_T VReg__AnsiLength(_In_z_ const char* const psz)
     return cch;
 }
 
-VREGDEF LSTATUS VReg__WideFromAnsi(
+/// Widens @p cch bytes in @p codePage into @p pText with the
+/// @ref MultiByteToWideChar flags @p dwFlags. Answers
+/// @ref ERROR_NO_UNICODE_TRANSLATION when the conversion fails, leaving
+/// @p pText empty.
+static LSTATUS VReg__WideFromMultiByte(
     _In_opt_ void* const pAllocContext,
+    const UINT codePage,
+    const DWORD dwFlags,
     _In_reads_(cch) const char* const pch,
     const SIZE_T cch,
     _Inout_ VReg__WString* const pText
@@ -2911,16 +2917,60 @@ VREGDEF LSTATUS VReg__WideFromAnsi(
     int cchWide;
     if (cch > (SIZE_T)MAXINT32)
         return ERROR_OUTOFMEMORY;
+    if (!VReg__WStringResize(pAllocContext, pText, 0))
+        return ERROR_OUTOFMEMORY;
     if (cch == 0)
-        return VReg__WStringResize(pAllocContext, pText, 0) ? ERROR_SUCCESS : ERROR_OUTOFMEMORY;
+        return ERROR_SUCCESS;
 
-    cchWide = MultiByteToWideChar(CP_ACP, 0, pch, (int)cch, NULL, 0);
+    cchWide = MultiByteToWideChar(codePage, dwFlags, pch, (int)cch, NULL, 0);
+    if (cchWide <= 0)
+        return ERROR_NO_UNICODE_TRANSLATION;
     if (!VReg__WStringResize(pAllocContext, pText, (SIZE_T)cchWide))
         return ERROR_OUTOFMEMORY;
-    if (cchWide > 0)
-        MultiByteToWideChar(CP_ACP, 0, pch, (int)cch, pText->psz, cchWide);
 
+    MultiByteToWideChar(codePage, dwFlags, pch, (int)cch, pText->psz, cchWide);
     return ERROR_SUCCESS;
+}
+
+/// Narrows @p cch UTF-16 units into @p pText in @p codePage with the
+/// @ref WideCharToMultiByte flags @p dwFlags, reporting a default character
+/// through @p pfUsedDefault. Fails as @ref VReg__WideFromMultiByte does.
+static LSTATUS VReg__MultiByteFromWide(
+    _In_opt_ void* const pAllocContext,
+    const UINT codePage,
+    const DWORD dwFlags,
+    _Out_opt_ BOOL* const pfUsedDefault,
+    _In_reads_(cch) const wchar_t* const pch,
+    const SIZE_T cch,
+    _Inout_ VReg__Buffer* const pText
+)
+{
+    int cbText;
+    if (cch > (SIZE_T)MAXINT32)
+        return ERROR_OUTOFMEMORY;
+    if (!VReg__BufferResize(pAllocContext, pText, 0))
+        return ERROR_OUTOFMEMORY;
+    if (cch == 0)
+        return ERROR_SUCCESS;
+
+    cbText = WideCharToMultiByte(codePage, dwFlags, pch, (int)cch, NULL, 0, NULL, pfUsedDefault);
+    if (cbText <= 0)
+        return ERROR_NO_UNICODE_TRANSLATION;
+    if (!VReg__BufferResize(pAllocContext, pText, (SIZE_T)cbText))
+        return ERROR_OUTOFMEMORY;
+
+    WideCharToMultiByte(codePage, dwFlags, pch, (int)cch, (char*)pText->pb, cbText, NULL, pfUsedDefault);
+    return ERROR_SUCCESS;
+}
+
+VREGDEF LSTATUS VReg__WideFromAnsi(
+    _In_opt_ void* const pAllocContext,
+    _In_reads_(cch) const char* const pch,
+    const SIZE_T cch,
+    _Inout_ VReg__WString* const pText
+)
+{
+    return VReg__WideFromMultiByte(pAllocContext, CP_ACP, 0, pch, cch, pText);
 }
 
 VREGDEF LSTATUS VReg__AnsiFromWide(
@@ -2930,19 +2980,7 @@ VREGDEF LSTATUS VReg__AnsiFromWide(
     _Inout_ VReg__Buffer* const pText
 )
 {
-    int cchAnsi;
-    if (cch > (SIZE_T)MAXINT32)
-        return ERROR_OUTOFMEMORY;
-    if (cch == 0)
-        return VReg__BufferResize(pAllocContext, pText, 0) ? ERROR_SUCCESS : ERROR_OUTOFMEMORY;
-
-    cchAnsi = WideCharToMultiByte(CP_ACP, 0, pch, (int)cch, NULL, 0, NULL, NULL);
-    if (!VReg__BufferResize(pAllocContext, pText, (SIZE_T)cchAnsi))
-        return ERROR_OUTOFMEMORY;
-    if (cchAnsi > 0)
-        WideCharToMultiByte(CP_ACP, 0, pch, (int)cch, (char*)pText->pb, cchAnsi, NULL, NULL);
-
-    return ERROR_SUCCESS;
+    return VReg__MultiByteFromWide(pAllocContext, CP_ACP, 0, NULL, pch, cch, pText);
 }
 
 VREGDEF LSTATUS VReg__WideArgInit(
@@ -12918,20 +12956,11 @@ static LSTATUS VReg__Widen(
 )
 {
     const DWORD dwFlags = codePage == CP_UTF8 ? MB_ERR_INVALID_CHARS : 0;
-    int cchText;
-    if (!VReg__WStringResize(pAllocContext, pText, 0))
-        return ERROR_OUTOFMEMORY;
-    if (cb == 0)
-        return ERROR_SUCCESS;
-
-    cchText = MultiByteToWideChar(codePage, dwFlags, (const char*)pb, (int)cb, NULL, 0);
-    if (cchText <= 0)
+    const LSTATUS status = VReg__WideFromMultiByte(pAllocContext, codePage, dwFlags, (const char*)pb, cb, pText);
+    if (status == ERROR_NO_UNICODE_TRANSLATION)
         return VReg__DecodeFail(pError, "the text is not valid in its encoding");
-    if (!VReg__WStringResize(pAllocContext, pText, (SIZE_T)cchText))
-        return ERROR_OUTOFMEMORY;
 
-    MultiByteToWideChar(codePage, dwFlags, (const char*)pb, (int)cb, pText->psz, cchText);
-    return ERROR_SUCCESS;
+    return status;
 }
 
 VREGDEF LSTATUS VReg__DecodeFile(
@@ -12980,10 +13009,8 @@ VREGDEF LSTATUS VReg__EncodeFile(
 {
     UINT codePage;
     BOOL isUtf8;
-    DWORD dwFlags;
     BOOL fUsedDefault = FALSE;
-    BOOL* pfUsedDefault;
-    int cbFile;
+    LSTATUS status;
 
     if (!VReg__BufferResize(pAllocContext, pFile, 0))
         return ERROR_OUTOFMEMORY;
@@ -13006,18 +13033,17 @@ VREGDEF LSTATUS VReg__EncodeFile(
     // report.
     codePage = format == VREG_FORMAT_UTF8 ? CP_UTF8 : CP_ACP;
     isUtf8 = codePage == CP_UTF8 || GetACP() == CP_UTF8;
-    dwFlags = isUtf8 ? WC_ERR_INVALID_CHARS : WC_NO_BEST_FIT_CHARS;
-    pfUsedDefault = isUtf8 ? NULL : &fUsedDefault;
-    if (pText->cch == 0)
-        return ERROR_SUCCESS;
-
-    cbFile = WideCharToMultiByte(codePage, dwFlags, pText->psz, (int)pText->cch, NULL, 0, NULL, pfUsedDefault);
-    if (cbFile <= 0 || fUsedDefault)
-        return ERROR_NO_UNICODE_TRANSLATION;
-    if (!VReg__BufferResize(pAllocContext, pFile, (SIZE_T)cbFile))
-        return ERROR_OUTOFMEMORY;
-
-    WideCharToMultiByte(codePage, dwFlags, pText->psz, (int)pText->cch, (char*)pFile->pb, cbFile, NULL, pfUsedDefault);
+    status = VReg__MultiByteFromWide(
+        pAllocContext,
+        codePage,
+        isUtf8 ? WC_ERR_INVALID_CHARS : WC_NO_BEST_FIT_CHARS,
+        isUtf8 ? NULL : &fUsedDefault,
+        VReg__WStringText(pText),
+        pText->cch,
+        pFile
+    );
+    if (status != ERROR_SUCCESS)
+        return status;
     if (fUsedDefault)
     {
         pFile->cb = 0;
