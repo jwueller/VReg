@@ -184,7 +184,7 @@ ${license}
 
     # The sources in lexical order, core before regfile.
     file(GLOB core_sources "${SOURCE_DIR}/src/core/*.c" "${SOURCE_DIR}/src/core/*.cpp")
-    file(GLOB regfile_sources "${SOURCE_DIR}/src/regfile/*.cpp")
+    file(GLOB regfile_sources "${SOURCE_DIR}/src/regfile/*.c" "${SOURCE_DIR}/src/regfile/*.cpp")
     list(SORT core_sources)
     list(SORT regfile_sources)
     foreach(source IN LISTS core_sources regfile_sources)

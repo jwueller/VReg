@@ -2,9 +2,9 @@
 // hive.
 
 #include <VReg/native_registry.h>
-#include <VReg/owned_values.h>
 
 #include "oracle.h"
+#include "owned_values.h"
 
 #include <catch2/catch_test_macros.hpp>
 

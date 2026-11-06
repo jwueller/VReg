@@ -71,7 +71,7 @@ the API it reimplements. Change them freely before the first release.
   paths, as with two vendored copies) guards would silently mix versions
   instead.
 - Constants are ALL_CAPS like the Win32 ones beside them, with no `VREG_`
-  prefix: the namespace already carries it (`HEX_WRAP_COLUMN` in `regfile/writer.cpp`).
+  prefix: the namespace already carries it (`CODE_SIZE` in `detours/hooks.cpp`).
   Macros ignore namespaces, so they do carry `VREG_`, and a name a Windows
   header already defines (`TEXT`, `NO_DATA`) is taken by it: pick another,
   or use the Win32 constant itself.

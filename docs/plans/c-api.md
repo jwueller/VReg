@@ -141,9 +141,9 @@ to the project languages at step 1.
    would move to is complete only after step 4.
 4. **Forms and `.reg`.** The ANSI, pre-`Ex` and convenience forms
    (`registry.cpp`) and `regfile/` to C, with `VRegOperation` replacing the
-   three record structs. `test_regfile_*.cpp` and `test_registry.cpp` move
-   to the C functions; the owned-buffer helpers the tests need live in
-   `test/`.
+   three record structs; the owned-buffer helpers the tests need live in
+   `test/`. The C++ `Registry` base members and a `RegFile` shim forward to
+   the flat functions until step 5 moves the tests.
 5. **Tests to the C API.** Every test file calls the flat functions
    (`registry.RegOpenKeyExW(...)` becomes `VRegOpenKeyExW(pRegistry, ...)`),
    owns hives and registries through small RAII helpers in `test/`, and
@@ -193,6 +193,20 @@ symbol remains in the library, and every test that passes today passes.
 - The handle space allocates its block tables from the process heap
   directly, not through the allocation macros: they live for the process
   and belong to no hive or registry whose context could own them.
+- Agent's choice: `VRegRegistry` carries `pAllocContext` after `lpVtbl`, so
+  the flat functions that derive a form (an ANSI call widening its
+  arguments, say) allocate their temporaries with the registry's context.
+  A `GetAllocContext` slot was passed over: every implementation would fill
+  it the same way, and a wrapper copies the field as it copies the table.
+- `VRegOperation` points at its path, name and data instead of owning them;
+  a script owns the storage of the operations it holds, and a caller that
+  builds operations by hand applies them with `VRegApplyOperations`. The
+  writer lays a value out under the last key line it wrote and opens a
+  `[key]` line of its own for a value whose key differs, so a hand-built
+  script lays out as a parsed one would.
+- The parse error is zeroed on every outcome but a syntax or encoding error,
+  so the parameter is a plain output; the analyzer cannot follow an output
+  written on failure paths only.
 
 ## Open
 

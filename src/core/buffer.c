@@ -1,6 +1,7 @@
 #include "core/buffer.h"
 
 #include "core/alloc.h"
+#include "core/node.h"
 
 /// The capacity to grow to for @p needed elements: at least double the old
 /// one, so repeated appends stay linear.
@@ -309,4 +310,55 @@ void VReg__WStringArrayFree(_In_opt_ void* const pAllocContext, _Inout_ VReg__Ar
         VReg__WStringFree(pAllocContext, &VREG__AT(pArray, VReg__WString, i));
 
     VReg__ArrayFree(pAllocContext, pArray);
+}
+
+BOOL VReg__WStringArrayInsertSorted(
+    _In_opt_ void* const pAllocContext,
+    _Inout_ VReg__Array* const pList,
+    const VReg__WStringView name
+)
+{
+    SIZE_T lo = 0;
+    SIZE_T hi = pList->count;
+    VReg__WString copy = {NULL, 0, 0};
+    while (lo < hi)
+    {
+        const SIZE_T mid = lo + (hi - lo) / 2;
+        const int order = VReg__CompareNames(VReg__WStringViewOf(&VREG__AT(pList, VReg__WString, mid)), name);
+        if (order == 0)
+            return TRUE;
+        if (order < 0)
+            lo = mid + 1;
+        else
+            hi = mid;
+    }
+
+    if (!VReg__WStringAssign(pAllocContext, &copy, name.pch, name.cch))
+        return FALSE;
+    if (!VReg__ArrayInsert(pAllocContext, pList, sizeof(copy), lo, &copy))
+    {
+        VReg__WStringFree(pAllocContext, &copy);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+BOOL VReg__WStringArrayContainsSorted(_In_ const VReg__Array* const pList, const VReg__WStringView name)
+{
+    SIZE_T lo = 0;
+    SIZE_T hi = pList->count;
+    while (lo < hi)
+    {
+        const SIZE_T mid = lo + (hi - lo) / 2;
+        const int order = VReg__CompareNames(VReg__WStringViewOf(&VREG__AT(pList, VReg__WString, mid)), name);
+        if (order == 0)
+            return TRUE;
+        if (order < 0)
+            lo = mid + 1;
+        else
+            hi = mid;
+    }
+
+    return FALSE;
 }

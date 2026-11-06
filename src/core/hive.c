@@ -312,61 +312,6 @@ static void VReg__HiveRemove(_Inout_ VReg__Node* const pNode)
         VReg__HiveNotify(pNode->pParent, REG_NOTIFY_CHANGE_NAME);
 }
 
-// --- Sorted name lists, read under the lock and used after it ---
-
-/// Adds @p name to @p pList, an array of @ref VReg__WString sorted by
-/// @ref VReg__CompareNames, unless it is there already.
-static BOOL VReg__NameListInsert(
-    _In_opt_ void* const pAllocContext,
-    _Inout_ VReg__Array* const pList,
-    const VReg__WStringView name
-)
-{
-    SIZE_T lo = 0;
-    SIZE_T hi = pList->count;
-    VReg__WString copy = {NULL, 0, 0};
-    while (lo < hi)
-    {
-        const SIZE_T mid = lo + (hi - lo) / 2;
-        const int order = VReg__CompareNames(VReg__WStringViewOf(&VREG__NAME_AT(pList, mid)), name);
-        if (order == 0)
-            return TRUE;
-        if (order < 0)
-            lo = mid + 1;
-        else
-            hi = mid;
-    }
-
-    if (!VReg__WStringAssign(pAllocContext, &copy, name.pch, name.cch))
-        return FALSE;
-    if (!VReg__ArrayInsert(pAllocContext, pList, sizeof(copy), lo, &copy))
-    {
-        VReg__WStringFree(pAllocContext, &copy);
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
-static BOOL VReg__NameListContains(_In_ const VReg__Array* const pList, const VReg__WStringView name)
-{
-    SIZE_T lo = 0;
-    SIZE_T hi = pList->count;
-    while (lo < hi)
-    {
-        const SIZE_T mid = lo + (hi - lo) / 2;
-        const int order = VReg__CompareNames(VReg__WStringViewOf(&VREG__NAME_AT(pList, mid)), name);
-        if (order == 0)
-            return TRUE;
-        if (order < 0)
-            lo = mid + 1;
-        else
-            hi = mid;
-    }
-
-    return FALSE;
-}
-
 // --- The lower registry ---
 
 /// Appends @p cNames path components to @p pPath, separated by backslashes.
@@ -1069,7 +1014,7 @@ static LSTATUS VReg__HiveInspectForDelete(
         const VReg__Node* const pChild = VREG__NODE_AT(&pNode->children, i);
         if (!pChild->isTombstone)
             status = ERROR_ACCESS_DENIED;
-        else if (!VReg__NameListInsert(pHive->pAllocContext, pTombstones, VReg__WStringViewOf(&pChild->name)))
+        else if (!VReg__WStringArrayInsertSorted(pHive->pAllocContext, pTombstones, VReg__WStringViewOf(&pChild->name)))
             status = ERROR_OUTOFMEMORY;
     }
 
@@ -1166,7 +1111,7 @@ LSTATUS VReg__HiveDeleteKey(
                 status = enumStatus;
                 goto done;
             }
-            if (!VReg__NameListContains(&tombstones, VReg__WStringViewOf(&lowerName)))
+            if (!VReg__WStringArrayContainsSorted(&tombstones, VReg__WStringViewOf(&lowerName)))
             {
                 status = ERROR_ACCESS_DENIED;
                 goto done;
@@ -1729,7 +1674,7 @@ static LSTATUS VReg__HiveEnumUpperKey(
             break;
         }
 
-        if (!VReg__NameListInsert(pAllocContext, pShadowed, VReg__WStringViewOf(&pChild->name)))
+        if (!VReg__WStringArrayInsertSorted(pAllocContext, pShadowed, VReg__WStringViewOf(&pChild->name)))
             status = ERROR_OUTOFMEMORY;
     }
 
@@ -1854,7 +1799,7 @@ LSTATUS VReg__HiveEnumKey(
 
         lowerName.pch = nameBuffer.psz;
         lowerName.cch = cchName;
-        if (VReg__NameListContains(&shadowed, lowerName) || dwSkip-- != 0)
+        if (VReg__WStringArrayContainsSorted(&shadowed, lowerName) || dwSkip-- != 0)
             continue;
 
         if (
@@ -1931,7 +1876,7 @@ static LSTATUS VReg__HiveEnumUpperValue(
             break;
         }
 
-        if (!VReg__NameListInsert(pAllocContext, pShadowed, VReg__WStringViewOf(&pValue->name)))
+        if (!VReg__WStringArrayInsertSorted(pAllocContext, pShadowed, VReg__WStringViewOf(&pValue->name)))
             status = ERROR_OUTOFMEMORY;
     }
 
@@ -2001,7 +1946,7 @@ LSTATUS VReg__HiveEnumValue(
         if (status != ERROR_SUCCESS)
             goto done;
 
-        if (VReg__NameListContains(&shadowed, VReg__WStringViewOf(pName)) || dwSkip-- != 0)
+        if (VReg__WStringArrayContainsSorted(&shadowed, VReg__WStringViewOf(pName)) || dwSkip-- != 0)
             continue;
 
         if (pData)
@@ -2077,7 +2022,7 @@ static LSTATUS VReg__HiveQueryUpperInfo(
         if (pChild->isTransparent)
             continue;
 
-        if (!VReg__NameListInsert(pAllocContext, pShadowedKeys, VReg__WStringViewOf(&pChild->name)))
+        if (!VReg__WStringArrayInsertSorted(pAllocContext, pShadowedKeys, VReg__WStringViewOf(&pChild->name)))
         {
             status = ERROR_OUTOFMEMORY;
             break;
@@ -2093,7 +2038,7 @@ static LSTATUS VReg__HiveQueryUpperInfo(
     for (i = 0; status == ERROR_SUCCESS && i < pNode->values.count; ++i)
     {
         const VReg__Value* const pValue = &VREG__VALUE_AT(&pNode->values, i);
-        if (!VReg__NameListInsert(pAllocContext, pShadowedValues, VReg__WStringViewOf(&pValue->name)))
+        if (!VReg__WStringArrayInsertSorted(pAllocContext, pShadowedValues, VReg__WStringViewOf(&pValue->name)))
         {
             status = ERROR_OUTOFMEMORY;
             break;

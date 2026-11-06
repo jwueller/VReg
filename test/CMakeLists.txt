@@ -7,6 +7,8 @@ set(VREG_TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/no_dialogs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/oracle.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/oracle.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/owned_values.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/owned_values.h
     ${CMAKE_CURRENT_SOURCE_DIR}/regfile_test.h
     ${CMAKE_CURRENT_SOURCE_DIR}/scenario.h
     ${CMAKE_CURRENT_SOURCE_DIR}/test_concurrency.cpp

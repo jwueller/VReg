@@ -133,6 +133,14 @@ void VReg__ArrayFree(_In_opt_ void* pAllocContext, _Inout_ VReg__Array* pArray);
 /// Appends a copy of @p text to @p pArray, an array of @ref VReg__WString.
 BOOL VReg__WStringArrayAppend(_In_opt_ void* pAllocContext, _Inout_ VReg__Array* pArray, VReg__WStringView text);
 
+/// Adds a copy of @p text to @p pArray, an array of @ref VReg__WString sorted
+/// by @ref VReg__CompareNames, unless an equal name is there already.
+BOOL VReg__WStringArrayInsertSorted(_In_opt_ void* pAllocContext, _Inout_ VReg__Array* pArray, VReg__WStringView text);
+
+/// Whether the sorted @p pArray holds a name equal to @p text by
+/// @ref VReg__CompareNames.
+BOOL VReg__WStringArrayContainsSorted(_In_ const VReg__Array* pArray, VReg__WStringView text);
+
 /// Frees the strings of @p pArray, an array of @ref VReg__WString, and the
 /// array itself.
 void VReg__WStringArrayFree(_In_opt_ void* pAllocContext, _Inout_ VReg__Array* pArray);

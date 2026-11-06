@@ -1,10 +1,10 @@
 #include "intercept_registry.h"
+#include "owned_values.h"
 #include "oracle.h"
 #include "thread.h"
 
 #include <VReg/handle.h>
 #include <VReg/native_registry.h>
-#include <VReg/owned_values.h>
 #include <VReg/virtual_registry.h>
 
 #include <catch2/catch_test_macros.hpp>

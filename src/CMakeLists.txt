@@ -5,7 +5,6 @@ target_sources(VReg_VReg PUBLIC FILE_SET HEADERS BASE_DIRS ${PROJECT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/include/VReg/handle.h
     ${PROJECT_SOURCE_DIR}/include/VReg/hive.h
     ${PROJECT_SOURCE_DIR}/include/VReg/native_registry.h
-    ${PROJECT_SOURCE_DIR}/include/VReg/owned_values.h
     ${PROJECT_SOURCE_DIR}/include/VReg/regfile.h
     ${PROJECT_SOURCE_DIR}/include/VReg/registry.h
     ${PROJECT_SOURCE_DIR}/include/VReg/version.h
@@ -15,11 +14,13 @@ target_sources(VReg_VReg PUBLIC FILE_SET HEADERS BASE_DIRS ${PROJECT_SOURCE_DIR}
 target_sources(VReg_VReg PRIVATE
     core/alloc.c
     core/alloc.h
+    core/ansi.c
     core/ansi.cpp
     core/ansi.h
     core/buffer.c
     core/buffer.h
     core/export_table.c
+    core/forms.c
     core/export_table.h
     core/handle.c
     core/handle_space.c
@@ -33,7 +34,6 @@ target_sources(VReg_VReg PRIVATE
     core/node.h
     core/owned_reads.c
     core/owned_reads.h
-    core/owned_values.cpp
     core/path.c
     core/path.h
     core/registry.c
@@ -47,13 +47,14 @@ target_sources(VReg_VReg PRIVATE
     core/version.cpp
     core/virtual_registry.c
     core/virtual_registry.cpp
-    regfile/apply.cpp
-    regfile/export.cpp
-    regfile/parse.cpp
-    regfile/text.cpp
-    regfile/text.h
-    regfile/writer.cpp
-    regfile/writer.h
+    regfile/apply.c
+    regfile/export.c
+    regfile/parse.c
+    regfile/regfile.cpp
+    regfile/script.c
+    regfile/script.h
+    regfile/text.c
+    regfile/writer.c
 )
 
 # NativeRegistry resolves from advapi32's export table and must find it

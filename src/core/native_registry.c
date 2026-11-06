@@ -359,12 +359,14 @@ LSTATUS WINAPI VRegCreateNativeRegistry(
     _Outptr_ VRegRegistry** const ppRegistry
 )
 {
-    VReg__NativeRegistry* const pRegistry = (VReg__NativeRegistry*)VReg__AllocZeroed(pAllocContext, sizeof(VReg__NativeRegistry));
+    VReg__NativeRegistry* const pRegistry =
+        (VReg__NativeRegistry*)VReg__AllocZeroed(pAllocContext, sizeof(VReg__NativeRegistry));
     *ppRegistry = NULL;
     if (!pRegistry)
         return ERROR_OUTOFMEMORY;
 
     pRegistry->object.lpVtbl = &VReg__NativeRegistryVtbl;
+    pRegistry->object.pAllocContext = pAllocContext;
     pRegistry->pAllocContext = pAllocContext;
     if (pFunctions)
         pRegistry->functions = *pFunctions;

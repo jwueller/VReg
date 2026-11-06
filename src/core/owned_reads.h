@@ -25,6 +25,17 @@ LSTATUS VReg__QueryValueOwned(
     _Inout_ VReg__Buffer* pData
 );
 
+LSTATUS VReg__GetValueOwned(
+    _In_ VRegRegistry* pRegistry,
+    _In_ HKEY hKey,
+    _In_opt_z_ LPCWSTR lpSubKey,
+    _In_opt_z_ LPCWSTR lpValue,
+    _In_ DWORD dwFlags,
+    _In_opt_ void* pAllocContext,
+    _Out_opt_ LPDWORD pdwType,
+    _Inout_ VReg__Buffer* pData
+);
+
 LSTATUS VReg__EnumKeyOwned(
     _In_ VRegRegistry* pRegistry,
     _In_ HKEY hKey,

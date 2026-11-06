@@ -6,7 +6,6 @@
 #include <VReg/handle.h>
 #include <VReg/hive.h>
 #include <VReg/native_registry.h>
-#include <VReg/owned_values.h>
 #include <VReg/registry.h>
 #include <VReg/virtual_registry.h>
 #include <VReg/version.h>

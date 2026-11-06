@@ -3,10 +3,10 @@
 // Shared pieces of the .reg tests.
 
 #include <VReg/native_registry.h>
-#include <VReg/owned_values.h>
 #include <VReg/regfile.h>
 
 #include "oracle.h"
+#include "owned_values.h"
 
 #include <catch2/catch_test_macros.hpp>
 

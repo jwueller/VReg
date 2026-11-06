@@ -47,7 +47,7 @@ exists without it.
   a subkey.
 - `Registry` holds the `Reg*` function family and nothing else. The reads
   that size and fill a `std::wstring` or `std::vector<std::byte>` themselves
-  are free functions over a `const Registry&` (`owned_values.h`), without the
+  are free functions over a `const Registry&` the tests keep (`test/owned_values.h`), without the
   `Reg` prefix, which would collide with Win32 macros such as
   `RegQueryValue`.
 

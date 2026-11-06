@@ -61,6 +61,64 @@ LSTATUS VReg__QueryValueOwned(
     }
 }
 
+LSTATUS VReg__GetValueOwned(
+    _In_ VRegRegistry* const pRegistry,
+    _In_ const HKEY hKey,
+    _In_opt_z_ const LPCWSTR lpSubKey,
+    _In_opt_z_ const LPCWSTR lpValue,
+    _In_ const DWORD dwFlags,
+    _In_opt_ void* const pAllocContext,
+    _Out_opt_ const LPDWORD pdwType,
+    _Inout_ VReg__Buffer* const pData
+)
+{
+    DWORD dwType = 0;
+    DWORD cbData = 0;
+    const LSTATUS sized = VRegGetValueW(
+        pRegistry,
+        hKey,
+        lpSubKey,
+        lpValue,
+        dwFlags,
+        &dwType,
+        NULL,
+        &cbData
+    );
+    if (sized != ERROR_SUCCESS)
+        return sized;
+
+    for (;;)
+    {
+        DWORD cbRead = cbData;
+        LSTATUS status;
+        if (!VReg__BufferResize(pAllocContext, pData, cbData))
+            return ERROR_OUTOFMEMORY;
+
+        status = VRegGetValueW(
+            pRegistry,
+            hKey,
+            lpSubKey,
+            lpValue,
+            dwFlags,
+            &dwType,
+            pData->pb,
+            &cbRead
+        );
+        if (status == ERROR_MORE_DATA)
+        {
+            cbData = VReg__Grown(cbData, cbRead);
+            continue;
+        }
+        if (status == ERROR_SUCCESS)
+        {
+            pData->cb = cbRead;
+            if (pdwType)
+                *pdwType = dwType;
+        }
+        return status;
+    }
+}
+
 LSTATUS VReg__EnumKeyOwned(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,

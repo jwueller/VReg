@@ -98,6 +98,10 @@ typedef struct VReg__Target
 #define VREG__NT_STATUS_BUFFER_OVERFLOW ((LONG)0x80000005)
 #define VREG__NT_STATUS_BUFFER_TOO_SMALL ((LONG)0xC0000023)
 
+#define VREG__KNOWN_NOTIFY_FILTERS \
+    (REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_ATTRIBUTES | REG_NOTIFY_CHANGE_LAST_SET | REG_NOTIFY_CHANGE_SECURITY \
+        | REG_NOTIFY_THREAD_AGNOSTIC)
+
 static VReg__VirtualRegistry* VReg__VirtualOf(_In_ VRegRegistry* const pThis)
 {
     return (VReg__VirtualRegistry*)pThis;
@@ -202,7 +206,11 @@ static LSTATUS VReg__CurrentUserSid(_In_opt_ void* const pAllocContext, _Inout_ 
 
 /// Appends the native path of a predefined root to @p pPath as components;
 /// nothing for a root with none.
-static LSTATUS VReg__NativeRootPath(_In_opt_ void* const pAllocContext, const HKEY hRoot, _Inout_ VReg__Array* const pPath)
+static LSTATUS VReg__NativeRootPath(
+    _In_opt_ void* const pAllocContext,
+    const HKEY hRoot,
+    _Inout_ VReg__Array* const pPath
+)
 {
     const wchar_t* pszSecond = NULL;
     VReg__WString sid = {NULL, 0, 0};
@@ -306,7 +314,11 @@ static void VReg__MountPointFree(_In_opt_ void* const pAllocContext, _Inout_ VRe
 
 /// Whether the mount @p pMount is of @p hRoot at the path @p pPath, by the
 /// registry's own name comparison.
-static BOOL VReg__MountIsAt(_In_ const VReg__MountPoint* const pMount, const HKEY hRoot, _In_ const VReg__Array* const pPath)
+static BOOL VReg__MountIsAt(
+    _In_ const VReg__MountPoint* const pMount,
+    const HKEY hRoot,
+    _In_ const VReg__Array* const pPath
+)
 {
     SIZE_T i;
     if (pMount->hRoot != hRoot || pMount->path.count != pPath->count)
@@ -444,7 +456,14 @@ static LSTATUS VReg__ResolveNative(
     CopyMemory(&cbName, buffer.pb, sizeof(cbName));
     if (cbName > buffer.cb - sizeof(ULONG))
         goto done;
-    if (!VReg__WStringAssign(pAllocContext, &pTarget->nativeText, (const wchar_t*)(buffer.pb + sizeof(ULONG)), cbName / sizeof(wchar_t)))
+    if (
+        !VReg__WStringAssign(
+            pAllocContext,
+            &pTarget->nativeText,
+            (const wchar_t*)(buffer.pb + sizeof(ULONG)),
+            cbName / sizeof(wchar_t)
+        )
+    )
     {
         status = ERROR_OUTOFMEMORY;
         goto done;
@@ -472,7 +491,8 @@ static LSTATUS VReg__ResolveNative(
 
     for (i = 0; i < pTarget->components.count; ++i)
     {
-        if (!VReg__ArrayAppend(pAllocContext, &pTarget->full, sizeof(VReg__WStringView), &VREG__VIEW_AT(&pTarget->components, i)))
+        const VReg__WStringView* const pComponent = &VREG__VIEW_AT(&pTarget->components, i);
+        if (!VReg__ArrayAppend(pAllocContext, &pTarget->full, sizeof(*pComponent), pComponent))
         {
             status = ERROR_OUTOFMEMORY;
             goto done;
@@ -573,7 +593,11 @@ static LSTATUS VReg__Resolve(
             const VReg__MountPoint* const pMount = &VREG__MOUNT_AT(&pTable->mounts, i);
             SIZE_T j;
             BOOL isPrefix = TRUE;
-            if (pMount->hRoot != hKey || pMount->path.count > pTarget->components.count || !VReg__Admits(pMount->samView, samCall))
+            if (
+                pMount->hRoot != hKey
+                || pMount->path.count > pTarget->components.count
+                || !VReg__Admits(pMount->samView, samCall)
+            )
                 continue;
 
             for (j = 0; isPrefix && j < pMount->path.count; ++j)
@@ -923,7 +947,14 @@ static LSTATUS WINAPI VReg__VirtualRegSetValueExW(
         goto done;
     }
 
-    status = VReg__HiveSetValue(target.pHive, target.pNode, VReg__OrEmpty(lpValueName), dwType, lpData, lpData ? cbData : 0);
+    status = VReg__HiveSetValue(
+        target.pHive,
+        target.pNode,
+        VReg__OrEmpty(lpValueName),
+        dwType,
+        lpData,
+        lpData ? cbData : 0
+    );
 
 done:
     VReg__TargetFree(pRegistry->pAllocContext, &target);
@@ -1583,7 +1614,8 @@ static LSTATUS WINAPI VReg__VirtualRegGetValueW(
         pRegistry,
         hkey,
         VReg__ViewOf(lpSubKey),
-        (dwFlags & VREG__RRF_WOW6464_SUBKEY ? KEY_WOW64_64KEY : 0) | (dwFlags & VREG__RRF_WOW6432_SUBKEY ? KEY_WOW64_32KEY : 0),
+        (dwFlags & VREG__RRF_WOW6464_SUBKEY ? KEY_WOW64_64KEY : 0)
+        | (dwFlags & VREG__RRF_WOW6432_SUBKEY ? KEY_WOW64_32KEY : 0),
         &target
     );
     if (status != ERROR_SUCCESS)
@@ -1804,7 +1836,7 @@ static LSTATUS WINAPI VReg__VirtualRegNotifyChangeKeyValue(
         goto done;
     }
     if (
-        (dwNotifyFilter & ~(DWORD)(REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_ATTRIBUTES | REG_NOTIFY_CHANGE_LAST_SET | REG_NOTIFY_CHANGE_SECURITY | REG_NOTIFY_THREAD_AGNOSTIC))
+        (dwNotifyFilter & ~(DWORD)VREG__KNOWN_NOTIFY_FILTERS)
         || (fAsynchronous && !hEvent)
     )
     {
@@ -1924,12 +1956,14 @@ LSTATUS WINAPI VRegCreateVirtualRegistry(
     _Outptr_ VRegRegistry** const ppRegistry
 )
 {
-    VReg__VirtualRegistry* const pRegistry = (VReg__VirtualRegistry*)VReg__AllocZeroed(pAllocContext, sizeof(VReg__VirtualRegistry));
+    VReg__VirtualRegistry* const pRegistry =
+        (VReg__VirtualRegistry*)VReg__AllocZeroed(pAllocContext, sizeof(VReg__VirtualRegistry));
     *ppRegistry = NULL;
     if (!pRegistry)
         return ERROR_OUTOFMEMORY;
 
     pRegistry->object.lpVtbl = &VReg__VirtualRegistryVtbl;
+    pRegistry->object.pAllocContext = pAllocContext;
     pRegistry->pAllocContext = pAllocContext;
     pRegistry->pBase = pBase;
     pRegistry->pfnNtQueryKey = pfnNtQueryKey;
