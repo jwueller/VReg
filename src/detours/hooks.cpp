@@ -99,7 +99,7 @@ std::array<void*, FORM_COUNT> g_formTargets{};
 
 bool IsOwned(const HKEY hKey) noexcept
 {
-    return HandleSpace::Process().Owns(hKey);
+    return VReg__HandleSpaceOwns(VReg__ProcessHandleSpace(), hKey);
 }
 
 template <class T>

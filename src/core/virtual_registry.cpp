@@ -248,7 +248,7 @@ LSTATUS VirtualRegistry::MountHive(
 ) noexcept
 try
 {
-    if (!IsPredefinedHKey(hRoot))
+    if (!VRegIsPredefinedHKey(hRoot))
         return ERROR_INVALID_HANDLE;
     if (
         samView != 0
@@ -345,7 +345,7 @@ bool VirtualRegistry::ResolveNative(
                 );
         }
     );
-    if (!isGated || !m_pfnNtQueryKey || IsVirtualHKey(hKey))
+    if (!isGated || !m_pfnNtQueryKey || VRegIsVirtualHKey(hKey))
         return false;
 
     // The name is a KEY_NAME_INFORMATION: a byte count, then the characters.
@@ -459,13 +459,13 @@ VirtualRegistry::Target VirtualRegistry::Resolve(
             return target;
         }
     }
-    else if (HandleSpace::Process().Owns(hKey))
+    else if (VReg__HandleSpaceOwns(VReg__ProcessHandleSpace(), hKey))
     {
         target.status = ERROR_INVALID_HANDLE;
         return target;
     }
 
-    if (IsPredefinedHKey(hKey))
+    if (VRegIsPredefinedHKey(hKey))
     {
         const auto samCall = CallView(samDesired);
         const MountPoint* pBest = nullptr;
@@ -647,10 +647,10 @@ LSTATUS VirtualRegistry::RegCloseKey(
     _In_ const HKEY hKey
 ) noexcept
 {
-    if (Hive::NodeOf(hKey) || IsPredefinedHKey(hKey))
+    if (Hive::NodeOf(hKey) || VRegIsPredefinedHKey(hKey))
         return ERROR_SUCCESS;
 
-    if (HandleSpace::Process().Owns(hKey) || !m_pBase)
+    if (VReg__HandleSpaceOwns(VReg__ProcessHandleSpace(), hKey) || !m_pBase)
         return ERROR_INVALID_HANDLE;
 
     return m_pBase->RegCloseKey(

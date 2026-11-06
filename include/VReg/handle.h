@@ -2,10 +2,10 @@
 
 #include <Windows.h>
 
-#include <bit>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-namespace VReg
-{
 /// The highest virtual handle value. Real key handles are kernel handle values
 /// (multiples of 4, at most tagged in bit 1 by advapi32), and predefined roots
 /// lie above this (sign-extended on x64), so an odd value at or below it is
@@ -13,44 +13,18 @@ namespace VReg
 ///
 /// The range stays 31-bit on x64 too, so code that truncates an HKEY to a
 /// @ref DWORD keeps a working handle.
-inline constexpr UINT_PTR VIRTUAL_HKEY_BASE = 0x7FFFFFFF;
+#define VREG_VIRTUAL_HKEY_BASE ((UINT_PTR)0x7FFFFFFF)
 
-/// One more than the highest index @ref VirtualHKeyFromIndex accepts.
-inline constexpr UINT_PTR VIRTUAL_HKEY_COUNT =
-    (VIRTUAL_HKEY_BASE >> 1)
-    + 1;
-
-/// The handle for @p index, counting down from @ref VIRTUAL_HKEY_BASE in
-/// odd steps; null when @p index is out of range.
-constexpr HKEY VirtualHKeyFromIndex(const UINT_PTR index) noexcept
-{
-    if (index >= VIRTUAL_HKEY_COUNT)
-        return nullptr;
-
-    return std::bit_cast<HKEY>(VIRTUAL_HKEY_BASE - (index << 1));
-}
-
-constexpr bool IsVirtualHKey(const HKEY hKey) noexcept
-{
-    const auto value = std::bit_cast<UINT_PTR>(hKey);
-    return value != 0 && value <= VIRTUAL_HKEY_BASE && (value & 1) != 0;
-}
-
-/// The inverse of @ref VirtualHKeyFromIndex; only meaningful when
-/// @ref IsVirtualHKey holds.
-constexpr UINT_PTR IndexFromVirtualHKey(const HKEY hKey) noexcept
-{
-    return (VIRTUAL_HKEY_BASE - std::bit_cast<UINT_PTR>(hKey)) >> 1;
-}
+/// Whether @p hKey is a virtual handle: nonzero, odd and at most
+/// @ref VREG_VIRTUAL_HKEY_BASE.
+BOOL WINAPI VRegIsVirtualHKey(_In_opt_ HKEY hKey);
 
 /// Whether @p hKey is a predefined root, @ref HKEY_CLASSES_ROOT through
 /// @ref HKEY_CURRENT_USER_LOCAL_SETTINGS: `winreg.h` builds them from a
 /// negative @ref LONG, sign-extended on x64, where neither a kernel handle nor
 /// a virtual one ever lies.
-inline bool IsPredefinedHKey(const HKEY hKey) noexcept
-{
-    const auto value = std::bit_cast<UINT_PTR>(hKey);
-    return value >= std::bit_cast<UINT_PTR>(HKEY_CLASSES_ROOT)
-        && value <= std::bit_cast<UINT_PTR>(HKEY_CURRENT_USER_LOCAL_SETTINGS);
-}
-} // namespace VReg
+BOOL WINAPI VRegIsPredefinedHKey(_In_opt_ HKEY hKey);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif

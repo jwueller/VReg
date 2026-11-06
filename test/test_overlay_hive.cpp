@@ -441,7 +441,7 @@ TEST_CASE("Upper values and keys shadow lower ones")
         ) == ERROR_SUCCESS
     );
     CHECK(dwDisposition == REG_OPENED_EXISTING_KEY);
-    CHECK(IsVirtualHKey(hK));
+    CHECK(VRegIsVirtualHKey(hK));
     REQUIRE(SetDword(reg, hK, L"b", 5) == ERROR_SUCCESS);
     CHECK(DwordOr(reg, hK, L"a") == 1);
     CHECK(DwordOr(reg, hK, L"b") == 5);
@@ -1181,13 +1181,13 @@ TEST_CASE("A handle to an ancestor of the mount point opens down into the mount"
             &hSoftware
         ) == ERROR_SUCCESS
     );
-    REQUIRE_FALSE(IsVirtualHKey(hSoftware));
+    REQUIRE_FALSE(VRegIsVirtualHKey(hSoftware));
 
     HKEY hKey{};
     REQUIRE(
         Open(reg, hSoftware, (name + L"\\L").c_str(), hKey) == ERROR_SUCCESS
     );
-    CHECK(IsVirtualHKey(hKey));
+    CHECK(VRegIsVirtualHKey(hKey));
     CHECK(DwordOr(reg, hKey, L"v") == 11);
     CHECK(Open(reg, hSoftware, name.c_str(), hKey) == ERROR_SUCCESS);
     CHECK(hKey == fx.Root());
@@ -1214,7 +1214,7 @@ TEST_CASE("A handle to an ancestor of the mount point opens down into the mount"
             &dwDisposition
         ) == ERROR_SUCCESS
     );
-    CHECK(IsVirtualHKey(hKey));
+    CHECK(VRegIsVirtualHKey(hKey));
     CHECK(dwDisposition == REG_CREATED_NEW_KEY);
 
     HKEY hCurrentUser{};
@@ -1227,7 +1227,7 @@ TEST_CASE("A handle to an ancestor of the mount point opens down into the mount"
             hKey
         ) == ERROR_SUCCESS
     );
-    CHECK(IsVirtualHKey(hKey));
+    CHECK(VRegIsVirtualHKey(hKey));
     RegCloseKey(hCurrentUser);
 
     fx.Lower().RegCloseKey(
@@ -1469,7 +1469,7 @@ TEST_CASE("A frozen overlay refuses writes and hands out lower keys")
     {
         HKEY hKey{};
         REQUIRE(Open(reg, fx.Root(), L"M", hKey) == ERROR_SUCCESS);
-        CHECK_FALSE(IsVirtualHKey(hKey));
+        CHECK_FALSE(VRegIsVirtualHKey(hKey));
         CHECK(DwordOr(reg, hKey, L"m") == 3);
         CHECK(
             reg.RegCloseKey(
@@ -1478,7 +1478,7 @@ TEST_CASE("A frozen overlay refuses writes and hands out lower keys")
         );
 
         REQUIRE(Open(reg, fx.Root(), L"K\\Sub", hKey) == ERROR_SUCCESS);
-        CHECK_FALSE(IsVirtualHKey(hKey));
+        CHECK_FALSE(VRegIsVirtualHKey(hKey));
         CHECK(
             reg.RegCloseKey(
                 hKey
@@ -1486,9 +1486,9 @@ TEST_CASE("A frozen overlay refuses writes and hands out lower keys")
         );
 
         REQUIRE(Open(reg, fx.Root(), L"U", hKey) == ERROR_SUCCESS);
-        CHECK(IsVirtualHKey(hKey));
+        CHECK(VRegIsVirtualHKey(hKey));
         REQUIRE(Open(reg, fx.Root(), L"K", hKey) == ERROR_SUCCESS);
-        CHECK(IsVirtualHKey(hKey));
+        CHECK(VRegIsVirtualHKey(hKey));
         CHECK(DwordOr(reg, hKey, L"b") == 4);
         CHECK(Open(reg, fx.Root(), L"Missing", hKey) == ERROR_FILE_NOT_FOUND);
     }
@@ -1519,7 +1519,7 @@ TEST_CASE("A frozen overlay refuses writes and hands out lower keys")
             ) == ERROR_SUCCESS
         );
         CHECK(dwDisposition == REG_OPENED_EXISTING_KEY);
-        CHECK_FALSE(IsVirtualHKey(hKey));
+        CHECK_FALSE(VRegIsVirtualHKey(hKey));
         CHECK(DwordOr(reg, hKey, L"m") == 3);
         reg.RegCloseKey(
             hKey
@@ -1539,7 +1539,7 @@ TEST_CASE("A frozen overlay refuses writes and hands out lower keys")
             ) == ERROR_SUCCESS
         );
         CHECK(dwDisposition == REG_OPENED_EXISTING_KEY);
-        CHECK(IsVirtualHKey(hKey));
+        CHECK(VRegIsVirtualHKey(hKey));
     }
 }
 
@@ -1558,10 +1558,10 @@ TEST_CASE("A writable overlay hands out virtual handles and copies up")
 
     HKEY hKey{};
     REQUIRE(Open(reg, fx.Root(), L"M", hKey) == ERROR_SUCCESS);
-    CHECK(IsVirtualHKey(hKey));
+    CHECK(VRegIsVirtualHKey(hKey));
     const HKEY hM2 = hKey;
     REQUIRE(Open(reg, fx.Root(), L"M\\Deep", hKey) == ERROR_SUCCESS);
-    CHECK(IsVirtualHKey(hKey));
+    CHECK(VRegIsVirtualHKey(hKey));
     CHECK(DwordOr(reg, hKey, L"d") == 6);
     CHECK(Open(reg, fx.Root(), L"M\\Missing", hKey) == ERROR_FILE_NOT_FOUND);
     CHECK(Open(reg, fx.Root(), L"Missing\\Deep", hKey) == ERROR_FILE_NOT_FOUND);

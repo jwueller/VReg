@@ -106,14 +106,14 @@ TEST_CASE("A node has one handle however it is reached")
     REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"Test", hive) == ERROR_SUCCESS);
 
     const HKEY hRoot = Hive::HandleOf(hive.Root());
-    CHECK(IsVirtualHKey(hRoot));
+    CHECK(VRegIsVirtualHKey(hRoot));
 
     const HKEY hCreated = CreateKey(registry, hRoot, L"A\\B");
     const HKEY hOpened = OpenKey(registry, hRoot, L"a\\b");
     const HKEY hViaParent = OpenKey(registry, OpenKey(registry, hRoot, L"A"), L"B");
     const HKEY hViaPath = OpenKey(registry, HKEY_CURRENT_USER, L"Test\\A\\B");
 
-    CHECK(IsVirtualHKey(hCreated));
+    CHECK(VRegIsVirtualHKey(hCreated));
     CHECK(hOpened == hCreated);
     CHECK(hViaParent == hCreated);
     CHECK(hViaPath == hCreated);
@@ -596,7 +596,7 @@ TEST_CASE("Calls outside the mounts reach the base registry")
         );
         CHECK(dwDispositionRegistry == REG_CREATED_NEW_KEY);
         CHECK(dwDispositionNative == REG_OPENED_EXISTING_KEY);
-        CHECK_FALSE(IsVirtualHKey(hViaRegistry));
+        CHECK_FALSE(VRegIsVirtualHKey(hViaRegistry));
         CHECK(hViaRegistry != hViaNative);
 
         REQUIRE(SetDword(registry, hViaRegistry, L"v", 42) == ERROR_SUCCESS);
@@ -668,7 +668,7 @@ TEST_CASE("Calls outside the mounts reach the base registry")
                 &hReal
             ) == ERROR_SUCCESS
         );
-        CHECK_FALSE(IsVirtualHKey(hReal));
+        CHECK_FALSE(VRegIsVirtualHKey(hReal));
         CHECK(
             registry.RegCloseKey(
                 hReal
@@ -690,7 +690,7 @@ TEST_CASE("Calls outside the mounts reach the base registry")
             )
             == ERROR_SUCCESS
         );
-        CHECK(IsVirtualHKey(hVirtual));
+        CHECK(VRegIsVirtualHKey(hVirtual));
         CHECK(
             native.RegOpenKeyExW(
                 HKEY_CURRENT_USER,
@@ -887,7 +887,7 @@ TEST_CASE("A real parent handle is resolved by its native path")
             )
             == ERROR_SUCCESS
         );
-        CHECK(IsVirtualHKey(hCreated));
+        CHECK(VRegIsVirtualHKey(hCreated));
         CHECK(dwDisposition == REG_CREATED_NEW_KEY);
         CHECK(
             registry.RegDeleteKeyExW(
@@ -1169,7 +1169,7 @@ TEST_CASE("A mount answers only the calls of its view")
     )
     {
         const auto status = OpenVia(registry, hParent, pszPath, sam, hKey);
-        return status == ERROR_SUCCESS && IsVirtualHKey(hKey);
+        return status == ERROR_SUCCESS && VRegIsVirtualHKey(hKey);
     };
 
     SECTION("Through a real parent")
@@ -1236,11 +1236,11 @@ TEST_CASE("A real key above a mount reaches it through the real NtQueryKey")
         HKEY_CURRENT_USER,
         (name + L"\\x").c_str()
     );
-    REQUIRE(IsVirtualHKey(hSub));
+    REQUIRE(VRegIsVirtualHKey(hSub));
 
     HKEY hCurrentUser = nullptr;
     REQUIRE(RegOpenCurrentUser(KEY_READ, &hCurrentUser) == ERROR_SUCCESS);
-    REQUIRE_FALSE(IsVirtualHKey(hCurrentUser));
+    REQUIRE_FALSE(VRegIsVirtualHKey(hCurrentUser));
 
     HKEY hKey = nullptr;
     CHECK(
@@ -1273,7 +1273,7 @@ TEST_CASE("A real key above a mount reaches it through the real NtQueryKey")
             &hKey
         ) == ERROR_SUCCESS
     );
-    CHECK_FALSE(IsVirtualHKey(hKey));
+    CHECK_FALSE(VRegIsVirtualHKey(hKey));
     CHECK(
         registry.RegCloseKey(
             hKey

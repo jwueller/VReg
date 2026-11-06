@@ -202,7 +202,7 @@ void CheckRealKeysWork()
         )
         == ERROR_SUCCESS
     );
-    CHECK(!IsVirtualHKey(hKey));
+    CHECK(!VRegIsVirtualHKey(hKey));
     DWORD cValues = 0;
     CHECK(
         ::RegQueryInfoKeyW(
@@ -241,8 +241,8 @@ void CheckBothMounts(
 
     const HKEY hLower = OpenMount(lower.name);
     const HKEY hUpper = OpenMount(upper.name);
-    CHECK(IsVirtualHKey(hLower));
-    CHECK(IsVirtualHKey(hUpper));
+    CHECK(VRegIsVirtualHKey(hLower));
+    CHECK(VRegIsVirtualHKey(hUpper));
     CHECK(hLower != hUpper);
 
     // A handle of the lower module is answered by it through the upper one's
@@ -300,7 +300,7 @@ TEST_CASE("Hooked Reg functions answer on virtual keys")
     REQUIRE(InstallMount(name.c_str(), L"Exe") == NO_ERROR);
 
     const HKEY hRoot = OpenMount(name);
-    CHECK(IsVirtualHKey(hRoot));
+    CHECK(VRegIsVirtualHKey(hRoot));
     LSTATUS status{};
     CHECK(ReadModule(hRoot, status) == L"Exe");
 
@@ -361,7 +361,7 @@ TEST_CASE("Hooked Reg functions answer on virtual keys")
         )
         == ERROR_SUCCESS
     );
-    CHECK(IsVirtualHKey(hDeep));
+    CHECK(VRegIsVirtualHKey(hDeep));
     CHECK(dwDisposition == REG_CREATED_NEW_KEY);
 
     HKEY hOther{};
@@ -713,7 +713,7 @@ TEST_CASE("Hooked Reg functions pass real keys through")
         )
         == ERROR_SUCCESS
     );
-    CHECK(!IsVirtualHKey(hKey));
+    CHECK(!VRegIsVirtualHKey(hKey));
     CHECK(dwDisposition == REG_CREATED_NEW_KEY);
 
     const DWORD dwValue = 7;

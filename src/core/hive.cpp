@@ -236,7 +236,7 @@ HKEY Hive::HandleOf(_In_ const Node* const pNode) noexcept
 
 _Ret_maybenull_ Node* Hive::NodeOf(const HKEY hKey) noexcept
 {
-    return static_cast<Node*>(HandleSpace::Process().Find(hKey));
+    return static_cast<Node*>(VReg__HandleSpaceFind(VReg__ProcessHandleSpace(), hKey));
 }
 
 _Ret_notnull_ Hive* Hive::HiveOf(_In_ const Node* const pNode) noexcept
@@ -257,7 +257,7 @@ Hive::Hive(
 {
     auto pRoot = std::make_unique<Node>();
     pRoot->pHive = this;
-    pRoot->hKey = HandleSpace::Process().Allocate(pRoot.get());
+    pRoot->hKey = VReg__HandleSpaceAllocate(VReg__ProcessHandleSpace(), pRoot.get());
     if (!pRoot->hKey)
         throw std::bad_alloc();
 
@@ -292,7 +292,7 @@ Hive::~Hive()
     for (const auto& pNode : m_nodes)
     {
         DropWatches(*pNode);
-        HandleSpace::Process().Release(pNode->hKey);
+        VReg__HandleSpaceRelease(VReg__ProcessHandleSpace(), pNode->hKey);
     }
 }
 
@@ -1702,7 +1702,7 @@ Node* Hive::AddChild(
     m_nodes.reserve(m_nodes.size() + 1);
     parent.children.reserve(parent.children.size() + 1);
 
-    pNode->hKey = HandleSpace::Process().Allocate(pNode.get());
+    pNode->hKey = VReg__HandleSpaceAllocate(VReg__ProcessHandleSpace(), pNode.get());
     if (!pNode->hKey)
         return nullptr;
 

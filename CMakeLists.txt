@@ -4,7 +4,7 @@ project(
     VReg
     DESCRIPTION "A virtualized Windows registry"
     HOMEPAGE_URL "https://github.com/jwueller/VReg"
-    LANGUAGES CXX
+    LANGUAGES C CXX
 )
 
 # vcpkg.json owns the version; cmake/VRegVersion.cmake derives the rest.

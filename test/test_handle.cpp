@@ -5,10 +5,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
+#include <bit>
 #include <set>
 #include <string>
-
-using namespace VReg;
 
 namespace
 {
@@ -28,24 +27,24 @@ std::wstring UniqueSectionName(const wchar_t* tag)
 }
 
 /// Maps a section the way a foreign copy would, to arrange its contents.
-HandleSpace::Shared* MapRaw(const std::wstring& wsName)
+VReg__HandleSpaceShared* MapRaw(const std::wstring& wsName)
 {
     const auto hSection = CreateFileMappingW(
         INVALID_HANDLE_VALUE,
         nullptr,
         PAGE_READWRITE,
         0,
-        sizeof(HandleSpace::Shared),
+        sizeof(VReg__HandleSpaceShared),
         wsName.c_str()
     );
     REQUIRE(hSection);
-    auto* const pShared = static_cast<HandleSpace::Shared*>(
+    auto* const pShared = static_cast<VReg__HandleSpaceShared*>(
         MapViewOfFile(
             hSection,
             FILE_MAP_ALL_ACCESS,
             0,
             0,
-            sizeof(HandleSpace::Shared)
+            sizeof(VReg__HandleSpaceShared)
         )
     );
     REQUIRE(pShared);
@@ -55,69 +54,113 @@ HandleSpace::Shared* MapRaw(const std::wstring& wsName)
 
 TEST_CASE("Virtual handles count down from the base in odd steps")
 {
-    CHECK(ValueOf(VirtualHKeyFromIndex(0)) == 0x7FFFFFFF);
-    CHECK(ValueOf(VirtualHKeyFromIndex(1)) == 0x7FFFFFFD);
-    CHECK(ValueOf(VirtualHKeyFromIndex(VIRTUAL_HKEY_COUNT - 1)) == 1);
-    CHECK(VirtualHKeyFromIndex(VIRTUAL_HKEY_COUNT) == nullptr);
+    CHECK(ValueOf(VReg__VirtualHKeyFromIndex(0)) == 0x7FFFFFFF);
+    CHECK(ValueOf(VReg__VirtualHKeyFromIndex(1)) == 0x7FFFFFFD);
+    CHECK(ValueOf(VReg__VirtualHKeyFromIndex(VREG__VIRTUAL_HKEY_COUNT - 1)) == 1);
+    CHECK(VReg__VirtualHKeyFromIndex(VREG__VIRTUAL_HKEY_COUNT) == nullptr);
 
     const std::uintptr_t index = GENERATE(
         std::uintptr_t{0},
         std::uintptr_t{12345},
-        VIRTUAL_HKEY_COUNT - 1
+        VREG__VIRTUAL_HKEY_COUNT - 1
     );
     CAPTURE(index);
-    const auto hKey = VirtualHKeyFromIndex(index);
-    CHECK(IsVirtualHKey(hKey));
-    CHECK(IndexFromVirtualHKey(hKey) == index);
+    const auto hKey = VReg__VirtualHKeyFromIndex(index);
+    CHECK(VRegIsVirtualHKey(hKey));
+    CHECK(VReg__IndexFromVirtualHKey(hKey) == index);
 }
 
 TEST_CASE("Real and predefined handles are never virtual")
 {
-    CHECK_FALSE(IsVirtualHKey(nullptr));
-    CHECK_FALSE(IsVirtualHKey(std::bit_cast<HKEY>(std::uintptr_t{0x158})));
+    CHECK_FALSE(VRegIsVirtualHKey(nullptr));
+    CHECK_FALSE(VRegIsVirtualHKey(std::bit_cast<HKEY>(std::uintptr_t{0x158})));
     CHECK_FALSE(
-        IsVirtualHKey(std::bit_cast<HKEY>(std::uintptr_t{0x16E}))
+        VRegIsVirtualHKey(std::bit_cast<HKEY>(std::uintptr_t{0x16E}))
     ); // HKCR tag bit
-    CHECK_FALSE(IsVirtualHKey(HKEY_CLASSES_ROOT));
-    CHECK_FALSE(IsVirtualHKey(HKEY_CURRENT_USER)); // odd, but above the base
-    CHECK_FALSE(IsVirtualHKey(HKEY_LOCAL_MACHINE));
-    CHECK_FALSE(IsVirtualHKey(HKEY_USERS));
-    CHECK_FALSE(IsVirtualHKey(HKEY_PERFORMANCE_DATA));
-    CHECK_FALSE(IsVirtualHKey(HKEY_CURRENT_CONFIG));
+    CHECK_FALSE(VRegIsVirtualHKey(HKEY_CLASSES_ROOT));
+    CHECK_FALSE(VRegIsVirtualHKey(HKEY_CURRENT_USER)); // odd, but above the base
+    CHECK_FALSE(VRegIsVirtualHKey(HKEY_LOCAL_MACHINE));
+    CHECK_FALSE(VRegIsVirtualHKey(HKEY_USERS));
+    CHECK_FALSE(VRegIsVirtualHKey(HKEY_PERFORMANCE_DATA));
+    CHECK_FALSE(VRegIsVirtualHKey(HKEY_CURRENT_CONFIG));
+}
+
+TEST_CASE("Predefined roots are the range from HKCR to HKCU local settings")
+{
+    CHECK(VRegIsPredefinedHKey(HKEY_CLASSES_ROOT));
+    CHECK(VRegIsPredefinedHKey(HKEY_CURRENT_USER));
+    CHECK(VRegIsPredefinedHKey(HKEY_LOCAL_MACHINE));
+    CHECK(VRegIsPredefinedHKey(HKEY_USERS));
+    CHECK(VRegIsPredefinedHKey(HKEY_PERFORMANCE_DATA));
+    CHECK(VRegIsPredefinedHKey(HKEY_CURRENT_CONFIG));
+    CHECK(VRegIsPredefinedHKey(HKEY_DYN_DATA));
+    CHECK(VRegIsPredefinedHKey(HKEY_CURRENT_USER_LOCAL_SETTINGS));
+
+    CHECK_FALSE(VRegIsPredefinedHKey(nullptr));
+    CHECK_FALSE(VRegIsPredefinedHKey(std::bit_cast<HKEY>(std::uintptr_t{0x158})));
+    CHECK_FALSE(VRegIsPredefinedHKey(VReg__VirtualHKeyFromIndex(0)));
+    CHECK_FALSE(
+        VRegIsPredefinedHKey(
+            std::bit_cast<HKEY>(std::bit_cast<std::uintptr_t>(HKEY_CURRENT_USER_LOCAL_SETTINGS) + 1)
+        )
+    );
 }
 
 TEST_CASE("Copies sharing a section hand out disjoint handles and own only theirs")
 {
     const auto wsName = UniqueSectionName(L"disjoint");
-    HandleSpace first(wsName.c_str());
-    HandleSpace second(wsName.c_str());
-    REQUIRE(first.IsUsable());
-    REQUIRE(second.IsUsable());
+    VReg__HandleSpace first;
+    VReg__HandleSpace second;
+    VReg__HandleSpaceInit(&first, wsName.c_str());
+    VReg__HandleSpaceInit(&second, wsName.c_str());
+    REQUIRE(VReg__HandleSpaceIsUsable(&first));
+    REQUIRE(VReg__HandleSpaceIsUsable(&second));
 
     std::set<HKEY> seen;
     // Past one block, so each copy reserves a second one.
-    for (std::uintptr_t i = 0; i < HandleSpace::BLOCK_SIZE + 10; ++i)
+    for (std::uintptr_t i = 0; i < VREG__HANDLE_BLOCK_SIZE + 10; ++i)
     {
-        const auto hFirst = first.Allocate(&first);
-        const auto hSecond = second.Allocate(&second);
-        REQUIRE(IsVirtualHKey(hFirst));
-        REQUIRE(IsVirtualHKey(hSecond));
+        const auto hFirst = VReg__HandleSpaceAllocate(&first, &first);
+        const auto hSecond = VReg__HandleSpaceAllocate(&second, &second);
+        REQUIRE(VRegIsVirtualHKey(hFirst));
+        REQUIRE(VRegIsVirtualHKey(hSecond));
         CHECK(seen.insert(hFirst).second);
         CHECK(seen.insert(hSecond).second);
 
-        CHECK(first.Owns(hFirst));
-        CHECK_FALSE(first.Owns(hSecond));
-        CHECK(second.Owns(hSecond));
-        CHECK_FALSE(second.Owns(hFirst));
+        CHECK(VReg__HandleSpaceOwns(&first, hFirst));
+        CHECK_FALSE(VReg__HandleSpaceOwns(&first, hSecond));
+        CHECK(VReg__HandleSpaceOwns(&second, hSecond));
+        CHECK_FALSE(VReg__HandleSpaceOwns(&second, hFirst));
 
-        CHECK(first.Find(hFirst) == &first);
-        CHECK(first.Find(hSecond) == nullptr);
-        CHECK(second.Find(hSecond) == &second);
+        CHECK(VReg__HandleSpaceFind(&first, hFirst) == &first);
+        CHECK(VReg__HandleSpaceFind(&first, hSecond) == nullptr);
+        CHECK(VReg__HandleSpaceFind(&second, hSecond) == &second);
     }
 
-    CHECK_FALSE(first.Owns(HKEY_LOCAL_MACHINE));
-    CHECK_FALSE(first.Owns(nullptr));
-    CHECK(first.Find(HKEY_LOCAL_MACHINE) == nullptr);
+    CHECK_FALSE(VReg__HandleSpaceOwns(&first, HKEY_LOCAL_MACHINE));
+    CHECK_FALSE(VReg__HandleSpaceOwns(&first, nullptr));
+    CHECK(VReg__HandleSpaceFind(&first, HKEY_LOCAL_MACHINE) == nullptr);
+}
+
+TEST_CASE("A released handle is never handed out again and finds nothing")
+{
+    const auto wsName = UniqueSectionName(L"released");
+    VReg__HandleSpace space;
+    VReg__HandleSpaceInit(&space, wsName.c_str());
+    REQUIRE(VReg__HandleSpaceIsUsable(&space));
+
+    int target = 0;
+    const auto hKey = VReg__HandleSpaceAllocate(&space, &target);
+    REQUIRE(VReg__HandleSpaceFind(&space, hKey) == &target);
+
+    VReg__HandleSpaceRelease(&space, hKey);
+    CHECK(VReg__HandleSpaceFind(&space, hKey) == nullptr);
+    CHECK(VReg__HandleSpaceOwns(&space, hKey));
+    CHECK(VReg__HandleSpaceAllocate(&space, &target) != hKey);
+
+    // A handle the space does not know is ignored.
+    VReg__HandleSpaceRelease(&space, HKEY_LOCAL_MACHINE);
+    VReg__HandleSpaceRelease(&space, nullptr);
 }
 
 TEST_CASE("A section claimed with a different layout makes the space unusable")
@@ -125,32 +168,47 @@ TEST_CASE("A section claimed with a different layout makes the space unusable")
     const auto wsName = UniqueSectionName(L"foreign");
     MapRaw(wsName)->magic = 0x12345678;
 
-    HandleSpace space(wsName.c_str());
-    CHECK_FALSE(space.IsUsable());
-    CHECK(space.Allocate(&space) == nullptr);
+    VReg__HandleSpace space;
+    VReg__HandleSpaceInit(&space, wsName.c_str());
+    CHECK_FALSE(VReg__HandleSpaceIsUsable(&space));
+    CHECK(VReg__HandleSpaceAllocate(&space, &space) == nullptr);
 }
 
 TEST_CASE("Allocation fails once the namespace is exhausted")
 {
     const auto wsName = UniqueSectionName(L"exhausted");
     auto* const pShared = MapRaw(wsName);
-    pShared->magic = HandleSpace::MAGIC;
-    pShared->nextBlock = static_cast<LONG>(HandleSpace::BLOCK_COUNT - 1);
+    pShared->magic = VREG__HANDLE_SPACE_MAGIC;
+    pShared->nextBlock = static_cast<LONG>(VREG__HANDLE_BLOCK_COUNT - 1);
 
-    HandleSpace space(wsName.c_str());
-    REQUIRE(space.IsUsable());
-    for (std::uintptr_t i = 0; i < HandleSpace::BLOCK_SIZE; ++i)
-        REQUIRE(IsVirtualHKey(space.Allocate(&space)));
+    VReg__HandleSpace space;
+    VReg__HandleSpaceInit(&space, wsName.c_str());
+    REQUIRE(VReg__HandleSpaceIsUsable(&space));
+    for (std::uintptr_t i = 0; i < VREG__HANDLE_BLOCK_SIZE; ++i)
+        REQUIRE(VRegIsVirtualHKey(VReg__HandleSpaceAllocate(&space, &space)));
 
-    CHECK(space.Allocate(&space) == nullptr);
+    CHECK(VReg__HandleSpaceAllocate(&space, &space) == nullptr);
 }
 
 TEST_CASE("The process space is usable and issues virtual handles")
 {
-    auto& space = HandleSpace::Process();
-    REQUIRE(space.IsUsable());
-    const auto hKey = space.Allocate(&space);
-    CHECK(IsVirtualHKey(hKey));
-    CHECK(space.Owns(hKey));
-    CHECK(&space == &HandleSpace::Process());
+    auto* const pSpace = VReg__ProcessHandleSpace();
+    REQUIRE(VReg__HandleSpaceIsUsable(pSpace));
+    const auto hKey = VReg__HandleSpaceAllocate(pSpace, pSpace);
+    CHECK(VRegIsVirtualHKey(hKey));
+    CHECK(VReg__HandleSpaceOwns(pSpace, hKey));
+    CHECK(pSpace == VReg__ProcessHandleSpace());
+}
+
+TEST_CASE("The process space is the section every copy of VReg shares")
+{
+    const auto wsName = L"Local\\VReg-handles-" + std::to_wstring(GetCurrentProcessId());
+    auto* const pShared = MapRaw(wsName);
+    auto* const pSpace = VReg__ProcessHandleSpace();
+    REQUIRE(VReg__HandleSpaceIsUsable(pSpace));
+    CHECK(pShared->magic == VREG__HANDLE_SPACE_MAGIC);
+
+    // The first allocation reserves this copy's first block from the section.
+    REQUIRE(VRegIsVirtualHKey(VReg__HandleSpaceAllocate(pSpace, pSpace)));
+    CHECK(pShared->nextBlock >= 1);
 }

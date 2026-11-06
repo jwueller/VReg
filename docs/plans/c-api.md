@@ -169,6 +169,20 @@ symbol remains in the library, and every test that passes today passes.
   `NOMINMAX`.
 - Sorting: children stay a sorted array with insertion at the found index;
   the `.reg` export sorts a snapshot once with a small own sort.
+- Until step 5 the C sources are written in the subset C99 and C++20 share
+  (explicit casts from `void*`, no compound literals, designated initializers
+  in declaration order), because the amalgamation tests compile the inlined
+  `.c` files as C++ until the generator emits C.
+- Agent's choice: struct members take Win32's shape (`pShared`, `cbData`)
+  without `m_`, since C has no member functions for a local to be confused
+  with. Private functions (`VReg__Name`) take the default calling
+  convention; only the public ones are `WINAPI`.
+- Lock-free loads and stores use `ReadPointerAcquire` and
+  `WritePointerRelease`; one-time initialization uses
+  `InitOnceExecuteOnce`. Both are Vista APIs, the minimum VReg targets.
+- The handle space allocates its block tables from the process heap
+  directly, not through the allocation macros: they live for the process
+  and belong to no hive or registry whose context could own them.
 
 ## Open
 

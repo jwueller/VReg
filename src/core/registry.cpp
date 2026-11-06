@@ -971,7 +971,7 @@ LSTATUS Registry::RegCreateKeyA(
         return ERROR_INVALID_PARAMETER;
     if (!lpSubKey || !*lpSubKey)
     {
-        if (!IsPredefinedHKey(hKey))
+        if (!VRegIsPredefinedHKey(hKey))
             return ERROR_BADKEY;
         *phkResult = hKey;
         return ERROR_SUCCESS;
@@ -999,7 +999,7 @@ LSTATUS Registry::RegCreateKeyW(
         return ERROR_INVALID_PARAMETER;
     if (!lpSubKey || !*lpSubKey)
     {
-        if (!IsPredefinedHKey(hKey))
+        if (!VRegIsPredefinedHKey(hKey))
             return ERROR_BADKEY;
         *phkResult = hKey;
         return ERROR_SUCCESS;

@@ -17,7 +17,8 @@ target_sources(VReg_VReg PRIVATE
     core/ansi.h
     core/export_table.cpp
     core/export_table.h
-    core/handle_space.cpp
+    core/handle.c
+    core/handle_space.c
     core/handle_space.h
     core/lock.h
     core/hive.cpp

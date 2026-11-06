@@ -4,6 +4,7 @@
 add_library(VReg_BuildSettings INTERFACE)
 
 target_compile_features(VReg_BuildSettings INTERFACE
+    c_std_99
     cxx_std_20
 )
 
@@ -16,7 +17,7 @@ target_compile_definitions(VReg_BuildSettings INTERFACE
 
 target_compile_options(VReg_BuildSettings INTERFACE
     /W4
-    /permissive-
+    $<$<COMPILE_LANGUAGE:CXX>:/permissive->
     /utf-8
 )
 

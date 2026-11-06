@@ -9,6 +9,7 @@
 #include <Windows.h>
 #include <ktmw32.h>
 
+#include <bit>
 #include <filesystem>
 #include <string>
 
@@ -30,7 +31,7 @@ void CheckRoute(const char* route, const LSTATUS error, const HKEY hKey)
     }
 
     CHECK((std::bit_cast<std::uintptr_t>(hKey) & 1) == 0);
-    CHECK_FALSE(VReg::IsVirtualHKey(hKey));
+    CHECK_FALSE(VRegIsVirtualHKey(hKey));
     RegCloseKey(hKey);
 }
 
