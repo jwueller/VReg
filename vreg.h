@@ -2288,6 +2288,17 @@ VREGDEF _Ret_maybenull_ void* VReg__FindRegistryExport(_In_z_ const char* pszNam
 // the sizing call and the read. The storage is allocated with the
 // @p pAllocContext given and stays the caller's to free.
 
+// Names and classes are read into a temporary buffer of 256 characters, which
+// holds the longest key name, and grow by doubling on ERROR_MORE_DATA, up to
+// the limits below. Avoids an additional sizing call for the common case.
+#define VREG__INITIAL_NAME_CHARS ((DWORD)256)
+#define VREG__MAX_CLASS_CHARS ((DWORD)32768)
+#define VREG__MAX_VALUE_NAME_CHARS ((DWORD)16384)
+
+/// The size to retry with: the one the call asked for, or more than before if
+/// it asked for no more than it was given.
+VREGDEF DWORD VReg__Grown(DWORD cbOld, DWORD cbRequired);
+
 VREGDEF LSTATUS VReg__QueryValueOwned(
     _In_ VRegRegistry* pRegistry,
     _In_ HKEY hKey,
@@ -2327,20 +2338,25 @@ VREGDEF LSTATUS VReg__EnumValueOwned(
     _Inout_opt_ VReg__Buffer* pData
 );
 
-// ==========================================================================
-// Retried lower reads
-// ==========================================================================
-
-// Names and classes are read into a temporary buffer of 256 characters, which
-// holds the longest key name, and grow by doubling on ERROR_MORE_DATA, up to
-// the limits below. Avoids an additional sizing call for the common case.
-#define VREG__INITIAL_NAME_CHARS ((DWORD)256)
-#define VREG__MAX_CLASS_CHARS ((DWORD)32768)
-#define VREG__MAX_VALUE_NAME_CHARS ((DWORD)16384)
-
-/// The size to retry with: the one the call asked for, or more than before if
-/// it asked for no more than it was given.
-VREGDEF DWORD VReg__Grown(DWORD cbOld, DWORD cbRequired);
+/// @ref VRegQueryInfoKeyW with the class read into @p pClass. When the read
+/// fails and its last call reported a class length other than the buffer's,
+/// that length is stored at @p lpcchClassReported.
+VREGDEF LSTATUS VReg__QueryInfoKeyOwned(
+    _In_ VRegRegistry* pRegistry,
+    _In_ HKEY hKey,
+    _In_opt_ void* pAllocContext,
+    _Inout_ VReg__WString* pClass,
+    _Out_opt_ LPDWORD lpcchClassReported,
+    _Reserved_ LPDWORD lpReserved,
+    _Out_opt_ LPDWORD lpcSubKeys,
+    _Out_opt_ LPDWORD lpcbMaxSubKeyLen,
+    _Out_opt_ LPDWORD lpcbMaxClassLen,
+    _Out_opt_ LPDWORD lpcValues,
+    _Out_opt_ LPDWORD lpcbMaxValueNameLen,
+    _Out_opt_ LPDWORD lpcbMaxValueLen,
+    _Out_opt_ LPDWORD lpcbSecurityDescriptor,
+    _Out_opt_ PFILETIME lpftLastWriteTime
+);
 
 // ==========================================================================
 // RRF_* filters
@@ -4284,8 +4300,6 @@ VREGDEF LSTATUS WINAPI VRegQueryInfoKeyA(
     VReg__Buffer classA = {NULL, 0, 0};
     BOOL wantClass;
     BOOL wantClassLength;
-    DWORD cchClass;
-    DWORD cchClassOut = 0;
     LSTATUS status;
 
     if (lpClass && !lpcchClass)
@@ -4314,44 +4328,25 @@ VREGDEF LSTATUS WINAPI VRegQueryInfoKeyA(
         );
     }
 
-    cchClass = VREG__INITIAL_NAME_CHARS;
-    for (;;)
-    {
-        if (!VReg__WStringResize(pAllocContext, &className, cchClass))
-        {
-            status = ERROR_OUTOFMEMORY;
-            goto done;
-        }
-
-        cchClassOut = cchClass;
-        status = VRegQueryInfoKeyW(
-            pRegistry,
-            hKey,
-            className.psz,
-            &cchClassOut,
-            lpReserved,
-            lpcSubKeys,
-            lpcbMaxSubKeyLen,
-            lpcbMaxClassLen,
-            lpcValues,
-            lpcbMaxValueNameLen,
-            lpcbMaxValueLen,
-            lpcbSecurityDescriptor,
-            lpftLastWriteTime
-        );
-        if (status != ERROR_MORE_DATA || cchClass >= VREG__MAX_CLASS_CHARS)
-            break;
-
-        cchClass = VReg__MinDword(cchClass * 2, VREG__MAX_CLASS_CHARS);
-    }
+    status = VReg__QueryInfoKeyOwned(
+        pRegistry,
+        hKey,
+        pAllocContext,
+        &className,
+        lpcchClass,
+        lpReserved,
+        lpcSubKeys,
+        lpcbMaxSubKeyLen,
+        lpcbMaxClassLen,
+        lpcValues,
+        lpcbMaxValueNameLen,
+        lpcbMaxValueLen,
+        lpcbSecurityDescriptor,
+        lpftLastWriteTime
+    );
     if (status != ERROR_SUCCESS)
-    {
-        if (cchClassOut != cchClass)
-            *lpcchClass = cchClassOut;
         goto done;
-    }
 
-    VReg__WStringTruncate(&className, cchClassOut);
     status = VReg__AnsiFromWide(pAllocContext, VReg__WStringText(&className), className.cch, &classA);
     if (status != ERROR_SUCCESS)
         goto done;
@@ -6347,7 +6342,6 @@ static LSTATUS VReg__HiveQueryLowerClass(
 )
 {
     HKEY hLower = NULL;
-    DWORD cchBuffer = VREG__INITIAL_NAME_CHARS;
     LSTATUS status;
 
     if (!VReg__WStringResize(pHive->pAllocContext, pClassName, 0))
@@ -6357,41 +6351,22 @@ static LSTATUS VReg__HiveQueryLowerClass(
     if (status != ERROR_SUCCESS)
         return status == ERROR_FILE_NOT_FOUND ? ERROR_SUCCESS : status;
 
-    for (;;)
-    {
-        DWORD cchClass = cchBuffer;
-        if (!VReg__WStringResize(pHive->pAllocContext, pClassName, cchBuffer))
-        {
-            status = ERROR_OUTOFMEMORY;
-            break;
-        }
-
-        status = VRegQueryInfoKeyW(
-            pHive->pLower,
-            hLower,
-            pClassName->psz,
-            &cchClass,
-            NULL,
-            NULL,
-            NULL,
-            NULL,
-            NULL,
-            NULL,
-            NULL,
-            NULL,
-            NULL
-        );
-        if (status == ERROR_MORE_DATA || status == ERROR_INSUFFICIENT_BUFFER)
-        {
-            cchBuffer *= 2;
-            continue;
-        }
-
-        if (status == ERROR_SUCCESS)
-            VReg__WStringTruncate(pClassName, cchClass);
-        break;
-    }
-
+    status = VReg__QueryInfoKeyOwned(
+        pHive->pLower,
+        hLower,
+        pHive->pAllocContext,
+        pClassName,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL
+    );
     VReg__HiveCloseLower(pHive, hLower);
     return status;
 }
@@ -8015,7 +7990,6 @@ VREGDEF LSTATUS VReg__HiveQueryInfo(
     VReg__WString viewPath = {NULL, 0, 0};
     VReg__WString lowerClass = {NULL, 0, 0};
     HKEY hLower = NULL;
-    DWORD cchClassBuffer = VREG__INITIAL_NAME_CHARS;
     DWORD cSubKeys = 0;
     DWORD cchMaxSubKey = 0;
     DWORD cchMaxClass = 0;
@@ -8057,41 +8031,24 @@ VREGDEF LSTATUS VReg__HiveQueryInfo(
     if (status != ERROR_SUCCESS)
         goto done;
 
-    for (;;)
-    {
-        DWORD cchClass = cchClassBuffer;
-        if (!VReg__WStringResize(pAllocContext, &lowerClass, cchClassBuffer))
-        {
-            status = ERROR_OUTOFMEMORY;
-            goto done;
-        }
-
-        status = VRegQueryInfoKeyW(
-            pHive->pLower,
-            hLower,
-            lowerClass.psz,
-            &cchClass,
-            NULL,
-            &cSubKeys,
-            &cchMaxSubKey,
-            &cchMaxClass,
-            &cValues,
-            &cchMaxValueName,
-            &cbMaxValue,
-            NULL,
-            &lastWrite
-        );
-        if (status == ERROR_MORE_DATA || status == ERROR_INSUFFICIENT_BUFFER)
-        {
-            cchClassBuffer *= 2;
-            continue;
-        }
-        if (status != ERROR_SUCCESS)
-            goto done;
-
-        VReg__WStringTruncate(&lowerClass, cchClass);
-        break;
-    }
+    status = VReg__QueryInfoKeyOwned(
+        pHive->pLower,
+        hLower,
+        pAllocContext,
+        &lowerClass,
+        NULL,
+        NULL,
+        &cSubKeys,
+        &cchMaxSubKey,
+        &cchMaxClass,
+        &cValues,
+        &cchMaxValueName,
+        &cbMaxValue,
+        NULL,
+        &lastWrite
+    );
+    if (status != ERROR_SUCCESS)
+        goto done;
 
     // An upper entry that shadows a lower one is counted once.
     for (i = 0; i < shadowedKeys.count; ++i)
@@ -9008,6 +8965,59 @@ VREGDEF LSTATUS VReg__EnumValueOwned(
             if (lpType)
                 *lpType = dwType;
         }
+        return status;
+    }
+}
+
+VREGDEF LSTATUS VReg__QueryInfoKeyOwned(
+    _In_ VRegRegistry* const pRegistry,
+    _In_ const HKEY hKey,
+    _In_opt_ void* const pAllocContext,
+    _Inout_ VReg__WString* const pClass,
+    _Out_opt_ const LPDWORD lpcchClassReported,
+    _Reserved_ const LPDWORD lpReserved,
+    _Out_opt_ const LPDWORD lpcSubKeys,
+    _Out_opt_ const LPDWORD lpcbMaxSubKeyLen,
+    _Out_opt_ const LPDWORD lpcbMaxClassLen,
+    _Out_opt_ const LPDWORD lpcValues,
+    _Out_opt_ const LPDWORD lpcbMaxValueNameLen,
+    _Out_opt_ const LPDWORD lpcbMaxValueLen,
+    _Out_opt_ const LPDWORD lpcbSecurityDescriptor,
+    _Out_opt_ const PFILETIME lpftLastWriteTime
+)
+{
+    DWORD cchClass = VREG__INITIAL_NAME_CHARS;
+    for (;;)
+    {
+        DWORD cchRead = cchClass;
+        LSTATUS status;
+        if (!VReg__WStringResize(pAllocContext, pClass, cchClass))
+            return ERROR_OUTOFMEMORY;
+
+        status = VRegQueryInfoKeyW(
+            pRegistry,
+            hKey,
+            pClass->psz,
+            &cchRead,
+            lpReserved,
+            lpcSubKeys,
+            lpcbMaxSubKeyLen,
+            lpcbMaxClassLen,
+            lpcValues,
+            lpcbMaxValueNameLen,
+            lpcbMaxValueLen,
+            lpcbSecurityDescriptor,
+            lpftLastWriteTime
+        );
+        if ((status == ERROR_MORE_DATA || status == ERROR_INSUFFICIENT_BUFFER) && cchClass < VREG__MAX_CLASS_CHARS)
+        {
+            cchClass = VReg__MinDword(cchClass * 2, VREG__MAX_CLASS_CHARS);
+            continue;
+        }
+        if (status == ERROR_SUCCESS)
+            VReg__WStringTruncate(pClass, cchRead);
+        else if (lpcchClassReported && cchRead != cchClass)
+            *lpcchClassReported = cchRead;
         return status;
     }
 }
