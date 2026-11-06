@@ -1990,9 +1990,8 @@ VREGDEF LONG WINAPI VRegAttachHooks(_In_ VRegRegistry* const pRegistry, _In_ VRe
 
     // Agent's choice: the hooks neutralize themselves when the module that
     // holds their bodies unloads (or the process exits) through the CRT's exit
-    // table, which runs for a DLL at its detach; the C++ library used a static
-    // destructor, which is the same mechanism. A TLS callback would avoid the
-    // CRT but is MSVC-specific and far less plain.
+    // table, which runs for a DLL at its detach. A TLS callback would avoid
+    // the CRT but is MSVC-specific and far less plain.
     atexit(VRegNeutralizeHooks);
     return NO_ERROR;
 }

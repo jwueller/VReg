@@ -1,6 +1,6 @@
 # VReg
 
-A virtual Windows registry for C++, as an overlay over the real one, or held
+A virtual Windows registry for C, as an overlay over the real one, or held
 entirely in memory. A process sees keys that don't exist on the machine and
 values added, overridden or deleted in keys that do, while the real
 registry stays unchanged.
@@ -9,13 +9,14 @@ It grew out of the virtual registry in [DirectRetrofit](https://retrofit.games).
 
 ## What it does
 
-- **The Win32 `Reg*` function family as an interface.** `Registry` has
-  every member of the family, names and signatures alike (ANSI and wide,
-  `Ex` and pre-`Ex`), so the `UNICODE` macros select among its members as
-  among the functions. Native, virtual and in-memory registries are
-  interchangeable behind it. Reads into a `std::wstring` or
-  `std::vector<std::byte>` are free functions on top.
-- **Hives mounted into a virtual namespace.** A `VirtualRegistry` mounts
+- **The Win32 `Reg*` function family as an interface.** A `VRegRegistry`
+  is a function table with a slot for every member of the family, names and
+  signatures alike (ANSI and wide, `Ex` and pre-`Ex`); the flat `VReg*`
+  functions call the slots with the registry first, and the `UNICODE`
+  macros select among them as among the functions. Native, virtual and
+  in-memory registries, and any table of your own, are interchangeable
+  behind it; a slot left null is derived from the wide `Ex` forms.
+- **Hives mounted into a virtual namespace.** A virtual registry mounts
   in-memory or overlay hives at registry paths and passes everything else to
   a base registry (usually the real one). An overlay hive adds, overrides
   and deletes keys and values over the registry below it, while real values
@@ -34,14 +35,16 @@ Windows only (x86, x64 and ARM64), and runs under Wine and Proton.
 
 ## Using it
 
-Needs C++20 (MSVC 2022 or later, or clang-cl), with exceptions, and
-`_WIN32_WINNT` at `0x0600` (Windows Vista) or later. The CMake targets also need
-CMake 3.25 or later; the [single header](#as-a-single-header) needs no
-build system.
+Needs a C99 compiler (MSVC 2013 or later, or clang-cl; the headers compile
+as C++ too) and `_WIN32_WINNT` at `0x0600` (Windows Vista) or later. Its
+one dependency is `windows.h`: no C runtime beyond what the compiler needs,
+and `VREG_MALLOC`, `VREG_REALLOC` and `VREG_FREE` replace the allocator (the
+defaults use the process heap). The CMake targets also need CMake 3.25 or
+later; the [single header](#as-a-single-header) needs no build system.
 
 CMake targets (static libraries):
-- `VReg::VReg`: the library: the interface, the registries, the hives, the
-  handles, and `.reg` import and export.
+- `VReg::VReg`: the library: the function table, the registries, the hives,
+  the handles, and `.reg` import and export.
 - `VReg::Detours`: the hooks. Enable it with `-DVREG_WITH_DETOURS=ON`;
   needs Detours.
 
@@ -80,57 +83,70 @@ through to the real registry crashes.
 
 Each [release](https://github.com/jwueller/VReg/releases) attaches
 `vreg.h`, the whole library in one file (a build writes the same file to
-`amalgamation/` in its build directory). Include it anywhere; in exactly one
-`.cpp` file per module, compile the library there:
+`amalgamation/` in its build directory). Include it anywhere, from C or C++;
+in exactly one C file per module, compile the library there:
 
-```cpp
+```c
 #define VREG_IMPLEMENTATION
 #include "vreg.h"
 ```
 
-It links `advapi32` by itself. For the hooks, define `VREG_WITH_DETOURS`
-wherever it is included, with `<detours/detours.h>` on the include path and
-the Detours library linked.
+It links `advapi32` by itself. `VREG_STATIC`, defined wherever it is
+included, makes every function `static`, so a module can hold a private
+copy beside another's. For the hooks, define `VREG_WITH_DETOURS` wherever it
+is included, with `<detours/detours.h>` on the include path and the Detours
+library linked.
 
 ### Overlay over the real registry
 
 Keys and values added, overridden or deleted under one real key; everything
 else is the real registry.
 
-```cpp
-VReg::NativeRegistry native;
-VReg::Hive overlay(native, HKEY_CURRENT_USER, L"Software\\Vendor\\Game");
-VReg::VirtualRegistry registry(&native);
-registry.Mount(HKEY_CURRENT_USER, L"Software\\Vendor\\Game", overlay);
+```c
+VRegRegistry* native;
+VRegRegistry* registry;
+VRegHive* overlay;
+VRegCreateNativeRegistry(NULL, NULL, &native);
+VRegCreateLayeredHive(native, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", 0, NULL, &overlay);
+VRegCreateVirtualRegistry(native, NULL, NULL, &registry);
+VRegMount(registry, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", overlay, 0);
 
 const DWORD dwOne = 1;
-registry.RegSetKeyValueW(HKEY_CURRENT_USER, L"Software\\Vendor\\Game", L"Windowed", REG_DWORD, &dwOne, sizeof(dwOne));
+VRegSetKeyValueW(registry, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", L"Windowed", REG_DWORD, &dwOne, sizeof(dwOne));
 ```
 
-Writes stay in memory. `VReg::RegFile::ExportDelta` saves them as a `.reg`
-file that `VReg::RegFile::Apply` replays later.
+Writes stay in memory. `VRegDeltaScript` collects them as a `.reg` script
+that `VRegWriteScriptFile` saves and `VRegApplyScript` replays later. Every
+status is the `LSTATUS` the native function answers; the creation functions
+answer `ERROR_OUTOFMEMORY` when memory ran out.
 
 ### Held entirely in memory
 
-```cpp
-VReg::Hive machine;
-VReg::Hive user;
-VReg::VirtualRegistry registry;   // no base: nothing else exists
-registry.Mount(HKEY_LOCAL_MACHINE, L"", machine);
-registry.Mount(HKEY_CURRENT_USER, L"", user);
+```c
+VRegHive* machine;
+VRegHive* user;
+VRegRegistry* registry;
+VRegCreateHive(NULL, &machine);
+VRegCreateHive(NULL, &user);
+VRegCreateVirtualRegistry(NULL, NULL, NULL, &registry);   // no base: nothing else exists
+VRegMount(registry, HKEY_LOCAL_MACHINE, L"", machine, 0);
+VRegMount(registry, HKEY_CURRENT_USER, L"", user, 0);
 ```
 
 ### Hooked into the process
 
-```cpp
-// Leaked on purpose: the hooks use them until the process ends.
-auto* native = new VReg::NativeRegistry;
-auto* registry = new VReg::VirtualRegistry(native);
-auto* hive = new VReg::Hive;
-registry->Mount(HKEY_LOCAL_MACHINE, L"Software\\Vendor\\Game", *hive);
-// Fill the hive through registry (or RegFile::Apply), then:
-hive->Freeze();
-VReg::Detours::Install(*registry, *native);
+```c
+// Never destroyed: the hooks use them until the process ends.
+VRegRegistry* native;
+VRegRegistry* registry;
+VRegHive* hive;
+VRegCreateNativeRegistry(NULL, NULL, &native);
+VRegCreateVirtualRegistry(native, NULL, NULL, &registry);
+VRegCreateHive(NULL, &hive);
+VRegMount(registry, HKEY_LOCAL_MACHINE, L"Software\\Vendor\\Game", hive, 0);
+// Fill the hive through registry (or VRegApplyScript), then:
+VRegFreezeHive(hive);
+VRegInstallHooks(registry, native);
 ```
 
 From then on the process's own `Reg*` calls see the mount. A frozen hive is
@@ -151,18 +167,19 @@ write into it.
   code unmapped.
 - **Several modules** MAY each link VReg and install their own hooks; their
   handles never collide, and each answers only its own mounts.
-- **Tracing:** `Install` takes any `Registry`, so a wrapper that logs each
-  call and forwards it to the `VirtualRegistry` can stand in front of it.
+- **Tracing:** `VRegInstallHooks` takes any `VRegRegistry`, so a table
+  that logs each call and forwards it to the virtual registry can stand in
+  front of it; a form it leaves null reaches it as the wide `Ex` form.
 - **MUI strings:** `RegLoadMUIString` never resolves a hive value's `@`
   resource reference (that would load a module) and answers
   `ERROR_INVALID_DATA`. A value stored with `VRegSetHiveMuiTextValue` answers
   with its text instead.
 
-Code that runs inside a hook (a custom `Registry` used as a base, for
-instance) may run under another module's loader lock: it MUST NOT load a
+Code that runs inside a hook (a registry table of your own used as a base,
+for instance) may run under another module's loader lock: it MUST NOT load a
 module, create a thread, or wait on a lock a loader-lock holder could own,
-and it MUST reach the real registry only through the base registry, never
-`::Reg*`.
+and it MUST reach the real registry only through the native registry below
+the hooks, never the `Reg*` functions themselves.
 
 Calls straight to `ntdll` (`NtOpenKey` and friends) bypass the hooks; see
 [Scope](#scope) and
@@ -170,7 +187,8 @@ Calls straight to `ntdll` (`NtOpenKey` and friends) bypass the hooks; see
 
 ## Supported functions
 
-By `Registry` (its members) and, once hooked, for every virtual key.
+As flat functions (`VRegOpenKeyExW` and so on, the registry first) and
+table slots, and, once hooked, for every virtual key.
 
 #### Open, create and close
 
@@ -215,7 +233,8 @@ By `Registry` (its members) and, once hooked, for every virtual key.
 ### Refused on virtual handles
 
 They answer `ERROR_NOT_SUPPORTED` on a virtual handle and pass through
-unchanged on a real one. They are hooked but not part of `Registry`.
+unchanged on a real one. They are hooked but have no slot in
+`VRegRegistryVtbl`.
 
 #### Hive files
 
@@ -369,7 +388,7 @@ is reachable through `RegOpenUserClassesRoot`.
   readily.
 - A diagnostic sink: an optional function pointer, off by default and bound
   by the detour-body rules, reporting what VReg decides. Call tracing needs
-  no sink: a `Registry` wrapper installed in front of the `VirtualRegistry`
+  no sink: a registry table installed in front of the virtual registry
   sees every call.
 
 ## Known divergences from native Windows
@@ -394,8 +413,8 @@ Measured by the oracle; each is an input no sane caller relies on.
 
 ### Virtual keys
 
-Measured by running the oracle catalogue against `VirtualRegistry` over an
-in-memory `Hive`; the scenarios skip exactly these calls for the virtual run
+Measured by running the oracle catalogue against a virtual registry over
+an in-memory hive; the scenarios skip exactly these calls for the virtual run
 (and for its native reference).
 
 - Access rights are per node, not per open: a key opened `KEY_READ` can

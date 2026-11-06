@@ -8,9 +8,10 @@ the [README](./README.md), how to build, test and release it in
 
 ### Targets
 
-- `VReg::VReg`: the `Registry` interface, `NativeRegistry`,
-  `VirtualRegistry`, `Hive`, handle encoding and the shared handle namespace
-  (`src/core/`), and `.reg` parse, apply and export (`src/regfile/`).
+- `VReg::VReg`: the registry function table and its flat functions, the
+  native and virtual registries, hives, handle encoding and the shared
+  handle namespace (`src/core/`), and `.reg` parse, apply, snapshot, delta
+  and write (`src/regfile/`).
 - `VReg::Detours`: the hook adapter; built only with `VREG_WITH_DETOURS`
   (off by default), since it needs Microsoft Detours.
 
@@ -20,73 +21,85 @@ costs a consumer only the objects it links. The handle layer lives in the
 core: every non-native implementation hands out handles, so none of them
 exists without it.
 
-### `Registry`: the `Reg*` function family
+The library is C99 with `windows.h` as its one dependency: it allocates
+through `VREG_MALLOC`, `VREG_REALLOC` and `VREG_FREE` (the process heap by
+default), each given the allocation context a registry or hive was created
+with, and reaches no C runtime function (the hooks' `atexit` excepted). Every
+function is declared `VREGDEF`, which `VREG_STATIC` turns into `static`.
 
-- Virtual methods with the `Reg*ExW` signatures: open, create, close, query
-  value, set value, delete value, delete key, delete tree, enumerate keys
-  and values, query info, load MUI string, get value, notify, flush.
-- The ANSI forms and the pre-`Ex` forms (`RegOpenKeyA`, `RegEnumKeyW`, ...) are
-  implemented once over the wide virtuals, widening and narrowing through
-  `CP_ACP` in both directions (ANSI callers use the system code page; UTF-8
-  there corrupts non-ASCII names and data).
-- `RegSetKeyValue`, `RegDeleteKeyValue` and `RegQueryMultipleValues`
-  (ANSI and wide) are built from the virtuals as Win32 builds them; they are
-  hooked, so every `Registry` must answer them.
-- Every ANSI form is virtual, with that implementation as its default, so a
-  wrapper in front of a registry (one that traces each call) can tell an
-  ANSI call from a wide call; it forwards an ANSI form it overrides to the
-  ANSI form of the registry it wraps. The wide pre-`Ex` forms and
-  conveniences stay non-virtual.
-- Members carry their Win32 names, `Reg` prefix included (`RegOpenKeyExW`),
-  so the `UNICODE` selector macros of `winreg.h` (`RegOpenKeyEx`) pick the
-  ANSI or wide member as they pick the function. Only ANSI and wide names are
-  declared: a member with the neutral name would be renamed by the macro.
-- Queries are `const` members: they change nothing the registry answers
-  afterwards. Opening a key is not a query, since it hands out a handle the
-  caller owns; neither is pre-`Ex` `RegQueryValue`, which opens and closes
-  a subkey.
-- `Registry` holds the `Reg*` function family and nothing else. The reads
-  that size and fill a `std::wstring` or `std::vector<std::byte>` themselves
-  are free functions over a `const Registry&` the tests keep (`test/owned_values.h`), without the
-  `Reg` prefix, which would collide with Win32 macros such as
-  `RegQueryValue`.
+### `VRegRegistry`: the `Reg*` function family
+
+- A registry is a struct that starts with a pointer to a `VRegRegistryVtbl`
+  and its allocation context; an implementation puts it first in its own
+  struct, a wrapper does the same and keeps the registry it wraps. The
+  shape is a COM object without `IUnknown`.
+- The table has one `WINAPI` slot per form of the family, 45 in all, with
+  the object first, plus `Destroy`: the wide `Ex` forms (open, create,
+  close, query value, set value, delete value, delete key, delete tree,
+  enumerate keys and values, query info, load MUI string, get value, notify,
+  flush), the ANSI forms, the pre-`Ex` forms (`RegOpenKeyA`,
+  `RegEnumKeyW`, ...) and the conveniences Win32 builds from other calls
+  (`RegSetKeyValue`, `RegDeleteKeyValue`, `RegQueryMultipleValues`).
+- Callers use the flat functions, `VReg` plus the Win32 name with the
+  registry first (`VRegOpenKeyExW(pRegistry, hKey, ...)`). A flat function
+  calls its slot when the table fills it; otherwise it derives the call from
+  the wide `Ex` forms, once, in `src/core/forms.c`: ANSI forms widen and
+  narrow through `CP_ACP` in both directions (ANSI callers use the system
+  code page; UTF-8 there corrupts non-ASCII names and data), and the
+  conveniences are built as Win32 builds them. An implementation fills the
+  wide surface; a flat wide function whose slot is null answers
+  `ERROR_CALL_NOT_IMPLEMENTED`.
+- A wrapper in front of a registry (one that traces each call) can tell an
+  ANSI call from a wide call by filling the ANSI slot; one that leaves it
+  null sees the call as the wide form it becomes.
+- Slots and flat functions carry their Win32 names, `Reg` prefix included,
+  and the `UNICODE` selector macros (`VRegOpenKeyEx`) pick the ANSI or wide
+  function as `winreg.h` picks the Win32 one. Only ANSI and wide names are
+  declared: a slot with the neutral name would be renamed by the macro.
+- The table holds the `Reg*` function family and nothing else. The reads
+  that size and fill an owned buffer themselves are the tests'
+  (`test/owned_values.h`), without the `Reg` prefix, which would collide
+  with Win32 macros such as `RegQueryValue`.
 
 Implementations:
 
-- `NativeRegistry`: forwards the virtual surface through a table of function
-  pointers, one per virtual, and takes the other forms from `Registry` like
-  every implementation. Defaults resolve from the export table of
+- The native registry (`VRegCreateNativeRegistry`): forwards the wide
+  surface through a `VRegNativeFunctions` table, one field per form, and
+  leaves the other slots null. Defaults resolve from the export table of
   `KernelBase.dll`, never via `GetProcAddress` (an apphelp shim stub would
   otherwise stand in for the entry point). The Detours adapter hands these
   fields to `DetourAttach`, so after the commit they hold the trampolines;
   the trampolines of the ANSI and pre-`Ex` hooks, which no registry calls,
   stay in the adapter.
-- `VirtualRegistry`: a mount table of hives plus an optional base
-  `Registry`. Paths outside every mount go to the base; with no base they
-  answer `ERROR_FILE_NOT_FOUND`. It owns the ANSI/wide and caller-buffer rules
-  (sizes in characters vs bytes, terminators, `ERROR_MORE_DATA`), once, for
-  every hive.
+- The virtual registry (`VRegCreateVirtualRegistry`, `VRegMount`): a mount
+  table of hives plus an optional base registry. Paths outside every mount
+  go to the base; with no base they answer `ERROR_FILE_NOT_FOUND`. It owns
+  the ANSI/wide and caller-buffer rules (sizes in characters vs bytes,
+  terminators, `ERROR_MORE_DATA`), once, for every hive.
   - Overlay over native: base = native, overlay hives mounted where keys
     are added or overridden.
   - Pure in-memory: no base, `HKLM` and `HKCU` each mounted to an empty
-    `Hive`.
+    hive.
 
-### `Hive`: storage
+### `VRegHive`: storage
 
 A tree with one anonymous root, mounted at a path; several can be mounted at
-once, as with `RegLoadKey`. The interface is node-level with owned values;
-buffer and ANSI/wide rules stay in `VirtualRegistry`. One concrete class
-covers both kinds of hive, since they differ only in whether reads fall
-through: an in-memory hive is a layered one with nothing below it, and the
-flags that describe a node's relation to the lower layer stay clear in it.
+once, as with `RegLoadKey`. The public functions create, layer, freeze and
+destroy a `VRegHive` and set MUI text by path; the node-level interface the
+virtual registry uses (`src/core/hive.h`, `VReg__Hive*`) answers owned
+values, allocated with the hive's context, while buffer and ANSI/wide rules
+stay in the virtual registry. One struct covers both kinds of hive, since
+they differ only in whether reads fall through: an in-memory hive is a
+layered one with nothing below it, and the flags that describe a node's
+relation to the lower layer stay clear in it.
 
-- `Hive()`: in memory, starts empty.
-- `Hive(lower: Registry&, lower root: HKEY, lower path)`: reads its own
-  upper tree first and falls through to the lower key. The lower layer can
-  be native or another `VirtualRegistry`. A frozen layered hive answers an
-  untouched key with a handle of its lower registry, and the
-  `VirtualRegistry` it is mounted in sends later calls on that handle to its
-  base, so the lower registry must be that base or answer the same handles.
+- `VRegCreateHive`: in memory, starts empty.
+- `VRegCreateLayeredHive(lower, lower root, lower path, view)`: reads its
+  own upper tree first and falls through to the lower key. The lower layer
+  can be native or another virtual registry. A frozen layered hive answers
+  an untouched key with a handle of its lower registry, and the virtual
+  registry it is mounted in sends later calls on that handle to its base,
+  so the lower registry must be that base or answer the same handles.
   - Value and key **tombstones** hide lower entries.
   - An **opaque** key hides all lower children and values (a key deleted
     and recreated).
@@ -244,8 +257,9 @@ into a mount. The last case is resolved by the parent's native path:
   has no such component and is not reachable this way.
 - The path comes from `NtQueryKey(KeyNameInformation)` through a function
   pointer resolved from `ntdll`'s export table when the registry is built
-  (never `GetProcAddress`, and no module load in a call); a constructor
-  parameter replaces it for tests. A failing query sends the call to the
+  (never `GetProcAddress`, and no module load in a call); the
+  `pfnNtQueryKey` argument of `VRegCreateVirtualRegistry` replaces it for
+  tests. A failing query sends the call to the
   base. A virtual handle of another copy of the library is never queried.
 - Native root names: `HKEY_LOCAL_MACHINE` is `\REGISTRY\MACHINE`,
   `HKEY_USERS` is `\REGISTRY\USER`, `HKEY_CURRENT_USER` is
@@ -257,8 +271,8 @@ into a mount. The last case is resolved by the parent's native path:
   Agent's choice: below the mount point the name is an ordinary key, since a
   hive's own tree is not a registry view; stripping the whole path was passed
   over. The longest matching mount wins.
-- Each mount has a view, in the `REGSAM` vocabulary the layered `Hive`
-  constructor uses for its lower view too: `KEY_WOW64_64KEY`,
+- Each mount has a view, in the `REGSAM` vocabulary `VRegCreateLayeredHive`
+  uses for its lower view too: `KEY_WOW64_64KEY`,
   `KEY_WOW64_32KEY`, or 0 (the default) for both. A call is of the view its
   `samDesired` names (`RRF_SUBKEY_WOW64*KEY` for `RegGetValue`), else of the
   process bitness; a native path that contained `WOW6432Node` is always the
@@ -287,7 +301,8 @@ the running system. The README's
 [Supported functions](./README.md#supported-functions) lists every function
 of each group.
 
-- **Emulated**: the members of `Registry`, answered through it.
+- **Emulated**: the slots of `VRegRegistryVtbl`, answered through the
+  registry.
   `RegGetValue` applies the `RRF_*` filters and `REG_EXPAND_SZ` expansion,
   `RegFlushKey` is a no-op, and `RegNotifyChangeKeyValue` never signals on a
   frozen hive and signals on writes to a writable one.
@@ -296,14 +311,14 @@ of each group.
   instead of reaching the real function.
 - **Refused on virtual handles, passthrough on real ones**: they answer
   `ERROR_NOT_SUPPORTED` on a virtual handle of this copy, and the hook
-  passes everything else to the trampoline without a `Registry`. The
-  transacted ones also refuse a real handle plus a path into a mount: the hook
-  opens each prefix of the path through `Registry` and refuses when one
-  opens as a virtual handle. They stay
-  out of `Registry`: as members they would be pure virtual, so every
-  wrapper forwards calls nothing answers, or carry a default that breaks
-  passthrough behind a wrapper that does not override it. One joins the
-  family once a hive can answer it.
+  passes everything else to the trampoline without a registry. The
+  transacted ones also refuse a real handle plus a path into a mount: the
+  hook opens each prefix of the path through the registry and refuses when
+  one opens as a virtual handle. They stay out of `VRegRegistryVtbl`: as
+  slots they would either be required, so every wrapper forwards calls
+  nothing answers, or carry a default that breaks passthrough behind a
+  wrapper that leaves them null. One joins the table once a hive can answer
+  it.
 - **Not hooked**: the functions that take no key handle, which no virtual
   handle can reach.
 
@@ -319,8 +334,8 @@ of each group.
 - `VRegInstallHooks(pRegistry, pNative)` runs its own transaction around
   `VRegAttachHooks`, enrolling the calling thread.
 - `VRegNeutralizeHooks()` makes every hook of the copy pass straight
-  through; it also runs by itself when the module unloads, through a static
-  destructor.
+  through; it also runs by itself when the module unloads, registered with
+  `atexit` at attach.
 - A consumer installing from `DllMain` builds, freezes and mounts its hives
   before the commit, so the first hooked call already finds them.
 
@@ -359,26 +374,32 @@ which would re-enter the hooks and bypass test stubs.
 
 ### API
 
-In namespace `VReg::RegFile` (`include/VReg/regfile.h`):
+In `include/VReg/regfile.h`, everything is a `VRegScript`: an ordered list
+of `VRegOperation`s (create key, delete key, set value, delete value, each
+with its root, path, name, type and data), which parsing produces, applying
+performs, snapshot and delta produce, and one writer lays out. Parse and
+write are symmetric, and a caller can build operations by hand and apply
+them with `VRegApplyOperations`.
 
-- `Parse(file bytes) -> Script`: an ordered list of key and value
-  operations; a syntax error reports line and column.
-- `Apply(const Script&, Registry&)`: reports the index of the failing
+- `VRegParseScript(file bytes)`: a syntax error reports line and column.
+- `VRegApplyScript(script, registry)`: reports the index of the failing
   operation.
-- `ExportSnapshot(Registry&, root, path, format)`: the merged view, no
-  deletion lines; for fixtures and inspection.
-- `ExportDelta(const Hive&, root, path, format)`: the hive's own layer, with
+- `VRegSnapshotScript(registry, root, path)`: the merged view, no deletion
+  operations; for fixtures and inspection.
+- `VRegDeltaScript(hive, root, path)`: the hive's own layer, with
   tombstones as `[-K]` and `"Name"=-` and opaque keys as `[-K]` followed by
   `[K]`; the persistence format for overlays, and for an in-memory hive its
   whole contents. Re-importing over the same lower registry reproduces the
   view. `root` and `path` name where the hive is mounted; key names are that
   prefix plus the key's path in the hive. The walk is `VReg__HiveSnapshotUpper`,
-  which reads the upper tree under the hive's read lock and never calls the
-  lower registry. A key that only shows
-  a lower key through and holds no value of its own is omitted, so opening
-  keys does not change the delta; one with upper values or value tombstones
-  appears as `[K]` (it exists below, so creating it is harmless).
-- File helpers on top. Hooks never perform file I/O.
+  a visitor under the hive's read lock that never calls the lower registry.
+  A key that only shows a lower key through and holds no value of its own
+  is omitted, so opening keys does not change the delta; one with upper
+  values or value tombstones appears as `[K]` (it exists below, so creating
+  it is harmless).
+- `VRegWriteScript(script, format)` lays a script out as a file; the file
+  helpers (`VRegParseScriptFile`, `VRegWriteScriptFile`) sit on top. Hooks
+  never perform file I/O.
 
 ### Import
 
@@ -390,7 +411,7 @@ In namespace `VReg::RegFile` (`include/VReg/regfile.h`):
   `hex:`; `hex(n):` for any type; `=-` deletes.
 - Trailing-backslash continuations, `;` comments, blank lines.
 - Through an overlay, deletions become tombstones and `[-K]` then `[K]` an
-  opaque key; through any other `Registry`, they are real deletes.
+  opaque key; through any other registry, they are real deletes.
 - A tombstone without a lower counterpart is kept, not pruned. Agent's
   choice: the lower registry can gain that key later (another machine, an
   install), and the delta must still hide it; pruning on export was passed
@@ -421,37 +442,34 @@ In namespace `VReg::RegFile` (`include/VReg/regfile.h`):
 
 ## Errors
 
-Every Win32-shaped entry point is `noexcept` and returns the `LSTATUS`
-native Windows returns in the same situation; native behavior is the spec.
-Each one that can allocate is a function-try-block ending in
-`catch (...) { return StatusFromException(); }` (`src/core/status.h`),
-which turns a failed allocation into `ERROR_OUTOFMEMORY` and any other
-exception, a bug in VReg, into `ERROR_INTERNAL_ERROR`, after a break into an
-attached debugger in a debug build. Failing the call keeps the process
-running, which in a hooked process is usually not VReg's own; the oracle
-still catches the bug, since native never answers that status. Agent's
-choice: `ERROR_INTERNAL_ERROR` over `ERROR_GEN_FAILURE`, which reads as a
-device fault. clang-tidy's `bugprone-exception-escape` runs in CI and
-fails on an entry point an exception can escape. Where VReg cannot match
-native Windows, the README lists it under "Known divergences from native
-Windows".
+Every Win32-shaped entry point returns the `LSTATUS` native Windows
+returns in the same situation; native behavior is the spec. There are no
+exceptions: every allocation is checked where it happens and a failure
+unwinds to a single cleanup label and answers `ERROR_OUTOFMEMORY`, as the
+native registry does when it runs out of memory. `VREG_ASSERT` breaks into
+an attached debugger in a `_DEBUG` build and does nothing otherwise. Where
+VReg cannot match native Windows, the README lists it under "Known
+divergences from native Windows".
 
 ## Testing
 
 Catch2.
 
-- **Native oracle**: each scenario runs against `NativeRegistry` on a
-  private app hive (`RegLoadAppKey` on a temp file: real, no admin, no
-  machine state) and against a `VirtualRegistry` over an in-memory `Hive`;
-  statuses, sizes and bytes must match. Covers ANSI/wide, buffer sizes and
-  `ERROR_MORE_DATA`.
+- **Native oracle**: each scenario runs against the real Win32 API (a
+  registry table whose every slot is the import, `test/win32_api.h`) and
+  the native registry on a private app hive (`RegLoadAppKey` on a temp
+  file: real, no admin, no machine state), and against a virtual registry
+  over an in-memory hive; statuses, sizes and bytes must match. A scenario
+  takes an `Api`, the registry plus whether its keys are virtual, and skips
+  what virtual keys cannot match for the reference run too. Covers
+  ANSI/wide, buffer sizes and `ERROR_MORE_DATA`.
 - **Ported unit tests**: overlay shadowing, enumeration index shifting,
   `QueryInfoKey` counts and failure cases, ancestor handles, native-path
   resolution, `WOW6432Node`.
 - **Concurrency**: reader and writer threads (opens, creates, value writes
   and deletes, key deletes, enumerations, `QueryInfoKey`, watches, snapshot
-  exports) on a writable in-memory `Hive`, one frozen halfway through, and a
-  writable `Hive` layered over an app hive, each for about two seconds. They
+  exports) on a writable in-memory hive, one frozen halfway through, and a
+  writable hive layered over an app hive, each for about two seconds. They
   require only plausible status codes, no hang, and a final state that
   agrees with itself.
 - **`.reg`**: byte-exact round trips, deltas with tombstones and opaque keys,
@@ -463,9 +481,11 @@ Catch2.
   neutralize-on-unload.
 - **Handle probe**: the parity measurement above as a permanent test.
 - **Single header**: the whole suite again, against the implementation
-  compiled from `vreg.h` alone; and that implementation compiled warning-free
-  after a plain `#include <Windows.h>`, without `/utf-8`, under every
-  combination of `WIN32_LEAN_AND_MEAN`, `UNICODE` and `NOMINMAX`.
+  compiled from `vreg.h` alone, as C; and that implementation compiled
+  warning-free as C, and its declarations as C++, after a plain
+  `#include <Windows.h>`, without `/utf-8`, under every combination of
+  `WIN32_LEAN_AND_MEAN`, `UNICODE` and `NOMINMAX`. The public headers compile
+  as C and as C++ under the same combinations.
 
 ### CI (GitHub Actions, public repository)
 
@@ -483,10 +503,8 @@ Catch2.
 ## Packaging
 
 - Static libraries only: each module links its own copy and the copies meet
-  in the shared handle namespace, so a DLL would buy nothing. It would also
-  tie every consumer to the DLL's compiler and CRT through the C++ API, and
-  two modules shipping different builds of it would collide on its name. A
-  DLL would only make sense behind a C API.
+  in the shared handle namespace, so a DLL would buy nothing, and two
+  modules shipping different builds of it would collide on its name.
 - The single header `vreg.h` is generated on every build by
   `cmake/VRegAmalgamate.cmake` and never edited: each file of `include/`
   and `src/` inlined once where first included, the implementation behind
@@ -496,11 +514,12 @@ Catch2.
   - Its guards are explicit, not `#pragma once`: the file that defines
     `VREG_IMPLEMENTATION` may include it a second time after an earlier
     include without it.
-  - Anonymous namespaces of all sources merge into one, so a helper's name
-    must be unique across the library, not just its file.
+  - All sources become one translation unit, so every static helper
+    carries `VReg__` and a name unique across the library, not just its
+    file. `VREG_STATIC` makes the library's own functions static as well.
   - The implementation `#undef`s the macros it defines; only the public
     headers' `VREG_` macros stay visible.
-  - The version is C++ constants in the generated `core/version_info.h`,
+  - The version is two macros in the generated `core/version_info.h`,
     written by `cmake/VRegVersion.cmake` for the library build and emitted
     in the header's place by the amalgamator, from the same function.
   - It carries the full license text, since it is copied on its own, and a
