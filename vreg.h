@@ -3633,7 +3633,8 @@ VREGDEF LSTATUS WINAPI VRegOpenKeyExA(
 
 done:
     VReg__WideArgFree(pAllocContext, &subKey);
-    return status;}
+    return status;
+}
 
 VREGDEF LSTATUS WINAPI VRegCreateKeyExA(
     _In_ VRegRegistry* const pRegistry,
@@ -3698,7 +3699,8 @@ VREGDEF LSTATUS WINAPI VRegCreateKeyExA(
 done:
     VReg__WideArgFree(pAllocContext, &className);
     VReg__WideArgFree(pAllocContext, &subKey);
-    return status;}
+    return status;
+}
 
 VREGDEF LSTATUS WINAPI VRegQueryValueExA(
     _In_ VRegRegistry* const pRegistry,
@@ -3837,7 +3839,8 @@ done:
     VReg__BufferFree(pAllocContext, &text);
     VReg__BufferFree(pAllocContext, &value);
     VReg__WideArgFree(pAllocContext, &valueName);
-    return status;}
+    return status;
+}
 
 VREGDEF LSTATUS WINAPI VRegSetValueExA(
     _In_ VRegRegistry* const pRegistry,
@@ -3911,7 +3914,8 @@ VREGDEF LSTATUS WINAPI VRegSetValueExA(
 done:
     VReg__WStringFree(pAllocContext, &text);
     VReg__WideArgFree(pAllocContext, &valueName);
-    return status;}
+    return status;
+}
 
 VREGDEF LSTATUS WINAPI VRegDeleteValueA(
     _In_ VRegRegistry* const pRegistry,
@@ -3940,7 +3944,8 @@ VREGDEF LSTATUS WINAPI VRegDeleteValueA(
 
 done:
     VReg__WideArgFree(pAllocContext, &valueName);
-    return status;}
+    return status;
+}
 
 VREGDEF LSTATUS WINAPI VRegDeleteKeyExA(
     _In_ VRegRegistry* const pRegistry,
@@ -3978,7 +3983,8 @@ VREGDEF LSTATUS WINAPI VRegDeleteKeyExA(
 
 done:
     VReg__WideArgFree(pAllocContext, &subKey);
-    return status;}
+    return status;
+}
 
 VREGDEF LSTATUS WINAPI VRegDeleteTreeA(
     _In_ VRegRegistry* const pRegistry,
@@ -4007,7 +4013,8 @@ VREGDEF LSTATUS WINAPI VRegDeleteTreeA(
 
 done:
     VReg__WideArgFree(pAllocContext, &subKey);
-    return status;}
+    return status;
+}
 
 VREGDEF LSTATUS WINAPI VRegEnumKeyExA(
     _In_ VRegRegistry* const pRegistry,
@@ -4130,7 +4137,8 @@ done:
     VReg__BufferFree(pAllocContext, &nameA);
     VReg__WStringFree(pAllocContext, &className);
     VReg__WStringFree(pAllocContext, &name);
-    return status;}
+    return status;
+}
 
 VREGDEF LSTATUS WINAPI VRegEnumValueA(
     _In_ VRegRegistry* const pRegistry,
@@ -4257,7 +4265,8 @@ done:
     VReg__BufferFree(pAllocContext, &nameA);
     VReg__BufferFree(pAllocContext, &value);
     VReg__WStringFree(pAllocContext, &name);
-    return status;}
+    return status;
+}
 
 // Native answers success without writing lpClass when only the class length is
 // asked for, which the annotation's terminator guarantee does not allow for.
@@ -4369,7 +4378,8 @@ VREGDEF LSTATUS WINAPI VRegQueryInfoKeyA(
 done:
     VReg__BufferFree(pAllocContext, &classA);
     VReg__WStringFree(pAllocContext, &className);
-    return status;}
+    return status;
+}
 
 VREGDEF LSTATUS WINAPI VRegLoadMUIStringA(
     _In_ VRegRegistry* const pRegistry,
@@ -4719,7 +4729,8 @@ done:
     VReg__BufferFree(pAllocContext, &data);
     VReg__WideArgFree(pAllocContext, &value);
     VReg__WideArgFree(pAllocContext, &subKey);
-    return status;}
+    return status;
+}
 
 VREGDEF LSTATUS WINAPI VRegOpenKeyA(
     _In_ VRegRegistry* const pRegistry,
@@ -4750,7 +4761,8 @@ VREGDEF LSTATUS WINAPI VRegOpenKeyA(
         0,
         MAXIMUM_ALLOWED,
         phkResult
-    );}
+    );
+}
 
 VREGDEF LSTATUS WINAPI VRegOpenKeyW(
     _In_ VRegRegistry* const pRegistry,
@@ -4781,7 +4793,8 @@ VREGDEF LSTATUS WINAPI VRegOpenKeyW(
         0,
         MAXIMUM_ALLOWED,
         phkResult
-    );}
+    );
+}
 
 VREGDEF LSTATUS WINAPI VRegCreateKeyA(
     _In_ VRegRegistry* const pRegistry,
@@ -4818,7 +4831,8 @@ VREGDEF LSTATUS WINAPI VRegCreateKeyA(
         NULL,
         phkResult,
         NULL
-    );}
+    );
+}
 
 VREGDEF LSTATUS WINAPI VRegCreateKeyW(
     _In_ VRegRegistry* const pRegistry,
@@ -4855,7 +4869,8 @@ VREGDEF LSTATUS WINAPI VRegCreateKeyW(
         NULL,
         phkResult,
         NULL
-    );}
+    );
+}
 
 VREGDEF LSTATUS WINAPI VRegQueryValueA(
     _In_ VRegRegistry* const pRegistry,
@@ -4916,7 +4931,8 @@ VREGDEF LSTATUS WINAPI VRegQueryValueA(
             *lpcbData = sizeof(char);
         status = ERROR_SUCCESS;
     }
-    return status;}
+    return status;
+}
 
 VREGDEF LSTATUS WINAPI VRegQueryValueW(
     _In_ VRegRegistry* const pRegistry,
@@ -4977,7 +4993,8 @@ VREGDEF LSTATUS WINAPI VRegQueryValueW(
             *lpcbData = sizeof(wchar_t);
         status = ERROR_SUCCESS;
     }
-    return status;}
+    return status;
+}
 
 VREGDEF LSTATUS WINAPI VRegSetValueA(
     _In_ VRegRegistry* const pRegistry,
@@ -5034,7 +5051,8 @@ VREGDEF LSTATUS WINAPI VRegSetValueA(
             hSubKey
         );
     }
-    return status;}
+    return status;
+}
 
 VREGDEF LSTATUS WINAPI VRegSetValueW(
     _In_ VRegRegistry* const pRegistry,
@@ -5091,7 +5109,8 @@ VREGDEF LSTATUS WINAPI VRegSetValueW(
             hSubKey
         );
     }
-    return status;}
+    return status;
+}
 
 VREGDEF LSTATUS WINAPI VRegDeleteKeyA(
     _In_ VRegRegistry* const pRegistry,
@@ -5112,7 +5131,8 @@ VREGDEF LSTATUS WINAPI VRegDeleteKeyA(
         lpSubKey,
         0,
         0
-    );}
+    );
+}
 
 VREGDEF LSTATUS WINAPI VRegDeleteKeyW(
     _In_ VRegRegistry* const pRegistry,
@@ -5133,7 +5153,8 @@ VREGDEF LSTATUS WINAPI VRegDeleteKeyW(
         lpSubKey,
         0,
         0
-    );}
+    );
+}
 
 VREGDEF LSTATUS WINAPI VRegEnumKeyA(
     _In_ VRegRegistry* const pRegistry,
@@ -5163,7 +5184,8 @@ VREGDEF LSTATUS WINAPI VRegEnumKeyA(
         NULL,
         NULL,
         NULL
-    );}
+    );
+}
 
 VREGDEF LSTATUS WINAPI VRegEnumKeyW(
     _In_ VRegRegistry* const pRegistry,
@@ -5193,7 +5215,8 @@ VREGDEF LSTATUS WINAPI VRegEnumKeyW(
         NULL,
         NULL,
         NULL
-    );}
+    );
+}
 
 // The subkey of SetKeyValue and DeleteKeyValue is opened with KEY_SET_VALUE,
 // the one right the call needs; the maximum allowed access, as the pre-Ex
@@ -5256,7 +5279,8 @@ VREGDEF LSTATUS WINAPI VRegSetKeyValueA(
             hSubKey
         );
     }
-    return status;}
+    return status;
+}
 
 VREGDEF LSTATUS WINAPI VRegSetKeyValueW(
     _In_ VRegRegistry* const pRegistry,
@@ -5315,7 +5339,8 @@ VREGDEF LSTATUS WINAPI VRegSetKeyValueW(
             hSubKey
         );
     }
-    return status;}
+    return status;
+}
 
 VREGDEF LSTATUS WINAPI VRegDeleteKeyValueA(
     _In_ VRegRegistry* const pRegistry,
@@ -5360,7 +5385,8 @@ VREGDEF LSTATUS WINAPI VRegDeleteKeyValueA(
             hSubKey
         );
     }
-    return status;}
+    return status;
+}
 
 VREGDEF LSTATUS WINAPI VRegDeleteKeyValueW(
     _In_ VRegRegistry* const pRegistry,
@@ -5405,7 +5431,8 @@ VREGDEF LSTATUS WINAPI VRegDeleteKeyValueW(
             hSubKey
         );
     }
-    return status;}
+    return status;
+}
 
 /// Places the narrowed values like the wide form places the stored ones, but
 /// leaves the gaps alone and rounds the total up. When they do not all fit,
@@ -5534,7 +5561,8 @@ VREGDEF LSTATUS WINAPI VRegQueryMultipleValuesA(
 
 done:
     VReg__Free(pAllocContext, pPlaced);
-    return status;}
+    return status;
+}
 
 /// Native places each value on a @ref DWORD boundary, reads the ones that fit
 /// the buffer in order, and fills the entries only when all of them did.
