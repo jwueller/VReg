@@ -7,11 +7,6 @@ DWORD VReg__Grown(const DWORD cbOld, const DWORD cbRequired)
     return cbRequired > cbOld ? cbRequired : cbOld * 2 + 16;
 }
 
-static DWORD VReg__MinDword(const DWORD a, const DWORD b)
-{
-    return a < b ? a : b;
-}
-
 LSTATUS VReg__QueryValueOwned(
     _In_ VRegRegistry* const pRegistry,
     _In_ const HKEY hKey,

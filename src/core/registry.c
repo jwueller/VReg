@@ -361,3 +361,9 @@ LSTATUS WINAPI VRegFlushKey(
         hKey
     );
 }
+
+void WINAPI VRegDestroyRegistry(_In_opt_ VRegRegistry* const pRegistry)
+{
+    if (pRegistry && pRegistry->lpVtbl->Destroy)
+        pRegistry->lpVtbl->Destroy(pRegistry);
+}

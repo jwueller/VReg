@@ -2,6 +2,21 @@
 
 #include <Windows.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/// A status a failing path answers, which the analyzer cannot prove nonzero
+/// when it was stored by another function.
+_Post_satisfies_(return != ERROR_SUCCESS)
+LSTATUS VReg__FailureStatus(LSTATUS status);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#ifdef __cplusplus
+
 #include <new>
 #include <stdexcept>
 
@@ -46,12 +61,11 @@ inline LSTATUS StatusFromException() noexcept
     }
 }
 
-/// A status a failing path answers, which the analyzer cannot prove nonzero
-/// when it was stored by another function.
 _Post_satisfies_(return != ERROR_SUCCESS)
 inline LSTATUS FailureStatus(const LSTATUS status) noexcept
 {
-    _Analysis_assume_(status != ERROR_SUCCESS);
-    return status;
+    return VReg__FailureStatus(status);
 }
 } // namespace VReg
+
+#endif // __cplusplus

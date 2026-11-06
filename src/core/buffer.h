@@ -22,6 +22,9 @@ typedef struct VReg__WStringView
 
 VReg__WStringView VReg__ViewOf(_In_opt_z_ LPCWSTR psz);
 
+DWORD VReg__MinDword(DWORD a, DWORD b);
+DWORD VReg__MaxDword(DWORD a, DWORD b);
+
 typedef struct VReg__Buffer
 {
     BYTE* pb;
@@ -126,6 +129,13 @@ BOOL VReg__ArrayAppend(
 void VReg__ArrayRemoveAt(_Inout_ VReg__Array* pArray, SIZE_T cbElement, SIZE_T index);
 
 void VReg__ArrayFree(_In_opt_ void* pAllocContext, _Inout_ VReg__Array* pArray);
+
+/// Appends a copy of @p text to @p pArray, an array of @ref VReg__WString.
+BOOL VReg__WStringArrayAppend(_In_opt_ void* pAllocContext, _Inout_ VReg__Array* pArray, VReg__WStringView text);
+
+/// Frees the strings of @p pArray, an array of @ref VReg__WString, and the
+/// array itself.
+void VReg__WStringArrayFree(_In_opt_ void* pAllocContext, _Inout_ VReg__Array* pArray);
 
 #ifdef __cplusplus
 } // extern "C"

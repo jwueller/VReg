@@ -10,6 +10,16 @@ static SIZE_T VReg__GrownCapacity(const SIZE_T capacity, const SIZE_T needed)
     return grown < needed ? needed : grown;
 }
 
+DWORD VReg__MinDword(const DWORD a, const DWORD b)
+{
+    return a < b ? a : b;
+}
+
+DWORD VReg__MaxDword(const DWORD a, const DWORD b)
+{
+    return a > b ? a : b;
+}
+
 VReg__WStringView VReg__ViewOf(_In_opt_z_ const LPCWSTR psz)
 {
     VReg__WStringView view;
@@ -272,4 +282,31 @@ void VReg__ArrayFree(_In_opt_ void* const pAllocContext, _Inout_ VReg__Array* co
     pArray->p = NULL;
     pArray->count = 0;
     pArray->capacity = 0;
+}
+
+BOOL VReg__WStringArrayAppend(
+    _In_opt_ void* const pAllocContext,
+    _Inout_ VReg__Array* const pArray,
+    const VReg__WStringView text
+)
+{
+    VReg__WString copy = {NULL, 0, 0};
+    if (!VReg__WStringAssign(pAllocContext, &copy, text.pch, text.cch))
+        return FALSE;
+    if (!VReg__ArrayAppend(pAllocContext, pArray, sizeof(copy), &copy))
+    {
+        VReg__WStringFree(pAllocContext, &copy);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+void VReg__WStringArrayFree(_In_opt_ void* const pAllocContext, _Inout_ VReg__Array* const pArray)
+{
+    SIZE_T i;
+    for (i = 0; i < pArray->count; ++i)
+        VReg__WStringFree(pAllocContext, &VREG__AT(pArray, VReg__WString, i));
+
+    VReg__ArrayFree(pAllocContext, pArray);
 }

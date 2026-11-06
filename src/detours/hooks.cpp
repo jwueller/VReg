@@ -451,7 +451,7 @@ LONG Attach(Registry& registry, NativeRegistry& native) noexcept
 
     // A form this system does not export has nothing to hook.
 #define VREG_FORM(name)                                                        \
-    g_formTargets[k##name] = FindRegistryExport(#name);                        \
+    g_formTargets[k##name] = VReg__FindRegistryExport(#name);                        \
     if (g_formTargets[k##name])                                                \
     {                                                                          \
         hooks[cHooks++] = {                                                    \
@@ -466,7 +466,7 @@ LONG Attach(Registry& registry, NativeRegistry& native) noexcept
 
     // A refused function this system does not export has nothing to hook.
 #define VREG_REFUSED(name)                                                     \
-    g_refusedTargets[k##name] = FindRegistryExport(#name);                     \
+    g_refusedTargets[k##name] = VReg__FindRegistryExport(#name);                     \
     if (g_refusedTargets[k##name])                                             \
     {                                                                          \
         hooks[cHooks++] = {                                                    \

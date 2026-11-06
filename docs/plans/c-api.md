@@ -133,18 +133,24 @@ to the project languages at step 1.
    until step 3, and the tests keep constructing hives through it until
    then, because `VirtualRegistry::Mount` still takes the C++ class.
 3. **Native and virtual registry.** `native_registry.cpp` and
-   `virtual_registry.cpp` to C as vtable implementations. The C++ `Registry`
-   class forwards to the flat functions until step 5. `test/intercept_registry.h`
-   becomes a C vtable implementation (the test for "a wrapper sees the ANSI
-   form"). `test/oracle.*`, `test/scenario.h`, `test_virtual_registry.cpp`,
-   `test_overlay_hive.cpp`, `test_notify.cpp` and `test_size_only.cpp` switch
-   to the C objects, hives included.
+   `virtual_registry.cpp` to C as vtable implementations
+   (`VRegCreateNativeRegistry`, `VRegCreateVirtualRegistry`, `VRegMount`).
+   The C++ `NativeRegistry` and `VirtualRegistry` classes become shims over
+   the C objects, and `Registry::CObject()` turns virtual so a shim answers
+   its C object directly; the tests stay on the shims, since the C API they
+   would move to is complete only after step 4.
 4. **Forms and `.reg`.** The ANSI, pre-`Ex` and convenience forms
    (`registry.cpp`) and `regfile/` to C, with `VRegOperation` replacing the
    three record structs. `test_regfile_*.cpp` and `test_registry.cpp` move
    to the C functions; the owned-buffer helpers the tests need live in
    `test/`.
-5. **Hooks, shim removal, packaging.** `hooks.cpp` to C (`Emulated<>` and
+5. **Tests to the C API.** Every test file calls the flat functions
+   (`registry.RegOpenKeyExW(...)` becomes `VRegOpenKeyExW(pRegistry, ...)`),
+   owns hives and registries through small RAII helpers in `test/`, and
+   `test/intercept_registry.h` becomes a C vtable implementation (the test
+   for "a wrapper sees the ANSI form"). Mechanical and file by file, so it
+   is the step to delegate; the suite decides each file.
+6. **Hooks, shim removal, packaging.** `hooks.cpp` to C (`Emulated<>` and
    `Refused<>` become a generated table of hook bodies); delete the C++
    headers and shims; the amalgamator emits one C header with the
    implementation in C; `VREG_STATIC`; the headers test matrix compiles the

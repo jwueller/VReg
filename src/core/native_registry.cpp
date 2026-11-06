@@ -1,55 +1,43 @@
 #include <VReg/native_registry.h>
 
-#include "core/export_table.h"
+#include <new>
 
 namespace VReg
 {
-namespace
-{
-/// Makes every module linking VReg import advapi32, so the loader maps it
-/// before VReg runs and resolution finds it without loading anything.
-// ReSharper disable once CppVariableCanBeMadeConstexpr
-[[maybe_unused]] const volatile auto g_pfnImportAdvapi32 = &::RegOpenKeyW;
-} // namespace
-
-void* FindRegistryExport(const char* const pszName) noexcept
-{
-    static const HMODULE hKernelBase = GetModuleHandleW(L"KernelBase.dll");
-    static const HMODULE hAdvapi32 = GetModuleHandleW(L"advapi32.dll");
-
-    if (const auto pFunction = FindExport(hKernelBase, pszName))
-        return pFunction;
-
-    return FindExport(hAdvapi32, pszName);
-}
-
 NativeRegistry::Functions NativeRegistry::ResolveFunctions() noexcept
 {
-    Functions functions{};
-
-#define VREG_RESOLVE(name)                                                     \
-    functions.name = reinterpret_cast<decltype(functions.name)>(               \
-        FindRegistryExport(#name)                                              \
-    );
-    VREG_INTERNAL_REGISTRY_VIRTUALS(VREG_RESOLVE)
-#undef VREG_RESOLVE
-
+    Functions functions;
+    VRegResolveNativeFunctions(&functions);
     return functions;
 }
 
-NativeRegistry::NativeRegistry() noexcept :
-    m_functions(ResolveFunctions())
+NativeRegistry::NativeRegistry() :
+    m_pRegistry(nullptr)
 {
+    if (VRegCreateNativeRegistry(nullptr, nullptr, &m_pRegistry) != ERROR_SUCCESS)
+        throw std::bad_alloc();
 }
 
-NativeRegistry::NativeRegistry(const Functions& functions) noexcept :
-    m_functions(functions)
+NativeRegistry::NativeRegistry(const Functions& functions) :
+    m_pRegistry(nullptr)
 {
+    if (VRegCreateNativeRegistry(&functions, nullptr, &m_pRegistry) != ERROR_SUCCESS)
+        throw std::bad_alloc();
+}
+
+NativeRegistry::~NativeRegistry()
+{
+    VRegDestroyRegistry(m_pRegistry);
 }
 
 NativeRegistry::Functions& NativeRegistry::GetFunctions() noexcept
 {
-    return m_functions;
+    return *VRegGetNativeFunctions(m_pRegistry);
+}
+
+VRegRegistry* NativeRegistry::CObject() noexcept
+{
+    return m_pRegistry;
 }
 
 LSTATUS NativeRegistry::RegOpenKeyExW(
@@ -60,7 +48,8 @@ LSTATUS NativeRegistry::RegOpenKeyExW(
     _Out_ const PHKEY phkResult
 ) noexcept
 {
-    return m_functions.RegOpenKeyExW(
+    return VRegOpenKeyExW(
+        m_pRegistry,
         hKey,
         lpSubKey,
         ulOptions,
@@ -81,7 +70,8 @@ LSTATUS NativeRegistry::RegCreateKeyExW(
     _Out_opt_ const LPDWORD lpdwDisposition
 ) noexcept
 {
-    return m_functions.RegCreateKeyExW(
+    return VRegCreateKeyExW(
+        m_pRegistry,
         hKey,
         lpSubKey,
         Reserved,
@@ -98,7 +88,8 @@ LSTATUS NativeRegistry::RegCloseKey(
     _In_ const HKEY hKey
 ) noexcept
 {
-    return m_functions.RegCloseKey(
+    return VRegCloseKey(
+        m_pRegistry,
         hKey
     );
 }
@@ -112,7 +103,8 @@ LSTATUS NativeRegistry::RegQueryValueExW(
     _When_(lpData == NULL, _Out_opt_) _When_(lpData != NULL, _Inout_opt_) const LPDWORD lpcbData
 ) const noexcept
 {
-    return m_functions.RegQueryValueExW(
+    return VRegQueryValueExW(
+        m_pRegistry,
         hKey,
         lpValueName,
         lpReserved,
@@ -131,7 +123,8 @@ LSTATUS NativeRegistry::RegSetValueExW(
     _In_ const DWORD cbData
 ) noexcept
 {
-    return m_functions.RegSetValueExW(
+    return VRegSetValueExW(
+        m_pRegistry,
         hKey,
         lpValueName,
         Reserved,
@@ -146,7 +139,8 @@ LSTATUS NativeRegistry::RegDeleteValueW(
     _In_opt_ const LPCWSTR lpValueName
 ) noexcept
 {
-    return m_functions.RegDeleteValueW(
+    return VRegDeleteValueW(
+        m_pRegistry,
         hKey,
         lpValueName
     );
@@ -159,7 +153,8 @@ LSTATUS NativeRegistry::RegDeleteKeyExW(
     _Reserved_ const DWORD Reserved
 ) noexcept
 {
-    return m_functions.RegDeleteKeyExW(
+    return VRegDeleteKeyExW(
+        m_pRegistry,
         hKey,
         lpSubKey,
         samDesired,
@@ -172,7 +167,8 @@ LSTATUS NativeRegistry::RegDeleteTreeW(
     _In_opt_ const LPCWSTR lpSubKey
 ) noexcept
 {
-    return m_functions.RegDeleteTreeW(
+    return VRegDeleteTreeW(
+        m_pRegistry,
         hKey,
         lpSubKey
     );
@@ -189,7 +185,8 @@ LSTATUS NativeRegistry::RegEnumKeyExW(
     _Out_opt_ const PFILETIME lpftLastWriteTime
 ) const noexcept
 {
-    return m_functions.RegEnumKeyExW(
+    return VRegEnumKeyExW(
+        m_pRegistry,
         hKey,
         dwIndex,
         lpName,
@@ -212,7 +209,8 @@ LSTATUS NativeRegistry::RegEnumValueW(
     _Inout_opt_ const LPDWORD lpcbData
 ) const noexcept
 {
-    return m_functions.RegEnumValueW(
+    return VRegEnumValueW(
+        m_pRegistry,
         hKey,
         dwIndex,
         lpValueName,
@@ -239,7 +237,8 @@ LSTATUS NativeRegistry::RegQueryInfoKeyW(
     _Out_opt_ const PFILETIME lpftLastWriteTime
 ) const noexcept
 {
-    return m_functions.RegQueryInfoKeyW(
+    return VRegQueryInfoKeyW(
+        m_pRegistry,
         hKey,
         lpClass,
         lpcchClass,
@@ -265,7 +264,8 @@ LSTATUS NativeRegistry::RegLoadMUIStringW(
     _In_opt_ const LPCWSTR pszDirectory
 ) const noexcept
 {
-    return m_functions.RegLoadMUIStringW(
+    return VRegLoadMUIStringW(
+        m_pRegistry,
         hKey,
         pszValue,
         pszOutBuf,
@@ -276,8 +276,8 @@ LSTATUS NativeRegistry::RegLoadMUIStringW(
     );
 }
 
-// The SDK's _Post_z_ holds on every return, truncated reads and failures
-// included; the analyzer cannot see the terminators written at run time.
+// The slot's _Post_z_ on pvData holds on every return; the analyzer does not
+// carry it through the flat function.
 #pragma warning(suppress: 6054)
 LSTATUS NativeRegistry::RegGetValueW(
     _In_ const HKEY hkey,
@@ -302,7 +302,8 @@ LSTATUS NativeRegistry::RegGetValueW(
     _Inout_opt_ const LPDWORD pcbData
 ) const noexcept
 {
-    return m_functions.RegGetValueW(
+    return VRegGetValueW(
+        m_pRegistry,
         hkey,
         lpSubKey,
         lpValue,
@@ -321,7 +322,8 @@ LSTATUS NativeRegistry::RegNotifyChangeKeyValue(
     _In_ const BOOL fAsynchronous
 ) noexcept
 {
-    return m_functions.RegNotifyChangeKeyValue(
+    return VRegNotifyChangeKeyValue(
+        m_pRegistry,
         hKey,
         bWatchSubtree,
         dwNotifyFilter,
@@ -334,7 +336,8 @@ LSTATUS NativeRegistry::RegFlushKey(
     _In_ const HKEY hKey
 ) noexcept
 {
-    return m_functions.RegFlushKey(
+    return VRegFlushKey(
+        m_pRegistry,
         hKey
     );
 }

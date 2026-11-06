@@ -697,6 +697,10 @@ LSTATUS WINAPI VRegFlushKey(
     _In_ HKEY hKey
 );
 
+/// Frees a registry through its `Destroy` slot; null, and a registry whose
+/// slot is null, are ignored.
+void WINAPI VRegDestroyRegistry(_In_opt_ VRegRegistry* pRegistry);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif
@@ -750,9 +754,10 @@ public:
     Registry(const Registry&) = delete;
     Registry& operator=(const Registry&) = delete;
 
-    /// The registry as a C object, whose table forwards the wide surface to
-    /// the virtuals below; the other slots are null.
-    [[nodiscard]] VRegRegistry* CObject() noexcept;
+    /// The registry as a C object. Here, one whose table forwards the wide
+    /// surface to the virtuals below, with the other slots null; a class
+    /// that stands for a C registry answers that registry instead.
+    [[nodiscard]] virtual VRegRegistry* CObject() noexcept;
 
     /// The C object with the way back to its owner, which the table's
     /// forwarders read.

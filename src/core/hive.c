@@ -52,11 +52,6 @@ static BOOL VReg__StatusExists(const LSTATUS status)
     return status == ERROR_SUCCESS || status == ERROR_MORE_DATA || status == ERROR_ACCESS_DENIED;
 }
 
-static DWORD VReg__MaxDword(const DWORD a, const DWORD b)
-{
-    return a > b ? a : b;
-}
-
 // --- Locking ---
 
 static BOOL VReg__HiveIsFrozen(_In_ VRegHive* const pHive)
@@ -370,15 +365,6 @@ static BOOL VReg__NameListContains(_In_ const VReg__Array* const pList, const VR
     }
 
     return FALSE;
-}
-
-static void VReg__NameListFree(_In_opt_ void* const pAllocContext, _Inout_ VReg__Array* const pList)
-{
-    SIZE_T i;
-    for (i = 0; i < pList->count; ++i)
-        VReg__WStringFree(pAllocContext, &VREG__NAME_AT(pList, i));
-
-    VReg__ArrayFree(pAllocContext, pList);
 }
 
 // --- The lower registry ---
@@ -1236,7 +1222,7 @@ LSTATUS VReg__HiveDeleteKey(
 
 done:
     VReg__HiveCloseLower(pHive, hLower);
-    VReg__NameListFree(pAllocContext, &tombstones);
+    VReg__WStringArrayFree(pAllocContext, &tombstones);
     VReg__WStringFree(pAllocContext, &viewPath);
     VReg__WStringFree(pAllocContext, &parentViewPath);
     VReg__WStringFree(pAllocContext, &keyName);
@@ -1887,7 +1873,7 @@ LSTATUS VReg__HiveEnumKey(
 
 done:
     VReg__HiveCloseLower(pHive, hLower);
-    VReg__NameListFree(pAllocContext, &shadowed);
+    VReg__WStringArrayFree(pAllocContext, &shadowed);
     VReg__WStringFree(pAllocContext, &classPath);
     VReg__WStringFree(pAllocContext, &viewPath);
     VReg__WStringFree(pAllocContext, &nameBuffer);
@@ -2053,7 +2039,7 @@ LSTATUS VReg__HiveEnumValue(
 
 done:
     VReg__HiveCloseLower(pHive, hLower);
-    VReg__NameListFree(pAllocContext, &shadowed);
+    VReg__WStringArrayFree(pAllocContext, &shadowed);
     VReg__WStringFree(pAllocContext, &viewPath);
     VReg__WStringFree(pAllocContext, &sizeName);
     return status;
@@ -2287,8 +2273,8 @@ LSTATUS VReg__HiveQueryInfo(
 
 done:
     VReg__HiveCloseLower(pHive, hLower);
-    VReg__NameListFree(pAllocContext, &shadowedKeys);
-    VReg__NameListFree(pAllocContext, &shadowedValues);
+    VReg__WStringArrayFree(pAllocContext, &shadowedKeys);
+    VReg__WStringArrayFree(pAllocContext, &shadowedValues);
     VReg__WStringFree(pAllocContext, &viewPath);
     VReg__WStringFree(pAllocContext, &lowerClass);
     return status;

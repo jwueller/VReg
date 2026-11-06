@@ -19,7 +19,7 @@ target_sources(VReg_VReg PRIVATE
     core/ansi.h
     core/buffer.c
     core/buffer.h
-    core/export_table.cpp
+    core/export_table.c
     core/export_table.h
     core/handle.c
     core/handle_space.c
@@ -28,6 +28,7 @@ target_sources(VReg_VReg PRIVATE
     core/hive.cpp
     core/hive.h
     core/lock.h
+    core/native_registry.c
     core/native_registry.cpp
     core/node.h
     core/owned_reads.c
@@ -39,9 +40,12 @@ target_sources(VReg_VReg PRIVATE
     core/registry.cpp
     core/retry.h
     core/rrf.h
+    core/status.c
     core/status.h
+    core/value_type.c
     core/value_type.h
     core/version.cpp
+    core/virtual_registry.c
     core/virtual_registry.cpp
     regfile/apply.cpp
     regfile/export.cpp
