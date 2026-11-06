@@ -26,14 +26,15 @@ std::wstring WideFromBytes(const std::vector<std::byte>& bytes)
 }
 
 LSTATUS SetString(
-    Registry& registry,
+    VRegRegistry* const registry,
     const HKEY hKey,
     const wchar_t* const pszName,
     const DWORD dwType,
     const std::wstring& text
 ) noexcept
 {
-    return registry.RegSetValueExW(
+    return VRegSetValueExW(
+        registry,
         hKey,
         pszName,
         0,
@@ -44,13 +45,14 @@ LSTATUS SetString(
 }
 
 LSTATUS SetDword(
-    Registry& registry,
+    VRegRegistry* const registry,
     const HKEY hKey,
     const wchar_t* const pszName,
     const DWORD dwValue
 ) noexcept
 {
-    return registry.RegSetValueExW(
+    return VRegSetValueExW(
+        registry,
         hKey,
         pszName,
         0,
@@ -141,19 +143,20 @@ LSTATUS WINAPI GrowingGetValueW(
     );
 }
 
-NativeRegistry GrowingRegistry() noexcept
+OwnedRegistry GrowingRegistry()
 {
-    auto functions = NativeRegistry::ResolveFunctions();
+    VRegNativeFunctions functions;
+    VRegResolveNativeFunctions(&functions);
     functions.RegQueryValueExW = &GrowingQueryValueExW;
     functions.RegGetValueW = &GrowingGetValueW;
-    return NativeRegistry(functions);
+    return MakeNativeRegistry(&functions);
 }
 } // namespace
 
 TEST_CASE("QueryValue returns the type and the bytes")
 {
     AppHive hive;
-    NativeRegistry registry;
+    OwnedRegistry registry = MakeNativeRegistry();
 
     REQUIRE(
         SetDword(registry, hive.Root(), L"Dword", 0x12345678) == ERROR_SUCCESS
@@ -168,7 +171,8 @@ TEST_CASE("QueryValue returns the type and the bytes")
         ) == ERROR_SUCCESS
     );
     REQUIRE(
-        registry.RegSetValueExW(
+        VRegSetValueExW(
+            registry,
             hive.Root(),
             L"Empty",
             0,
@@ -262,10 +266,11 @@ TEST_CASE("QueryValue reads a value that grew after it was sized")
 TEST_CASE("GetValue applies the flags")
 {
     AppHive hive;
-    NativeRegistry registry;
+    OwnedRegistry registry = MakeNativeRegistry();
 
     REQUIRE(
-        registry.RegSetKeyValueW(
+        VRegSetKeyValueW(
+            registry,
             hive.Root(),
             L"Sub",
             L"Dword",
@@ -389,7 +394,7 @@ TEST_CASE("GetValue reads a value that grew after it was sized")
 TEST_CASE("GetString returns the text without its terminator")
 {
     AppHive hive;
-    NativeRegistry registry;
+    OwnedRegistry registry = MakeNativeRegistry();
 
     REQUIRE(
         SetString(
@@ -512,7 +517,7 @@ TEST_CASE("GetString returns the text without its terminator")
 TEST_CASE("EnumKey walks the subkeys to the end")
 {
     AppHive hive;
-    NativeRegistry registry;
+    OwnedRegistry registry = MakeNativeRegistry();
 
     const std::wstring longName(255, L'k');
     for (
@@ -522,7 +527,8 @@ TEST_CASE("EnumKey walks the subkeys to the end")
     {
         HKEY hKey{};
         REQUIRE(
-            registry.RegCreateKeyExW(
+            VRegCreateKeyExW(
+                registry,
                 hive.Root(),
                 name.c_str(),
                 0,
@@ -535,7 +541,8 @@ TEST_CASE("EnumKey walks the subkeys to the end")
             )
             == ERROR_SUCCESS
         );
-        registry.RegCloseKey(
+        VRegCloseKey(
+            registry,
             hKey
         );
     }
@@ -566,7 +573,7 @@ TEST_CASE("EnumKey walks the subkeys to the end")
 TEST_CASE("EnumValue returns the name, type and data")
 {
     AppHive hive;
-    NativeRegistry registry;
+    OwnedRegistry registry = MakeNativeRegistry();
 
     const std::wstring longName(1000, L'v');
     REQUIRE(
@@ -628,7 +635,7 @@ TEST_CASE("EnumValue returns the name, type and data")
 TEST_CASE("EnumValue returns the default value under an empty name")
 {
     AppHive hive;
-    NativeRegistry registry;
+    OwnedRegistry registry = MakeNativeRegistry();
 
     REQUIRE(SetDword(registry, hive.Root(), nullptr, 5) == ERROR_SUCCESS);
 
@@ -682,9 +689,10 @@ LSTATUS WINAPI StubLoadMUIStringW(
 
 TEST_CASE("LoadMUIString grows its buffer to the size it is told")
 {
-    auto functions = NativeRegistry::ResolveFunctions();
+    VRegNativeFunctions functions;
+    VRegResolveNativeFunctions(&functions);
     functions.RegLoadMUIStringW = &StubLoadMUIStringW;
-    NativeRegistry registry(functions);
+    OwnedRegistry registry = MakeNativeRegistry(&functions);
 
     std::wstring text;
     CHECK(
@@ -703,7 +711,7 @@ TEST_CASE("LoadMUIString grows its buffer to the size it is told")
 TEST_CASE("LoadMUIString resolves a resource reference")
 {
     AppHive hive;
-    NativeRegistry registry;
+    OwnedRegistry registry = MakeNativeRegistry();
 
     REQUIRE(
         SetString(

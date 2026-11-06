@@ -116,7 +116,7 @@ std::wstring RandomPath(Random& random)
 }
 
 void WriterLoop(
-    Registry& registry,
+    VRegRegistry* const registry,
     const HKEY hRoot,
     Shared& shared,
     const std::uint32_t seed
@@ -133,7 +133,8 @@ void WriterLoop(
         {
             HKEY hKey{};
             const auto status =
-                registry.RegCreateKeyExW(
+                VRegCreateKeyExW(
+                    registry,
                     hRoot,
                     path.c_str(),
                     0,
@@ -146,7 +147,8 @@ void WriterLoop(
                 );
             Judge(shared, status);
             if (status == ERROR_SUCCESS)
-                registry.RegCloseKey(
+                VRegCloseKey(
+                    registry,
                     hKey
                 );
             break;
@@ -155,7 +157,8 @@ void WriterLoop(
         case 3:
         {
             HKEY hKey{};
-            const auto status = registry.RegOpenKeyExW(
+            const auto status = VRegOpenKeyExW(
+                registry,
                 hRoot,
                 path.c_str(),
                 0,
@@ -171,7 +174,8 @@ void WriterLoop(
             const DWORD dwValue = ValueData(index);
             Judge(
                 shared,
-                registry.RegSetValueExW(
+                VRegSetValueExW(
+                    registry,
                     hKey,
                     name.c_str(),
                     0,
@@ -180,7 +184,8 @@ void WriterLoop(
                     sizeof(dwValue)
                 )
             );
-            registry.RegCloseKey(
+            VRegCloseKey(
+                registry,
                 hKey
             );
             break;
@@ -188,7 +193,8 @@ void WriterLoop(
         case 4:
         {
             HKEY hKey{};
-            const auto status = registry.RegOpenKeyExW(
+            const auto status = VRegOpenKeyExW(
+                registry,
                 hRoot,
                 path.c_str(),
                 0,
@@ -201,12 +207,14 @@ void WriterLoop(
 
             Judge(
                 shared,
-                registry.RegDeleteValueW(
+                VRegDeleteValueW(
+                    registry,
                     hKey,
                     ValueName(random.Next(VALUES)).c_str()
                 )
             );
-            registry.RegCloseKey(
+            VRegCloseKey(
+                registry,
                 hKey
             );
             break;
@@ -214,7 +222,8 @@ void WriterLoop(
         case 5:
             Judge(
                 shared,
-                registry.RegDeleteKeyExW(
+                VRegDeleteKeyExW(
+                    registry,
                     hRoot,
                     path.c_str(),
                     0,
@@ -227,7 +236,8 @@ void WriterLoop(
             if (random.Next(8) == 0)
                 Judge(
                     shared,
-                    registry.RegDeleteTreeW(
+                    VRegDeleteTreeW(
+                        registry,
                         hRoot,
                         KeyName(random.Next(KEYS)).c_str()
                     )
@@ -238,7 +248,7 @@ void WriterLoop(
 }
 
 void ReadKey(
-    Registry& registry,
+    VRegRegistry* const registry,
     const HKEY hKey,
     Shared& shared,
     Random& random
@@ -254,7 +264,8 @@ void ReadKey(
         const auto index = random.Next(VALUES);
         const auto name = ValueName(index);
         const auto status =
-            registry.RegQueryValueExW(
+            VRegQueryValueExW(
+                registry,
                 hKey,
                 name.c_str(),
                 nullptr,
@@ -275,7 +286,8 @@ void ReadKey(
         {
             wchar_t szName[64];
             DWORD cchName = ARRAYSIZE(szName);
-            const auto status = registry.RegEnumKeyExW(
+            const auto status = VRegEnumKeyExW(
+                registry,
                 hKey,
                 i,
                 szName,
@@ -299,7 +311,8 @@ void ReadKey(
             BYTE data[16];
             DWORD cbData = sizeof(data);
             const auto status =
-                registry.RegEnumValueW(
+                VRegEnumValueW(
+                    registry,
                     hKey,
                     i,
                     szName,
@@ -318,7 +331,8 @@ void ReadKey(
     {
         DWORD cSubKeys{};
         DWORD cValues{};
-        const auto status = registry.RegQueryInfoKeyW(
+        const auto status = VRegQueryInfoKeyW(
+            registry,
             hKey,
             nullptr,
             nullptr,
@@ -345,7 +359,7 @@ void ReadKey(
 }
 
 void ReaderLoop(
-    Registry& registry,
+    VRegRegistry* const registry,
     const HKEY hRoot,
     Shared& shared,
     const std::uint32_t seed
@@ -356,7 +370,8 @@ void ReaderLoop(
     {
         const auto path = RandomPath(random);
         HKEY hKey{};
-        const auto status = registry.RegOpenKeyExW(
+        const auto status = VRegOpenKeyExW(
+            registry,
             hRoot,
             path.c_str(),
             0,
@@ -372,21 +387,23 @@ void ReaderLoop(
         for (int i = 0; i < 4; ++i)
             ReadKey(registry, hKey, shared, random);
 
-        registry.RegCloseKey(
+        VRegCloseKey(
+            registry,
             hKey
         );
     }
 }
 
 /// Registers one-shot watches on the whole hive and counts how many fire.
-void WatcherLoop(Registry& registry, const HKEY hRoot, Shared& shared) noexcept
+void WatcherLoop(VRegRegistry* const registry, const HKEY hRoot, Shared& shared) noexcept
 {
     const HANDLE hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
     while (!shared.isStopped.load(std::memory_order_relaxed))
     {
         ResetEvent(hEvent);
         const auto status =
-            registry.RegNotifyChangeKeyValue(
+            VRegNotifyChangeKeyValue(
+                registry,
                 hRoot,
                 TRUE,
                 REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_LAST_SET,
@@ -403,21 +420,15 @@ void WatcherLoop(Registry& registry, const HKEY hRoot, Shared& shared) noexcept
 
 /// Exports the whole hive while the writers run.
 void ExporterLoop(
-    Registry& registry,
+    VRegRegistry* const registry,
     const wchar_t* const pszMount,
     Shared& shared
 )
 {
     while (!shared.isStopped.load(std::memory_order_relaxed))
     {
-        std::vector<std::byte> file;
-        const auto status = RegFile::ExportSnapshot(
-            registry,
-            HKEY_CURRENT_USER,
-            pszMount,
-            RegFile::Format::Unicode,
-            file
-        );
+        OwnedScript script;
+        const auto status = VRegSnapshotScript(registry, HKEY_CURRENT_USER, pszMount, nullptr, script.Receive());
         // A key may be deleted between listing and opening it.
         if (status == ERROR_SUCCESS)
             shared.cSnapshots.fetch_add(1, std::memory_order_relaxed);
@@ -428,14 +439,15 @@ void ExporterLoop(
 
 /// The hive, read by one thread with nothing else running, must agree with
 /// itself.
-void CheckConsistent(Registry& registry, const HKEY hRoot)
+void CheckConsistent(VRegRegistry* const registry, const HKEY hRoot)
 {
     std::set<std::wstring> keys;
     for (DWORD i = 0;; ++i)
     {
         wchar_t szName[64];
         DWORD cchName = ARRAYSIZE(szName);
-        const auto status = registry.RegEnumKeyExW(
+        const auto status = VRegEnumKeyExW(
+            registry,
             hRoot,
             i,
             szName,
@@ -453,7 +465,8 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
 
     DWORD cSubKeys{};
     REQUIRE(
-        registry.RegQueryInfoKeyW(
+        VRegQueryInfoKeyW(
+            registry,
             hRoot,
             nullptr,
             nullptr,
@@ -474,7 +487,8 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
     for (unsigned k = 0; k < KEYS; ++k)
     {
         HKEY hKey{};
-        const auto status = registry.RegOpenKeyExW(
+        const auto status = VRegOpenKeyExW(
+            registry,
             hRoot,
             KeyName(k).c_str(),
             0,
@@ -490,7 +504,8 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
         {
             wchar_t szName[64];
             DWORD cchName = ARRAYSIZE(szName);
-            const auto enumStatus = registry.RegEnumKeyExW(
+            const auto enumStatus = VRegEnumKeyExW(
+                registry,
                 hKey,
                 i,
                 szName,
@@ -514,7 +529,8 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
             DWORD dwType{};
             DWORD dwValue{};
             DWORD cbValue = sizeof(dwValue);
-            const auto enumStatus = registry.RegEnumValueW(
+            const auto enumStatus = VRegEnumValueW(
+                registry,
                 hKey,
                 i,
                 szName,
@@ -538,7 +554,8 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
         DWORD cSubs{};
         DWORD cVals{};
         REQUIRE(
-            registry.RegQueryInfoKeyW(
+            VRegQueryInfoKeyW(
+                registry,
                 hKey,
                 nullptr,
                 nullptr,
@@ -561,7 +578,8 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
         {
             HKEY hSub{};
             CHECK(
-                registry.RegOpenKeyExW(
+                VRegOpenKeyExW(
+                    registry,
                     hKey,
                     name.c_str(),
                     0,
@@ -569,7 +587,8 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
                     &hSub
                 ) == ERROR_SUCCESS
             );
-            registry.RegCloseKey(
+            VRegCloseKey(
+                registry,
                 hSub
             );
         }
@@ -579,7 +598,8 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
             DWORD dwValue{};
             DWORD cbValue = sizeof(dwValue);
             CHECK(
-                registry.RegQueryValueExW(
+                VRegQueryValueExW(
+                    registry,
                     hKey,
                     name.c_str(),
                     nullptr,
@@ -591,7 +611,8 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
             );
         }
 
-        registry.RegCloseKey(
+        VRegCloseKey(
+            registry,
             hKey
         );
     }
@@ -600,7 +621,7 @@ void CheckConsistent(Registry& registry, const HKEY hRoot)
 /// Runs the workload against the hive mounted at @p pszMount for a bounded
 /// time. @p pfnFreezeMidway, when given, is called once halfway.
 void RunStress(
-    Registry& registry,
+    VRegRegistry* const registry,
     const wchar_t* const pszMount,
     const HKEY hRoot,
     void (*pfnFreezeMidway)(void*),
@@ -678,15 +699,15 @@ void RunStress(
 
 TEST_CASE("Readers and writers on a writable Hive")
 {
-    Hive hive;
-    VirtualRegistry registry;
+    OwnedHive hive = MakeHive();
+    OwnedRegistry registry = MakeVirtualRegistry();
     REQUIRE(
-        registry.Mount(HKEY_CURRENT_USER, L"VRegStress", hive) == ERROR_SUCCESS
+        VRegMount(registry, HKEY_CURRENT_USER, L"VRegStress", hive, 0) == ERROR_SUCCESS
     );
     RunStress(
         registry,
         L"VRegStress",
-        Hive::HandleOf(hive.Root()),
+        RootHandle(hive),
         nullptr,
         nullptr
     );
@@ -694,24 +715,24 @@ TEST_CASE("Readers and writers on a writable Hive")
 
 TEST_CASE("Readers and writers on a Hive frozen halfway")
 {
-    Hive hive;
-    VirtualRegistry registry;
+    OwnedHive hive = MakeHive();
+    OwnedRegistry registry = MakeVirtualRegistry();
     REQUIRE(
-        registry.Mount(HKEY_CURRENT_USER, L"VRegStress", hive) == ERROR_SUCCESS
+        VRegMount(registry, HKEY_CURRENT_USER, L"VRegStress", hive, 0) == ERROR_SUCCESS
     );
     RunStress(
         registry,
         L"VRegStress",
-        Hive::HandleOf(hive.Root()),
-        [](void* const pHive) { static_cast<Hive*>(pHive)->Freeze(); },
-        &hive
+        RootHandle(hive),
+        [](void* const pHive) { VRegFreezeHive(static_cast<VRegHive*>(pHive)); },
+        hive.Get()
     );
 }
 
 TEST_CASE("Readers and writers on a writable Hive over an app hive")
 {
     OverlayMount mount;
-    auto& native = mount.Native();
+    VRegRegistry* const native = mount.Native();
 
     // The lower layer holds names from the same closed set, so it shadows and
     // is shadowed.
@@ -722,7 +743,8 @@ TEST_CASE("Readers and writers on a writable Hive over an app hive")
             const auto path = KeyName(k) + L'\\' + SubName(s);
             HKEY hKey{};
             REQUIRE(
-                native.RegCreateKeyExW(
+                VRegCreateKeyExW(
+                    native,
                     mount.LowerRoot(),
                     path.c_str(),
                     0,
@@ -740,7 +762,8 @@ TEST_CASE("Readers and writers on a writable Hive over an app hive")
                 const DWORD dwValue = ValueData(v);
                 const auto name = ValueName(v);
                 REQUIRE(
-                    native.RegSetValueExW(
+                    VRegSetValueExW(
+                        native,
                         hKey,
                         name.c_str(),
                         0,
@@ -751,7 +774,8 @@ TEST_CASE("Readers and writers on a writable Hive over an app hive")
                     == ERROR_SUCCESS
                 );
             }
-            native.RegCloseKey(
+            VRegCloseKey(
+                native,
                 hKey
             );
         }

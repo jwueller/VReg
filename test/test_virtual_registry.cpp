@@ -22,14 +22,15 @@ using namespace VReg::Test;
 namespace
 {
 HKEY CreateKey(
-    Registry& registry,
+    VRegRegistry* const registry,
     const HKEY hParent,
     const wchar_t* const pszPath
 )
 {
     HKEY hKey{};
     REQUIRE(
-        registry.RegCreateKeyExW(
+        VRegCreateKeyExW(
+            registry,
             hParent,
             pszPath,
             0,
@@ -45,14 +46,15 @@ HKEY CreateKey(
 }
 
 HKEY OpenKey(
-    Registry& registry,
+    VRegRegistry* const registry,
     const HKEY hParent,
     const wchar_t* const pszPath
 )
 {
     HKEY hKey{};
     REQUIRE(
-        registry.RegOpenKeyExW(
+        VRegOpenKeyExW(
+            registry,
             hParent,
             pszPath,
             0,
@@ -64,13 +66,14 @@ HKEY OpenKey(
 }
 
 LSTATUS SetDword(
-    Registry& registry,
+    VRegRegistry* const registry,
     const HKEY hKey,
     const wchar_t* const pszName,
     const DWORD dwValue
 ) noexcept
 {
-    return registry.RegSetValueExW(
+    return VRegSetValueExW(
+        registry,
         hKey,
         pszName,
         0,
@@ -81,7 +84,7 @@ LSTATUS SetDword(
 }
 
 DWORD QueryDword(
-    Registry& registry,
+    VRegRegistry* const registry,
     const HKEY hKey,
     const wchar_t* const pszName,
     LSTATUS& status
@@ -89,7 +92,8 @@ DWORD QueryDword(
 {
     DWORD dwValue = 0;
     DWORD cbValue = sizeof(dwValue);
-    status = registry.RegQueryValueExW(
+    status = VRegQueryValueExW(
+        registry,
         hKey,
         pszName,
         nullptr,
@@ -103,11 +107,11 @@ DWORD QueryDword(
 
 TEST_CASE("A node has one handle however it is reached")
 {
-    Hive hive;
-    VirtualRegistry registry;
-    REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"Test", hive) == ERROR_SUCCESS);
+    OwnedHive hive = MakeHive();
+    OwnedRegistry registry = MakeVirtualRegistry();
+    REQUIRE(VRegMount(registry, HKEY_CURRENT_USER, L"Test", hive, 0) == ERROR_SUCCESS);
 
-    const HKEY hRoot = Hive::HandleOf(hive.Root());
+    const HKEY hRoot = RootHandle(hive);
     CHECK(VRegIsVirtualHKey(hRoot));
 
     const HKEY hCreated = CreateKey(registry, hRoot, L"A\\B");
@@ -121,7 +125,8 @@ TEST_CASE("A node has one handle however it is reached")
     CHECK(hViaPath == hCreated);
     CHECK(OpenKey(registry, HKEY_CURRENT_USER, L"Test") == hRoot);
     CHECK(
-        registry.RegCloseKey(
+        VRegCloseKey(
+            registry,
             hCreated
         ) == ERROR_SUCCESS
     );
@@ -130,17 +135,18 @@ TEST_CASE("A node has one handle however it is reached")
 
 TEST_CASE("A deleted node and its children answer ERROR_KEY_DELETED")
 {
-    Hive hive;
-    VirtualRegistry registry;
-    REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"Test", hive) == ERROR_SUCCESS);
-    const HKEY hRoot = Hive::HandleOf(hive.Root());
+    OwnedHive hive = MakeHive();
+    OwnedRegistry registry = MakeVirtualRegistry();
+    REQUIRE(VRegMount(registry, HKEY_CURRENT_USER, L"Test", hive, 0) == ERROR_SUCCESS);
+    const HKEY hRoot = RootHandle(hive);
 
     const HKEY hParent = CreateKey(registry, hRoot, L"Parent");
     const HKEY hChild = CreateKey(registry, hRoot, L"Parent\\Child");
     REQUIRE(SetDword(registry, hChild, L"v", 1) == ERROR_SUCCESS);
 
     REQUIRE(
-        registry.RegDeleteTreeW(
+        VRegDeleteTreeW(
+            registry,
             hRoot,
             L"Parent"
         ) == ERROR_SUCCESS
@@ -153,14 +159,16 @@ TEST_CASE("A deleted node and its children answer ERROR_KEY_DELETED")
     CHECK(status == ERROR_KEY_DELETED);
     CHECK(SetDword(registry, hChild, L"v", 2) == ERROR_KEY_DELETED);
     CHECK(
-        registry.RegFlushKey(
+        VRegFlushKey(
+            registry,
             hChild
         ) == ERROR_KEY_DELETED
     );
 
     HKEY hKey = nullptr;
     CHECK(
-        registry.RegOpenKeyExW(
+        VRegOpenKeyExW(
+            registry,
             hParent,
             L"Child",
             0,
@@ -169,7 +177,8 @@ TEST_CASE("A deleted node and its children answer ERROR_KEY_DELETED")
         ) == ERROR_KEY_DELETED
     );
     CHECK(
-        registry.RegOpenKeyExW(
+        VRegOpenKeyExW(
+            registry,
             hRoot,
             L"Parent",
             0,
@@ -178,7 +187,8 @@ TEST_CASE("A deleted node and its children answer ERROR_KEY_DELETED")
         ) == ERROR_FILE_NOT_FOUND
     );
     CHECK(
-        registry.RegCloseKey(
+        VRegCloseKey(
+            registry,
             hChild
         ) == ERROR_SUCCESS
     );
@@ -186,17 +196,17 @@ TEST_CASE("A deleted node and its children answer ERROR_KEY_DELETED")
 
 TEST_CASE("A frozen hive refuses writes and still answers reads")
 {
-    Hive hive;
-    VirtualRegistry registry;
-    REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"Test", hive) == ERROR_SUCCESS);
-    const HKEY hRoot = Hive::HandleOf(hive.Root());
+    OwnedHive hive = MakeHive();
+    OwnedRegistry registry = MakeVirtualRegistry();
+    REQUIRE(VRegMount(registry, HKEY_CURRENT_USER, L"Test", hive, 0) == ERROR_SUCCESS);
+    const HKEY hRoot = RootHandle(hive);
 
     const HKEY hSub = CreateKey(registry, hRoot, L"Sub");
     REQUIRE(SetDword(registry, hSub, L"v", 7) == ERROR_SUCCESS);
-    REQUIRE_FALSE(hive.IsFrozen());
+    REQUIRE_FALSE(VRegIsHiveFrozen(hive));
 
-    hive.Freeze();
-    CHECK(hive.IsFrozen());
+    VRegFreezeHive(hive);
+    CHECK(VRegIsHiveFrozen(hive));
 
     LSTATUS status = ERROR_SUCCESS;
     CHECK(QueryDword(registry, hSub, L"v", status) == 7);
@@ -206,7 +216,8 @@ TEST_CASE("A frozen hive refuses writes and still answers reads")
     std::array<wchar_t, 8> name{};
     DWORD cchName = static_cast<DWORD>(name.size());
     CHECK(
-        registry.RegEnumKeyExW(
+        VRegEnumKeyExW(
+            registry,
             hRoot,
             0,
             name.data(),
@@ -222,7 +233,8 @@ TEST_CASE("A frozen hive refuses writes and still answers reads")
     HKEY hKey = nullptr;
     DWORD dwDisposition = 0;
     CHECK(
-        registry.RegCreateKeyExW(
+        VRegCreateKeyExW(
+            registry,
             hRoot,
             L"New",
             0,
@@ -236,13 +248,15 @@ TEST_CASE("A frozen hive refuses writes and still answers reads")
     );
     CHECK(SetDword(registry, hSub, L"v", 8) == ERROR_ACCESS_DENIED);
     CHECK(
-        registry.RegDeleteValueW(
+        VRegDeleteValueW(
+            registry,
             hSub,
             L"v"
         ) == ERROR_ACCESS_DENIED
     );
     CHECK(
-        registry.RegDeleteKeyExW(
+        VRegDeleteKeyExW(
+            registry,
             hRoot,
             L"Sub",
             0,
@@ -250,7 +264,8 @@ TEST_CASE("A frozen hive refuses writes and still answers reads")
         ) == ERROR_ACCESS_DENIED
     );
     CHECK(
-        registry.RegDeleteTreeW(
+        VRegDeleteTreeW(
+            registry,
             hRoot,
             L"Sub"
         ) == ERROR_ACCESS_DENIED
@@ -292,14 +307,14 @@ TEST_CASE("A hive created through the C functions takes MUI text by path")
 
 TEST_CASE("A value marked as MUI text loads as its text until written again")
 {
-    Hive hive;
-    VirtualRegistry registry;
-    REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"Test", hive) == ERROR_SUCCESS);
-    const HKEY hRoot = Hive::HandleOf(hive.Root());
+    OwnedHive hive = MakeHive();
+    OwnedRegistry registry = MakeVirtualRegistry();
+    REQUIRE(VRegMount(registry, HKEY_CURRENT_USER, L"Test", hive, 0) == ERROR_SUCCESS);
+    const HKEY hRoot = RootHandle(hive);
     const HKEY hSub = CreateKey(registry, hRoot, L"Sub");
-    auto* const pSub = Hive::NodeOf(hSub);
+    auto* const pSub = VReg__NodeOf(hSub);
 
-    REQUIRE(hive.SetMuiTextValue(pSub, L"Name", L"Text") == ERROR_SUCCESS);
+    REQUIRE(VReg__HiveSetMuiTextValue(hive, pSub, L"Name", L"Text") == ERROR_SUCCESS);
 
     std::wstring text;
     CHECK(
@@ -318,7 +333,8 @@ TEST_CASE("A value marked as MUI text loads as its text until written again")
     std::array<wchar_t, 8> data{};
     DWORD cbData = sizeof(data);
     CHECK(
-        registry.RegQueryValueExW(
+        VRegQueryValueExW(
+            registry,
             hSub,
             L"Name",
             nullptr,
@@ -332,7 +348,8 @@ TEST_CASE("A value marked as MUI text loads as its text until written again")
     CHECK(std::wstring(data.data()) == L"Text");
 
     CHECK(
-        registry.RegSetValueExW(
+        VRegSetValueExW(
+            registry,
             hSub,
             L"Name",
             0,
@@ -352,9 +369,9 @@ TEST_CASE("A value marked as MUI text loads as its text until written again")
         ) == ERROR_INVALID_DATA
     );
 
-    CHECK(hive.SetMuiTextValue(pSub, L"Name", L"Text") == ERROR_SUCCESS);
-    hive.Freeze();
-    CHECK(hive.SetMuiTextValue(pSub, L"Name", L"Other") == ERROR_ACCESS_DENIED);
+    CHECK(VReg__HiveSetMuiTextValue(hive, pSub, L"Name", L"Text") == ERROR_SUCCESS);
+    VRegFreezeHive(hive);
+    CHECK(VReg__HiveSetMuiTextValue(hive, pSub, L"Name", L"Other") == ERROR_ACCESS_DENIED);
     CHECK(
         LoadMUIString(
             registry,
@@ -370,63 +387,75 @@ TEST_CASE("A value marked as MUI text loads as its text until written again")
 
 TEST_CASE("Mount rejects what cannot be mounted")
 {
-    Hive hive;
-    Hive other;
-    VirtualRegistry registry;
+    OwnedHive hive = MakeHive();
+    OwnedHive other = MakeHive();
+    OwnedRegistry registry = MakeVirtualRegistry();
 
-    CHECK(registry.Mount(nullptr, L"A", hive) == ERROR_INVALID_HANDLE);
+    CHECK(VRegMount(registry, nullptr, L"A", hive, 0) == ERROR_INVALID_HANDLE);
     CHECK(
-        registry.Mount(
-            Hive::HandleOf(hive.Root()),
+        VRegMount(
+            registry,
+            RootHandle(hive),
             L"A",
-            hive
+            hive,
+            0
         ) == ERROR_INVALID_HANDLE
     );
     CHECK(
-        registry.Mount(
+        VRegMount(
+            registry,
             HKEY_CURRENT_USER,
             L"\\Leading",
-            hive
+            hive,
+            0
         ) == ERROR_BAD_PATHNAME
     );
     CHECK(
-        registry.Mount(
+        VRegMount(
+            registry,
             HKEY_CURRENT_USER,
             std::wstring(300, L'k').c_str(),
-            hive
+            hive,
+            0
         ) == ERROR_BAD_PATHNAME
     );
 
     CHECK(
-        registry.Mount(
+        VRegMount(
+            registry,
             HKEY_CURRENT_USER,
             L"Software\\Test",
-            hive
+            hive,
+            0
         ) == ERROR_SUCCESS
     );
     CHECK(
-        registry.Mount(
+        VRegMount(
+            registry,
             HKEY_CURRENT_USER,
             L"software\\TEST\\",
-            other
+            other,
+            0
         ) == ERROR_ALREADY_EXISTS
     );
     CHECK(
-        registry.Mount(
+        VRegMount(
+            registry,
             HKEY_LOCAL_MACHINE,
             L"Software\\Test",
-            other
+            other,
+            0
         ) == ERROR_SUCCESS
     );
 }
 
 TEST_CASE("Pure in-memory configuration")
 {
-    Hive machine;
-    Hive user;
-    VirtualRegistry registry;
-    REQUIRE(registry.Mount(HKEY_LOCAL_MACHINE, L"", machine) == ERROR_SUCCESS);
-    REQUIRE(registry.Mount(HKEY_CURRENT_USER, L"", user) == ERROR_SUCCESS);
+    OwnedHive machine = MakeHive();
+    OwnedHive user = MakeHive();
+    OwnedRegistry registry = MakeVirtualRegistry();
+    REQUIRE(VRegMount(registry, HKEY_LOCAL_MACHINE, L"", machine, 0) == ERROR_SUCCESS);
+    REQUIRE(VRegMount(registry, HKEY_CURRENT_USER, L"", user, 0) == ERROR_SUCCESS);
 
     const HKEY hMachine = CreateKey(
         registry,
@@ -460,7 +489,8 @@ TEST_CASE("Pure in-memory configuration")
 
     HKEY hKey = nullptr;
     CHECK(
-        registry.RegOpenKeyExW(
+        VRegOpenKeyExW(
+            registry,
             HKEY_LOCAL_MACHINE,
             L"Software\\Missing",
             0,
@@ -469,7 +499,8 @@ TEST_CASE("Pure in-memory configuration")
         ) == ERROR_FILE_NOT_FOUND
     );
     CHECK(
-        registry.RegOpenKeyExW(
+        VRegOpenKeyExW(
+            registry,
             HKEY_USERS,
             L".DEFAULT",
             0,
@@ -478,7 +509,8 @@ TEST_CASE("Pure in-memory configuration")
         ) == ERROR_FILE_NOT_FOUND
     );
     CHECK(
-        registry.RegOpenKeyExW(
+        VRegOpenKeyExW(
+            registry,
             HKEY_USERS,
             nullptr,
             0,
@@ -487,7 +519,8 @@ TEST_CASE("Pure in-memory configuration")
         ) == ERROR_FILE_NOT_FOUND
     );
     CHECK(
-        registry.RegCreateKeyExW(
+        VRegCreateKeyExW(
+            registry,
             HKEY_USERS,
             L"S-1",
             0,
@@ -500,7 +533,8 @@ TEST_CASE("Pure in-memory configuration")
         ) == ERROR_FILE_NOT_FOUND
     );
     CHECK(
-        registry.RegOpenKeyExW(
+        VRegOpenKeyExW(
+            registry,
             nullptr,
             L"Software",
             0,
@@ -509,7 +543,8 @@ TEST_CASE("Pure in-memory configuration")
         ) == ERROR_INVALID_HANDLE
     );
     CHECK(
-        registry.RegCloseKey(
+        VRegCloseKey(
+            registry,
             HKEY_LOCAL_MACHINE
         ) == ERROR_SUCCESS
     );
@@ -517,22 +552,24 @@ TEST_CASE("Pure in-memory configuration")
 
 TEST_CASE("The longest mount prefix wins")
 {
-    Hive outer;
-    Hive inner;
-    VirtualRegistry registry;
+    OwnedHive outer = MakeHive();
+    OwnedHive inner = MakeHive();
+    OwnedRegistry registry = MakeVirtualRegistry();
     REQUIRE(
-        registry.Mount(HKEY_CURRENT_USER, L"Software", outer) == ERROR_SUCCESS
+        VRegMount(registry, HKEY_CURRENT_USER, L"Software", outer, 0) == ERROR_SUCCESS
     );
     REQUIRE(
-        registry.Mount(
+        VRegMount(
+            registry,
             HKEY_CURRENT_USER,
             L"Software\\Vendor\\App",
-            inner
+            inner,
+            0
         ) == ERROR_SUCCESS
     );
 
-    const HKEY hInnerRoot = Hive::HandleOf(inner.Root());
-    const HKEY hOuterRoot = Hive::HandleOf(outer.Root());
+    const HKEY hInnerRoot = RootHandle(inner);
+    const HKEY hOuterRoot = RootHandle(outer);
 
     CHECK(
         OpenKey(
@@ -552,7 +589,8 @@ TEST_CASE("The longest mount prefix wins")
 
     HKEY hMissing = nullptr;
     CHECK(
-        registry.RegOpenKeyExW(
+        VRegOpenKeyExW(
+            registry,
             hOuterRoot,
             L"Deep",
             0,
@@ -570,7 +608,8 @@ TEST_CASE("The longest mount prefix wins")
 
     HKEY hKey = nullptr;
     CHECK(
-        registry.RegOpenKeyExW(
+        VRegOpenKeyExW(
+            registry,
             hInnerRoot,
             L"Other",
             0,
@@ -582,14 +621,16 @@ TEST_CASE("The longest mount prefix wins")
 
 TEST_CASE("Calls outside the mounts reach the base registry")
 {
-    NativeRegistry native;
-    VirtualRegistry registry(&native);
-    Hive hive;
+    OwnedRegistry native = MakeNativeRegistry();
+    OwnedRegistry registry = MakeVirtualRegistry(native);
+    OwnedHive hive = MakeHive();
     REQUIRE(
-        registry.Mount(
+        VRegMount(
+            registry,
             HKEY_CURRENT_USER,
             L"VRegTestMount",
-            hive
+            hive,
+            0
         ) == ERROR_SUCCESS
     );
 
@@ -603,7 +644,8 @@ TEST_CASE("Calls outside the mounts reach the base registry")
         DWORD dwDispositionRegistry = FILL_SIZE;
         DWORD dwDispositionNative = FILL_SIZE;
         REQUIRE(
-            registry.RegCreateKeyExW(
+            VRegCreateKeyExW(
+                registry,
                 hApp,
                 L"A\\B",
                 0,
@@ -616,7 +658,8 @@ TEST_CASE("Calls outside the mounts reach the base registry")
             ) == ERROR_SUCCESS
         );
         REQUIRE(
-            native.RegCreateKeyExW(
+            VRegCreateKeyExW(
+                native,
                 hApp,
                 L"A\\B",
                 0,
@@ -641,7 +684,8 @@ TEST_CASE("Calls outside the mounts reach the base registry")
         std::array<BYTE, 2> data{};
         DWORD cbViaRegistry = static_cast<DWORD>(data.size());
         DWORD cbViaNative = static_cast<DWORD>(data.size());
-        const auto statusRegistry = registry.RegQueryValueExW(
+        const auto statusRegistry = VRegQueryValueExW(
+            registry,
             hViaRegistry,
             L"v",
             nullptr,
@@ -649,7 +693,8 @@ TEST_CASE("Calls outside the mounts reach the base registry")
             data.data(),
             &cbViaRegistry
         );
-        const auto statusNative = native.RegQueryValueExW(
+        const auto statusNative = VRegQueryValueExW(
+            native,
             hViaNative,
             L"v",
             nullptr,
@@ -663,13 +708,15 @@ TEST_CASE("Calls outside the mounts reach the base registry")
 
         HKEY hMissing = nullptr;
         CHECK(
-            registry.RegOpenKeyExW(
+            VRegOpenKeyExW(
+                registry,
                 hApp,
                 L"Missing",
                 0,
                 KEY_READ,
                 &hMissing
-            ) == native.RegOpenKeyExW(
+            ) == VRegOpenKeyExW(
+                native,
                 hApp,
                 L"Missing",
                 0,
@@ -679,12 +726,14 @@ TEST_CASE("Calls outside the mounts reach the base registry")
         );
 
         CHECK(
-            registry.RegCloseKey(
+            VRegCloseKey(
+                registry,
                 hViaRegistry
             ) == ERROR_SUCCESS
         );
         CHECK(
-            native.RegCloseKey(
+            VRegCloseKey(
+                native,
                 hViaNative
             ) == ERROR_SUCCESS
         );
@@ -694,7 +743,8 @@ TEST_CASE("Calls outside the mounts reach the base registry")
     {
         HKEY hReal = nullptr;
         CHECK(
-            registry.RegOpenKeyExW(
+            VRegOpenKeyExW(
+                registry,
                 HKEY_CURRENT_USER,
                 L"Software",
                 0,
@@ -704,14 +754,16 @@ TEST_CASE("Calls outside the mounts reach the base registry")
         );
         CHECK_FALSE(VRegIsVirtualHKey(hReal));
         CHECK(
-            registry.RegCloseKey(
+            VRegCloseKey(
+                registry,
                 hReal
             ) == ERROR_SUCCESS
         );
 
         HKEY hVirtual = nullptr;
         CHECK(
-            registry.RegCreateKeyExW(
+            VRegCreateKeyExW(
+                registry,
                 HKEY_CURRENT_USER,
                 L"VRegTestMount\\Key",
                 0,
@@ -726,7 +778,8 @@ TEST_CASE("Calls outside the mounts reach the base registry")
         );
         CHECK(VRegIsVirtualHKey(hVirtual));
         CHECK(
-            native.RegOpenKeyExW(
+            VRegOpenKeyExW(
+                native,
                 HKEY_CURRENT_USER,
                 L"VRegTestMount",
                 0,
@@ -739,22 +792,22 @@ TEST_CASE("Calls outside the mounts reach the base registry")
 
 TEST_CASE("A handle released with its hive is invalid")
 {
-    VirtualRegistry registry;
+    OwnedRegistry registry = MakeVirtualRegistry();
     HKEY hRoot = nullptr;
     HKEY hChild = nullptr;
     {
-        Hive hive;
-        VirtualRegistry mounted;
+        OwnedHive hive = MakeHive();
+        OwnedRegistry mounted = MakeVirtualRegistry();
         REQUIRE(
-            mounted.Mount(HKEY_CURRENT_USER, L"Test", hive) == ERROR_SUCCESS
+            VRegMount(mounted, HKEY_CURRENT_USER, L"Test", hive, 0) == ERROR_SUCCESS
         );
-        hRoot = Hive::HandleOf(hive.Root());
+        hRoot = RootHandle(hive);
         hChild = CreateKey(mounted, hRoot, L"Child");
-        CHECK(Hive::NodeOf(hChild) != nullptr);
+        CHECK(VReg__NodeOf(hChild) != nullptr);
     }
 
-    CHECK(Hive::NodeOf(hRoot) == nullptr);
-    CHECK(Hive::NodeOf(hChild) == nullptr);
+    CHECK(VReg__NodeOf(hRoot) == nullptr);
+    CHECK(VReg__NodeOf(hChild) == nullptr);
 
     LSTATUS status = ERROR_SUCCESS;
     QueryDword(registry, hRoot, L"v", status);
@@ -762,7 +815,8 @@ TEST_CASE("A handle released with its hive is invalid")
     QueryDword(registry, hChild, L"v", status);
     CHECK(status == ERROR_INVALID_HANDLE);
     CHECK(
-        registry.RegCloseKey(
+        VRegCloseKey(
+            registry,
             hChild
         ) == ERROR_INVALID_HANDLE
     );
@@ -825,7 +879,7 @@ HKEY FakeKey(const std::uintptr_t id, const std::wstring& nativePath)
 }
 
 LSTATUS OpenVia(
-    Registry& registry,
+    VRegRegistry* const registry,
     const HKEY hParent,
     const wchar_t* const pszPath,
     const REGSAM sam,
@@ -833,7 +887,8 @@ LSTATUS OpenVia(
 ) noexcept
 {
     hKey = nullptr;
-    return registry.RegOpenKeyExW(
+    return VRegOpenKeyExW(
+        registry,
         hParent,
         pszPath,
         0,
@@ -846,14 +901,16 @@ LSTATUS OpenVia(
 TEST_CASE("A real parent handle is resolved by its native path")
 {
     FakeNtQueryKey::Reset();
-    NativeRegistry native;
-    VirtualRegistry registry(&native, &FakeNtQueryKey::Query);
-    Hive hive;
+    OwnedRegistry native = MakeNativeRegistry();
+    OwnedRegistry registry = MakeVirtualRegistry(native, &FakeNtQueryKey::Query);
+    OwnedHive hive = MakeHive();
     REQUIRE(
-        registry.Mount(
+        VRegMount(
+            registry,
             HKEY_LOCAL_MACHINE,
             L"Software\\VRegNative\\App",
-            hive
+            hive,
+            0
         ) == ERROR_SUCCESS
     );
     const HKEY hSub = CreateKey(
@@ -861,7 +918,7 @@ TEST_CASE("A real parent handle is resolved by its native path")
         HKEY_LOCAL_MACHINE,
         L"Software\\VRegNative\\App\\Sub"
     );
-    const HKEY hRoot = Hive::HandleOf(hive.Root());
+    const HKEY hRoot = RootHandle(hive);
 
     HKEY hKey = nullptr;
 
@@ -908,7 +965,8 @@ TEST_CASE("A real parent handle is resolved by its native path")
         HKEY hCreated = nullptr;
         DWORD dwDisposition = 0;
         CHECK(
-            registry.RegCreateKeyExW(
+            VRegCreateKeyExW(
+                registry,
                 hParent,
                 L"App\\New",
                 0,
@@ -924,7 +982,8 @@ TEST_CASE("A real parent handle is resolved by its native path")
         CHECK(VRegIsVirtualHKey(hCreated));
         CHECK(dwDisposition == REG_CREATED_NEW_KEY);
         CHECK(
-            registry.RegDeleteKeyExW(
+            VRegDeleteKeyExW(
+                registry,
                 hParent,
                 L"App\\New",
                 0,
@@ -1049,12 +1108,14 @@ TEST_CASE("A real parent handle is resolved by its native path")
 
     SECTION("Roots without a native path are not reachable")
     {
-        Hive classes;
+        OwnedHive classes = MakeHive();
         REQUIRE(
-            registry.Mount(
+            VRegMount(
+                registry,
                 HKEY_CLASSES_ROOT,
                 L"VRegNativeClass",
-                classes
+                classes,
+                0
             ) == ERROR_SUCCESS
         );
         const HKEY hParent = FakeKey(
@@ -1085,14 +1146,16 @@ TEST_CASE("A real parent handle is resolved by its native path")
 TEST_CASE("WOW6432Node components are stripped whole and ordinal case-insensitively")
 {
     FakeNtQueryKey::Reset();
-    NativeRegistry native;
-    VirtualRegistry registry(&native, &FakeNtQueryKey::Query);
-    Hive hive;
+    OwnedRegistry native = MakeNativeRegistry();
+    OwnedRegistry registry = MakeVirtualRegistry(native, &FakeNtQueryKey::Query);
+    OwnedHive hive = MakeHive();
     REQUIRE(
-        registry.Mount(
+        VRegMount(
+            registry,
             HKEY_LOCAL_MACHINE,
             L"Software\\VRegNative\\App",
-            hive
+            hive,
+            0
         ) == ERROR_SUCCESS
     );
     CreateKey(
@@ -1107,7 +1170,7 @@ TEST_CASE("WOW6432Node components are stripped whole and ordinal case-insensitiv
         L"\\REGISTRY\\MACHINE\\SOFTWARE\\WOW6432NODE\\VRegNative"
     );
     CHECK(OpenVia(registry, hNode, L"App", KEY_READ, hKey) == ERROR_SUCCESS);
-    CHECK(hKey == Hive::HandleOf(hive.Root()));
+    CHECK(hKey == RootHandle(hive));
 
     const HKEY hSoftware = FakeKey(2, L"\\REGISTRY\\MACHINE\\SOFTWARE");
     CHECK(
@@ -1158,13 +1221,14 @@ TEST_CASE("WOW6432Node components are stripped whole and ordinal case-insensitiv
 TEST_CASE("A mount answers only the calls of its view")
 {
     FakeNtQueryKey::Reset();
-    NativeRegistry native;
-    VirtualRegistry registry(&native, &FakeNtQueryKey::Query);
-    Hive hive64;
-    Hive hive32;
-    Hive hiveBoth;
+    OwnedRegistry native = MakeNativeRegistry();
+    OwnedRegistry registry = MakeVirtualRegistry(native, &FakeNtQueryKey::Query);
+    OwnedHive hive64 = MakeHive();
+    OwnedHive hive32 = MakeHive();
+    OwnedHive hiveBoth = MakeHive();
     REQUIRE(
-        registry.Mount(
+        VRegMount(
+            registry,
             HKEY_LOCAL_MACHINE,
             L"Software\\VRegViewTest64",
             hive64,
@@ -1172,7 +1236,8 @@ TEST_CASE("A mount answers only the calls of its view")
         ) == ERROR_SUCCESS
     );
     REQUIRE(
-        registry.Mount(
+        VRegMount(
+            registry,
             HKEY_LOCAL_MACHINE,
             L"Software\\VRegViewTest32",
             hive32,
@@ -1180,10 +1245,12 @@ TEST_CASE("A mount answers only the calls of its view")
         ) == ERROR_SUCCESS
     );
     REQUIRE(
-        registry.Mount(
+        VRegMount(
+            registry,
             HKEY_LOCAL_MACHINE,
             L"Software\\VRegViewTestBoth",
-            hiveBoth
+            hiveBoth,
+            0
         ) == ERROR_SUCCESS
     );
 
@@ -1257,14 +1324,14 @@ TEST_CASE("A mount answers only the calls of its view")
 
 TEST_CASE("A real key above a mount reaches it through the real NtQueryKey")
 {
-    NativeRegistry native;
-    VirtualRegistry registry(&native);
-    Hive hive;
+    OwnedRegistry native = MakeNativeRegistry();
+    OwnedRegistry registry = MakeVirtualRegistry(native);
+    OwnedHive hive = MakeHive();
     const auto name = std::format(
         L"VRegNativePathTest-{}",
         GetCurrentProcessId()
     );
-    REQUIRE(registry.Mount(HKEY_CURRENT_USER, name.c_str(), hive) == ERROR_SUCCESS);
+    REQUIRE(VRegMount(registry, HKEY_CURRENT_USER, name.c_str(), hive, 0) == ERROR_SUCCESS);
     const HKEY hSub = CreateKey(
         registry,
         HKEY_CURRENT_USER,
@@ -1278,7 +1345,8 @@ TEST_CASE("A real key above a mount reaches it through the real NtQueryKey")
 
     HKEY hKey = nullptr;
     CHECK(
-        registry.RegOpenKeyExW(
+        VRegOpenKeyExW(
+            registry,
             hCurrentUser,
             (name + L"\\x").c_str(),
             0,
@@ -1288,7 +1356,8 @@ TEST_CASE("A real key above a mount reaches it through the real NtQueryKey")
     );
     CHECK(hKey == hSub);
     CHECK(
-        registry.RegOpenKeyExW(
+        VRegOpenKeyExW(
+            registry,
             hCurrentUser,
             name.c_str(),
             0,
@@ -1296,10 +1365,11 @@ TEST_CASE("A real key above a mount reaches it through the real NtQueryKey")
             &hKey
         ) == ERROR_SUCCESS
     );
-    CHECK(hKey == Hive::HandleOf(hive.Root()));
+    CHECK(hKey == RootHandle(hive));
 
     CHECK(
-        registry.RegOpenKeyExW(
+        VRegOpenKeyExW(
+            registry,
             hCurrentUser,
             L"Software",
             0,
@@ -1309,7 +1379,8 @@ TEST_CASE("A real key above a mount reaches it through the real NtQueryKey")
     );
     CHECK_FALSE(VRegIsVirtualHKey(hKey));
     CHECK(
-        registry.RegCloseKey(
+        VRegCloseKey(
+            registry,
             hKey
         ) == ERROR_SUCCESS
     );

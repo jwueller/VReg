@@ -3,8 +3,10 @@ include(Catch)
 
 # Shared with test/amalgamation, so the files are absolute.
 set(VREG_TEST_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/app_hive_registry.h
     ${CMAKE_CURRENT_SOURCE_DIR}/intercept_registry.h
     ${CMAKE_CURRENT_SOURCE_DIR}/no_dialogs.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/objects.h
     ${CMAKE_CURRENT_SOURCE_DIR}/oracle.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/oracle.h
     ${CMAKE_CURRENT_SOURCE_DIR}/owned_values.cpp

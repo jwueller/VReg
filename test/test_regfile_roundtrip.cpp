@@ -6,7 +6,6 @@
 #include <catch2/generators/catch_generators.hpp>
 
 using namespace VReg;
-using namespace VReg::RegFile;
 using namespace VReg::Test;
 
 namespace
@@ -70,7 +69,7 @@ std::vector<Entry> AsciiEntries()
     // @formatter:on
 }
 
-void Populate(Registry& registry, const std::vector<Entry>& entries)
+void Populate(VRegRegistry* const registry, const std::vector<Entry>& entries)
 {
     for (const auto& entry : entries)
         MustSet(
@@ -82,7 +81,7 @@ void Populate(Registry& registry, const std::vector<Entry>& entries)
         );
 }
 
-void CheckSame(Registry& registry, const std::vector<Entry>& entries)
+void CheckSame(VRegRegistry* const registry, const std::vector<Entry>& entries)
 {
     for (std::size_t i = 0; i < entries.size(); ++i)
     {
@@ -100,43 +99,35 @@ void CheckSame(Registry& registry, const std::vector<Entry>& entries)
 
 /// Exports "RT" from one hive, parses the result and applies it to a fresh
 /// hive.
-void RoundTrip(const std::vector<Entry>& entries, const Format format)
+void RoundTrip(const std::vector<Entry>& entries, const VRegFormat format)
 {
     AppHive source;
     AppHiveRegistry sourceRegistry(source.Root());
     Populate(sourceRegistry, entries);
 
-    std::vector<std::byte> file;
-    REQUIRE(
-        ExportSnapshot(
-            sourceRegistry,
-            HKEY_CURRENT_USER,
-            L"RT",
-            format,
-            file
-        ) == ERROR_SUCCESS
+    const auto file = ExportSnapshot(
+        sourceRegistry,
+        HKEY_CURRENT_USER,
+        L"RT",
+        format
     );
 
-    Script script;
-    ParseError error;
+    OwnedScript script;
+    VRegParseError error{};
     const auto status = Parse(file, script, &error);
     INFO("line " << error.line << " column " << error.column);
     REQUIRE(status == ERROR_SUCCESS);
 
     AppHive target;
     AppHiveRegistry targetRegistry(target.Root());
-    REQUIRE(Apply(script, targetRegistry, nullptr) == ERROR_SUCCESS);
+    REQUIRE(VRegApplyScript(script, targetRegistry, nullptr) == ERROR_SUCCESS);
     CheckSame(targetRegistry, entries);
 
-    std::vector<std::byte> again;
-    REQUIRE(
-        ExportSnapshot(
-            targetRegistry,
-            HKEY_CURRENT_USER,
-            L"RT",
-            format,
-            again
-        ) == ERROR_SUCCESS
+    const auto again = ExportSnapshot(
+        targetRegistry,
+        HKEY_CURRENT_USER,
+        L"RT",
+        format
     );
     CHECK(again == file);
 }
@@ -145,9 +136,9 @@ void RoundTrip(const std::vector<Entry>& entries, const Format format)
 TEST_CASE("Every value type survives a round trip in every format")
 {
     const auto format = GENERATE(
-        Format::Unicode,
-        Format::Utf8,
-        Format::Regedit4
+        VREG_FORMAT_UNICODE,
+        VREG_FORMAT_UTF8,
+        VREG_FORMAT_REGEDIT4
     );
     INFO("format " << static_cast<int>(format));
     RoundTrip(AsciiEntries(), format);
@@ -155,7 +146,7 @@ TEST_CASE("Every value type survives a round trip in every format")
 
 TEST_CASE("Non-ASCII names and strings survive Unicode and UTF-8")
 {
-    const auto format = GENERATE(Format::Unicode, Format::Utf8);
+    const auto format = GENERATE(VREG_FORMAT_UNICODE, VREG_FORMAT_UTF8);
     // @formatter:off
     const std::vector<Entry> entries = {
         {L"RT\\\u4e2d\u6587", L"caf\u00e9",  {REG_SZ, StringBytes(L"\u00e9\u4e2d \U0001F600")}},
@@ -187,7 +178,7 @@ TEST_CASE("A value of the ANSI code page survives REGEDIT4")
     const std::vector<Entry> entries = {
         {L"RT\\caf\u00e9", L"n\u00e9", {REG_SZ, StringBytes(L"\u00e9")}},
     };
-    RoundTrip(entries, Format::Regedit4);
+    RoundTrip(entries, VREG_FORMAT_REGEDIT4);
 }
 
 TEST_CASE("Applying an export over the same data changes nothing")
@@ -197,29 +188,21 @@ TEST_CASE("Applying an export over the same data changes nothing")
     const auto entries = AsciiEntries();
     Populate(registry, entries);
 
-    std::vector<std::byte> file;
-    REQUIRE(
-        ExportSnapshot(
-            registry,
-            HKEY_CURRENT_USER,
-            L"RT",
-            Format::Unicode,
-            file
-        ) == ERROR_SUCCESS
+    const auto file = ExportSnapshot(
+        registry,
+        HKEY_CURRENT_USER,
+        L"RT",
+        VREG_FORMAT_UNICODE
     );
-    Script script;
+    OwnedScript script;
     REQUIRE(Parse(file, script, nullptr) == ERROR_SUCCESS);
-    REQUIRE(Apply(script, registry, nullptr) == ERROR_SUCCESS);
+    REQUIRE(VRegApplyScript(script, registry, nullptr) == ERROR_SUCCESS);
 
-    std::vector<std::byte> again;
-    REQUIRE(
-        ExportSnapshot(
-            registry,
-            HKEY_CURRENT_USER,
-            L"RT",
-            Format::Unicode,
-            again
-        ) == ERROR_SUCCESS
+    const auto again = ExportSnapshot(
+        registry,
+        HKEY_CURRENT_USER,
+        L"RT",
+        VREG_FORMAT_UNICODE
     );
     CHECK(again == file);
 }
@@ -229,15 +212,11 @@ TEST_CASE("The exported file ends where regedit's does")
     AppHive hive;
     AppHiveRegistry registry(hive.Root());
     Populate(registry, AsciiEntries());
-    std::vector<std::byte> file;
-    REQUIRE(
-        ExportSnapshot(
-            registry,
-            HKEY_CURRENT_USER,
-            L"RT",
-            Format::Utf8,
-            file
-        ) == ERROR_SUCCESS
+    const auto file = ExportSnapshot(
+        registry,
+        HKEY_CURRENT_USER,
+        L"RT",
+        VREG_FORMAT_UTF8
     );
     const auto text = AsString(file);
     CHECK(

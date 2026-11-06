@@ -21,7 +21,7 @@
 namespace VReg
 {
 LSTATUS QueryValue(
-    const Registry& registry,
+    VRegRegistry* const registry,
     HKEY hKey,
     _In_opt_z_ LPCWSTR lpValueName,
     _Out_opt_ LPDWORD lpType,
@@ -29,7 +29,7 @@ LSTATUS QueryValue(
 ) noexcept;
 
 LSTATUS GetValue(
-    const Registry& registry,
+    VRegRegistry* const registry,
     HKEY hKey,
     _In_opt_z_ LPCWSTR lpSubKey,
     _In_opt_z_ LPCWSTR lpValue,
@@ -43,7 +43,7 @@ LSTATUS GetValue(
 /// @ref RRF_NOEXPAND also @ref REG_EXPAND_SZ (otherwise
 /// @ref Registry::RegGetValueW expands it into a @ref REG_SZ).
 LSTATUS GetString(
-    const Registry& registry,
+    VRegRegistry* const registry,
     HKEY hKey,
     _In_opt_z_ LPCWSTR lpSubKey,
     _In_opt_z_ LPCWSTR lpValue,
@@ -52,14 +52,14 @@ LSTATUS GetString(
 ) noexcept;
 
 LSTATUS EnumKey(
-    const Registry& registry,
+    VRegRegistry* const registry,
     HKEY hKey,
     DWORD dwIndex,
     std::wstring& name
 ) noexcept;
 
 LSTATUS EnumValue(
-    const Registry& registry,
+    VRegRegistry* const registry,
     HKEY hKey,
     DWORD dwIndex,
     std::wstring& name,
@@ -68,7 +68,7 @@ LSTATUS EnumValue(
 ) noexcept;
 
 LSTATUS LoadMUIString(
-    const Registry& registry,
+    VRegRegistry* const registry,
     HKEY hKey,
     _In_opt_z_ LPCWSTR pszValue,
     DWORD Flags,

@@ -5,7 +5,6 @@
 #include <algorithm>
 
 using namespace VReg;
-using namespace VReg::RegFile;
 using namespace VReg::Test;
 
 namespace
@@ -20,23 +19,19 @@ std::vector<std::byte> Sequence(const int first, const int count)
     return bytes;
 }
 
+/// A snapshot of @p pszPath below HKEY_CURRENT_USER.
 std::vector<std::byte> Export(
-    Registry& registry,
+    VRegRegistry* const registry,
     const LPCWSTR pszPath,
-    const Format format
+    const VRegFormat format
 )
 {
-    std::vector<std::byte> file;
-    REQUIRE(
-        ExportSnapshot(
-            registry,
-            HKEY_CURRENT_USER,
-            pszPath,
-            format,
-            file
-        ) == ERROR_SUCCESS
+    return ExportSnapshot(
+        registry,
+        HKEY_CURRENT_USER,
+        pszPath,
+        format
     );
-    return file;
 }
 } // namespace
 
@@ -76,7 +71,8 @@ TEST_CASE("Export lays a snapshot out the way regedit does")
     {
         HKEY hKey{};
         REQUIRE(
-            registry.RegCreateKeyExW(
+            VRegCreateKeyExW(
+                registry,
                 HKEY_CURRENT_USER,
                 L"Software\\VRegTest\\NoValues",
                 0,
@@ -88,7 +84,8 @@ TEST_CASE("Export lays a snapshot out the way regedit does")
                 nullptr
             ) == ERROR_SUCCESS
         );
-        registry.RegCloseKey(
+        VRegCloseKey(
+            registry,
             hKey
         );
     }
@@ -111,7 +108,7 @@ TEST_CASE("Export lays a snapshot out the way regedit does")
         Export(
             registry,
             L"Software\\VRegTest",
-            Format::Unicode
+            VREG_FORMAT_UNICODE
         ) == Utf16File(expected)
     );
 }
@@ -141,7 +138,7 @@ TEST_CASE("Export wraps hex data the way regedit does")
         L"  16,17,18,19,1a,1b,1c,1d,1e,1f,20,21,22,23,24,25,26,27,28,29,2a,2b,2c,2d,2e,\\\r\n"
         L"  2f,30,31,32,33,34,35,36,37,38,39,3a,3b\r\n"
         L"\r\n";
-    CHECK(Export(registry, L"W", Format::Unicode) == Utf16File(expected));
+    CHECK(Export(registry, L"W", VREG_FORMAT_UNICODE) == Utf16File(expected));
 }
 
 TEST_CASE("Export writes typed values as hex(n) and friendly forms only when exact")
@@ -198,7 +195,7 @@ TEST_CASE("Export writes typed values as hex(n) and friendly forms only when exa
         L"\"c none\"=hex(0):\r\n"
         L"\"d type\"=hex(12345):07\r\n"
         L"\r\n";
-    CHECK(Export(registry, L"T", Format::Unicode) == Utf16File(expected));
+    CHECK(Export(registry, L"T", VREG_FORMAT_UNICODE) == Utf16File(expected));
 }
 
 TEST_CASE("Export orders keys and values ordinal case-insensitive")
@@ -237,7 +234,7 @@ TEST_CASE("Export orders keys and values ordinal case-insensitive")
         );
     }
 
-    const auto file = Export(registry, L"S", Format::Utf8);
+    const auto file = Export(registry, L"S", VREG_FORMAT_UTF8);
     const auto text = AsString(file);
     std::vector<std::size_t> positions;
     for (
@@ -260,7 +257,7 @@ TEST_CASE("Export orders keys and values ordinal case-insensitive")
         positions.push_back(at);
     }
     CHECK(std::is_sorted(positions.begin(), positions.end()));
-    CHECK(Export(registry, L"S", Format::Utf8) == file);
+    CHECK(Export(registry, L"S", VREG_FORMAT_UTF8) == file);
 }
 
 TEST_CASE("Export escapes names the way strings are escaped")
@@ -277,7 +274,7 @@ TEST_CASE("Export escapes names the way strings are escaped")
         L"\"@\"=dword:00000002\r\n"
         L"\"q\\\"uo\\\\te\"=dword:00000001\r\n"
         L"\r\n";
-    CHECK(Export(registry, L"N", Format::Unicode) == Utf16File(expected));
+    CHECK(Export(registry, L"N", VREG_FORMAT_UNICODE) == Utf16File(expected));
 }
 
 TEST_CASE("Export in the other formats")
@@ -290,7 +287,7 @@ TEST_CASE("Export in the other formats")
     SECTION("UTF-8 has no BOM")
     {
         CHECK(
-            AsString(Export(registry, L"F", Format::Utf8)) ==
+            AsString(Export(registry, L"F", VREG_FORMAT_UTF8)) ==
             "Windows Registry Editor Version 5.00\r\n\r\n[HKEY_CURRENT_USER\\F]\r\n\"h\"=hex:01\r\n\"s\"=\"v\"\r\n\r\n"
         );
     }
@@ -298,7 +295,7 @@ TEST_CASE("Export in the other formats")
     SECTION("REGEDIT4 has its own header")
     {
         CHECK(
-            AsString(Export(registry, L"F", Format::Regedit4)) ==
+            AsString(Export(registry, L"F", VREG_FORMAT_REGEDIT4)) ==
             "REGEDIT4\r\n\r\n[HKEY_CURRENT_USER\\F]\r\n\"h\"=hex:01\r\n\"s\"=\"v\"\r\n\r\n"
         );
     }
@@ -311,14 +308,14 @@ TEST_CASE("Non-ASCII text exports in Unicode and UTF-8")
     MustSet(registry, L"U\\中", L"café", REG_SZ, StringBytes(L"é"));
 
     CHECK(
-        Export(registry, L"U", Format::Utf8) ==
+        Export(registry, L"U", VREG_FORMAT_UTF8) ==
         RawFile(
             "Windows Registry Editor Version 5.00\r\n\r\n[HKEY_CURRENT_USER\\U]\r\n\r\n"
             "[HKEY_CURRENT_USER\\U\\\xE4\xB8\xAD]\r\n\"caf\xC3\xA9\"=\"\xC3\xA9\"\r\n\r\n"
         )
     );
     CHECK(
-        Export(registry, L"U", Format::Unicode) ==
+        Export(registry, L"U", VREG_FORMAT_UNICODE) ==
         Utf16File(
             HEADER
             + L"[HKEY_CURRENT_USER\\U]\r\n\r\n[HKEY_CURRENT_USER\\U\\中]\r\n\"café\"=\"é\"\r\n\r\n"
@@ -364,21 +361,21 @@ TEST_CASE("REGEDIT4 refuses what the ANSI code page cannot hold")
     }
 
     CHECK(
-        ExportSnapshot(
+        TryExportSnapshot(
             registry,
             HKEY_CURRENT_USER,
             L"R",
-            Format::Regedit4,
+            VREG_FORMAT_REGEDIT4,
             file
         ) == ERROR_NO_UNICODE_TRANSLATION
     );
     CHECK(file == std::vector{std::byte{1}});
     CHECK(
-        ExportSnapshot(
+        TryExportSnapshot(
             registry,
             HKEY_CURRENT_USER,
             L"R",
-            Format::Unicode,
+            VREG_FORMAT_UNICODE,
             file
         ) == ERROR_SUCCESS
     );
@@ -393,11 +390,11 @@ TEST_CASE("Export errors")
     SECTION("a missing key")
     {
         CHECK(
-            ExportSnapshot(
+            TryExportSnapshot(
                 registry,
                 HKEY_CURRENT_USER,
                 L"Missing",
-                Format::Unicode,
+                VREG_FORMAT_UNICODE,
                 file
             ) == ERROR_FILE_NOT_FOUND
         );
@@ -406,11 +403,11 @@ TEST_CASE("Export errors")
     SECTION("a root that is not predefined")
     {
         CHECK(
-            ExportSnapshot(
+            TryExportSnapshot(
                 registry,
                 hive.Root(),
                 L"",
-                Format::Unicode,
+                VREG_FORMAT_UNICODE,
                 file
             ) == ERROR_INVALID_HANDLE
         );
@@ -420,11 +417,11 @@ TEST_CASE("Export errors")
     {
         MustSet(registry, L"L", L"a\nb", REG_DWORD, DwordBytes(1));
         CHECK(
-            ExportSnapshot(
+            TryExportSnapshot(
                 registry,
                 HKEY_CURRENT_USER,
                 L"L",
-                Format::Unicode,
+                VREG_FORMAT_UNICODE,
                 file
             ) == ERROR_INVALID_NAME
         );
@@ -439,14 +436,14 @@ TEST_CASE("The root itself can be exported")
     AppHiveRegistry registry(hive.Root());
     MustSet(registry, L"", L"v", REG_DWORD, DwordBytes(1));
     CHECK(
-        Export(registry, L"", Format::Unicode) ==
+        Export(registry, L"", VREG_FORMAT_UNICODE) ==
         Utf16File(
             HEADER + L"[HKEY_CURRENT_USER]\r\n\"v\"=dword:00000001\r\n\r\n"
         )
     );
 }
 
-TEST_CASE("ExportSnapshotToFile writes the same bytes and keeps a file on failure")
+TEST_CASE("A snapshot script written to a file has the same bytes and keeps a file on failure")
 {
     AppHive hive;
     AppHiveRegistry registry(hive.Root());
@@ -457,29 +454,46 @@ TEST_CASE("ExportSnapshotToFile writes the same bytes and keeps a file on failur
     std::filesystem::create_directories(directory);
     const auto path = directory / L"out.reg";
 
+    OwnedScript snapshot;
     REQUIRE(
-        ExportSnapshotToFile(
+        VRegSnapshotScript(
             registry,
             HKEY_CURRENT_USER,
             L"E",
-            Format::Unicode,
-            path
+            nullptr,
+            snapshot.Receive()
         ) == ERROR_SUCCESS
     );
-    Script script;
-    REQUIRE(ParseFile(path, script, nullptr) == ERROR_SUCCESS);
-    CHECK(script.operations.size() == 2);
+    REQUIRE(
+        VRegWriteScriptFile(
+            snapshot,
+            VREG_FORMAT_UNICODE,
+            path.c_str()
+        ) == ERROR_SUCCESS
+    );
+    OwnedScript script;
+    REQUIRE(
+        VRegParseScriptFile(
+            path.c_str(),
+            nullptr,
+            script.Receive(),
+            nullptr
+        ) == ERROR_SUCCESS
+    );
+    CHECK(Operations(script).size() == 2);
     const auto size = std::filesystem::file_size(path);
 
+    OwnedScript missing;
     CHECK(
-        ExportSnapshotToFile(
+        VRegSnapshotScript(
             registry,
             HKEY_CURRENT_USER,
             L"Missing",
-            Format::Unicode,
-            path
+            nullptr,
+            missing.Receive()
         ) == ERROR_FILE_NOT_FOUND
     );
+    CHECK(missing.Get() == nullptr);
     CHECK(std::filesystem::file_size(path) == size);
 
     std::filesystem::remove_all(directory);

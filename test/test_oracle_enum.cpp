@@ -15,9 +15,8 @@ using namespace VReg::Test;
 
 namespace
 {
-template <class Api>
 LSTATUS EnumKeyEx(
-    Api& api,
+    const Api& api,
     HKEY hKey,
     DWORD dwIndex,
     LPWSTR pszName,
@@ -28,7 +27,8 @@ LSTATUS EnumKeyEx(
     PFILETIME pft
 ) noexcept
 {
-    return api.RegEnumKeyExW(
+    return VRegEnumKeyExW(
+        api,
         hKey,
         dwIndex,
         pszName,
@@ -40,9 +40,8 @@ LSTATUS EnumKeyEx(
     );
 }
 
-template <class Api>
 LSTATUS EnumKeyEx(
-    Api& api,
+    const Api& api,
     HKEY hKey,
     DWORD dwIndex,
     LPSTR pszName,
@@ -53,7 +52,8 @@ LSTATUS EnumKeyEx(
     PFILETIME pft
 ) noexcept
 {
-    return api.RegEnumKeyExA(
+    return VRegEnumKeyExA(
+        api,
         hKey,
         dwIndex,
         pszName,
@@ -65,9 +65,8 @@ LSTATUS EnumKeyEx(
     );
 }
 
-template <class Api>
 LSTATUS EnumValueEx(
-    Api& api,
+    const Api& api,
     HKEY hKey,
     DWORD dwIndex,
     LPWSTR pszName,
@@ -78,7 +77,8 @@ LSTATUS EnumValueEx(
     LPDWORD pcbData
 ) noexcept
 {
-    return api.RegEnumValueW(
+    return VRegEnumValueW(
+        api,
         hKey,
         dwIndex,
         pszName,
@@ -90,9 +90,8 @@ LSTATUS EnumValueEx(
     );
 }
 
-template <class Api>
 LSTATUS EnumValueEx(
-    Api& api,
+    const Api& api,
     HKEY hKey,
     DWORD dwIndex,
     LPSTR pszName,
@@ -103,7 +102,8 @@ LSTATUS EnumValueEx(
     LPDWORD pcbData
 ) noexcept
 {
-    return api.RegEnumValueA(
+    return VRegEnumValueA(
+        api,
         hKey,
         dwIndex,
         pszName,
@@ -115,9 +115,8 @@ LSTATUS EnumValueEx(
     );
 }
 
-template <class Api>
 LSTATUS QueryInfo(
-    Api& api,
+    const Api& api,
     HKEY hKey,
     LPWSTR pszClass,
     LPDWORD pcchClass,
@@ -132,7 +131,8 @@ LSTATUS QueryInfo(
     PFILETIME pft
 ) noexcept
 {
-    return api.RegQueryInfoKeyW(
+    return VRegQueryInfoKeyW(
+        api,
         hKey,
         pszClass,
         pcchClass,
@@ -148,9 +148,8 @@ LSTATUS QueryInfo(
     );
 }
 
-template <class Api>
 LSTATUS QueryInfo(
-    Api& api,
+    const Api& api,
     HKEY hKey,
     LPSTR pszClass,
     LPDWORD pcchClass,
@@ -165,7 +164,8 @@ LSTATUS QueryInfo(
     PFILETIME pft
 ) noexcept
 {
-    return api.RegQueryInfoKeyA(
+    return VRegQueryInfoKeyA(
+        api,
         hKey,
         pszClass,
         pcchClass,
@@ -181,9 +181,8 @@ LSTATUS QueryInfo(
     );
 }
 
-template <class Api>
 HKEY CreateWithClass(
-    Api& api,
+    const Api& api,
     Recorder& record,
     const HKEY hParent,
     const wchar_t* const pszName,
@@ -194,7 +193,8 @@ HKEY CreateWithClass(
     std::wstring cls = pszClass ? pszClass : L"";
     RECORD(
         "create " + Narrow(pszName),
-        api.RegCreateKeyExW(
+        VRegCreateKeyExW(
+            api,
             hParent,
             pszName,
             0,
@@ -211,9 +211,8 @@ HKEY CreateWithClass(
 
 /// Four subkeys with classes, wide and narrowable names, and one with a name
 /// the ANSI code page cannot represent. Returns nothing: the keys are closed.
-template <class Api>
 void PopulateKeys(
-    Api& api,
+    const Api& api,
     Recorder& record,
     const HKEY hRoot
 )
@@ -239,7 +238,8 @@ void PopulateKeys(
         );
         RECORD(
             "close",
-            api.RegCloseKey(
+            VRegCloseKey(
+                api,
                 hKey
             )
         );
@@ -248,7 +248,7 @@ void PopulateKeys(
 
 template <class Api, class Char>
 void EnumKeyMatrix(
-    Api& api,
+    const Api& api,
     Recorder& record,
     const HKEY hKey,
     const std::string& label
@@ -423,9 +423,8 @@ void EnumKeyMatrix(
 
 struct EnumerateKeys
 {
-    template <class Api>
     void operator()(
-        Api& api,
+        const Api& api,
         const HKEY hRoot,
         Recorder& record
     ) const
@@ -440,9 +439,8 @@ struct EnumerateKeys
 
 struct EnumerateKeysPreEx
 {
-    template <class Api>
     void operator()(
-        Api& api,
+        const Api& api,
         const HKEY hRoot,
         Recorder& record
     ) const
@@ -456,7 +454,8 @@ struct EnumerateKeysPreEx
                 std::memset(wname.data(), FILL, sizeof(wname));
                 RECORD(
                     std::format("W index {} size {}", dwIndex, cchName),
-                    api.RegEnumKeyW(
+                    VRegEnumKeyW(
+                        api,
                         hRoot,
                         dwIndex,
                         wname.data(),
@@ -469,7 +468,8 @@ struct EnumerateKeysPreEx
                 std::memset(name.data(), FILL, sizeof(name));
                 RECORD(
                     std::format("A index {} size {}", dwIndex, cchName),
-                    api.RegEnumKeyA(
+                    VRegEnumKeyA(
+                        api,
                         hRoot,
                         dwIndex,
                         name.data(),
@@ -482,7 +482,8 @@ struct EnumerateKeysPreEx
         }
         RECORD(
             "W no name",
-            api.RegEnumKeyW(
+            VRegEnumKeyW(
+                api,
                 hRoot,
                 0,
                 nullptr,
@@ -491,7 +492,8 @@ struct EnumerateKeysPreEx
         );
         RECORD(
             "A no name",
-            api.RegEnumKeyA(
+            VRegEnumKeyA(
+                api,
                 hRoot,
                 0,
                 nullptr,
@@ -502,7 +504,8 @@ struct EnumerateKeysPreEx
         char name[8];
         RECORD(
             "W invalid handle",
-            api.RegEnumKeyW(
+            VRegEnumKeyW(
+                api,
                 nullptr,
                 0,
                 wname,
@@ -511,7 +514,8 @@ struct EnumerateKeysPreEx
         );
         RECORD(
             "A invalid handle",
-            api.RegEnumKeyA(
+            VRegEnumKeyA(
+                api,
                 nullptr,
                 0,
                 name,
@@ -521,9 +525,8 @@ struct EnumerateKeysPreEx
     }
 };
 
-template <class Api>
 void PopulateValues(
-    Api& api,
+    const Api& api,
     Recorder& record,
     const HKEY hKey
 )
@@ -550,7 +553,7 @@ void PopulateValues(
 
 template <class Api, class Char>
 void EnumValueMatrix(
-    Api& api,
+    const Api& api,
     Recorder& record,
     const HKEY hKey,
     const std::string& label
@@ -742,9 +745,8 @@ void EnumValueMatrix(
 
 struct EnumerateValues
 {
-    template <class Api>
     void operator()(
-        Api& api,
+        const Api& api,
         const HKEY hRoot,
         Recorder& record
     ) const
@@ -759,7 +761,7 @@ struct EnumerateValues
 
 template <class Api, class Char>
 void QueryInfoMatrix(
-    Api& api,
+    const Api& api,
     Recorder& record,
     const HKEY hKey,
     const std::string& label
@@ -797,7 +799,7 @@ void QueryInfoMatrix(
                 outPointer(4),
                 outPointer(5),
                 // Virtual keys carry no security descriptor and report size 0.
-                VIRTUAL_KEYS<Api> ? nullptr : outPointer(6),
+                api.isVirtualKeys ? nullptr : outPointer(6),
                 skip == 7 ? nullptr : &ft
             );
             RECORD(
@@ -933,9 +935,8 @@ void QueryInfoMatrix(
 
 struct QueryInfoKeyForms
 {
-    template <class Api>
     void operator()(
-        Api& api,
+        const Api& api,
         const HKEY hRoot,
         Recorder& record
     ) const
@@ -955,7 +956,8 @@ struct QueryInfoKeyForms
             HKEY hKey{};
             RECORD(
                 "open",
-                api.RegOpenKeyExW(
+                VRegOpenKeyExW(
+                    api,
                     hRoot,
                     pszName,
                     0,
@@ -967,7 +969,8 @@ struct QueryInfoKeyForms
             QueryInfoMatrix<Api, char>(api, record, hKey, "sub A");
             RECORD(
                 "close",
-                api.RegCloseKey(
+                VRegCloseKey(
+                    api,
                     hKey
                 )
             );
@@ -975,12 +978,13 @@ struct QueryInfoKeyForms
 
         // A virtual key has one handle per node, so it carries no per-open
         // access rights.
-        if constexpr (!VIRTUAL_KEYS<Api>)
+        if (!api.isVirtualKeys)
         {
             HKEY hKey{};
             RECORD(
                 "open for write only",
-                api.RegOpenKeyExW(
+                VRegOpenKeyExW(
+                    api,
                     hRoot,
                     L"Alpha",
                     0,
@@ -992,7 +996,8 @@ struct QueryInfoKeyForms
             QueryInfoMatrix<Api, char>(api, record, hKey, "write only A");
             RECORD(
                 "close",
-                api.RegCloseKey(
+                VRegCloseKey(
+                    api,
                     hKey
                 )
             );
@@ -1002,9 +1007,8 @@ struct QueryInfoKeyForms
 
 struct EnumerateWhileChanging
 {
-    template <class Api>
     void operator()(
-        Api& api,
+        const Api& api,
         const HKEY hRoot,
         Recorder& record
     ) const
@@ -1017,7 +1021,8 @@ struct EnumerateWhileChanging
         {
             name.fill(L'\0');
             DWORD cchName = 64;
-            const auto status = api.RegEnumKeyExW(
+            const auto status = VRegEnumKeyExW(
+                api,
                 hRoot,
                 dwIndex,
                 name.data(),
@@ -1031,7 +1036,8 @@ struct EnumerateWhileChanging
             if (status == ERROR_SUCCESS)
                 RECORD(
                 "delete enumerated",
-                api.RegDeleteKeyExW(
+                VRegDeleteKeyExW(
+                    api,
                     hRoot,
                     name.data(),
                     0,
@@ -1044,7 +1050,8 @@ struct EnumerateWhileChanging
         {
             name.fill(L'\0');
             DWORD cchName = 64;
-            const auto status = api.RegEnumValueW(
+            const auto status = VRegEnumValueW(
+                api,
                 hRoot,
                 dwIndex,
                 name.data(),
@@ -1058,7 +1065,8 @@ struct EnumerateWhileChanging
             if (status == ERROR_SUCCESS)
                 RECORD(
                 "delete enumerated",
-                api.RegDeleteValueW(
+                VRegDeleteValueW(
+                    api,
                     hRoot,
                     name.data()
                 )
@@ -1071,7 +1079,8 @@ struct EnumerateWhileChanging
             DWORD cchName = 64;
             RECORD(
                 "enum key after",
-                api.RegEnumKeyExW(
+                VRegEnumKeyExW(
+                    api,
                     hRoot,
                     dwIndex,
                     name.data(),
@@ -1103,9 +1112,10 @@ TEMPLATE_LIST_TEST_CASE(
     Scenarios
 )
 {
-    Win32Api win32;
-    NativeRegistry native;
-    CheckSameRecording(Record<TestType>(win32), Record<TestType>(native));
+    Win32Registry win32Registry;
+    const Api win32 = NativeReference(win32Registry);
+    OwnedRegistry native = MakeNativeRegistry();
+    CheckSameRecording(Record<TestType>(win32), Record<TestType>(Api{native, false}));
 }
 
 TEMPLATE_LIST_TEST_CASE(
@@ -1114,7 +1124,8 @@ TEMPLATE_LIST_TEST_CASE(
     Scenarios
 )
 {
-    Reduced<Win32Api> win32;
+    Win32Registry win32Registry;
+    const Api win32 = ReducedReference(win32Registry);
     CheckSameRecording(Record<TestType>(win32), RecordVirtual<TestType>());
 }
 
@@ -1124,6 +1135,7 @@ TEMPLATE_LIST_TEST_CASE(
     Scenarios
 )
 {
-    Reduced<Win32Api> win32;
+    Win32Registry win32Registry;
+    const Api win32 = ReducedReference(win32Registry);
     CheckSameRecording(Record<TestType>(win32), RecordOverlay<TestType>());
 }

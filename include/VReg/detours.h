@@ -1,16 +1,13 @@
 #pragma once
 
+#include <VReg/registry.h>
+
 #include <Windows.h>
 
-namespace VReg
-{
-class NativeRegistry;
-class Registry;
-} // namespace VReg
-
 /**
- * @brief Routes the process's `Reg*` calls into a @ref VReg::Registry
- *  (normally a @ref VReg::VirtualRegistry) through Microsoft Detours.
+ * @file
+ * @brief Routes the process's `Reg*` calls into a @ref VRegRegistry (normally
+ *  a virtual registry) through Microsoft Detours.
  *
  *  Every `Reg*` export that takes a key handle is hooked, since a virtual
  *  handle reaching an unhooked one would fail as invalid. Most are answered
@@ -21,10 +18,10 @@ class Registry;
  *  on.
  *
  *  Each hook is a small thunk outside the module image that jumps through a
- *  slot. The hooks are never detached: @ref Neutralize points every slot at
- *  the trampoline, so the layer passes everything straight through while
- *  other hookers' chains stay intact in any order. It runs by itself when
- *  the module is unloaded.
+ *  slot. The hooks are never detached: @ref VRegNeutralizeHooks points every
+ *  slot at the trampoline, so the layer passes everything straight through
+ *  while other hookers' chains stay intact in any order. It runs by itself
+ *  when the module is unloaded.
  *
  *  Hook bodies may run under a foreign loader lock; nothing they reach loads
  *  a module, creates a thread or waits on a lock a loader-lock holder could
@@ -36,22 +33,54 @@ class Registry;
  *  @ref GET_MODULE_HANDLE_EX_FLAG_PIN), which keeps it loaded until the
  *  process exits.
  */
-namespace VReg::Detours
-{
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /// Calls @ref DetourAttach for every hook, inside a transaction the caller
 /// begins and commits (for example one that also carries its own hooks).
-/// Every hook calls through @p registry, which MAY wrap the registry that
-/// answers (to trace each call, say). @p native is the registry below the
-/// hooks, the one @p registry reaches for whatever it does not answer: the
-/// commit turns its function table into the trampolines. Both MUST outlive
-/// the process. Answers the first Detours error, or
-/// @ref ERROR_ALREADY_INITIALIZED when this copy attached before.
-LONG Attach(Registry& registry, NativeRegistry& native) noexcept;
+/// Every hook calls through @p pRegistry, which MAY wrap the registry that
+/// answers (to trace each call, say). @p pNative is the registry below the
+/// hooks, the one @p pRegistry reaches for whatever it does not answer: it
+/// MUST be one @ref VRegCreateNativeRegistry made, and the commit turns its
+/// function table into the trampolines. Both MUST outlive the process.
+/// Answers the first Detours error, or @ref ERROR_ALREADY_INITIALIZED when
+/// this copy attached before.
+LONG WINAPI VRegAttachHooks(_In_ VRegRegistry* pRegistry, _In_ VRegRegistry* pNative);
 
-/// @ref Attach in a transaction of its own, enrolling only the calling
-/// thread.
-LONG Install(Registry& registry, NativeRegistry& native) noexcept;
+/// @ref VRegAttachHooks in a transaction of its own, enrolling only the
+/// calling thread.
+LONG WINAPI VRegInstallHooks(_In_ VRegRegistry* pRegistry, _In_ VRegRegistry* pNative);
 
 /// Makes every hook of this copy pass calls straight through, for good.
-void Neutralize() noexcept;
+void WINAPI VRegNeutralizeHooks(void);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#ifdef __cplusplus
+
+#include <VReg/native_registry.h>
+
+/// The C++ shape of the hooks, over the functions above.
+namespace VReg::Detours
+{
+inline LONG Attach(Registry& registry, NativeRegistry& native) noexcept
+{
+    return VRegAttachHooks(registry.CObject(), native.CObject());
+}
+
+inline LONG Install(Registry& registry, NativeRegistry& native) noexcept
+{
+    return VRegInstallHooks(registry.CObject(), native.CObject());
+}
+
+inline void Neutralize() noexcept
+{
+    VRegNeutralizeHooks();
+}
 } // namespace VReg::Detours
+
+#endif // __cplusplus

@@ -12,31 +12,75 @@
 namespace VReg::Test
 {
 /// A registry that forwards to another one, can fail chosen calls with chosen
-/// statuses and reports every call it receives before forwarding it.
-class InterceptRegistry final : public Registry
+/// statuses and reports every call it receives before forwarding it. It fills
+/// the wide surface and `RegGetValueA`; every other form is derived by the
+/// flat functions and reaches it as the wide form.
+class InterceptRegistry
 {
 public:
-    explicit InterceptRegistry(Registry& inner) noexcept :
-        m_inner(inner)
+    explicit InterceptRegistry(VRegRegistry* const pInner) noexcept :
+        m_pInner(pInner),
+        m_c{{&VTBL, nullptr}, this}
     {
     }
+
+    InterceptRegistry(const InterceptRegistry&) = delete;
+    InterceptRegistry& operator=(const InterceptRegistry&) = delete;
 
     /// Calls named here (`RegOpenKeyExW`, ...) answer the status instead of
     /// being forwarded.
     std::map<std::string, LSTATUS> failures;
     std::function<void(const std::string&)> onCall;
 
-    LSTATUS RegOpenKeyExW(
-        _In_ HKEY hKey,
-        _In_opt_ LPCWSTR lpSubKey,
-        _In_ DWORD ulOptions,
-        _In_ REGSAM samDesired,
-        _Out_ PHKEY phkResult
-    ) noexcept override
+    operator VRegRegistry*() noexcept
     {
-        if (const auto status = Enter("RegOpenKeyExW"))
+        return &m_c.object;
+    }
+
+    [[nodiscard]] VRegRegistry* Get() noexcept
+    {
+        return &m_c.object;
+    }
+
+private:
+    /// The C object with the way back to its owner.
+    struct CObject
+    {
+        VRegRegistry object;
+        InterceptRegistry* pSelf;
+    };
+
+    static InterceptRegistry* Self(VRegRegistry* const pThis) noexcept
+    {
+        return reinterpret_cast<CObject*>(pThis)->pSelf;
+    }
+
+    std::optional<LSTATUS> Enter(const char* const pszName) const
+    {
+        if (onCall)
+            onCall(pszName);
+
+        const auto it = failures.find(pszName);
+        if (it == failures.end())
+            return std::nullopt;
+
+        return it->second;
+    }
+
+    static LSTATUS WINAPI RegOpenKeyExW(
+        _In_ VRegRegistry* const pThis,
+        _In_ const HKEY hKey,
+        _In_opt_ const LPCWSTR lpSubKey,
+        _In_ const DWORD ulOptions,
+        _In_ const REGSAM samDesired,
+        _Out_ const PHKEY phkResult
+    ) noexcept
+    {
+        auto& self = *Self(pThis);
+        if (const auto status = self.Enter("RegOpenKeyExW"))
             return *status;
-        return m_inner.RegOpenKeyExW(
+        return VRegOpenKeyExW(
+            self.m_pInner,
             hKey,
             lpSubKey,
             ulOptions,
@@ -45,21 +89,24 @@ public:
         );
     }
 
-    LSTATUS RegCreateKeyExW(
-        _In_ HKEY hKey,
-        _In_ LPCWSTR lpSubKey,
-        _Reserved_ DWORD Reserved,
-        _In_opt_ LPWSTR lpClass,
-        _In_ DWORD dwOptions,
-        _In_ REGSAM samDesired,
-        _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes,
-        _Out_ PHKEY phkResult,
-        _Out_opt_ LPDWORD lpdwDisposition
-    ) noexcept override
+    static LSTATUS WINAPI RegCreateKeyExW(
+        _In_ VRegRegistry* const pThis,
+        _In_ const HKEY hKey,
+        _In_ const LPCWSTR lpSubKey,
+        _Reserved_ const DWORD Reserved,
+        _In_opt_ const LPWSTR lpClass,
+        _In_ const DWORD dwOptions,
+        _In_ const REGSAM samDesired,
+        _In_opt_ const LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+        _Out_ const PHKEY phkResult,
+        _Out_opt_ const LPDWORD lpdwDisposition
+    ) noexcept
     {
-        if (const auto status = Enter("RegCreateKeyExW"))
+        auto& self = *Self(pThis);
+        if (const auto status = self.Enter("RegCreateKeyExW"))
             return *status;
-        return m_inner.RegCreateKeyExW(
+        return VRegCreateKeyExW(
+            self.m_pInner,
             hKey,
             lpSubKey,
             Reserved,
@@ -72,27 +119,33 @@ public:
         );
     }
 
-    LSTATUS RegCloseKey(
-        _In_ HKEY hKey
-    ) noexcept override
+    static LSTATUS WINAPI RegCloseKey(
+        _In_ VRegRegistry* const pThis,
+        _In_ const HKEY hKey
+    ) noexcept
     {
-        return m_inner.RegCloseKey(
+        auto& self = *Self(pThis);
+        return VRegCloseKey(
+            self.m_pInner,
             hKey
         );
     }
 
-    LSTATUS RegQueryValueExW(
-        _In_ HKEY hKey,
-        _In_opt_ LPCWSTR lpValueName,
-        _Reserved_ LPDWORD lpReserved,
-        _Out_opt_ LPDWORD lpType,
-        _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPBYTE lpData,
-        _When_(lpData == NULL, _Out_opt_) _When_(lpData != NULL, _Inout_opt_) LPDWORD lpcbData
-    ) const noexcept override
+    static LSTATUS WINAPI RegQueryValueExW(
+        _In_ VRegRegistry* const pThis,
+        _In_ const HKEY hKey,
+        _In_opt_ const LPCWSTR lpValueName,
+        _Reserved_ const LPDWORD lpReserved,
+        _Out_opt_ const LPDWORD lpType,
+        _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) const LPBYTE lpData,
+        _When_(lpData == NULL, _Out_opt_) _When_(lpData != NULL, _Inout_opt_) const LPDWORD lpcbData
+    ) noexcept
     {
-        if (const auto status = Enter("RegQueryValueExW"))
+        auto& self = *Self(pThis);
+        if (const auto status = self.Enter("RegQueryValueExW"))
             return *status;
-        return m_inner.RegQueryValueExW(
+        return VRegQueryValueExW(
+            self.m_pInner,
             hKey,
             lpValueName,
             lpReserved,
@@ -102,18 +155,21 @@ public:
         );
     }
 
-    LSTATUS RegSetValueExW(
-        _In_ HKEY hKey,
-        _In_opt_ LPCWSTR lpValueName,
-        _Reserved_ DWORD Reserved,
-        _In_ DWORD dwType,
-        _In_reads_bytes_opt_(cbData) const BYTE* lpData,
-        _In_ DWORD cbData
-    ) noexcept override
+    static LSTATUS WINAPI RegSetValueExW(
+        _In_ VRegRegistry* const pThis,
+        _In_ const HKEY hKey,
+        _In_opt_ const LPCWSTR lpValueName,
+        _Reserved_ const DWORD Reserved,
+        _In_ const DWORD dwType,
+        _In_reads_bytes_opt_(cbData) const BYTE* const lpData,
+        _In_ const DWORD cbData
+    ) noexcept
     {
-        if (const auto status = Enter("RegSetValueExW"))
+        auto& self = *Self(pThis);
+        if (const auto status = self.Enter("RegSetValueExW"))
             return *status;
-        return m_inner.RegSetValueExW(
+        return VRegSetValueExW(
+            self.m_pInner,
             hKey,
             lpValueName,
             Reserved,
@@ -123,29 +179,35 @@ public:
         );
     }
 
-    LSTATUS RegDeleteValueW(
-        _In_ HKEY hKey,
-        _In_opt_ LPCWSTR lpValueName
-    ) noexcept override
+    static LSTATUS WINAPI RegDeleteValueW(
+        _In_ VRegRegistry* const pThis,
+        _In_ const HKEY hKey,
+        _In_opt_ const LPCWSTR lpValueName
+    ) noexcept
     {
-        if (const auto status = Enter("RegDeleteValueW"))
+        auto& self = *Self(pThis);
+        if (const auto status = self.Enter("RegDeleteValueW"))
             return *status;
-        return m_inner.RegDeleteValueW(
+        return VRegDeleteValueW(
+            self.m_pInner,
             hKey,
             lpValueName
         );
     }
 
-    LSTATUS RegDeleteKeyExW(
-        _In_ HKEY hKey,
-        _In_ LPCWSTR lpSubKey,
-        _In_ REGSAM samDesired,
-        _Reserved_ DWORD Reserved
-    ) noexcept override
+    static LSTATUS WINAPI RegDeleteKeyExW(
+        _In_ VRegRegistry* const pThis,
+        _In_ const HKEY hKey,
+        _In_ const LPCWSTR lpSubKey,
+        _In_ const REGSAM samDesired,
+        _Reserved_ const DWORD Reserved
+    ) noexcept
     {
-        if (const auto status = Enter("RegDeleteKeyExW"))
+        auto& self = *Self(pThis);
+        if (const auto status = self.Enter("RegDeleteKeyExW"))
             return *status;
-        return m_inner.RegDeleteKeyExW(
+        return VRegDeleteKeyExW(
+            self.m_pInner,
             hKey,
             lpSubKey,
             samDesired,
@@ -153,33 +215,39 @@ public:
         );
     }
 
-    LSTATUS RegDeleteTreeW(
-        _In_ HKEY hKey,
-        _In_opt_ LPCWSTR lpSubKey
-    ) noexcept override
+    static LSTATUS WINAPI RegDeleteTreeW(
+        _In_ VRegRegistry* const pThis,
+        _In_ const HKEY hKey,
+        _In_opt_ const LPCWSTR lpSubKey
+    ) noexcept
     {
-        if (const auto status = Enter("RegDeleteTreeW"))
+        auto& self = *Self(pThis);
+        if (const auto status = self.Enter("RegDeleteTreeW"))
             return *status;
-        return m_inner.RegDeleteTreeW(
+        return VRegDeleteTreeW(
+            self.m_pInner,
             hKey,
             lpSubKey
         );
     }
 
-    LSTATUS RegEnumKeyExW(
-        _In_ HKEY hKey,
-        _In_ DWORD dwIndex,
-        _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) LPWSTR lpName,
-        _Inout_ LPDWORD lpcchName,
-        _Reserved_ LPDWORD lpReserved,
-        _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) LPWSTR lpClass,
-        _Inout_opt_ LPDWORD lpcchClass,
-        _Out_opt_ PFILETIME lpftLastWriteTime
-    ) const noexcept override
+    static LSTATUS WINAPI RegEnumKeyExW(
+        _In_ VRegRegistry* const pThis,
+        _In_ const HKEY hKey,
+        _In_ const DWORD dwIndex,
+        _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) const LPWSTR lpName,
+        _Inout_ const LPDWORD lpcchName,
+        _Reserved_ const LPDWORD lpReserved,
+        _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) const LPWSTR lpClass,
+        _Inout_opt_ const LPDWORD lpcchClass,
+        _Out_opt_ const PFILETIME lpftLastWriteTime
+    ) noexcept
     {
-        if (const auto status = Enter("RegEnumKeyExW"))
+        auto& self = *Self(pThis);
+        if (const auto status = self.Enter("RegEnumKeyExW"))
             return *status;
-        return m_inner.RegEnumKeyExW(
+        return VRegEnumKeyExW(
+            self.m_pInner,
             hKey,
             dwIndex,
             lpName,
@@ -191,20 +259,23 @@ public:
         );
     }
 
-    LSTATUS RegEnumValueW(
-        _In_ HKEY hKey,
-        _In_ DWORD dwIndex,
-        _Out_writes_to_opt_(*lpcchValueName, *lpcchValueName + 1) LPWSTR lpValueName,
-        _Inout_ LPDWORD lpcchValueName,
-        _Reserved_ LPDWORD lpReserved,
-        _Out_opt_ LPDWORD lpType,
-        _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPBYTE lpData,
-        _Inout_opt_ LPDWORD lpcbData
-    ) const noexcept override
+    static LSTATUS WINAPI RegEnumValueW(
+        _In_ VRegRegistry* const pThis,
+        _In_ const HKEY hKey,
+        _In_ const DWORD dwIndex,
+        _Out_writes_to_opt_(*lpcchValueName, *lpcchValueName + 1) const LPWSTR lpValueName,
+        _Inout_ const LPDWORD lpcchValueName,
+        _Reserved_ const LPDWORD lpReserved,
+        _Out_opt_ const LPDWORD lpType,
+        _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) const LPBYTE lpData,
+        _Inout_opt_ const LPDWORD lpcbData
+    ) noexcept
     {
-        if (const auto status = Enter("RegEnumValueW"))
+        auto& self = *Self(pThis);
+        if (const auto status = self.Enter("RegEnumValueW"))
             return *status;
-        return m_inner.RegEnumValueW(
+        return VRegEnumValueW(
+            self.m_pInner,
             hKey,
             dwIndex,
             lpValueName,
@@ -216,24 +287,27 @@ public:
         );
     }
 
-    LSTATUS RegQueryInfoKeyW(
-        _In_ HKEY hKey,
-        _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) LPWSTR lpClass,
-        _Inout_opt_ LPDWORD lpcchClass,
-        _Reserved_ LPDWORD lpReserved,
-        _Out_opt_ LPDWORD lpcSubKeys,
-        _Out_opt_ LPDWORD lpcbMaxSubKeyLen,
-        _Out_opt_ LPDWORD lpcbMaxClassLen,
-        _Out_opt_ LPDWORD lpcValues,
-        _Out_opt_ LPDWORD lpcbMaxValueNameLen,
-        _Out_opt_ LPDWORD lpcbMaxValueLen,
-        _Out_opt_ LPDWORD lpcbSecurityDescriptor,
-        _Out_opt_ PFILETIME lpftLastWriteTime
-    ) const noexcept override
+    static LSTATUS WINAPI RegQueryInfoKeyW(
+        _In_ VRegRegistry* const pThis,
+        _In_ const HKEY hKey,
+        _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) const LPWSTR lpClass,
+        _Inout_opt_ const LPDWORD lpcchClass,
+        _Reserved_ const LPDWORD lpReserved,
+        _Out_opt_ const LPDWORD lpcSubKeys,
+        _Out_opt_ const LPDWORD lpcbMaxSubKeyLen,
+        _Out_opt_ const LPDWORD lpcbMaxClassLen,
+        _Out_opt_ const LPDWORD lpcValues,
+        _Out_opt_ const LPDWORD lpcbMaxValueNameLen,
+        _Out_opt_ const LPDWORD lpcbMaxValueLen,
+        _Out_opt_ const LPDWORD lpcbSecurityDescriptor,
+        _Out_opt_ const PFILETIME lpftLastWriteTime
+    ) noexcept
     {
-        if (const auto status = Enter("RegQueryInfoKeyW"))
+        auto& self = *Self(pThis);
+        if (const auto status = self.Enter("RegQueryInfoKeyW"))
             return *status;
-        return m_inner.RegQueryInfoKeyW(
+        return VRegQueryInfoKeyW(
+            self.m_pInner,
             hKey,
             lpClass,
             lpcchClass,
@@ -249,19 +323,22 @@ public:
         );
     }
 
-    LSTATUS RegLoadMUIStringW(
-        _In_ HKEY hKey,
-        _In_opt_ LPCWSTR pszValue,
-        _Out_writes_bytes_opt_(cbOutBuf) LPWSTR pszOutBuf,
-        _In_ DWORD cbOutBuf,
-        _Out_opt_ LPDWORD pcbData,
-        _In_ DWORD Flags,
-        _In_opt_ LPCWSTR pszDirectory
-    ) const noexcept override
+    static LSTATUS WINAPI RegLoadMUIStringW(
+        _In_ VRegRegistry* const pThis,
+        _In_ const HKEY hKey,
+        _In_opt_ const LPCWSTR pszValue,
+        _Out_writes_bytes_opt_(cbOutBuf) const LPWSTR pszOutBuf,
+        _In_ const DWORD cbOutBuf,
+        _Out_opt_ const LPDWORD pcbData,
+        _In_ const DWORD Flags,
+        _In_opt_ const LPCWSTR pszDirectory
+    ) noexcept
     {
-        if (const auto status = Enter("RegLoadMUIStringW"))
+        auto& self = *Self(pThis);
+        if (const auto status = self.Enter("RegLoadMUIStringW"))
             return *status;
-        return m_inner.RegLoadMUIStringW(
+        return VRegLoadMUIStringW(
+            self.m_pInner,
             hKey,
             pszValue,
             pszOutBuf,
@@ -272,12 +349,13 @@ public:
         );
     }
 
-    LSTATUS RegGetValueW(
-        _In_ HKEY hkey,
-        _In_opt_ LPCWSTR lpSubKey,
-        _In_opt_ LPCWSTR lpValue,
-        _In_ DWORD dwFlags,
-        _Out_opt_ LPDWORD pdwType,
+    static LSTATUS WINAPI RegGetValueW(
+        _In_ VRegRegistry* const pThis,
+        _In_ const HKEY hkey,
+        _In_opt_ const LPCWSTR lpSubKey,
+        _In_opt_ const LPCWSTR lpValue,
+        _In_ const DWORD dwFlags,
+        _Out_opt_ const LPDWORD pdwType,
         _When_(
             (dwFlags & 0x7F) == RRF_RT_REG_SZ
             || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
@@ -291,13 +369,15 @@ public:
             || *pdwType == REG_MULTI_SZ,
             _Post_ _NullNull_terminated_
         )
-        _Out_writes_bytes_to_opt_(*pcbData, *pcbData) PVOID pvData,
-        _Inout_opt_ LPDWORD pcbData
-    ) const noexcept override
+        _Out_writes_bytes_to_opt_(*pcbData, *pcbData) const PVOID pvData,
+        _Inout_opt_ const LPDWORD pcbData
+    ) noexcept
     {
-        if (const auto status = Enter("RegGetValueW"))
+        auto& self = *Self(pThis);
+        if (const auto status = self.Enter("RegGetValueW"))
             return *status;
-        return m_inner.RegGetValueW(
+        return VRegGetValueW(
+            self.m_pInner,
             hkey,
             lpSubKey,
             lpValue,
@@ -308,53 +388,20 @@ public:
         );
     }
 
-    LSTATUS RegGetValueA(
-        _In_ HKEY hkey,
-        _In_opt_ LPCSTR lpSubKey,
-        _In_opt_ LPCSTR lpValue,
-        _In_ DWORD dwFlags,
-        _Out_opt_ LPDWORD pdwType,
-        _When_(
-            (dwFlags & 0x7F) == RRF_RT_REG_SZ
-            || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
-            || (dwFlags & 0x7F) == (RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ)
-            || *pdwType == REG_SZ
-            || *pdwType == REG_EXPAND_SZ,
-            _Post_z_
-        )
-        _When_(
-            (dwFlags & 0x7F) == RRF_RT_REG_MULTI_SZ
-            || *pdwType == REG_MULTI_SZ,
-            _Post_ _NullNull_terminated_
-        )
-        _Out_writes_bytes_to_opt_(*pcbData, *pcbData) PVOID pvData,
-        _Inout_opt_ LPDWORD pcbData
-    ) const noexcept override
+    static LSTATUS WINAPI RegNotifyChangeKeyValue(
+        _In_ VRegRegistry* const pThis,
+        _In_ const HKEY hKey,
+        _In_ const BOOL bWatchSubtree,
+        _In_ const DWORD dwNotifyFilter,
+        _In_opt_ const HANDLE hEvent,
+        _In_ const BOOL fAsynchronous
+    ) noexcept
     {
-        if (const auto status = Enter("RegGetValueA"))
+        auto& self = *Self(pThis);
+        if (const auto status = self.Enter("RegNotifyChangeKeyValue"))
             return *status;
-        return m_inner.RegGetValueA(
-            hkey,
-            lpSubKey,
-            lpValue,
-            dwFlags,
-            pdwType,
-            pvData,
-            pcbData
-        );
-    }
-
-    LSTATUS RegNotifyChangeKeyValue(
-        _In_ HKEY hKey,
-        _In_ BOOL bWatchSubtree,
-        _In_ DWORD dwNotifyFilter,
-        _In_opt_ HANDLE hEvent,
-        _In_ BOOL fAsynchronous
-    ) noexcept override
-    {
-        if (const auto status = Enter("RegNotifyChangeKeyValue"))
-            return *status;
-        return m_inner.RegNotifyChangeKeyValue(
+        return VRegNotifyChangeKeyValue(
+            self.m_pInner,
             hKey,
             bWatchSubtree,
             dwNotifyFilter,
@@ -363,30 +410,81 @@ public:
         );
     }
 
-    LSTATUS RegFlushKey(
-        _In_ HKEY hKey
-    ) noexcept override
+    static LSTATUS WINAPI RegFlushKey(
+        _In_ VRegRegistry* const pThis,
+        _In_ const HKEY hKey
+    ) noexcept
     {
-        if (const auto status = Enter("RegFlushKey"))
+        auto& self = *Self(pThis);
+        if (const auto status = self.Enter("RegFlushKey"))
             return *status;
-        return m_inner.RegFlushKey(
+        return VRegFlushKey(
+            self.m_pInner,
             hKey
         );
     }
 
-private:
-    std::optional<LSTATUS> Enter(const char* const pszName) const
+    static LSTATUS WINAPI RegGetValueA(
+        _In_ VRegRegistry* const pThis,
+        _In_ const HKEY hkey,
+        _In_opt_ const LPCSTR lpSubKey,
+        _In_opt_ const LPCSTR lpValue,
+        _In_ const DWORD dwFlags,
+        _Out_opt_ const LPDWORD pdwType,
+        _When_(
+            (dwFlags & 0x7F) == RRF_RT_REG_SZ
+            || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
+            || (dwFlags & 0x7F) == (RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ)
+            || *pdwType == REG_SZ
+            || *pdwType == REG_EXPAND_SZ,
+            _Post_z_
+        )
+        _When_(
+            (dwFlags & 0x7F) == RRF_RT_REG_MULTI_SZ
+            || *pdwType == REG_MULTI_SZ,
+            _Post_ _NullNull_terminated_
+        )
+        _Out_writes_bytes_to_opt_(*pcbData, *pcbData) const PVOID pvData,
+        _Inout_opt_ const LPDWORD pcbData
+    ) noexcept
     {
-        if (onCall)
-            onCall(pszName);
-
-        const auto it = failures.find(pszName);
-        if (it == failures.end())
-            return std::nullopt;
-
-        return it->second;
+        auto& self = *Self(pThis);
+        if (const auto status = self.Enter("RegGetValueA"))
+            return *status;
+        return VRegGetValueA(
+            self.m_pInner,
+            hkey,
+            lpSubKey,
+            lpValue,
+            dwFlags,
+            pdwType,
+            pvData,
+            pcbData
+        );
     }
 
-    Registry& m_inner;
+    static const VRegRegistryVtbl VTBL;
+
+    VRegRegistry* m_pInner;
+    CObject m_c;
+};
+
+inline const VRegRegistryVtbl InterceptRegistry::VTBL = {
+    .RegOpenKeyExW = &InterceptRegistry::RegOpenKeyExW,
+    .RegCreateKeyExW = &InterceptRegistry::RegCreateKeyExW,
+    .RegCloseKey = &InterceptRegistry::RegCloseKey,
+    .RegQueryValueExW = &InterceptRegistry::RegQueryValueExW,
+    .RegSetValueExW = &InterceptRegistry::RegSetValueExW,
+    .RegDeleteValueW = &InterceptRegistry::RegDeleteValueW,
+    .RegDeleteKeyExW = &InterceptRegistry::RegDeleteKeyExW,
+    .RegDeleteTreeW = &InterceptRegistry::RegDeleteTreeW,
+    .RegEnumKeyExW = &InterceptRegistry::RegEnumKeyExW,
+    .RegEnumValueW = &InterceptRegistry::RegEnumValueW,
+    .RegQueryInfoKeyW = &InterceptRegistry::RegQueryInfoKeyW,
+    .RegLoadMUIStringW = &InterceptRegistry::RegLoadMUIStringW,
+    .RegGetValueW = &InterceptRegistry::RegGetValueW,
+    .RegNotifyChangeKeyValue = &InterceptRegistry::RegNotifyChangeKeyValue,
+    .RegFlushKey = &InterceptRegistry::RegFlushKey,
+    .RegGetValueA = &InterceptRegistry::RegGetValueA,
 };
 } // namespace VReg::Test

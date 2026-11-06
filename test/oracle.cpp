@@ -53,33 +53,34 @@ HKEY AppHive::Root() const noexcept
     return m_hRoot;
 }
 
-VirtualHive::VirtualHive()
+VirtualHive::VirtualHive() :
+    m_hive(MakeHive()),
+    m_registry(MakeVirtualRegistry())
 {
-    REQUIRE(
-        m_registry.Mount(
-            HKEY_CURRENT_USER,
-            L"VRegOracle",
-            m_hive
-        ) == ERROR_SUCCESS
-    );
+    REQUIRE(VRegMount(m_registry, HKEY_CURRENT_USER, L"VRegOracle", m_hive, 0) == ERROR_SUCCESS);
 }
 
-VirtualRegistry& VirtualHive::Registry() noexcept
+VRegRegistry* VirtualHive::Registry() noexcept
 {
     return m_registry;
 }
 
+Api VirtualHive::AsApi() noexcept
+{
+    return {.pRegistry = m_registry, .isVirtualKeys = true};
+}
+
 HKEY VirtualHive::Root() noexcept
 {
-    return Hive::HandleOf(m_hive.Root());
+    return RootHandle(m_hive);
 }
 
 OverlayMount::OverlayMount() :
-    m_hive(m_native, m_appHive.Root(), L"Lower"),
-    m_registry(&m_native)
+    m_native(MakeNativeRegistry())
 {
     REQUIRE(
-        m_native.RegCreateKeyExW(
+        VRegCreateKeyExW(
+            m_native,
             m_appHive.Root(),
             L"Lower",
             0,
@@ -92,33 +93,35 @@ OverlayMount::OverlayMount() :
         )
         == ERROR_SUCCESS
     );
-    REQUIRE(
-        m_registry.Mount(
-            HKEY_CURRENT_USER,
-            L"VRegOracle",
-            m_hive
-        ) == ERROR_SUCCESS
-    );
+    m_hive = MakeLayeredHive(m_native, m_appHive.Root(), L"Lower");
+    m_registry = MakeVirtualRegistry(m_native);
+    REQUIRE(VRegMount(m_registry, HKEY_CURRENT_USER, L"VRegOracle", m_hive, 0) == ERROR_SUCCESS);
 }
 
 OverlayMount::~OverlayMount()
 {
-    m_native.RegCloseKey(
+    VRegCloseKey(
+        m_native,
         m_hLower
     );
 }
 
-VirtualRegistry& OverlayMount::Registry() noexcept
+VRegRegistry* OverlayMount::Registry() noexcept
 {
     return m_registry;
 }
 
-NativeRegistry& OverlayMount::Native() noexcept
+Api OverlayMount::AsApi() noexcept
+{
+    return {.pRegistry = m_registry, .isVirtualKeys = true};
+}
+
+VRegRegistry* OverlayMount::Native() noexcept
 {
     return m_native;
 }
 
-Hive& OverlayMount::Overlay() noexcept
+VRegHive* OverlayMount::Overlay() noexcept
 {
     return m_hive;
 }
@@ -130,7 +133,7 @@ HKEY OverlayMount::LowerRoot() const noexcept
 
 HKEY OverlayMount::Root() noexcept
 {
-    return Hive::HandleOf(m_hive.Root());
+    return RootHandle(m_hive);
 }
 
 void Recorder::operator()(

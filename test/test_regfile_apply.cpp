@@ -5,17 +5,42 @@
 #include <catch2/generators/catch_generators.hpp>
 
 using namespace VReg;
-using namespace VReg::RegFile;
 using namespace VReg::Test;
 
 namespace
 {
 const std::wstring HEADER = L"Windows Registry Editor Version 5.00\r\n";
 
-bool KeyExists(Registry& registry, const wchar_t* const pszPath) noexcept
+/// An operation built by hand: the strings and bytes the C operation points
+/// at live here, so a Spec must outlive the call that applies its View.
+struct Spec
+{
+    VRegOperationKind kind{};
+    std::wstring path;
+    std::wstring name;
+    DWORD dwType{};
+    std::vector<std::byte> data;
+
+    [[nodiscard]] VRegOperation View() const
+    {
+        return {
+            .kind = kind,
+            .hRoot = HKEY_CURRENT_USER,
+            .pszPath = path.c_str(),
+            .pszName = name.c_str(),
+            .dwType = dwType,
+            .pData = reinterpret_cast<const BYTE*>(data.data()),
+            .cbData = static_cast<DWORD>(data.size()),
+            .line = 0,
+        };
+    }
+};
+
+bool KeyExists(VRegRegistry* const registry, const wchar_t* const pszPath) noexcept
 {
     HKEY hKey{};
-    const auto status = registry.RegOpenKeyExW(
+    const auto status = VRegOpenKeyExW(
+        registry,
         HKEY_CURRENT_USER,
         pszPath,
         0,
@@ -23,7 +48,8 @@ bool KeyExists(Registry& registry, const wchar_t* const pszPath) noexcept
         &hKey
     );
     if (status == ERROR_SUCCESS)
-        registry.RegCloseKey(
+        VRegCloseKey(
+            registry,
             hKey
         );
     return status == ERROR_SUCCESS;
@@ -47,8 +73,8 @@ TEST_CASE("Apply creates keys and sets every value form")
         L"\"none\"=hex(0):\r\n"
         L"\"odd\"=hex(1):61\r\n"
     );
-    std::size_t failed = 99;
-    REQUIRE(Apply(script, registry, &failed) == ERROR_SUCCESS);
+    SIZE_T failed = 99;
+    REQUIRE(VRegApplyScript(script, registry, &failed) == ERROR_SUCCESS);
     CHECK(failed == 99);
 
     const auto get = [&](
@@ -79,7 +105,7 @@ TEST_CASE("Apply overwrites values and keeps unrelated ones")
     MustSet(registry, L"T", L"change", REG_DWORD, DwordBytes(1));
 
     REQUIRE(
-        Apply(
+        VRegApplyScript(
             MustParse(HEADER + L"[HKCU\\T]\r\n\"change\"=\"now text\"\r\n"),
             registry,
             nullptr
@@ -104,7 +130,7 @@ TEST_CASE("Apply deletes values and keys")
     SECTION("values, including the default one")
     {
         REQUIRE(
-            Apply(
+            VRegApplyScript(
                 MustParse(HEADER + L"[HKCU\\T]\r\n\"a\"=-\r\n@=-\r\n"),
                 registry,
                 nullptr
@@ -113,7 +139,8 @@ TEST_CASE("Apply deletes values and keys")
         const HKEY hKey = MustOpen(registry, L"T");
         DWORD dwType{};
         CHECK(
-            registry.RegQueryValueExW(
+            VRegQueryValueExW(
+                registry,
                 hKey,
                 L"a",
                 nullptr,
@@ -123,7 +150,8 @@ TEST_CASE("Apply deletes values and keys")
             ) == ERROR_FILE_NOT_FOUND
         );
         CHECK(
-            registry.RegQueryValueExW(
+            VRegQueryValueExW(
+                registry,
                 hKey,
                 L"",
                 nullptr,
@@ -133,7 +161,8 @@ TEST_CASE("Apply deletes values and keys")
             ) == ERROR_FILE_NOT_FOUND
         );
         CHECK(
-            registry.RegQueryValueExW(
+            VRegQueryValueExW(
+                registry,
                 hKey,
                 L"b",
                 nullptr,
@@ -142,7 +171,8 @@ TEST_CASE("Apply deletes values and keys")
                 nullptr
             ) == ERROR_SUCCESS
         );
-        registry.RegCloseKey(
+        VRegCloseKey(
+            registry,
             hKey
         );
     }
@@ -150,7 +180,7 @@ TEST_CASE("Apply deletes values and keys")
     SECTION("a key with its whole subtree")
     {
         REQUIRE(
-            Apply(
+            VRegApplyScript(
                 MustParse(HEADER + L"[-HKCU\\Gone]\r\n"),
                 registry,
                 nullptr
@@ -163,7 +193,7 @@ TEST_CASE("Apply deletes values and keys")
     SECTION("what does not exist")
     {
         REQUIRE(
-            Apply(
+            VRegApplyScript(
                 MustParse(
                     HEADER
                     + L"[-HKCU\\Missing\\Deep]\r\n[-HKCU\\Gone\\Deep\\Deeper\\Nope]\r\n"
@@ -177,17 +207,20 @@ TEST_CASE("Apply deletes values and keys")
 
     SECTION("a value of a key or value that does not exist")
     {
-        Script script;
-        Operation operation;
-        operation.kind = OperationKind::DeleteValue;
-        operation.hRoot = HKEY_CURRENT_USER;
-        operation.path = L"Missing";
-        operation.name = L"v";
-        script.operations.push_back(operation);
-        operation.path = L"T";
-        operation.name = L"never";
-        script.operations.push_back(operation);
-        CHECK(Apply(script, registry, nullptr) == ERROR_SUCCESS);
+        const Spec missingKey{VREG_OPERATION_DELETE_VALUE, L"Missing", L"v"};
+        const Spec missingValue{VREG_OPERATION_DELETE_VALUE, L"T", L"never"};
+        const std::vector<VRegOperation> operations{
+            missingKey.View(),
+            missingValue.View(),
+        };
+        CHECK(
+            VRegApplyOperations(
+                operations.data(),
+                operations.size(),
+                registry,
+                nullptr
+            ) == ERROR_SUCCESS
+        );
         CHECK_FALSE(KeyExists(registry, L"Missing"));
     }
 }
@@ -200,7 +233,7 @@ TEST_CASE("Delete then create replaces a key")
     MustSet(registry, L"T", L"y", REG_DWORD, DwordBytes(1));
 
     REQUIRE(
-        Apply(
+        VRegApplyScript(
             MustParse(HEADER + L"[-HKCU\\T]\r\n[HKCU\\T]\r\n\"z\"=dword:2\r\n"),
             registry,
             nullptr
@@ -210,7 +243,8 @@ TEST_CASE("Delete then create replaces a key")
     CheckValue(registry, L"T", L"z", REG_DWORD, DwordBytes(2));
     const HKEY hKey = MustOpen(registry, L"T");
     CHECK(
-        registry.RegQueryValueExW(
+        VRegQueryValueExW(
+            registry,
             hKey,
             L"y",
             nullptr,
@@ -219,7 +253,8 @@ TEST_CASE("Delete then create replaces a key")
             nullptr
         ) == ERROR_FILE_NOT_FOUND
     );
-    registry.RegCloseKey(
+    VRegCloseKey(
+        registry,
         hKey
     );
 }
@@ -229,64 +264,54 @@ TEST_CASE("Apply stops at the first failing operation")
     AppHive hive;
     AppHiveRegistry registry(hive.Root());
 
-    Script script = MustParse(HEADER + L"[HKCU\\First]\r\n\"a\"=dword:1\r\n");
-    Operation orphan;
-    orphan.kind = OperationKind::SetValue;
-    orphan.hRoot = HKEY_CURRENT_USER;
-    orphan.path = L"NoSuchKey";
-    orphan.name = L"v";
-    orphan.dwType = REG_DWORD;
-    orphan.data = DwordBytes(1);
-    script.operations.push_back(orphan);
-    script.operations.push_back(
-        MustParse(HEADER + L"[HKCU\\Never]\r\n").operations[0]
-    );
+    const auto first = MustParse(HEADER + L"[HKCU\\First]\r\n\"a\"=dword:1\r\n");
+    const auto never = MustParse(HEADER + L"[HKCU\\Never]\r\n");
+    const Spec orphan{VREG_OPERATION_SET_VALUE, L"NoSuchKey", L"v", REG_DWORD, DwordBytes(1)};
+    std::vector<VRegOperation> operations;
+    for (const VRegOperation& operation : Operations(first))
+        operations.push_back(operation);
+    operations.push_back(orphan.View());
+    operations.push_back(Operations(never)[0]);
 
-    std::size_t failed = 99;
-    CHECK(Apply(script, registry, &failed) == ERROR_FILE_NOT_FOUND);
+    SIZE_T failed = 99;
+    CHECK(
+        VRegApplyOperations(
+            operations.data(),
+            operations.size(),
+            registry,
+            &failed
+        ) == ERROR_FILE_NOT_FOUND
+    );
     CHECK(failed == 2);
     CheckValue(registry, L"First", L"a", REG_DWORD, DwordBytes(1));
     CHECK_FALSE(KeyExists(registry, L"NoSuchKey"));
     CHECK_FALSE(KeyExists(registry, L"Never"));
 
-    CHECK(Apply(script, registry, nullptr) == ERROR_FILE_NOT_FOUND);
+    CHECK(
+        VRegApplyOperations(
+            operations.data(),
+            operations.size(),
+            registry,
+            nullptr
+        ) == ERROR_FILE_NOT_FOUND
+    );
 }
 
-TEST_CASE("Apply refuses operations that would cut a path short or delete a root")
+TEST_CASE("Apply refuses an operation that would delete a root")
 {
     AppHive hive;
     AppHiveRegistry registry(hive.Root());
-    const Script setup = MustParse(HEADER + L"[HKCU\\Keep]\r\n");
-    REQUIRE(Apply(setup, registry, nullptr) == ERROR_SUCCESS);
+    const OwnedScript setup = MustParse(HEADER + L"[HKCU\\Keep]\r\n");
+    REQUIRE(VRegApplyScript(setup, registry, nullptr) == ERROR_SUCCESS);
 
-    Operation deleteRoot;
-    deleteRoot.kind = OperationKind::DeleteKey;
-    deleteRoot.hRoot = HKEY_CURRENT_USER;
+    const Spec deleteRoot{VREG_OPERATION_DELETE_KEY};
+    const VRegOperation operation = deleteRoot.View();
 
-    Operation nulInPath = deleteRoot;
-    nulInPath.path = std::wstring(1, L'\0') + L"x";
-
-    Operation nulInName;
-    nulInName.kind = OperationKind::SetValue;
-    nulInName.hRoot = HKEY_CURRENT_USER;
-    nulInName.path = L"Keep";
-    nulInName.name = L"a" + std::wstring(1, L'\0') + L"b";
-    nulInName.dwType = REG_DWORD;
-    nulInName.data = DwordBytes(1);
-
-    // @formatter:off
-    const auto [pszWhy, operation] = GENERATE_COPY(values<std::pair<const char*, Operation>>({
-        {"deleting a root",    deleteRoot},
-        {"a NUL in a path",    nulInPath},
-        {"a NUL in a name",    nulInName},
-    }));
-    // @formatter:on
-    INFO(pszWhy);
-
-    std::size_t failed = 99;
+    SIZE_T failed = 99;
     CHECK(
-        Apply(
-            Script{.operations = {operation}},
+        VRegApplyOperations(
+            &operation,
+            1,
             registry,
             &failed
         ) == ERROR_INVALID_PARAMETER
@@ -299,7 +324,14 @@ TEST_CASE("An empty script applies to nothing")
 {
     AppHive hive;
     AppHiveRegistry registry(hive.Root());
-    std::size_t failed = 99;
-    CHECK(Apply(Script{}, registry, &failed) == ERROR_SUCCESS);
+    SIZE_T failed = 99;
+    CHECK(
+        VRegApplyOperations(
+            nullptr,
+            0,
+            registry,
+            &failed
+        ) == ERROR_SUCCESS
+    );
     CHECK(failed == 99);
 }

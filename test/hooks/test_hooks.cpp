@@ -1152,10 +1152,10 @@ TEST_CASE("A second Attach answers already initialized")
     const auto name = MountName(L"Exe");
     REQUIRE(InstallMount(name.c_str(), L"Exe") == NO_ERROR);
 
-    NativeRegistry native;
-    VirtualRegistry registry(&native);
-    CHECK(Detours::Attach(registry, native) == ERROR_ALREADY_INITIALIZED);
-    CHECK(Detours::Install(registry, native) == ERROR_ALREADY_INITIALIZED);
+    OwnedRegistry native = MakeNativeRegistry();
+    OwnedRegistry registry = MakeVirtualRegistry(native);
+    CHECK(VRegAttachHooks(registry, native) == ERROR_ALREADY_INITIALIZED);
+    CHECK(VRegInstallHooks(registry, native) == ERROR_ALREADY_INITIALIZED);
     CHECK(ReadMountModule(name) == L"Exe");
     CHECK(!RealKeyExists(name));
 }

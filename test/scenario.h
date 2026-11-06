@@ -13,9 +13,6 @@
 #include "oracle.h"
 #include "win32_api.h"
 
-#include <VReg/native_registry.h>
-#include <VReg/virtual_registry.h>
-
 #include <Windows.h>
 
 #include <array>
@@ -25,7 +22,6 @@
 #include <initializer_list>
 #include <string>
 #include <string_view>
-#include <type_traits>
 #include <vector>
 
 /// Runs @p call, then records its status and the values the remaining
@@ -43,37 +39,34 @@ namespace VReg::Test
 constexpr BYTE FILL = 0xCC;
 constexpr DWORD FILL_SIZE = 0xCCCCCCCC;
 
-/// An API as the reference for a virtual run: scenarios skip the calls whose
-/// answer virtual keys cannot match (one handle per node, no per-open access
-/// rights), for the reference and the virtual registry alike.
-template <class Api>
-struct Reduced : Api
+/// The real Win32 API as the reference for a native run: every call is
+/// recorded as it answers.
+inline Api NativeReference(Win32Registry& win32) noexcept
 {
-};
+    return {.pRegistry = win32, .isVirtualKeys = false};
+}
 
-/// Whether a scenario runs in the reduced form for virtual keys.
-template <class Api>
-inline constexpr bool VIRTUAL_KEYS = false;
-
-template <>
-inline constexpr bool VIRTUAL_KEYS<VirtualRegistry> = true;
-
-template <class Api>
-inline constexpr bool VIRTUAL_KEYS<Reduced<Api>> = true;
+/// The real Win32 API as the reference for a virtual run: scenarios skip the
+/// calls whose answer virtual keys cannot match (one handle per node, no
+/// per-open access rights), for the reference and the virtual registry alike.
+inline Api ReducedReference(Win32Registry& win32) noexcept
+{
+    return {.pRegistry = win32, .isVirtualKeys = true};
+}
 
 /// Whether an `Ex` open or create handed back @p hParent. Native always
 /// returns a new handle, even for an empty subkey; a virtual key has one
 /// handle per node, so the reduced form reports a new handle for both.
-template <class Api>
-bool HandedBack(
+inline bool HandedBack(
+    const Api& api,
     const HKEY hKey,
     const HKEY hParent
 ) noexcept
 {
-    if constexpr (VIRTUAL_KEYS<Api>)
+    if (api.isVirtualKeys)
         return false;
-    else
-        return hKey == hParent;
+
+    return hKey == hParent;
 }
 
 /// Backs @ref FillKey: its address is a value no real or virtual handle takes.
@@ -132,9 +125,8 @@ const BYTE* Raw(const T* p) noexcept
 
 /// Closes @p hKey unless it is @p hParent (the pre-`Ex` open forms hand the
 /// parent back for an empty subkey), recording which it was.
-template <class Api>
-void CloseUnlessParent(
-    Api& api,
+inline void CloseUnlessParent(
+    const Api& api,
     Recorder& record,
     const std::string& label,
     const HKEY hKey,
@@ -145,7 +137,8 @@ void CloseUnlessParent(
         return;
     RECORD(
         label + " close",
-        api.RegCloseKey(
+        VRegCloseKey(
+            api,
             hKey
         )
     );
@@ -163,16 +156,16 @@ struct StoredValue
 /// nonzero guard: the native wide function reads one wide character past the
 /// data to decide whether the string is terminated, so what follows the
 /// buffer would otherwise decide what is stored.
-template <class Api>
-LSTATUS SetStored(
-    Api& api,
+inline LSTATUS SetStored(
+    const Api& api,
     const HKEY hKey,
     const StoredValue& value
 )
 {
     auto guarded = value.data;
     guarded.insert(guarded.end(), 4, BYTE{0x58});
-    return api.RegSetValueExW(
+    return VRegSetValueExW(
+        api,
         hKey,
         value.name.c_str(),
         0,
@@ -192,9 +185,8 @@ std::vector<BYTE> BytesOf(
     return std::vector<BYTE>(pb, pb + count * sizeof(T));
 }
 
-template <class Api>
-LSTATUS QueryEx(
-    Api& api,
+inline LSTATUS QueryEx(
+    const Api& api,
     HKEY hKey,
     LPCWSTR pszName,
     LPDWORD pdwType,
@@ -202,7 +194,8 @@ LSTATUS QueryEx(
     LPDWORD pcbData
 ) noexcept
 {
-    return api.RegQueryValueExW(
+    return VRegQueryValueExW(
+        api,
         hKey,
         pszName,
         nullptr,
@@ -212,9 +205,8 @@ LSTATUS QueryEx(
     );
 }
 
-template <class Api>
-LSTATUS QueryEx(
-    Api& api,
+inline LSTATUS QueryEx(
+    const Api& api,
     HKEY hKey,
     LPCSTR pszName,
     LPDWORD pdwType,
@@ -222,7 +214,8 @@ LSTATUS QueryEx(
     LPDWORD pcbData
 ) noexcept
 {
-    return api.RegQueryValueExA(
+    return VRegQueryValueExA(
+        api,
         hKey,
         pszName,
         nullptr,
@@ -235,9 +228,9 @@ LSTATUS QueryEx(
 /// Queries one value in every way the caller can vary the buffers: type
 /// only, size only, existence only, a range of buffer sizes, no type
 /// pointer, data without a size pointer.
-template <class Api, class Char>
+template <class Char>
 void QueryMatrix(
-    Api& api,
+    const Api& api,
     Recorder& record,
     const HKEY hKey,
     const Char* const pszName,

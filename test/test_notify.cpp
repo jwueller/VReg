@@ -68,14 +68,15 @@ private:
 };
 
 LSTATUS Watch(
-    Registry& registry,
+    VRegRegistry* const registry,
     const HKEY hKey,
     const bool isSubtree,
     const DWORD dwFilter,
     const Event& event
 ) noexcept
 {
-    return registry.RegNotifyChangeKeyValue(
+    return VRegNotifyChangeKeyValue(
+        registry,
         hKey,
         isSubtree,
         dwFilter,
@@ -85,14 +86,15 @@ LSTATUS Watch(
 }
 
 HKEY Create(
-    Registry& registry,
+    VRegRegistry* const registry,
     const HKEY hParent,
     const wchar_t* const pszPath
 )
 {
     HKEY hKey{};
     REQUIRE(
-        registry.RegCreateKeyExW(
+        VRegCreateKeyExW(
+            registry,
             hParent,
             pszPath,
             0,
@@ -108,13 +110,14 @@ HKEY Create(
 }
 
 LSTATUS SetDword(
-    Registry& registry,
+    VRegRegistry* const registry,
     const HKEY hKey,
     const wchar_t* const pszName,
     const DWORD dwValue
 ) noexcept
 {
-    return registry.RegSetValueExW(
+    return VRegSetValueExW(
+        registry,
         hKey,
         pszName,
         0,
@@ -131,39 +134,41 @@ public:
     MemoryMount()
     {
         REQUIRE(
-            m_registry.Mount(
+            VRegMount(
+                m_registry,
                 HKEY_CURRENT_USER,
                 L"VRegNotify",
-                m_hive
+                m_hive,
+                0
             ) == ERROR_SUCCESS
         );
     }
 
-    [[nodiscard]] VirtualRegistry& Virtual() noexcept
+    [[nodiscard]] VRegRegistry* const Virtual() noexcept
     {
         return m_registry;
     }
 
-    [[nodiscard]] Hive& Memory() noexcept
+    [[nodiscard]] VRegHive* const Memory() noexcept
     {
         return m_hive;
     }
 
     [[nodiscard]] HKEY Root() noexcept
     {
-        return Hive::HandleOf(m_hive.Root());
+        return RootHandle(m_hive);
     }
 
 private:
-    Hive m_hive;
-    VirtualRegistry m_registry;
+    OwnedHive m_hive = MakeHive();
+    OwnedRegistry m_registry = MakeVirtualRegistry();
 };
 } // namespace
 
 TEST_CASE("A value write signals a last-set watch once")
 {
     MemoryMount mount;
-    auto& registry = mount.Virtual();
+    VRegRegistry* const registry = mount.Virtual();
     const HKEY hRoot = mount.Root();
 
     Event event;
@@ -179,7 +184,8 @@ TEST_CASE("A value write signals a last-set watch once")
 
     REQUIRE(Watch(registry, hRoot, FALSE, LAST_SET, event) == ERROR_SUCCESS);
     CHECK(
-        registry.RegDeleteValueW(
+        VRegDeleteValueW(
+            registry,
             hRoot,
             L"v"
         ) == ERROR_SUCCESS
@@ -190,7 +196,7 @@ TEST_CASE("A value write signals a last-set watch once")
 TEST_CASE("A watch fires only for the changes its filter selects")
 {
     MemoryMount mount;
-    auto& registry = mount.Virtual();
+    VRegRegistry* const registry = mount.Virtual();
     const HKEY hRoot = mount.Root();
 
     Event onName;
@@ -224,7 +230,8 @@ TEST_CASE("A watch fires only for the changes its filter selects")
     CHECK(onLastSet.IsSet());
     CHECK_FALSE(onName.IsSet());
 
-    registry.RegCloseKey(
+    VRegCloseKey(
+        registry,
         Create(registry, hRoot, L"Sub")
     );
     CHECK(onName.IsSet());
@@ -236,9 +243,10 @@ TEST_CASE("A watch fires only for the changes its filter selects")
 TEST_CASE("Opening an existing key or reading signals nothing")
 {
     MemoryMount mount;
-    auto& registry = mount.Virtual();
+    VRegRegistry* const registry = mount.Virtual();
     const HKEY hRoot = mount.Root();
-    registry.RegCloseKey(
+    VRegCloseKey(
+        registry,
         Create(registry, hRoot, L"Sub")
     );
 
@@ -247,12 +255,14 @@ TEST_CASE("Opening an existing key or reading signals nothing")
         Watch(registry, hRoot, TRUE, NAME | LAST_SET, event) == ERROR_SUCCESS
     );
 
-    registry.RegCloseKey(
+    VRegCloseKey(
+        registry,
         Create(registry, hRoot, L"Sub")
     );
     HKEY hSub{};
     CHECK(
-        registry.RegOpenKeyExW(
+        VRegOpenKeyExW(
+            registry,
             hRoot,
             L"Sub",
             0,
@@ -263,7 +273,8 @@ TEST_CASE("Opening an existing key or reading signals nothing")
     DWORD dwValue{};
     DWORD cbValue = sizeof(dwValue);
     CHECK(
-        registry.RegQueryValueExW(
+        VRegQueryValueExW(
+            registry,
             hSub,
             L"missing",
             nullptr,
@@ -279,7 +290,7 @@ TEST_CASE("Opening an existing key or reading signals nothing")
 TEST_CASE("Only a subtree watch sees changes below the key")
 {
     MemoryMount mount;
-    auto& registry = mount.Virtual();
+    VRegRegistry* const registry = mount.Virtual();
     const HKEY hRoot = mount.Root();
     const HKEY hDeep = Create(registry, hRoot, L"A\\B\\C");
 
@@ -294,7 +305,8 @@ TEST_CASE("Only a subtree watch sees changes below the key")
 
     subtree.Reset();
     REQUIRE(Watch(registry, hRoot, TRUE, NAME, subtree) == ERROR_SUCCESS);
-    registry.RegCloseKey(
+    VRegCloseKey(
+        registry,
         Create(registry, hDeep, L"D")
     );
     CHECK(subtree.IsSet());
@@ -303,7 +315,7 @@ TEST_CASE("Only a subtree watch sees changes below the key")
 TEST_CASE("A watch on a subkey does not see its parent change")
 {
     MemoryMount mount;
-    auto& registry = mount.Virtual();
+    VRegRegistry* const registry = mount.Virtual();
     const HKEY hRoot = mount.Root();
     const HKEY hSub = Create(registry, hRoot, L"Sub");
 
@@ -312,7 +324,8 @@ TEST_CASE("A watch on a subkey does not see its parent change")
         Watch(registry, hSub, TRUE, NAME | LAST_SET, event) == ERROR_SUCCESS
     );
     CHECK(SetDword(registry, hRoot, L"v", 1) == ERROR_SUCCESS);
-    registry.RegCloseKey(
+    VRegCloseKey(
+        registry,
         Create(registry, hRoot, L"Sibling")
     );
     CHECK_FALSE(event.IsSet());
@@ -321,7 +334,7 @@ TEST_CASE("A watch on a subkey does not see its parent change")
 TEST_CASE("The caller may close its event after registering")
 {
     MemoryMount mount;
-    auto& registry = mount.Virtual();
+    VRegRegistry* const registry = mount.Virtual();
     const HKEY hRoot = mount.Root();
 
     Event event;
@@ -348,7 +361,7 @@ TEST_CASE("The caller may close its event after registering")
 TEST_CASE("Deleting a watched key signals it, and name watches on its parent")
 {
     MemoryMount mount;
-    auto& registry = mount.Virtual();
+    VRegRegistry* const registry = mount.Virtual();
     const HKEY hRoot = mount.Root();
     const HKEY hSub = Create(registry, hRoot, L"Sub");
 
@@ -358,7 +371,8 @@ TEST_CASE("Deleting a watched key signals it, and name watches on its parent")
     REQUIRE(Watch(registry, hRoot, FALSE, NAME, onParent) == ERROR_SUCCESS);
 
     CHECK(
-        registry.RegDeleteKeyExW(
+        VRegDeleteKeyExW(
+            registry,
             hRoot,
             L"Sub",
             0,
@@ -375,12 +389,13 @@ TEST_CASE("Deleting a watched key signals it, and name watches on its parent")
 TEST_CASE("A frozen hive accepts a watch and never signals")
 {
     MemoryMount mount;
-    auto& registry = mount.Virtual();
+    VRegRegistry* const registry = mount.Virtual();
     const HKEY hRoot = mount.Root();
-    registry.RegCloseKey(
+    VRegCloseKey(
+        registry,
         Create(registry, hRoot, L"Sub")
     );
-    mount.Memory().Freeze();
+    VRegFreezeHive(mount.Memory());
 
     Event event;
     CHECK(
@@ -388,7 +403,8 @@ TEST_CASE("A frozen hive accepts a watch and never signals")
     );
     CHECK(SetDword(registry, hRoot, L"v", 1) == ERROR_ACCESS_DENIED);
     CHECK(
-        registry.RegDeleteKeyExW(
+        VRegDeleteKeyExW(
+            registry,
             hRoot,
             L"Sub",
             0,
@@ -401,26 +417,27 @@ TEST_CASE("A frozen hive accepts a watch and never signals")
 TEST_CASE("Freezing a hive drops its pending watches without signaling")
 {
     MemoryMount mount;
-    auto& registry = mount.Virtual();
+    VRegRegistry* const registry = mount.Virtual();
     const HKEY hRoot = mount.Root();
 
     Event event;
     REQUIRE(
         Watch(registry, hRoot, TRUE, NAME | LAST_SET, event) == ERROR_SUCCESS
     );
-    mount.Memory().Freeze();
+    VRegFreezeHive(mount.Memory());
     CHECK_FALSE(event.IsSet());
 }
 
 TEST_CASE("Notification arguments are validated as before")
 {
     MemoryMount mount;
-    auto& registry = mount.Virtual();
+    VRegRegistry* const registry = mount.Virtual();
     const HKEY hRoot = mount.Root();
 
     Event event;
     CHECK(
-        registry.RegNotifyChangeKeyValue(
+        VRegNotifyChangeKeyValue(
+            registry,
             hRoot,
             FALSE,
             0x80,
@@ -429,7 +446,8 @@ TEST_CASE("Notification arguments are validated as before")
         ) == ERROR_INVALID_PARAMETER
     );
     CHECK(
-        registry.RegNotifyChangeKeyValue(
+        VRegNotifyChangeKeyValue(
+            registry,
             hRoot,
             FALSE,
             NAME,
@@ -442,14 +460,15 @@ TEST_CASE("Notification arguments are validated as before")
 TEST_CASE("A synchronous call waits for a change")
 {
     MemoryMount mount;
-    auto& registry = mount.Virtual();
+    VRegRegistry* const registry = mount.Virtual();
     const HKEY hRoot = mount.Root();
 
     LSTATUS status = ERROR_IO_PENDING;
     Thread waiter(
         [&]
         {
-            status = registry.RegNotifyChangeKeyValue(
+            status = VRegNotifyChangeKeyValue(
+                registry,
                 hRoot,
                 FALSE,
                 LAST_SET,
@@ -471,12 +490,13 @@ TEST_CASE("A synchronous call waits for a change")
 TEST_CASE("Through an overlay, writes signal and lower changes do not")
 {
     OverlayMount mount;
-    auto& registry = mount.Registry();
+    VRegRegistry* const registry = mount.Registry();
     const HKEY hRoot = mount.Root();
 
     HKEY hLowerSub{};
     REQUIRE(
-        mount.Native().RegCreateKeyExW(
+        VRegCreateKeyExW(
+            mount.Native(),
             mount.LowerRoot(),
             L"Sub",
             0,
@@ -491,7 +511,8 @@ TEST_CASE("Through an overlay, writes signal and lower changes do not")
     );
     HKEY hSub{};
     REQUIRE(
-        registry.RegOpenKeyExW(
+        VRegOpenKeyExW(
+            registry,
             hRoot,
             L"Sub",
             0,
@@ -506,7 +527,8 @@ TEST_CASE("Through an overlay, writes signal and lower changes do not")
     );
 
     REQUIRE(SetDword(mount.Native(), hLowerSub, L"lower", 1) == ERROR_SUCCESS);
-    mount.Native().RegCloseKey(
+    VRegCloseKey(
+        mount.Native(),
         hLowerSub
     );
     CHECK_FALSE(event.IsSet());
@@ -516,7 +538,8 @@ TEST_CASE("Through an overlay, writes signal and lower changes do not")
 
     event.Reset();
     REQUIRE(Watch(registry, hRoot, TRUE, NAME, event) == ERROR_SUCCESS);
-    registry.RegCloseKey(
+    VRegCloseKey(
+        registry,
         Create(registry, hRoot, L"New")
     );
     CHECK(event.IsSet());
@@ -524,7 +547,8 @@ TEST_CASE("Through an overlay, writes signal and lower changes do not")
     event.Reset();
     REQUIRE(Watch(registry, hRoot, TRUE, LAST_SET, event) == ERROR_SUCCESS);
     CHECK(
-        registry.RegDeleteValueW(
+        VRegDeleteValueW(
+            registry,
             hSub,
             L"upper"
         ) == ERROR_SUCCESS
@@ -535,12 +559,13 @@ TEST_CASE("Through an overlay, writes signal and lower changes do not")
 TEST_CASE("Opening a lower key through an overlay signals nothing")
 {
     OverlayMount mount;
-    auto& registry = mount.Registry();
+    VRegRegistry* const registry = mount.Registry();
     const HKEY hRoot = mount.Root();
 
     HKEY hLowerSub{};
     REQUIRE(
-        mount.Native().RegCreateKeyExW(
+        VRegCreateKeyExW(
+            mount.Native(),
             mount.LowerRoot(),
             L"Sub",
             0,
@@ -553,7 +578,8 @@ TEST_CASE("Opening a lower key through an overlay signals nothing")
         )
         == ERROR_SUCCESS
     );
-    mount.Native().RegCloseKey(
+    VRegCloseKey(
+        mount.Native(),
         hLowerSub
     );
 
@@ -563,7 +589,8 @@ TEST_CASE("Opening a lower key through an overlay signals nothing")
     );
     HKEY hSub{};
     CHECK(
-        registry.RegOpenKeyExW(
+        VRegOpenKeyExW(
+            registry,
             hRoot,
             L"Sub",
             0,
@@ -575,7 +602,8 @@ TEST_CASE("Opening a lower key through an overlay signals nothing")
 
     // Deleting the lower key hides it: a name change for the parent.
     CHECK(
-        registry.RegDeleteKeyExW(
+        VRegDeleteKeyExW(
+            registry,
             hRoot,
             L"Sub",
             0,
@@ -588,12 +616,13 @@ TEST_CASE("Opening a lower key through an overlay signals nothing")
 TEST_CASE("Emptying a key in an overlay signals its watchers")
 {
     OverlayMount mount;
-    auto& registry = mount.Registry();
+    VRegRegistry* const registry = mount.Registry();
     const HKEY hRoot = mount.Root();
 
     HKEY hLowerSub{};
     REQUIRE(
-        mount.Native().RegCreateKeyExW(
+        VRegCreateKeyExW(
+            mount.Native(),
             mount.LowerRoot(),
             L"Sub",
             0,
@@ -607,13 +636,15 @@ TEST_CASE("Emptying a key in an overlay signals its watchers")
         == ERROR_SUCCESS
     );
     REQUIRE(SetDword(mount.Native(), hLowerSub, L"lower", 1) == ERROR_SUCCESS);
-    mount.Native().RegCloseKey(
+    VRegCloseKey(
+        mount.Native(),
         hLowerSub
     );
 
     HKEY hSub{};
     REQUIRE(
-        registry.RegOpenKeyExW(
+        VRegOpenKeyExW(
+            registry,
             hRoot,
             L"Sub",
             0,
@@ -624,7 +655,8 @@ TEST_CASE("Emptying a key in an overlay signals its watchers")
     Event event;
     REQUIRE(Watch(registry, hSub, FALSE, LAST_SET, event) == ERROR_SUCCESS);
     CHECK(
-        registry.RegDeleteTreeW(
+        VRegDeleteTreeW(
+            registry,
             hSub,
             nullptr
         ) == ERROR_SUCCESS

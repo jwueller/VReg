@@ -7,7 +7,6 @@
 #include <cstdio>
 
 using namespace VReg;
-using namespace VReg::RegFile;
 using namespace VReg::Test;
 
 namespace
@@ -17,15 +16,15 @@ const std::wstring KEY = L"[HKEY_CURRENT_USER\\T]\r\n";
 
 /// Parses @p body under the v5 header and a key at line 2, so body line 1 is
 /// file line 3.
-Script ParseBody(const std::wstring& body)
+OwnedScript ParseBody(const std::wstring& body)
 {
     return MustParse(HEADER + KEY + body);
 }
 
-Operation OnlyValue(const Script& script)
+const VRegOperation& OnlyValue(const OwnedScript& script)
 {
-    REQUIRE(script.operations.size() == 2);
-    return script.operations[1];
+    REQUIRE(Operations(script).size() == 2);
+    return Operations(script)[1];
 }
 } // namespace
 
@@ -70,17 +69,17 @@ TEST_CASE("Both headers and every encoding parse")
         file = RawFile("Windows Registry Editor Version 5.00\n\n[HKEY_CURRENT_USER\\T]\n\"a\"=\"b\"\n");
     }
 
-    Script script;
-    ParseError error;
+    OwnedScript script;
+    VRegParseError error{};
     REQUIRE(Parse(file, script, &error) == ERROR_SUCCESS);
-    REQUIRE(script.operations.size() == 2);
-    CHECK(script.operations[1].name == L"a");
-    CHECK(script.operations[1].data == StringBytes(L"b"));
+    REQUIRE(Operations(script).size() == 2);
+    CHECK(std::wstring_view(Operations(script)[1].pszName) == L"a");
+    CHECK(DataOf(Operations(script)[1]) == StringBytes(L"b"));
 }
 
 TEST_CASE("Non-ASCII text decodes per encoding")
 {
-    Script script;
+    OwnedScript script;
 
     SECTION("UTF-8")
     {
@@ -93,7 +92,7 @@ TEST_CASE("Non-ASCII text decodes per encoding")
                 nullptr
             ) == ERROR_SUCCESS
         );
-        CHECK(script.operations[1].data == StringBytes(L"caf\u00e9 \u4e2d"));
+        CHECK(DataOf(Operations(script)[1]) == StringBytes(L"caf\u00e9 \u4e2d"));
     }
 
     SECTION("REGEDIT4 through the ANSI code page")
@@ -117,15 +116,14 @@ TEST_CASE("Non-ASCII text decodes per encoding")
         std::string text = "REGEDIT4\n[HKEY_CURRENT_USER\\T]\n\"a\"=\"x\"\n";
         text.insert(text.find("x\""), 1, chAcute);
         REQUIRE(Parse(RawFile(text), script, nullptr) == ERROR_SUCCESS);
-        CHECK(script.operations[1].data == StringBytes(L"\u00e9x"));
+        CHECK(DataOf(Operations(script)[1]) == StringBytes(L"\u00e9x"));
     }
 }
 
 TEST_CASE("Unusable files are rejected whole")
 {
-    Script script;
-    script.operations.emplace_back();
-    ParseError error;
+    OwnedScript script;
+    VRegParseError error{};
 
     SECTION("an empty file")
     {
@@ -189,13 +187,12 @@ TEST_CASE("Unusable files are rejected whole")
     }
 
     CHECK(error.pszMessage != nullptr);
-    CHECK(script.operations.size() == 1);
+    CHECK(script.Get() == nullptr);
 }
 
 TEST_CASE("A header alone is an empty script")
 {
-    Script script;
-    script.operations.emplace_back();
+    OwnedScript script;
     REQUIRE(
         Parse(
             Utf16File(L"REGEDIT4\r\n\r\n; nothing\r\n"),
@@ -203,7 +200,7 @@ TEST_CASE("A header alone is an empty script")
             nullptr
         ) == ERROR_SUCCESS
     );
-    CHECK(script.operations.empty());
+    CHECK(Operations(script).empty());
 }
 
 TEST_CASE("Keys")
@@ -214,15 +211,15 @@ TEST_CASE("Keys")
             HEADER
             + L"\r\n[HKEY_CURRENT_USER\\Software\\Mixed Case]\r\n\r\n[-HKEY_LOCAL_MACHINE\\Gone\\Deep]\r\n"
         );
-        REQUIRE(script.operations.size() == 2);
-        CHECK(script.operations[0].kind == OperationKind::CreateKey);
-        CHECK(script.operations[0].hRoot == HKEY_CURRENT_USER);
-        CHECK(script.operations[0].path == L"Software\\Mixed Case");
-        CHECK(script.operations[0].line == 3);
-        CHECK(script.operations[1].kind == OperationKind::DeleteKey);
-        CHECK(script.operations[1].hRoot == HKEY_LOCAL_MACHINE);
-        CHECK(script.operations[1].path == L"Gone\\Deep");
-        CHECK(script.operations[1].line == 5);
+        REQUIRE(Operations(script).size() == 2);
+        CHECK(Operations(script)[0].kind == VREG_OPERATION_CREATE_KEY);
+        CHECK(Operations(script)[0].hRoot == HKEY_CURRENT_USER);
+        CHECK(std::wstring_view(Operations(script)[0].pszPath) == L"Software\\Mixed Case");
+        CHECK(Operations(script)[0].line == 3);
+        CHECK(Operations(script)[1].kind == VREG_OPERATION_DELETE_KEY);
+        CHECK(Operations(script)[1].hRoot == HKEY_LOCAL_MACHINE);
+        CHECK(std::wstring_view(Operations(script)[1].pszPath) == L"Gone\\Deep");
+        CHECK(Operations(script)[1].line == 5);
     }
 
     SECTION("roots by full name and short name, in any case")
@@ -243,21 +240,21 @@ TEST_CASE("Keys")
         );
 
         const auto script = MustParse(HEADER + L"[" + pszRoot + L"\\A]\r\n");
-        REQUIRE(script.operations.size() == 1);
-        CHECK(script.operations[0].hRoot == hRoot);
-        CHECK(script.operations[0].path == L"A");
+        REQUIRE(Operations(script).size() == 1);
+        CHECK(Operations(script)[0].hRoot == hRoot);
+        CHECK(std::wstring_view(Operations(script)[0].pszPath) == L"A");
     }
 
     SECTION("a root alone has an empty path")
     {
         const auto script = MustParse(HEADER + L"[HKLM]\r\n");
-        CHECK(script.operations[0].path.empty());
+        CHECK(std::wstring_view(Operations(script)[0].pszPath).empty());
     }
 
     SECTION("a ] inside the name stays in it")
     {
         const auto script = MustParse(HEADER + L"[HKLM\\a]b]  \r\n");
-        CHECK(script.operations[0].path == L"a]b");
+        CHECK(std::wstring_view(Operations(script)[0].pszPath) == L"a]b");
     }
 }
 
@@ -268,11 +265,11 @@ TEST_CASE("Strings")
         const auto script = ParseBody(
             L"\"a\"=\"text\"\r\n\"b\"=\"\"\r\n\"c\"=\"x\\\\y\\\"z\\\"\"\r\n"
         );
-        REQUIRE(script.operations.size() == 4);
-        CHECK(script.operations[1].dwType == REG_SZ);
-        CHECK(script.operations[1].data == StringBytes(L"text"));
-        CHECK(script.operations[2].data == StringBytes(L""));
-        CHECK(script.operations[3].data == StringBytes(L"x\\y\"z\""));
+        REQUIRE(Operations(script).size() == 4);
+        CHECK(Operations(script)[1].dwType == REG_SZ);
+        CHECK(DataOf(Operations(script)[1]) == StringBytes(L"text"));
+        CHECK(DataOf(Operations(script)[2]) == StringBytes(L""));
+        CHECK(DataOf(Operations(script)[3]) == StringBytes(L"x\\y\"z\""));
     }
 
     SECTION("the default value and escaped names")
@@ -280,17 +277,17 @@ TEST_CASE("Strings")
         const auto script = ParseBody(
             L"@=\"d\"\r\n\"a\\\"b\\\\\"=\"v\"\r\n\"@\"=\"at\"\r\n"
         );
-        REQUIRE(script.operations.size() == 4);
-        CHECK(script.operations[1].name.empty());
-        CHECK(script.operations[2].name == L"a\"b\\");
-        CHECK(script.operations[3].name == L"@");
+        REQUIRE(Operations(script).size() == 4);
+        CHECK(std::wstring_view(Operations(script)[1].pszName).empty());
+        CHECK(std::wstring_view(Operations(script)[2].pszName) == L"a\"b\\");
+        CHECK(std::wstring_view(Operations(script)[3].pszName) == L"@");
     }
 
     SECTION("whitespace around the parts")
     {
         const auto script = ParseBody(L"  \"a\" = \"b\"  \r\n\t@=\"c\"\r\n");
-        REQUIRE(script.operations.size() == 3);
-        CHECK(script.operations[1].data == StringBytes(L"b"));
+        REQUIRE(Operations(script).size() == 3);
+        CHECK(DataOf(Operations(script)[1]) == StringBytes(L"b"));
     }
 }
 
@@ -301,19 +298,20 @@ TEST_CASE("Numbers and binary data")
         const auto script = ParseBody(
             L"\"a\"=dword:0000002a\r\n\"b\"=DWORD:FFFFFFFF\r\n\"c\"=dword:7\r\n"
         );
-        REQUIRE(script.operations.size() == 4);
-        CHECK(script.operations[1].dwType == REG_DWORD);
-        CHECK(script.operations[1].data == DwordBytes(0x2a));
-        CHECK(script.operations[2].data == DwordBytes(0xFFFFFFFF));
-        CHECK(script.operations[3].data == DwordBytes(7));
+        REQUIRE(Operations(script).size() == 4);
+        CHECK(Operations(script)[1].dwType == REG_DWORD);
+        CHECK(DataOf(Operations(script)[1]) == DwordBytes(0x2a));
+        CHECK(DataOf(Operations(script)[2]) == DwordBytes(0xFFFFFFFF));
+        CHECK(DataOf(Operations(script)[3]) == DwordBytes(7));
     }
 
     SECTION("hex is binary")
     {
-        const auto value = OnlyValue(ParseBody(L"\"a\"=hex:00,ff,A0\r\n"));
+        const auto script = ParseBody(L"\"a\"=hex:00,ff,A0\r\n");
+        const auto& value = OnlyValue(script);
         CHECK(value.dwType == REG_BINARY);
         CHECK(
-            value.data == std::vector{
+            DataOf(value) == std::vector{
             std::byte{0},
             std::byte{0xFF},
             std::byte{0xA0}
@@ -323,9 +321,10 @@ TEST_CASE("Numbers and binary data")
 
     SECTION("hex with no bytes")
     {
-        const auto value = OnlyValue(ParseBody(L"\"a\"=hex:\r\n"));
+        const auto script = ParseBody(L"\"a\"=hex:\r\n");
+        const auto& value = OnlyValue(script);
         CHECK(value.dwType == REG_BINARY);
-        CHECK(value.data.empty());
+        CHECK(DataOf(value).empty());
     }
 
     SECTION("hex(n) for any type")
@@ -334,31 +333,32 @@ TEST_CASE("Numbers and binary data")
             L"\"a\"=hex(0):\r\n\"b\"=hex(2):61,00,00,00\r\n\"c\"=hex(b):01,00,00,00,00,00,00,00\r\n"
             L"\"d\"=hex(12345):01\r\n\"e\"=hex(7):\r\n@=hex(1):1\r\n"
         );
-        REQUIRE(script.operations.size() == 7);
-        CHECK(script.operations[1].dwType == REG_NONE);
-        CHECK(script.operations[2].dwType == REG_EXPAND_SZ);
-        CHECK(script.operations[3].dwType == REG_QWORD);
-        CHECK(script.operations[3].data.size() == 8);
-        CHECK(script.operations[4].dwType == 0x12345);
-        CHECK(script.operations[5].dwType == REG_MULTI_SZ);
-        CHECK(script.operations[6].data == std::vector{std::byte{1}});
+        REQUIRE(Operations(script).size() == 7);
+        CHECK(Operations(script)[1].dwType == REG_NONE);
+        CHECK(Operations(script)[2].dwType == REG_EXPAND_SZ);
+        CHECK(Operations(script)[3].dwType == REG_QWORD);
+        CHECK(DataOf(Operations(script)[3]).size() == 8);
+        CHECK(Operations(script)[4].dwType == 0x12345);
+        CHECK(Operations(script)[5].dwType == REG_MULTI_SZ);
+        CHECK(DataOf(Operations(script)[6]) == std::vector{std::byte{1}});
     }
 
     SECTION("blanks around the commas")
     {
-        const auto value = OnlyValue(ParseBody(L"\"a\"=hex: 01 , 02,03 \r\n"));
-        CHECK(value.data.size() == 3);
+        const auto script = ParseBody(L"\"a\"=hex: 01 , 02,03 \r\n");
+        const auto& value = OnlyValue(script);
+        CHECK(DataOf(value).size() == 3);
     }
 }
 
 TEST_CASE("Deleting values")
 {
     const auto script = ParseBody(L"\"a\"=-\r\n@=-\r\n");
-    REQUIRE(script.operations.size() == 3);
-    CHECK(script.operations[1].kind == OperationKind::DeleteValue);
-    CHECK(script.operations[1].name == L"a");
-    CHECK(script.operations[2].kind == OperationKind::DeleteValue);
-    CHECK(script.operations[2].name.empty());
+    REQUIRE(Operations(script).size() == 3);
+    CHECK(Operations(script)[1].kind == VREG_OPERATION_DELETE_VALUE);
+    CHECK(std::wstring_view(Operations(script)[1].pszName) == L"a");
+    CHECK(Operations(script)[2].kind == VREG_OPERATION_DELETE_VALUE);
+    CHECK(std::wstring_view(Operations(script)[2].pszName).empty());
 }
 
 TEST_CASE("Value operations carry their key")
@@ -366,28 +366,27 @@ TEST_CASE("Value operations carry their key")
     const auto script = MustParse(
         HEADER + L"[HKCU\\A]\r\n\"x\"=dword:1\r\n[HKLM\\B]\r\n\"y\"=-\r\n"
     );
-    REQUIRE(script.operations.size() == 4);
-    CHECK(script.operations[1].hRoot == HKEY_CURRENT_USER);
-    CHECK(script.operations[1].path == L"A");
-    CHECK(script.operations[3].hRoot == HKEY_LOCAL_MACHINE);
-    CHECK(script.operations[3].path == L"B");
+    REQUIRE(Operations(script).size() == 4);
+    CHECK(Operations(script)[1].hRoot == HKEY_CURRENT_USER);
+    CHECK(std::wstring_view(Operations(script)[1].pszPath) == L"A");
+    CHECK(Operations(script)[3].hRoot == HKEY_LOCAL_MACHINE);
+    CHECK(std::wstring_view(Operations(script)[3].pszPath) == L"B");
 }
 
 TEST_CASE("Continuations, comments and blank lines")
 {
     SECTION("hex continues over lines with leading blanks")
     {
-        const auto value = OnlyValue(
-            ParseBody(L"\"a\"=hex:01,02,\\\r\n  03,04,\\\r\n  05\r\n")
-        );
-        CHECK(value.data.size() == 5);
-        CHECK(value.data[4] == std::byte{5});
+        const auto script = ParseBody(L"\"a\"=hex:01,02,\\\r\n  03,04,\\\r\n  05\r\n");
+        const auto& value = OnlyValue(script);
+        CHECK(DataOf(value).size() == 5);
+        CHECK(DataOf(value)[4] == std::byte{5});
     }
 
     SECTION("a continuation without a next line is a syntax error")
     {
-        Script script;
-        ParseError error;
+        OwnedScript script;
+        VRegParseError error{};
         const auto file = Utf16File(HEADER + KEY + L"\"a\"=hex:01,\\");
         CHECK(Parse(file, script, &error) == ERROR_INVALID_DATA);
     }
@@ -398,14 +397,14 @@ TEST_CASE("Continuations, comments and blank lines")
             HEADER
             + L"; first\r\n\r\n  ; indented\r\n[HKCU\\A]\r\n\r\n; between\r\n\"a\"=dword:1\r\n\r\n"
         );
-        CHECK(script.operations.size() == 2);
-        CHECK(script.operations[1].line == 8);
+        CHECK(Operations(script).size() == 2);
+        CHECK(Operations(script)[1].line == 8);
     }
 
     SECTION("the last line needs no line ending")
     {
         const auto script = MustParse(HEADER + L"[HKCU\\A]\r\n\"a\"=dword:1");
-        CHECK(script.operations.size() == 2);
+        CHECK(Operations(script).size() == 2);
     }
 }
 
@@ -457,15 +456,14 @@ TEST_CASE("Malformed input names its line and column")
     // @formatter:on
 
     INFO(c.pszWhy);
-    Script script;
-    script.operations.emplace_back();
-    ParseError error;
+    OwnedScript script;
+    VRegParseError error{};
     const auto file = Utf16File(c.text);
     CHECK(Parse(file, script, &error) == ERROR_INVALID_DATA);
     CHECK(error.line == c.line);
     CHECK(error.column == c.column);
     CHECK(error.pszMessage != nullptr);
-    CHECK(script.operations.size() == 1);
+    CHECK(script.Get() == nullptr);
 }
 
 TEST_CASE("ParseFile reads a file and reports a missing one")
@@ -482,13 +480,21 @@ TEST_CASE("ParseFile reads a file and reports a missing one")
         std::fclose(pFile);
     }
 
-    Script script;
-    CHECK(ParseFile(path, script, nullptr) == ERROR_SUCCESS);
-    CHECK(script.operations.size() == 2);
+    OwnedScript script;
     CHECK(
-        ParseFile(
-            directory / L"missing.reg",
-            script,
+        VRegParseScriptFile(
+            path.c_str(),
+            nullptr,
+            script.Receive(),
+            nullptr
+        ) == ERROR_SUCCESS
+    );
+    CHECK(Operations(script).size() == 2);
+    CHECK(
+        VRegParseScriptFile(
+            (directory / L"missing.reg").c_str(),
+            nullptr,
+            script.Receive(),
             nullptr
         ) == ERROR_FILE_NOT_FOUND
     );

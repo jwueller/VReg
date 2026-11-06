@@ -97,7 +97,8 @@ TEST_CASE("Forwarded exports are not resolved")
 
 TEST_CASE("Every native registry function resolves")
 {
-    const auto functions = NativeRegistry::ResolveFunctions();
+    VRegNativeFunctions functions;
+    VRegResolveNativeFunctions(&functions);
     const auto pointers =
         std::bit_cast<std::array<void*, sizeof(functions) / sizeof(void*)>>(
             functions

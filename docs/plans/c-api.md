@@ -146,10 +146,14 @@ to the project languages at step 1.
    the flat functions until step 5 moves the tests.
 5. **Tests to the C API.** Every test file calls the flat functions
    (`registry.RegOpenKeyExW(...)` becomes `VRegOpenKeyExW(pRegistry, ...)`),
-   owns hives and registries through small RAII helpers in `test/`, and
-   `test/intercept_registry.h` becomes a C vtable implementation (the test
-   for "a wrapper sees the ANSI form"). Mechanical and file by file, so it
-   is the step to delegate; the suite decides each file.
+   owns hives, registries and scripts through the owners in
+   `test/objects.h`, and the three test registries (the real Win32 API, the
+   intercepting wrapper, the app-hive mapper) are C vtable implementations.
+   A scenario runs against an `Api` (a registry plus whether its keys are
+   virtual) instead of a template parameter. The hooks' entry points become
+   C here too (`VRegAttachHooks`, `VRegInstallHooks`, `VRegNeutralizeHooks`),
+   since the hook tests mount through C objects; the hook bodies stay C++
+   until step 6.
 6. **Hooks, shim removal, packaging.** `hooks.cpp` to C (`Emulated<>` and
    `Refused<>` become a generated table of hook bodies); delete the C++
    headers and shims; the amalgamator emits one C header with the

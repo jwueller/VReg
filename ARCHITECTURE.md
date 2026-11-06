@@ -309,18 +309,18 @@ of each group.
 
 ### Install
 
-- `Attach(Registry&, NativeRegistry&)` only calls `DetourAttach`, for a
+- `VRegAttachHooks(pRegistry, pNative)` only calls `DetourAttach`, for a
   consumer that owns the transaction (for example one that also carries
-  other hooks and thread enrollment). Every hook calls through the
-  `Registry`, normally a `VirtualRegistry`, or a wrapper in front of one
-  (one that traces each call, say). The `NativeRegistry` is the registry
-  below the hooks: its function table holds the targets handed to Detours,
-  so after the commit it holds the trampolines. A second call answers
-  `ERROR_ALREADY_INITIALIZED`.
-- `Install(Registry&, NativeRegistry&)` runs its own transaction around
-  `Attach`, enrolling the calling thread.
-- `Neutralize()` makes every hook of the copy pass straight through; it also
-  runs by itself when the module unloads, through a static destructor.
+  other hooks and thread enrollment). Every hook calls through `pRegistry`,
+  normally a virtual registry, or a wrapper in front of one (one that traces
+  each call, say). `pNative` is the native registry below the hooks: its
+  function table holds the targets handed to Detours, so after the commit it
+  holds the trampolines. A second call answers `ERROR_ALREADY_INITIALIZED`.
+- `VRegInstallHooks(pRegistry, pNative)` runs its own transaction around
+  `VRegAttachHooks`, enrolling the calling thread.
+- `VRegNeutralizeHooks()` makes every hook of the copy pass straight
+  through; it also runs by itself when the module unloads, through a static
+  destructor.
 - A consumer installing from `DllMain` builds, freezes and mounts its hives
   before the commit, so the first hooked call already finds them.
 

@@ -5,9 +5,7 @@
 // recordings of status codes, out-sizes and bytes must match the real Win32
 // API's exactly.
 
-#include <VReg/hive.h>
-#include <VReg/native_registry.h>
-#include <VReg/virtual_registry.h>
+#include "objects.h"
 
 #include <Windows.h>
 
@@ -85,8 +83,8 @@ std::span<const std::byte> Bytes(const T& buffer) noexcept
 }
 
 /// Runs @p Scenario against @p api on a fresh app hive.
-template <class Scenario, class Api>
-Recording Record(Api& api)
+template <class Scenario>
+Recording Record(const Api& api)
 {
     AppHive hive;
     Recorder recorder;
@@ -94,7 +92,7 @@ Recording Record(Api& api)
     return recorder.Take();
 }
 
-/// A `VirtualRegistry` without a base, with a `Hive` mounted below
+/// A virtual registry without a base, with a hive mounted below
 /// `HKEY_CURRENT_USER`: the virtual counterpart of an @ref AppHive.
 class VirtualHive
 {
@@ -104,28 +102,31 @@ public:
     VirtualHive(const VirtualHive&) = delete;
     VirtualHive& operator=(const VirtualHive&) = delete;
 
-    [[nodiscard]] VirtualRegistry& Registry() noexcept;
+    [[nodiscard]] VRegRegistry* Registry() noexcept;
+
+    /// The hive's keys are virtual.
+    [[nodiscard]] Api AsApi() noexcept;
 
     /// The virtual handle of the hive's root.
     [[nodiscard]] HKEY Root() noexcept;
 
 private:
-    Hive m_hive;
-    VirtualRegistry m_registry;
+    OwnedHive m_hive;
+    OwnedRegistry m_registry;
 };
 
-/// Runs @p Scenario against a `VirtualRegistry` over a fresh `Hive`.
+/// Runs @p Scenario against a virtual registry over a fresh hive.
 template <class Scenario>
 Recording RecordVirtual()
 {
     VirtualHive hive;
     Recorder recorder;
-    Scenario{}(hive.Registry(), hive.Root(), recorder);
+    Scenario{}(hive.AsApi(), hive.Root(), recorder);
     return recorder.Take();
 }
 
-/// A writable `Hive` over an empty key of an @ref AppHive, mounted below
-/// `HKEY_CURRENT_USER` in a `VirtualRegistry` whose base is the native
+/// A writable hive over an empty key of an @ref AppHive, mounted below
+/// `HKEY_CURRENT_USER` in a virtual registry whose base is the native
 /// registry: the overlay counterpart of an @ref AppHive.
 class OverlayMount
 {
@@ -136,9 +137,10 @@ public:
     OverlayMount(const OverlayMount&) = delete;
     OverlayMount& operator=(const OverlayMount&) = delete;
 
-    [[nodiscard]] VirtualRegistry& Registry() noexcept;
-    [[nodiscard]] NativeRegistry& Native() noexcept;
-    [[nodiscard]] Hive& Overlay() noexcept;
+    [[nodiscard]] VRegRegistry* Registry() noexcept;
+    [[nodiscard]] Api AsApi() noexcept;
+    [[nodiscard]] VRegRegistry* Native() noexcept;
+    [[nodiscard]] VRegHive* Overlay() noexcept;
 
     /// The key of the app hive the overlay sits on.
     [[nodiscard]] HKEY LowerRoot() const noexcept;
@@ -148,19 +150,19 @@ public:
 
 private:
     AppHive m_appHive;
-    NativeRegistry m_native;
+    OwnedRegistry m_native;
     HKEY m_hLower{};
-    Hive m_hive;
-    VirtualRegistry m_registry;
+    OwnedHive m_hive;
+    OwnedRegistry m_registry;
 };
 
-/// Runs @p Scenario against a writable `Hive` over an empty lower key.
+/// Runs @p Scenario against a writable hive over an empty lower key.
 template <class Scenario>
 Recording RecordOverlay()
 {
     OverlayMount mount;
     Recorder recorder;
-    Scenario{}(mount.Registry(), mount.Root(), recorder);
+    Scenario{}(mount.AsApi(), mount.Root(), recorder);
     return recorder.Take();
 }
 

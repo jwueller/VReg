@@ -8,7 +8,7 @@
 namespace VReg
 {
 LSTATUS QueryValue(
-    const Registry& registry,
+    VRegRegistry* const registry,
     const HKEY hKey,
     _In_opt_z_ const LPCWSTR lpValueName,
     _Out_opt_ const LPDWORD lpType,
@@ -18,7 +18,8 @@ try
 {
     DWORD dwType{};
     DWORD cbData = 0;
-    const auto sized = registry.RegQueryValueExW(
+    const auto sized = VRegQueryValueExW(
+        registry,
         hKey,
         lpValueName,
         nullptr,
@@ -33,7 +34,8 @@ try
     {
         data.resize(cbData);
         DWORD cbRead = cbData;
-        const auto status = registry.RegQueryValueExW(
+        const auto status = VRegQueryValueExW(
+            registry,
             hKey,
             lpValueName,
             nullptr,
@@ -61,7 +63,7 @@ catch (...)
 }
 
 LSTATUS GetValue(
-    const Registry& registry,
+    VRegRegistry* const registry,
     const HKEY hKey,
     _In_opt_z_ const LPCWSTR lpSubKey,
     _In_opt_z_ const LPCWSTR lpValue,
@@ -73,7 +75,8 @@ try
 {
     DWORD dwType{};
     DWORD cbData = 0;
-    const auto sized = registry.RegGetValueW(
+    const auto sized = VRegGetValueW(
+        registry,
         hKey,
         lpSubKey,
         lpValue,
@@ -89,7 +92,8 @@ try
     {
         data.resize(cbData);
         DWORD cbRead = cbData;
-        const auto status = registry.RegGetValueW(
+        const auto status = VRegGetValueW(
+            registry,
             hKey,
             lpSubKey,
             lpValue,
@@ -118,7 +122,7 @@ catch (...)
 }
 
 LSTATUS GetString(
-    const Registry& registry,
+    VRegRegistry* const registry,
     const HKEY hKey,
     _In_opt_z_ const LPCWSTR lpSubKey,
     _In_opt_z_ const LPCWSTR lpValue,
@@ -156,7 +160,7 @@ catch (...)
 }
 
 LSTATUS EnumKey(
-    const Registry& registry,
+    VRegRegistry* const registry,
     const HKEY hKey,
     const DWORD dwIndex,
     std::wstring& name
@@ -168,7 +172,8 @@ try
     {
         name.assign(cchName, L'\0');
         DWORD cchRead = cchName;
-        const auto status = registry.RegEnumKeyExW(
+        const auto status = VRegEnumKeyExW(
+            registry,
             hKey,
             dwIndex,
             name.data(),
@@ -194,7 +199,7 @@ catch (...)
 }
 
 LSTATUS EnumValue(
-    const Registry& registry,
+    VRegRegistry* const registry,
     const HKEY hKey,
     const DWORD dwIndex,
     std::wstring& name,
@@ -212,7 +217,8 @@ try
         DWORD cchRead = cchName;
         DWORD cbRead = cbData;
         DWORD dwType{};
-        const auto status = registry.RegEnumValueW(
+        const auto status = VRegEnumValueW(
+            registry,
             hKey,
             dwIndex,
             name.data(),
@@ -260,7 +266,7 @@ catch (...)
 }
 
 LSTATUS LoadMUIString(
-    const Registry& registry,
+    VRegRegistry* const registry,
     const HKEY hKey,
     _In_opt_z_ const LPCWSTR pszValue,
     const DWORD Flags,
@@ -274,7 +280,8 @@ try
     {
         text.assign(cbBuffer / sizeof(wchar_t), L'\0');
         DWORD cbData = 0;
-        const auto status = registry.RegLoadMUIStringW(
+        const auto status = VRegLoadMUIStringW(
+            registry,
             hKey,
             pszValue,
             text.data(),

@@ -22,21 +22,22 @@ namespace VReg::Detours
 {
 namespace
 {
-std::atomic<Registry*> g_pRegistry;
+std::atomic<VRegRegistry*> g_pRegistry;
 
-template <class Function, auto Member>
+template <class Function, auto Flat>
 struct Emulated;
 
-/// A hook the registry answers: the same call, made on @ref g_pRegistry.
-template <class... Args, auto Member>
-struct Emulated<LSTATUS(APIENTRY*)(Args...), Member>
+/// A hook the registry answers: the same call, made on @ref g_pRegistry
+/// through the flat function @p Flat.
+template <class... Args, auto Flat>
+struct Emulated<LSTATUS(APIENTRY*)(Args...), Flat>
 {
     static LSTATUS APIENTRY Body(Args... args) noexcept
     {
         // The arguments reach the registry as the caller passed them, a nonzero
         // _Reserved_ one included; the registry answers what native answers.
 #pragma warning(suppress: 6388)
-        return (g_pRegistry.load(std::memory_order_acquire)->*Member)(args...);
+        return Flat(g_pRegistry.load(std::memory_order_acquire), args...);
     }
 };
 
@@ -147,9 +148,9 @@ bool IsUntransacted(
  *  a virtual handle of this copy. Every prefix is tried because the real keys
  *  above a mount point need not exist.
  *
- *  It probes by opening rather than through a query beside
- *  @ref Registry, which a wrapper would have to forward and which would add a
- *  member outside the Win32 family. Opening is read-only, and a deprecated
+ *  It probes by opening rather than through a query beside the `Reg*`
+ *  slots, which a wrapper would have to forward and which would add a slot
+ *  outside the Win32 family. Opening is read-only, and a deprecated
  *  API can afford one open per path component.
  */
 LSTATUS RefuseMountPath(
@@ -168,7 +169,8 @@ try
 
         const std::wstring prefix(subKey.substr(0, end));
         HKEY hProbe{};
-        const auto status = pRegistry->RegOpenKeyExW(
+        const auto status = VRegOpenKeyExW(
+            pRegistry,
             hKey,
             prefix.c_str(),
             0,
@@ -182,7 +184,8 @@ try
         // An empty path may answer hKey itself rather than a new handle.
         if (hProbe != hKey)
         {
-            pRegistry->RegCloseKey(
+            VRegCloseKey(
+                pRegistry,
                 hProbe
             );
         }
@@ -419,7 +422,7 @@ struct NeutralizeOnUnload
 {
     ~NeutralizeOnUnload()
     {
-        Neutralize();
+        VRegNeutralizeHooks();
     }
 };
 
@@ -427,15 +430,15 @@ struct NeutralizeOnUnload
 [[maybe_unused]] NeutralizeOnUnload g_neutralizeOnUnload;
 } // namespace
 
-LONG Attach(Registry& registry, NativeRegistry& native) noexcept
+extern "C" LONG WINAPI VRegAttachHooks(_In_ VRegRegistry* const pRegistry, _In_ VRegRegistry* const pNative)
 {
     static std::atomic<bool> s_isAttached;
     if (s_isAttached.exchange(true))
         return ERROR_ALREADY_INITIALIZED;
 
-    g_pRegistry.store(&registry, std::memory_order_release);
+    g_pRegistry.store(pRegistry, std::memory_order_release);
 
-    auto& functions = native.GetFunctions();
+    auto& functions = *VRegGetNativeFunctions(pNative);
     std::array<Hook, Thunks::CAPACITY> hooks{};
     std::size_t cHooks = 0;
 
@@ -443,7 +446,7 @@ LONG Attach(Registry& registry, NativeRegistry& native) noexcept
     hooks[cHooks++] = {                                                        \
         reinterpret_cast<void**>(&functions.name),                             \
         reinterpret_cast<void*>(                                               \
-            &Emulated<decltype(functions.name), &Registry::name>::Body         \
+            &Emulated<decltype(functions.name), &V##name>::Body                \
         )                                                                      \
     };
     VREG_INTERNAL_REGISTRY_VIRTUALS(VREG_EMULATED)
@@ -457,7 +460,7 @@ LONG Attach(Registry& registry, NativeRegistry& native) noexcept
         hooks[cHooks++] = {                                                    \
             &g_formTargets[k##name],                                           \
             reinterpret_cast<void*>(                                           \
-                &Emulated<decltype(&::name), &Registry::name>::Body            \
+                &Emulated<decltype(&::name), &V##name>::Body                   \
             )                                                                  \
         };                                                                     \
     }
@@ -513,7 +516,7 @@ LONG Attach(Registry& registry, NativeRegistry& native) noexcept
     return NO_ERROR;
 }
 
-LONG Install(Registry& registry, NativeRegistry& native) noexcept
+extern "C" LONG WINAPI VRegInstallHooks(_In_ VRegRegistry* const pRegistry, _In_ VRegRegistry* const pNative)
 {
     const auto began = DetourTransactionBegin();
     if (began != NO_ERROR)
@@ -521,7 +524,7 @@ LONG Install(Registry& registry, NativeRegistry& native) noexcept
 
     auto error = DetourUpdateThread(GetCurrentThread());
     if (error == NO_ERROR)
-        error = Attach(registry, native);
+        error = VRegAttachHooks(pRegistry, pNative);
 
     if (error != NO_ERROR)
     {
@@ -532,7 +535,7 @@ LONG Install(Registry& registry, NativeRegistry& native) noexcept
     return DetourTransactionCommit();
 }
 
-void Neutralize() noexcept
+extern "C" void WINAPI VRegNeutralizeHooks(void)
 {
     // Whatever the target field holds is what lies below this layer: the
     // trampoline once committed, the function itself before.

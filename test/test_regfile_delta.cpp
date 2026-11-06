@@ -4,7 +4,6 @@
 #include "regfile_test.h"
 
 using namespace VReg;
-using namespace VReg::RegFile;
 using namespace VReg::Test;
 
 namespace
@@ -18,13 +17,11 @@ class DeltaFixture
 {
 public:
     DeltaFixture() :
-        m_modified(m_native, m_appHive.Root(), L"Lower"),
-        m_fresh(m_native, m_appHive.Root(), L"Lower"),
-        m_modifiedRegistry(&m_native),
-        m_freshRegistry(&m_native)
+        m_native(MakeNativeRegistry())
     {
         REQUIRE(
-            m_native.RegCreateKeyExW(
+            VRegCreateKeyExW(
+                m_native,
                 m_appHive.Root(),
                 L"Lower",
                 0,
@@ -37,25 +34,34 @@ public:
             )
             == ERROR_SUCCESS
         );
+        m_modified = MakeLayeredHive(m_native, m_appHive.Root(), L"Lower");
+        m_fresh = MakeLayeredHive(m_native, m_appHive.Root(), L"Lower");
+        m_modifiedRegistry = MakeVirtualRegistry(m_native);
+        m_freshRegistry = MakeVirtualRegistry(m_native);
         REQUIRE(
-            m_modifiedRegistry.Mount(
+            VRegMount(
+                m_modifiedRegistry,
                 HKEY_CURRENT_USER,
                 MOUNT,
-                m_modified
+                m_modified,
+                0
             ) == ERROR_SUCCESS
         );
         REQUIRE(
-            m_freshRegistry.Mount(
+            VRegMount(
+                m_freshRegistry,
                 HKEY_CURRENT_USER,
                 MOUNT,
-                m_fresh
+                m_fresh,
+                0
             ) == ERROR_SUCCESS
         );
     }
 
     ~DeltaFixture()
     {
-        m_native.RegCloseKey(
+        VRegCloseKey(
+            m_native,
             m_hLower
         );
     }
@@ -73,7 +79,8 @@ public:
     {
         HKEY hKey{};
         REQUIRE(
-            m_native.RegCreateKeyExW(
+            VRegCreateKeyExW(
+                m_native,
                 m_hLower,
                 pszPath,
                 0,
@@ -86,7 +93,8 @@ public:
             ) == ERROR_SUCCESS
         );
         REQUIRE(
-            m_native.RegSetValueExW(
+            VRegSetValueExW(
+                m_native,
                 hKey,
                 pszName,
                 0,
@@ -96,7 +104,8 @@ public:
             )
             == ERROR_SUCCESS
         );
-        m_native.RegCloseKey(
+        VRegCloseKey(
+            m_native,
             hKey
         );
     }
@@ -105,7 +114,8 @@ public:
     {
         HKEY hKey{};
         REQUIRE(
-            m_native.RegCreateKeyExW(
+            VRegCreateKeyExW(
+                m_native,
                 m_hLower,
                 pszPath,
                 0,
@@ -117,7 +127,8 @@ public:
                 nullptr
             ) == ERROR_SUCCESS
         );
-        m_native.RegCloseKey(
+        VRegCloseKey(
+            m_native,
             hKey
         );
     }
@@ -137,7 +148,8 @@ public:
     {
         HKEY hKey{};
         REQUIRE(
-            m_modifiedRegistry.RegCreateKeyExW(
+            VRegCreateKeyExW(
+                m_modifiedRegistry,
                 HKEY_CURRENT_USER,
                 Full(path).c_str(),
                 0,
@@ -149,14 +161,16 @@ public:
                 nullptr
             ) == ERROR_SUCCESS
         );
-        m_modifiedRegistry.RegCloseKey(
+        VRegCloseKey(
+            m_modifiedRegistry,
             hKey
         );
     }
 
     void Open(const std::wstring& path)
     {
-        m_modifiedRegistry.RegCloseKey(
+        VRegCloseKey(
+            m_modifiedRegistry,
             MustOpen(m_modifiedRegistry, Full(path).c_str())
         );
     }
@@ -169,12 +183,14 @@ public:
             KEY_SET_VALUE
         );
         CHECK(
-            m_modifiedRegistry.RegDeleteValueW(
+            VRegDeleteValueW(
+                m_modifiedRegistry,
                 hKey,
                 pszName
             ) == ERROR_SUCCESS
         );
-        m_modifiedRegistry.RegCloseKey(
+        VRegCloseKey(
+            m_modifiedRegistry,
             hKey
         );
     }
@@ -182,7 +198,8 @@ public:
     void DeleteKey(const std::wstring& path)
     {
         CHECK(
-            m_modifiedRegistry.RegDeleteKeyExW(
+            VRegDeleteKeyExW(
+                m_modifiedRegistry,
                 HKEY_CURRENT_USER,
                 Full(path).c_str(),
                 0,
@@ -200,12 +217,14 @@ public:
             KEY_ALL_ACCESS
         );
         CHECK(
-            m_modifiedRegistry.RegDeleteTreeW(
+            VRegDeleteTreeW(
+                m_modifiedRegistry,
                 hKey,
                 nullptr
             ) == ERROR_SUCCESS
         );
-        m_modifiedRegistry.RegCloseKey(
+        VRegCloseKey(
+            m_modifiedRegistry,
             hKey
         );
     }
@@ -213,7 +232,8 @@ public:
     void DeleteTree(const std::wstring& path)
     {
         CHECK(
-            m_modifiedRegistry.RegDeleteTreeW(
+            VRegDeleteTreeW(
+                m_modifiedRegistry,
                 HKEY_CURRENT_USER,
                 Full(path).c_str()
             ) == ERROR_SUCCESS
@@ -221,70 +241,53 @@ public:
     }
 
     [[nodiscard]] std::vector<std::byte> Delta(
-        const Format format = Format::Unicode
+        const VRegFormat format = VREG_FORMAT_UNICODE
     )
     {
-        std::vector<std::byte> file;
-        REQUIRE(
-            ExportDelta(
-                m_modified,
-                HKEY_CURRENT_USER,
-                MOUNT,
-                format,
-                file
-            ) == ERROR_SUCCESS
+        return ExportDelta(
+            m_modified,
+            HKEY_CURRENT_USER,
+            MOUNT,
+            format
         );
-        return file;
     }
 
     /// Applies the exported delta to the fresh overlay and requires both merged
     /// views to match.
-    void CheckRoundTrip(const Format format = Format::Unicode)
+    void CheckRoundTrip(const VRegFormat format = VREG_FORMAT_UNICODE)
     {
         const auto file = Delta(format);
-        Script script;
-        ParseError error;
+        OwnedScript script;
+        VRegParseError error{};
         REQUIRE(Parse(file, script, &error) == ERROR_SUCCESS);
-        std::size_t iFailed{};
-        REQUIRE(Apply(script, m_freshRegistry, &iFailed) == ERROR_SUCCESS);
+        SIZE_T iFailed{};
+        REQUIRE(VRegApplyScript(script, m_freshRegistry, &iFailed) == ERROR_SUCCESS);
 
-        std::vector<std::byte> expected;
-        std::vector<std::byte> actual;
-        REQUIRE(
-            ExportSnapshot(
-                m_modifiedRegistry,
-                HKEY_CURRENT_USER,
-                MOUNT,
-                Format::Unicode,
-                expected
-            ) == ERROR_SUCCESS
+        const auto expected = ExportSnapshot(
+            m_modifiedRegistry,
+            HKEY_CURRENT_USER,
+            MOUNT,
+            VREG_FORMAT_UNICODE
         );
-        REQUIRE(
-            ExportSnapshot(
-                m_freshRegistry,
-                HKEY_CURRENT_USER,
-                MOUNT,
-                Format::Unicode,
-                actual
-            ) == ERROR_SUCCESS
+        const auto actual = ExportSnapshot(
+            m_freshRegistry,
+            HKEY_CURRENT_USER,
+            MOUNT,
+            VREG_FORMAT_UNICODE
         );
         CHECK(AsString(actual) == AsString(expected));
 
         // Applying the delta leaves the same upper layer behind.
-        std::vector<std::byte> again;
-        REQUIRE(
-            ExportDelta(
-                m_fresh,
-                HKEY_CURRENT_USER,
-                MOUNT,
-                format,
-                again
-            ) == ERROR_SUCCESS
+        const auto again = ExportDelta(
+            m_fresh,
+            HKEY_CURRENT_USER,
+            MOUNT,
+            format
         );
         CHECK(AsString(again) == AsString(file));
     }
 
-    [[nodiscard]] Hive& Modified() noexcept
+    [[nodiscard]] VRegHive* Modified() noexcept
     {
         return m_modified;
     }
@@ -299,12 +302,12 @@ private:
     }
 
     AppHive m_appHive;
-    NativeRegistry m_native;
+    OwnedRegistry m_native;
     HKEY m_hLower{};
-    Hive m_modified;
-    Hive m_fresh;
-    VirtualRegistry m_modifiedRegistry;
-    VirtualRegistry m_freshRegistry;
+    OwnedHive m_modified;
+    OwnedHive m_fresh;
+    OwnedRegistry m_modifiedRegistry;
+    OwnedRegistry m_freshRegistry;
 };
 
 std::vector<std::byte> Text(const std::wstring& body)
@@ -326,15 +329,11 @@ TEST_CASE("Delta names its keys after the mount point")
     DeltaFixture f;
     f.CreateKey(L"New");
 
-    std::vector<std::byte> file;
-    REQUIRE(
-        ExportDelta(
-            f.Modified(),
-            HKEY_LOCAL_MACHINE,
-            L"Software\\Mount",
-            Format::Unicode,
-            file
-        ) == ERROR_SUCCESS
+    std::vector<std::byte> file = ExportDelta(
+        f.Modified(),
+        HKEY_LOCAL_MACHINE,
+        L"Software\\Mount",
+        VREG_FORMAT_UNICODE
     );
     CHECK(
         file
@@ -343,23 +342,20 @@ TEST_CASE("Delta names its keys after the mount point")
         )
     );
 
-    REQUIRE(
-        ExportDelta(
-            f.Modified(),
-            HKEY_USERS,
-            L"",
-            Format::Unicode,
-            file
-        ) == ERROR_SUCCESS
+    file = ExportDelta(
+        f.Modified(),
+        HKEY_USERS,
+        L"",
+        VREG_FORMAT_UNICODE
     );
     CHECK(file == Text(L"[HKEY_USERS\\New]\r\n\r\n"));
 
     CHECK(
-        ExportDelta(
+        TryExportDelta(
             f.Modified(),
             reinterpret_cast<HKEY>(0x1234),
             L"",
-            Format::Unicode,
+            VREG_FORMAT_UNICODE,
             file
         ) == ERROR_INVALID_HANDLE
     );
@@ -530,5 +526,5 @@ TEST_CASE("A delta reproduces a mix of changes over a lower registry")
     f.Open(L"Untouched\\Child");
 
     f.CheckRoundTrip();
-    f.CheckRoundTrip(Format::Utf8);
+    f.CheckRoundTrip(VREG_FORMAT_UTF8);
 }

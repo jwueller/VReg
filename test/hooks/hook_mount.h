@@ -5,12 +5,11 @@
 #include <VReg/detours.h>
 #include <VReg/hive.h>
 #include <VReg/native_registry.h>
+#include <VReg/registry.h>
 #include <VReg/virtual_registry.h>
 
 #include <Windows.h>
 
-#include <cstddef>
-#include <span>
 #include <string_view>
 
 namespace VReg::Test
@@ -29,29 +28,36 @@ inline LONG InstallMount(
     InterceptRegistry** const ppIntercept = nullptr
 )
 {
-    auto* const pHive = new Hive;
-    auto* const pNative = new NativeRegistry;
-    auto* const pRegistry = new VirtualRegistry(pNative);
+    VRegHive* pHive = nullptr;
+    VRegRegistry* pNative = nullptr;
+    VRegRegistry* pRegistry = nullptr;
+    LONG error = VRegCreateHive(nullptr, &pHive);
+    if (error == ERROR_SUCCESS)
+        error = VRegCreateNativeRegistry(nullptr, nullptr, &pNative);
+    if (error == ERROR_SUCCESS)
+        error = VRegCreateVirtualRegistry(pNative, nullptr, nullptr, &pRegistry);
+    if (error == ERROR_SUCCESS)
+        error = VRegMount(pRegistry, HKEY_CURRENT_USER, pszPath, pHive, 0);
+    if (error != ERROR_SUCCESS)
+        return error;
 
     const std::wstring_view module = pszModule;
-    const auto bytes = std::as_bytes(std::span(pszModule, module.size() + 1));
-    const auto stored = pHive->SetValue(
-        pHive->Root(),
+    error = VRegSetKeyValueW(
+        pRegistry,
+        HKEY_CURRENT_USER,
+        pszPath,
         MODULE_VALUE,
         REG_SZ,
-        bytes
+        pszModule,
+        static_cast<DWORD>((module.size() + 1) * sizeof(wchar_t))
     );
-    if (stored != ERROR_SUCCESS)
-        return stored;
-
-    const auto error = pRegistry->Mount(HKEY_CURRENT_USER, pszPath, *pHive);
     if (error != ERROR_SUCCESS)
         return error;
 
     if (!ppIntercept)
-        return Detours::Install(*pRegistry, *pNative);
+        return VRegInstallHooks(pRegistry, pNative);
 
-    *ppIntercept = new InterceptRegistry(*pRegistry);
-    return Detours::Install(**ppIntercept, *pNative);
+    *ppIntercept = new InterceptRegistry(pRegistry);
+    return VRegInstallHooks(**ppIntercept, pNative);
 }
 } // namespace VReg::Test

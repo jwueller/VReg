@@ -37,9 +37,8 @@ std::wstring ResolvedIndirect()
     return text.data();
 }
 
-template <class Api>
 LSTATUS GetEx(
-    Api& api,
+    const Api& api,
     HKEY hKey,
     LPCWSTR pszSub,
     LPCWSTR pszValue,
@@ -49,7 +48,8 @@ LSTATUS GetEx(
     LPDWORD pcbData
 ) noexcept
 {
-    return api.RegGetValueW(
+    return VRegGetValueW(
+        api,
         hKey,
         pszSub,
         pszValue,
@@ -60,9 +60,8 @@ LSTATUS GetEx(
     );
 }
 
-template <class Api>
 LSTATUS GetEx(
-    Api& api,
+    const Api& api,
     HKEY hKey,
     LPCSTR pszSub,
     LPCSTR pszValue,
@@ -72,7 +71,8 @@ LSTATUS GetEx(
     LPDWORD pcbData
 ) noexcept
 {
-    return api.RegGetValueA(
+    return VRegGetValueA(
+        api,
         hKey,
         pszSub,
         pszValue,
@@ -140,7 +140,7 @@ constexpr DWORD FLAG_SETS[] = {
 
 template <class Api, class Char>
 void GetMatrix(
-    Api& api,
+    const Api& api,
     Recorder& record,
     const HKEY hKey,
     const Char* const pszSub,
@@ -254,9 +254,8 @@ void GetMatrix(
 
 struct GetValueEveryType
 {
-    template <class Api>
     void operator()(
-        Api& api,
+        const Api& api,
         const HKEY hRoot,
         Recorder& record
     ) const
@@ -303,16 +302,16 @@ struct GetValueEveryType
 
 struct GetValueSubKeyAndName
 {
-    template <class Api>
     void operator()(
-        Api& api,
+        const Api& api,
         const HKEY hRoot,
         Recorder& record
     ) const
     {
         RECORD(
             "set sub",
-            api.RegSetKeyValueW(
+            VRegSetKeyValueW(
+                api,
                 hRoot,
                 L"Sub\\Deep",
                 L"v",
@@ -323,7 +322,8 @@ struct GetValueSubKeyAndName
         );
         RECORD(
             "set sub default",
-            api.RegSetKeyValueW(
+            VRegSetKeyValueW(
+                api,
                 hRoot,
                 L"Sub",
                 nullptr,
@@ -334,7 +334,8 @@ struct GetValueSubKeyAndName
         );
         RECORD(
             "set root default",
-            api.RegSetKeyValueW(
+            VRegSetKeyValueW(
+                api,
                 hRoot,
                 nullptr,
                 nullptr,
@@ -345,7 +346,8 @@ struct GetValueSubKeyAndName
         );
         RECORD(
             "set non-ASCII",
-            api.RegSetKeyValueW(
+            VRegSetKeyValueW(
+                api,
                 hRoot,
                 L"S\u00e4b",
                 L"v\u20ac",
@@ -356,7 +358,8 @@ struct GetValueSubKeyAndName
         );
         RECORD(
             "set 32",
-            api.RegSetKeyValueW(
+            VRegSetKeyValueW(
+                api,
                 hRoot,
                 L"Sub",
                 L"v32",
@@ -423,7 +426,8 @@ struct GetValueSubKeyAndName
                     DWORD cbData = sizeof(data);
                     RECORD(
                         label + std::format(" W {:#x}", dwFlags),
-                        api.RegGetValueW(
+                        VRegGetValueW(
+                            api,
                             hRoot,
                             pszSub,
                             pszValue,
@@ -445,7 +449,8 @@ struct GetValueSubKeyAndName
                     cbData = sizeof(adata);
                     RECORD(
                         label + std::format(" A {:#x}", dwFlags),
-                        api.RegGetValueA(
+                        VRegGetValueA(
+                            api,
                             hRoot,
                             pszNarrow,
                             pszNarrowValue,
@@ -468,7 +473,8 @@ struct GetValueSubKeyAndName
         std::array<BYTE, 8> data;
         RECORD(
             "W invalid handle",
-            api.RegGetValueW(
+            VRegGetValueW(
+                api,
                 nullptr,
                 nullptr,
                 L"v",
@@ -481,7 +487,8 @@ struct GetValueSubKeyAndName
         );
         RECORD(
             "A invalid handle",
-            api.RegGetValueA(
+            VRegGetValueA(
+                api,
                 nullptr,
                 nullptr,
                 "v",
@@ -494,7 +501,8 @@ struct GetValueSubKeyAndName
         );
         RECORD(
             "W invalid handle with sub",
-            api.RegGetValueW(
+            VRegGetValueW(
+                api,
                 nullptr,
                 L"Sub",
                 L"v",
@@ -507,7 +515,8 @@ struct GetValueSubKeyAndName
         );
         RECORD(
             "A invalid handle with sub",
-            api.RegGetValueA(
+            VRegGetValueA(
+                api,
                 nullptr,
                 "Sub",
                 "v",
@@ -523,9 +532,8 @@ struct GetValueSubKeyAndName
 
 struct LoadMUIStringForms
 {
-    template <class Api>
     void operator()(
-        Api& api,
+        const Api& api,
         const HKEY hRoot,
         Recorder& record
     ) const
@@ -569,12 +577,11 @@ struct LoadMUIStringForms
         // A hive never resolves an indirect string, but answers a value marked
         // as MUI text with its text: here, what the indirect string resolves
         // to.
-        if constexpr (std::is_same_v<Api, VirtualRegistry>)
+        if (VReg__Node* const pNode = VReg__NodeOf(hRoot))
         {
-            auto* const pNode = Hive::NodeOf(hRoot);
             REQUIRE(
                 VReg__HiveSetMuiTextValue(
-                    Hive::HiveOf(pNode),
+                    VReg__NodeHive(pNode),
                     pNode,
                     L"Indirect",
                     ResolvedIndirect().c_str()
@@ -603,7 +610,7 @@ struct LoadMUIStringForms
             // Resolving an indirect string loads a resource module, which a
             // virtual key never does.
             if (
-                VIRTUAL_KEYS<Api>
+                api.isVirtualKeys
                 && std::wstring_view(pszName).starts_with(L"Indirect")
                 && std::wstring_view(pszName) != L"Indirect"
             )
@@ -624,7 +631,8 @@ struct LoadMUIStringForms
                         "muiW "
                         + label
                         + std::format(" flags {} buffer {}", dwFlags, cbBuffer),
-                        api.RegLoadMUIStringW(
+                        VRegLoadMUIStringW(
+                            api,
                             hRoot,
                             pszName,
                             data.data(),
@@ -641,7 +649,8 @@ struct LoadMUIStringForms
                 DWORD cbData = FILL_SIZE;
                 RECORD(
                     "muiW size " + label + std::format(" flags {}", dwFlags),
-                    api.RegLoadMUIStringW(
+                    VRegLoadMUIStringW(
+                        api,
                         hRoot,
                         pszName,
                         nullptr,
@@ -657,7 +666,8 @@ struct LoadMUIStringForms
                     "muiW null buffer "
                     + label
                     + std::format(" flags {}", dwFlags),
-                    api.RegLoadMUIStringW(
+                    VRegLoadMUIStringW(
+                        api,
                         hRoot,
                         pszName,
                         nullptr,
@@ -672,7 +682,8 @@ struct LoadMUIStringForms
                 std::memset(data.data(), FILL, sizeof(data));
                 RECORD(
                     "muiW no size " + label + std::format(" flags {}", dwFlags),
-                    api.RegLoadMUIStringW(
+                    VRegLoadMUIStringW(
+                        api,
                         hRoot,
                         pszName,
                         data.data(),
@@ -691,11 +702,12 @@ struct LoadMUIStringForms
             DWORD cbData = FILL_SIZE;
             // Natively the directory decides where the module is found; a
             // value marked as MUI text has no module.
-            if (!VIRTUAL_KEYS<Api> || label != "Indirect")
+            if (!api.isVirtualKeys || label != "Indirect")
             {
                 RECORD(
                     "muiW directory " + label,
-                    api.RegLoadMUIStringW(
+                    VRegLoadMUIStringW(
+                        api,
                         hRoot,
                         pszName,
                         data.data(),
@@ -715,7 +727,8 @@ struct LoadMUIStringForms
             cbData = FILL_SIZE;
             RECORD(
                 "muiA " + label,
-                api.RegLoadMUIStringA(
+                VRegLoadMUIStringA(
+                    api,
                     hRoot,
                     narrow.c_str(),
                     adata.data(),
@@ -730,7 +743,8 @@ struct LoadMUIStringForms
             cbData = FILL_SIZE;
             RECORD(
                 "muiA size " + label,
-                api.RegLoadMUIStringA(
+                VRegLoadMUIStringA(
+                    api,
                     hRoot,
                     narrow.c_str(),
                     nullptr,
@@ -743,7 +757,8 @@ struct LoadMUIStringForms
             );
             RECORD(
                 "muiA no size " + label,
-                api.RegLoadMUIStringA(
+                VRegLoadMUIStringA(
+                    api,
                     hRoot,
                     narrow.c_str(),
                     adata.data(),
@@ -758,7 +773,8 @@ struct LoadMUIStringForms
         std::array<char, 8> adata;
         RECORD(
             "muiA null value",
-            api.RegLoadMUIStringA(
+            VRegLoadMUIStringA(
+                api,
                 hRoot,
                 nullptr,
                 adata.data(),
@@ -770,7 +786,8 @@ struct LoadMUIStringForms
         );
         RECORD(
             "muiA invalid handle",
-            api.RegLoadMUIStringA(
+            VRegLoadMUIStringA(
+                api,
                 nullptr,
                 "Plain",
                 adata.data(),
@@ -782,7 +799,8 @@ struct LoadMUIStringForms
         );
         RECORD(
             "muiA bad flags",
-            api.RegLoadMUIStringA(
+            VRegLoadMUIStringA(
+                api,
                 hRoot,
                 "Plain",
                 adata.data(),
@@ -797,7 +815,8 @@ struct LoadMUIStringForms
         DWORD cbData = FILL_SIZE;
         RECORD(
             "muiW null value",
-            api.RegLoadMUIStringW(
+            VRegLoadMUIStringW(
+                api,
                 hRoot,
                 nullptr,
                 wdata.data(),
@@ -810,7 +829,8 @@ struct LoadMUIStringForms
         );
         RECORD(
             "muiW invalid handle",
-            api.RegLoadMUIStringW(
+            VRegLoadMUIStringW(
+                api,
                 nullptr,
                 L"Plain",
                 wdata.data(),
@@ -823,7 +843,8 @@ struct LoadMUIStringForms
         );
         RECORD(
             "muiW bad flags",
-            api.RegLoadMUIStringW(
+            VRegLoadMUIStringW(
+                api,
                 hRoot,
                 L"Plain",
                 wdata.data(),
@@ -837,9 +858,8 @@ struct LoadMUIStringForms
     }
 };
 
-template <class Api>
 LSTATUS QueryMultiple(
-    Api& api,
+    const Api& api,
     HKEY hKey,
     PVALENTW pEntries,
     DWORD cEntries,
@@ -847,7 +867,8 @@ LSTATUS QueryMultiple(
     LPDWORD pcbTotal
 ) noexcept
 {
-    return api.RegQueryMultipleValuesW(
+    return VRegQueryMultipleValuesW(
+        api,
         hKey,
         pEntries,
         cEntries,
@@ -856,9 +877,8 @@ LSTATUS QueryMultiple(
     );
 }
 
-template <class Api>
 LSTATUS QueryMultiple(
-    Api& api,
+    const Api& api,
     HKEY hKey,
     PVALENTA pEntries,
     DWORD cEntries,
@@ -866,7 +886,8 @@ LSTATUS QueryMultiple(
     LPDWORD pcbTotal
 ) noexcept
 {
-    return api.RegQueryMultipleValuesA(
+    return VRegQueryMultipleValuesA(
+        api,
         hKey,
         pEntries,
         cEntries,
@@ -877,7 +898,7 @@ LSTATUS QueryMultiple(
 
 template <class Api, class Char, class Valent>
 void MultipleMatrix(
-    Api& api,
+    const Api& api,
     Recorder& record,
     const HKEY hKey,
     std::vector<std::basic_string<Char>> names,
@@ -988,9 +1009,8 @@ void MultipleMatrix(
 
 struct QueryMultipleValuesForms
 {
-    template <class Api>
     void operator()(
-        Api& api,
+        const Api& api,
         const HKEY hRoot,
         Recorder& record
     ) const
@@ -999,7 +1019,8 @@ struct QueryMultipleValuesForms
         const DWORD dword = 0x12345678;
         RECORD(
             "set a",
-            api.RegSetValueExW(
+            VRegSetValueExW(
+                api,
                 hRoot,
                 L"a",
                 0,
@@ -1010,7 +1031,8 @@ struct QueryMultipleValuesForms
         );
         RECORD(
             "set b",
-            api.RegSetValueExW(
+            VRegSetValueExW(
+                api,
                 hRoot,
                 L"b",
                 0,
@@ -1021,7 +1043,8 @@ struct QueryMultipleValuesForms
         );
         RECORD(
             "set c",
-            api.RegSetValueExW(
+            VRegSetValueExW(
+                api,
                 hRoot,
                 L"c",
                 0,
@@ -1032,7 +1055,8 @@ struct QueryMultipleValuesForms
         );
         RECORD(
             "set d",
-            api.RegSetValueExW(
+            VRegSetValueExW(
+                api,
                 hRoot,
                 L"d",
                 0,
@@ -1043,7 +1067,8 @@ struct QueryMultipleValuesForms
         );
         RECORD(
             "set e",
-            api.RegSetValueExW(
+            VRegSetValueExW(
+                api,
                 hRoot,
                 L"e",
                 0,
@@ -1054,7 +1079,8 @@ struct QueryMultipleValuesForms
         );
         RECORD(
             "set default",
-            api.RegSetValueExW(
+            VRegSetValueExW(
+                api,
                 hRoot,
                 nullptr,
                 0,
@@ -1173,7 +1199,8 @@ struct QueryMultipleValuesForms
         buffer.fill(FILL);
         RECORD(
             "W no entries",
-            api.RegQueryMultipleValuesW(
+            VRegQueryMultipleValuesW(
+                api,
                 hRoot,
                 &wide,
                 0,
@@ -1186,7 +1213,8 @@ struct QueryMultipleValuesForms
         cbTotal = 64;
         RECORD(
             "A no entries",
-            api.RegQueryMultipleValuesA(
+            VRegQueryMultipleValuesA(
+                api,
                 hRoot,
                 &narrow,
                 0,
@@ -1199,7 +1227,8 @@ struct QueryMultipleValuesForms
         cbTotal = 64;
         RECORD(
             "W invalid handle",
-            api.RegQueryMultipleValuesW(
+            VRegQueryMultipleValuesW(
+                api,
                 nullptr,
                 &wide,
                 1,
@@ -1211,7 +1240,8 @@ struct QueryMultipleValuesForms
         cbTotal = 64;
         RECORD(
             "A invalid handle",
-            api.RegQueryMultipleValuesA(
+            VRegQueryMultipleValuesA(
+                api,
                 nullptr,
                 &narrow,
                 1,
@@ -1237,9 +1267,10 @@ TEMPLATE_LIST_TEST_CASE(
     Scenarios
 )
 {
-    Win32Api win32;
-    NativeRegistry native;
-    CheckSameRecording(Record<TestType>(win32), Record<TestType>(native));
+    Win32Registry win32Registry;
+    const Api win32 = NativeReference(win32Registry);
+    OwnedRegistry native = MakeNativeRegistry();
+    CheckSameRecording(Record<TestType>(win32), Record<TestType>(Api{native, false}));
 }
 
 TEMPLATE_LIST_TEST_CASE(
@@ -1248,7 +1279,8 @@ TEMPLATE_LIST_TEST_CASE(
     Scenarios
 )
 {
-    Reduced<Win32Api> win32;
+    Win32Registry win32Registry;
+    const Api win32 = ReducedReference(win32Registry);
     // The reference first, so it skips under Wine before the virtual run
     // asks the system to resolve an indirect string (see ResolvedIndirect).
     const auto expected = Record<TestType>(win32);
@@ -1261,6 +1293,7 @@ TEMPLATE_LIST_TEST_CASE(
     Scenarios
 )
 {
-    Reduced<Win32Api> win32;
+    Win32Registry win32Registry;
+    const Api win32 = ReducedReference(win32Registry);
     CheckSameRecording(Record<TestType>(win32), RecordOverlay<TestType>());
 }

@@ -82,11 +82,12 @@ constexpr DWORD VALUE_BYTES = 256 * 1024;
 constexpr std::size_t LIMIT_BYTES = VALUE_BYTES / 16;
 
 /// Stores the large value the checks below ask for, through @p registry.
-void SetBigValue(Registry& registry, const HKEY hKey)
+void SetBigValue(VRegRegistry* const registry, const HKEY hKey)
 {
     const std::vector<std::byte> value(VALUE_BYTES, std::byte{0x5A});
     REQUIRE(
-        registry.RegSetValueExW(
+        VRegSetValueExW(
+            registry,
             hKey,
             L"Big",
             0,
@@ -99,7 +100,7 @@ void SetBigValue(Registry& registry, const HKEY hKey)
 
 /// Asks for the size of the large value, by name and by enumeration, and
 /// checks that no allocation anywhere near its size happens meanwhile.
-void CheckSizeOnly(VirtualRegistry& registry, const HKEY hKey)
+void CheckSizeOnly(VRegRegistry* const registry, const HKEY hKey)
 {
     {
         DWORD dwType{};
@@ -108,7 +109,8 @@ void CheckSizeOnly(VirtualRegistry& registry, const HKEY hKey)
         std::size_t cbLargest{};
         {
             const LargestAllocation tracker;
-            status = registry.RegQueryValueExW(
+            status = VRegQueryValueExW(
+                registry,
                 hKey,
                 L"Big",
                 nullptr,
@@ -133,7 +135,8 @@ void CheckSizeOnly(VirtualRegistry& registry, const HKEY hKey)
         std::size_t cbLargest{};
         {
             const LargestAllocation tracker;
-            status = registry.RegEnumValueW(
+            status = VRegEnumValueW(
+                registry,
                 hKey,
                 0,
                 szName,
@@ -319,41 +322,41 @@ void operator delete[](
 
 TEST_CASE("A size-only query of a Hive value copies no data")
 {
-    Hive hive;
-    VirtualRegistry registry;
+    OwnedHive hive = MakeHive();
+    OwnedRegistry registry = MakeVirtualRegistry();
     REQUIRE(
-        registry.Mount(HKEY_CURRENT_USER, L"SizeOnly", hive) == ERROR_SUCCESS
+        VRegMount(registry, HKEY_CURRENT_USER, L"SizeOnly", hive, 0) == ERROR_SUCCESS
     );
 
-    SetBigValue(registry, Hive::HandleOf(hive.Root()));
-    CheckSizeOnly(registry, Hive::HandleOf(hive.Root()));
+    SetBigValue(registry, RootHandle(hive));
+    CheckSizeOnly(registry, RootHandle(hive));
 }
 
 TEST_CASE("A size-only query of an Hive upper value copies no data")
 {
     AppHive appHive;
-    NativeRegistry native;
-    Hive overlay(native, appHive.Root(), L"");
-    VirtualRegistry registry(&native);
+    OwnedRegistry native = MakeNativeRegistry();
+    OwnedHive overlay = MakeLayeredHive(native, appHive.Root(), L"");
+    OwnedRegistry registry = MakeVirtualRegistry(native);
     REQUIRE(
-        registry.Mount(HKEY_CURRENT_USER, L"SizeOnly", overlay) == ERROR_SUCCESS
+        VRegMount(registry, HKEY_CURRENT_USER, L"SizeOnly", overlay, 0) == ERROR_SUCCESS
     );
 
-    SetBigValue(registry, Hive::HandleOf(overlay.Root()));
-    CheckSizeOnly(registry, Hive::HandleOf(overlay.Root()));
+    SetBigValue(registry, RootHandle(overlay));
+    CheckSizeOnly(registry, RootHandle(overlay));
 }
 
 TEST_CASE("A size-only query of an Hive lower value copies no data")
 {
     AppHive appHive;
-    NativeRegistry native;
+    OwnedRegistry native = MakeNativeRegistry();
     SetBigValue(native, appHive.Root());
 
-    Hive overlay(native, appHive.Root(), L"");
-    VirtualRegistry registry(&native);
+    OwnedHive overlay = MakeLayeredHive(native, appHive.Root(), L"");
+    OwnedRegistry registry = MakeVirtualRegistry(native);
     REQUIRE(
-        registry.Mount(HKEY_CURRENT_USER, L"SizeOnly", overlay) == ERROR_SUCCESS
+        VRegMount(registry, HKEY_CURRENT_USER, L"SizeOnly", overlay, 0) == ERROR_SUCCESS
     );
 
-    CheckSizeOnly(registry, Hive::HandleOf(overlay.Root()));
+    CheckSizeOnly(registry, RootHandle(overlay));
 }
