@@ -2892,6 +2892,15 @@ VREGDEF void VReg__Free(_In_opt_ void* const pAllocContext, _In_opt_ void* const
 // ANSI conversion
 // ==========================================================================
 
+static SIZE_T VReg__AnsiLength(_In_z_ const char* const psz)
+{
+    SIZE_T cch = 0;
+    while (psz[cch] != '\0')
+        ++cch;
+
+    return cch;
+}
+
 VREGDEF LSTATUS VReg__WideFromAnsi(
     _In_opt_ void* const pAllocContext,
     _In_reads_(cch) const char* const pch,
@@ -2942,16 +2951,12 @@ VREGDEF LSTATUS VReg__WideArgInit(
     _Out_ VReg__WideArg* const pArg
 )
 {
-    SIZE_T cch = 0;
     ZeroMemory(pArg, sizeof(*pArg));
     pArg->isNull = psz == NULL;
     if (!psz)
         return ERROR_SUCCESS;
 
-    while (psz[cch] != '\0')
-        ++cch;
-
-    return VReg__WideFromAnsi(pAllocContext, psz, cch, &pArg->text);
+    return VReg__WideFromAnsi(pAllocContext, psz, VReg__AnsiLength(psz), &pArg->text);
 }
 
 VREGDEF _Ret_maybenull_z_ LPCWSTR VReg__WideArgText(_In_ const VReg__WideArg* const pArg)
@@ -2996,6 +3001,11 @@ VREGDEF DWORD VReg__MinDword(const DWORD a, const DWORD b)
 VREGDEF DWORD VReg__MaxDword(const DWORD a, const DWORD b)
 {
     return a > b ? a : b;
+}
+
+static SIZE_T VReg__MinSize(const SIZE_T a, const SIZE_T b)
+{
+    return a < b ? a : b;
 }
 
 VREGDEF VReg__WStringView VReg__ViewOf(_In_opt_z_ const LPCWSTR psz)
@@ -3174,6 +3184,20 @@ VREGDEF BOOL VReg__WStringAppend(
 VREGDEF BOOL VReg__WStringAppendChar(_In_opt_ void* const pAllocContext, _Inout_ VReg__WString* const pString, const wchar_t ch)
 {
     return VReg__WStringAppend(pAllocContext, pString, &ch, 1);
+}
+
+/// Appends a key path component, after a backslash unless @p pPath is empty.
+static BOOL VReg__AppendPathComponent(
+    _In_opt_ void* const pAllocContext,
+    _Inout_ VReg__WString* const pPath,
+    _In_reads_(cch) const wchar_t* const pch,
+    const SIZE_T cch
+)
+{
+    if (pPath->cch != 0 && !VReg__WStringAppendChar(pAllocContext, pPath, L'\\'))
+        return FALSE;
+
+    return VReg__WStringAppend(pAllocContext, pPath, pch, cch);
 }
 
 VREGDEF void VReg__WStringTruncate(_Inout_ VReg__WString* const pString, const SIZE_T cch)
@@ -3449,20 +3473,6 @@ typedef struct VReg__PlacedValue
 static DWORD VReg__AlignedToDword(const DWORD cb)
 {
     return (cb + 3) & ~(DWORD)3;
-}
-
-static SIZE_T VReg__MinSize(const SIZE_T a, const SIZE_T b)
-{
-    return a < b ? a : b;
-}
-
-static SIZE_T VReg__AnsiLength(_In_z_ const char* const psz)
-{
-    SIZE_T cch = 0;
-    while (psz[cch] != '\0')
-        ++cch;
-
-    return cch;
 }
 
 /// Copies @p cb bytes; a null @p pSource is legal only for none.
@@ -6214,9 +6224,7 @@ static BOOL VReg__HiveJoinPath(
     SIZE_T i;
     for (i = 0; i < cNames; ++i)
     {
-        if (pPath->cch != 0 && !VReg__WStringAppendChar(pAllocContext, pPath, L'\\'))
-            return FALSE;
-        if (!VReg__WStringAppend(pAllocContext, pPath, pNames[i].pch, pNames[i].cch))
+        if (!VReg__AppendPathComponent(pAllocContext, pPath, pNames[i].pch, pNames[i].cch))
             return FALSE;
     }
 
@@ -6233,10 +6241,8 @@ static BOOL VReg__HiveAppendNodePath(
         return TRUE;
     if (!VReg__HiveAppendNodePath(pAllocContext, pPath, pNode->pParent))
         return FALSE;
-    if (pPath->cch != 0 && !VReg__WStringAppendChar(pAllocContext, pPath, L'\\'))
-        return FALSE;
 
-    return VReg__WStringAppend(pAllocContext, pPath, VReg__WStringText(&pNode->name), pNode->name.cch);
+    return VReg__AppendPathComponent(pAllocContext, pPath, VReg__WStringText(&pNode->name), pNode->name.cch);
 }
 
 /// Whether @p pNode's lower key shows through, and its path (read under the
@@ -11751,10 +11757,8 @@ static BOOL VReg__JoinKeyPath(
         return FALSE;
     if (path.cch == 0)
         return TRUE;
-    if (pFull->cch != 0 && !VReg__WStringAppendChar(pAllocContext, pFull, L'\\'))
-        return FALSE;
 
-    return VReg__WStringAppend(pAllocContext, pFull, path.pch, path.cch);
+    return VReg__AppendPathComponent(pAllocContext, pFull, path.pch, path.cch);
 }
 
 // --- Snapshot ---
