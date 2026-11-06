@@ -13,18 +13,29 @@ target_sources(VReg_VReg PUBLIC FILE_SET HEADERS BASE_DIRS ${PROJECT_SOURCE_DIR}
 )
 
 target_sources(VReg_VReg PRIVATE
+    core/alloc.c
+    core/alloc.h
     core/ansi.cpp
     core/ansi.h
+    core/buffer.c
+    core/buffer.h
     core/export_table.cpp
     core/export_table.h
     core/handle.c
     core/handle_space.c
     core/handle_space.h
-    core/lock.h
+    core/hive.c
     core/hive.cpp
+    core/hive.h
+    core/lock.h
     core/native_registry.cpp
     core/node.h
+    core/owned_reads.c
+    core/owned_reads.h
     core/owned_values.cpp
+    core/path.c
+    core/path.h
+    core/registry.c
     core/registry.cpp
     core/retry.h
     core/rrf.h

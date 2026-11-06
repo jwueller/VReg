@@ -265,6 +265,7 @@ try
         .hRoot = hRoot,
         .path = {components.begin(), components.end()},
         .pHive = &hive,
+        .pCHive = hive.Get(),
         .samView = samView,
         .nativePath = NativeRootPath(hRoot),
     };
@@ -315,11 +316,11 @@ const VirtualRegistry::MountTable& VirtualRegistry::Mounts() const noexcept
 }
 
 const VirtualRegistry::MountPoint* VirtualRegistry::MountOf(
-    const Hive* const pHive
+    const VRegHive* const pHive
 ) const noexcept
 {
     const auto& mounts = Mounts().mounts;
-    const auto it = std::ranges::find(mounts, pHive, &MountPoint::pHive);
+    const auto it = std::ranges::find(mounts, pHive, &MountPoint::pCHive);
     return it == mounts.end() ? nullptr : &*it;
 }
 
@@ -854,7 +855,8 @@ try
         auto* const pLower = pHive->Lower();
         // A lower handle exists only where there is a lower registry.
         _Analysis_assume_(pLower);
-        pLower->RegCloseKey(
+        VRegCloseKey(
+            pLower,
             result.hLower
         );
         return ERROR_ACCESS_DENIED;
@@ -1181,7 +1183,8 @@ try
         auto* const pLower = pHive->Lower();
         // A lower handle exists only where there is a lower registry.
         _Analysis_assume_(pLower);
-        const auto status = pLower->RegLoadMUIStringW(
+        const auto status = VRegLoadMUIStringW(
+            pLower,
             hLower,
             pszValue,
             pszOutBuf,
@@ -1190,7 +1193,8 @@ try
             Flags,
             pszDirectory
         );
-        pLower->RegCloseKey(
+        VRegCloseKey(
+            pLower,
             hLower
         );
         return status;
@@ -1318,7 +1322,8 @@ try
             auto* const pLower = pHive->Lower();
             // A lower handle exists only where there is a lower registry.
             _Analysis_assume_(pLower);
-            const auto status = pLower->RegGetValueW(
+            const auto status = VRegGetValueW(
+                pLower,
                 result.hLower,
                 nullptr,
                 lpValue,
@@ -1327,7 +1332,8 @@ try
                 pvData,
                 pcbData
             );
-            pLower->RegCloseKey(
+            VRegCloseKey(
+                pLower,
                 result.hLower
             );
             return status;

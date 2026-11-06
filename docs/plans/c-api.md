@@ -126,15 +126,19 @@ to the project languages at step 1.
    section layout is an ABI and does not change.
 2. **Hive.** `hive.cpp` and `node.h` to C behind `VRegHive`, with the
    allocation macros and context, exceptions replaced by status returns, the
-   node-level API `static`. The C++ `Hive` class forwards until step 3.
-   `test_virtual_registry.cpp`, `test_overlay_hive.cpp`, `test_notify.cpp`
-   and `test_size_only.cpp` create hives through the C functions.
-3. **Registry vtable, native and virtual registry.** `registry.h`'s
-   virtuals become the vtable; `native_registry.cpp` and
-   `virtual_registry.cpp` to C. The C++ `Registry` class forwards to the
-   flat functions until step 5. `test/intercept_registry.h` becomes a C
-   vtable implementation (the test for "a wrapper sees the ANSI form").
-   `test/oracle.*` and `test/scenario.h` switch to the C objects.
+   node-level API private (`VReg__Hive*` in `core/hive.h`). The vtable type
+   and the flat wide `Ex` functions land here too, since a layered hive's
+   lower registry is a `VRegRegistry`; the C++ `Registry` class exposes
+   itself as one through a forwarding table. The C++ `Hive` class forwards
+   until step 3, and the tests keep constructing hives through it until
+   then, because `VirtualRegistry::Mount` still takes the C++ class.
+3. **Native and virtual registry.** `native_registry.cpp` and
+   `virtual_registry.cpp` to C as vtable implementations. The C++ `Registry`
+   class forwards to the flat functions until step 5. `test/intercept_registry.h`
+   becomes a C vtable implementation (the test for "a wrapper sees the ANSI
+   form"). `test/oracle.*`, `test/scenario.h`, `test_virtual_registry.cpp`,
+   `test_overlay_hive.cpp`, `test_notify.cpp` and `test_size_only.cpp` switch
+   to the C objects, hives included.
 4. **Forms and `.reg`.** The ANSI, pre-`Ex` and convenience forms
    (`registry.cpp`) and `regfile/` to C, with `VRegOperation` replacing the
    three record structs. `test_regfile_*.cpp` and `test_registry.cpp` move

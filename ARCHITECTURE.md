@@ -103,7 +103,7 @@ flags that describe a node's relation to the lower layer stay clear in it.
     an upper value answers as any hive value does.
 - A hive never resolves an `@` resource reference for `RegLoadMUIString`,
   since that would load a module under a possibly foreign loader lock. A
-  value stored with `Hive::SetMuiTextValue` carries a mark that makes it
+  value stored with `VRegSetHiveMuiTextValue` carries a mark that makes it
   stand for the text such a reference resolves to. Agent's choice: an
   explicit mark per value, set through the hive. A value type of our own
   would show through `RegQueryValueEx`, and answering every plain string
@@ -372,7 +372,7 @@ In namespace `VReg::RegFile` (`include/VReg/regfile.h`):
   `[K]`; the persistence format for overlays, and for an in-memory hive its
   whole contents. Re-importing over the same lower registry reproduces the
   view. `root` and `path` name where the hive is mounted; key names are that
-  prefix plus the key's path in the hive. The walk is `Hive::SnapshotUpper`,
+  prefix plus the key's path in the hive. The walk is `VReg__HiveSnapshotUpper`,
   which reads the upper tree under the hive's read lock and never calls the
   lower registry. A key that only shows
   a lower key through and holds no value of its own is omitted, so opening

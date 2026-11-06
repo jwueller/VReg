@@ -62,7 +62,341 @@ bool CopyAnsiClass(
     pszBuffer[cchCopied] = '\0';
     return text.size() < cchBuffer;
 }
+Registry* OwnerOf(VRegRegistry* const pThis) noexcept
+{
+    return reinterpret_cast<Registry::CObjectData*>(pThis)->pOwner;
+}
+
+LSTATUS WINAPI ForwardRegOpenKeyExW(
+    _In_ VRegRegistry* const pThis,
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR lpSubKey,
+    _In_ const DWORD ulOptions,
+    _In_ const REGSAM samDesired,
+    _Out_ const PHKEY phkResult
+) noexcept
+{
+    return OwnerOf(pThis)->RegOpenKeyExW(
+        hKey,
+        lpSubKey,
+        ulOptions,
+        samDesired,
+        phkResult
+    );
+}
+
+LSTATUS WINAPI ForwardRegCreateKeyExW(
+    _In_ VRegRegistry* const pThis,
+    _In_ const HKEY hKey,
+    _In_ const LPCWSTR lpSubKey,
+    _Reserved_ const DWORD Reserved,
+    _In_opt_ const LPWSTR lpClass,
+    _In_ const DWORD dwOptions,
+    _In_ const REGSAM samDesired,
+    _In_opt_ const LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+    _Out_ const PHKEY phkResult,
+    _Out_opt_ const LPDWORD lpdwDisposition
+) noexcept
+{
+    return OwnerOf(pThis)->RegCreateKeyExW(
+        hKey,
+        lpSubKey,
+        Reserved,
+        lpClass,
+        dwOptions,
+        samDesired,
+        lpSecurityAttributes,
+        phkResult,
+        lpdwDisposition
+    );
+}
+
+LSTATUS WINAPI ForwardRegCloseKey(
+    _In_ VRegRegistry* const pThis,
+    _In_ const HKEY hKey
+) noexcept
+{
+    return OwnerOf(pThis)->RegCloseKey(
+        hKey
+    );
+}
+
+LSTATUS WINAPI ForwardRegQueryValueExW(
+    _In_ VRegRegistry* const pThis,
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR lpValueName,
+    _Reserved_ const LPDWORD lpReserved,
+    _Out_opt_ const LPDWORD lpType,
+    _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) const LPBYTE lpData,
+    _When_(lpData == NULL, _Out_opt_) _When_(lpData != NULL, _Inout_opt_) const LPDWORD lpcbData
+) noexcept
+{
+    return OwnerOf(pThis)->RegQueryValueExW(
+        hKey,
+        lpValueName,
+        lpReserved,
+        lpType,
+        lpData,
+        lpcbData
+    );
+}
+
+LSTATUS WINAPI ForwardRegSetValueExW(
+    _In_ VRegRegistry* const pThis,
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR lpValueName,
+    _Reserved_ const DWORD Reserved,
+    _In_ const DWORD dwType,
+    _In_reads_bytes_opt_(cbData) const BYTE* const lpData,
+    _In_ const DWORD cbData
+) noexcept
+{
+    return OwnerOf(pThis)->RegSetValueExW(
+        hKey,
+        lpValueName,
+        Reserved,
+        dwType,
+        lpData,
+        cbData
+    );
+}
+
+LSTATUS WINAPI ForwardRegDeleteValueW(
+    _In_ VRegRegistry* const pThis,
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR lpValueName
+) noexcept
+{
+    return OwnerOf(pThis)->RegDeleteValueW(
+        hKey,
+        lpValueName
+    );
+}
+
+LSTATUS WINAPI ForwardRegDeleteKeyExW(
+    _In_ VRegRegistry* const pThis,
+    _In_ const HKEY hKey,
+    _In_ const LPCWSTR lpSubKey,
+    _In_ const REGSAM samDesired,
+    _Reserved_ const DWORD Reserved
+) noexcept
+{
+    return OwnerOf(pThis)->RegDeleteKeyExW(
+        hKey,
+        lpSubKey,
+        samDesired,
+        Reserved
+    );
+}
+
+LSTATUS WINAPI ForwardRegDeleteTreeW(
+    _In_ VRegRegistry* const pThis,
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR lpSubKey
+) noexcept
+{
+    return OwnerOf(pThis)->RegDeleteTreeW(
+        hKey,
+        lpSubKey
+    );
+}
+
+LSTATUS WINAPI ForwardRegEnumKeyExW(
+    _In_ VRegRegistry* const pThis,
+    _In_ const HKEY hKey,
+    _In_ const DWORD dwIndex,
+    _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) const LPWSTR lpName,
+    _Inout_ const LPDWORD lpcchName,
+    _Reserved_ const LPDWORD lpReserved,
+    _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) const LPWSTR lpClass,
+    _Inout_opt_ const LPDWORD lpcchClass,
+    _Out_opt_ const PFILETIME lpftLastWriteTime
+) noexcept
+{
+    return OwnerOf(pThis)->RegEnumKeyExW(
+        hKey,
+        dwIndex,
+        lpName,
+        lpcchName,
+        lpReserved,
+        lpClass,
+        lpcchClass,
+        lpftLastWriteTime
+    );
+}
+
+LSTATUS WINAPI ForwardRegEnumValueW(
+    _In_ VRegRegistry* const pThis,
+    _In_ const HKEY hKey,
+    _In_ const DWORD dwIndex,
+    _Out_writes_to_opt_(*lpcchValueName, *lpcchValueName + 1) const LPWSTR lpValueName,
+    _Inout_ const LPDWORD lpcchValueName,
+    _Reserved_ const LPDWORD lpReserved,
+    _Out_opt_ const LPDWORD lpType,
+    _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) const LPBYTE lpData,
+    _Inout_opt_ const LPDWORD lpcbData
+) noexcept
+{
+    return OwnerOf(pThis)->RegEnumValueW(
+        hKey,
+        dwIndex,
+        lpValueName,
+        lpcchValueName,
+        lpReserved,
+        lpType,
+        lpData,
+        lpcbData
+    );
+}
+
+LSTATUS WINAPI ForwardRegQueryInfoKeyW(
+    _In_ VRegRegistry* const pThis,
+    _In_ const HKEY hKey,
+    _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) const LPWSTR lpClass,
+    _Inout_opt_ const LPDWORD lpcchClass,
+    _Reserved_ const LPDWORD lpReserved,
+    _Out_opt_ const LPDWORD lpcSubKeys,
+    _Out_opt_ const LPDWORD lpcbMaxSubKeyLen,
+    _Out_opt_ const LPDWORD lpcbMaxClassLen,
+    _Out_opt_ const LPDWORD lpcValues,
+    _Out_opt_ const LPDWORD lpcbMaxValueNameLen,
+    _Out_opt_ const LPDWORD lpcbMaxValueLen,
+    _Out_opt_ const LPDWORD lpcbSecurityDescriptor,
+    _Out_opt_ const PFILETIME lpftLastWriteTime
+) noexcept
+{
+    return OwnerOf(pThis)->RegQueryInfoKeyW(
+        hKey,
+        lpClass,
+        lpcchClass,
+        lpReserved,
+        lpcSubKeys,
+        lpcbMaxSubKeyLen,
+        lpcbMaxClassLen,
+        lpcValues,
+        lpcbMaxValueNameLen,
+        lpcbMaxValueLen,
+        lpcbSecurityDescriptor,
+        lpftLastWriteTime
+    );
+}
+
+LSTATUS WINAPI ForwardRegLoadMUIStringW(
+    _In_ VRegRegistry* const pThis,
+    _In_ const HKEY hKey,
+    _In_opt_ const LPCWSTR pszValue,
+    _Out_writes_bytes_opt_(cbOutBuf) const LPWSTR pszOutBuf,
+    _In_ const DWORD cbOutBuf,
+    _Out_opt_ const LPDWORD pcbData,
+    _In_ const DWORD Flags,
+    _In_opt_ const LPCWSTR pszDirectory
+) noexcept
+{
+    return OwnerOf(pThis)->RegLoadMUIStringW(
+        hKey,
+        pszValue,
+        pszOutBuf,
+        cbOutBuf,
+        pcbData,
+        Flags,
+        pszDirectory
+    );
+}
+
+// The slot's _Post_z_ on pvData holds on every return; the analyzer does not
+// carry it through the virtual call.
+#pragma warning(suppress: 6054)
+LSTATUS WINAPI ForwardRegGetValueW(
+    _In_ VRegRegistry* const pThis,
+    _In_ const HKEY hkey,
+    _In_opt_ const LPCWSTR lpSubKey,
+    _In_opt_ const LPCWSTR lpValue,
+    _In_ const DWORD dwFlags,
+    _Out_opt_ const LPDWORD pdwType,
+    _When_(
+        (dwFlags & 0x7F) == RRF_RT_REG_SZ
+        || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
+        || (dwFlags & 0x7F) == (RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ)
+        || *pdwType == REG_SZ
+        || *pdwType == REG_EXPAND_SZ,
+        _Post_z_
+    )
+    _When_(
+        (dwFlags & 0x7F) == RRF_RT_REG_MULTI_SZ
+        || *pdwType == REG_MULTI_SZ,
+        _Post_ _NullNull_terminated_
+    )
+    _Out_writes_bytes_to_opt_(*pcbData, *pcbData) const PVOID pvData,
+    _Inout_opt_ const LPDWORD pcbData
+) noexcept
+{
+    return OwnerOf(pThis)->RegGetValueW(
+        hkey,
+        lpSubKey,
+        lpValue,
+        dwFlags,
+        pdwType,
+        pvData,
+        pcbData
+    );
+}
+
+LSTATUS WINAPI ForwardRegNotifyChangeKeyValue(
+    _In_ VRegRegistry* const pThis,
+    _In_ const HKEY hKey,
+    _In_ const BOOL bWatchSubtree,
+    _In_ const DWORD dwNotifyFilter,
+    _In_opt_ const HANDLE hEvent,
+    _In_ const BOOL fAsynchronous
+) noexcept
+{
+    return OwnerOf(pThis)->RegNotifyChangeKeyValue(
+        hKey,
+        bWatchSubtree,
+        dwNotifyFilter,
+        hEvent,
+        fAsynchronous
+    );
+}
+
+LSTATUS WINAPI ForwardRegFlushKey(
+    _In_ VRegRegistry* const pThis,
+    _In_ const HKEY hKey
+) noexcept
+{
+    return OwnerOf(pThis)->RegFlushKey(
+        hKey
+    );
+}
 } // namespace
+
+const VRegRegistryVtbl Registry::s_cVtbl = {
+    .RegOpenKeyExW = &ForwardRegOpenKeyExW,
+    .RegCreateKeyExW = &ForwardRegCreateKeyExW,
+    .RegCloseKey = &ForwardRegCloseKey,
+    .RegQueryValueExW = &ForwardRegQueryValueExW,
+    .RegSetValueExW = &ForwardRegSetValueExW,
+    .RegDeleteValueW = &ForwardRegDeleteValueW,
+    .RegDeleteKeyExW = &ForwardRegDeleteKeyExW,
+    .RegDeleteTreeW = &ForwardRegDeleteTreeW,
+    .RegEnumKeyExW = &ForwardRegEnumKeyExW,
+    .RegEnumValueW = &ForwardRegEnumValueW,
+    .RegQueryInfoKeyW = &ForwardRegQueryInfoKeyW,
+    .RegLoadMUIStringW = &ForwardRegLoadMUIStringW,
+    .RegGetValueW = &ForwardRegGetValueW,
+    .RegNotifyChangeKeyValue = &ForwardRegNotifyChangeKeyValue,
+    .RegFlushKey = &ForwardRegFlushKey,
+};
+
+Registry::Registry() noexcept :
+    m_cObject{.object = {&s_cVtbl}, .pOwner = this}
+{
+}
+
+VRegRegistry* Registry::CObject() noexcept
+{
+    return &m_cObject.object;
+}
 
 LSTATUS Registry::RegOpenKeyExA(
     _In_ const HKEY hKey,
@@ -356,8 +690,8 @@ try
         return ERROR_INVALID_PARAMETER;
 
     const bool wantClass = lpClass || lpcchClass;
-    DWORD cchName = INITIAL_NAME_CHARS;
-    DWORD cchClass = wantClass ? INITIAL_NAME_CHARS : 0;
+    DWORD cchName = VREG__INITIAL_NAME_CHARS;
+    DWORD cchClass = wantClass ? VREG__INITIAL_NAME_CHARS : 0;
     std::wstring name;
     std::wstring className;
     FILETIME ftLastWrite{};
@@ -380,16 +714,16 @@ try
         );
         if (
             status != ERROR_MORE_DATA
-            || (cchName >= MAX_CLASS_CHARS && cchClass >= MAX_CLASS_CHARS)
+            || (cchName >= VREG__MAX_CLASS_CHARS && cchClass >= VREG__MAX_CLASS_CHARS)
         )
         {
             name.resize(cchNameOut);
             className.resize(cchClassOut);
             break;
         }
-        cchName = (std::min)(cchName * 2, MAX_CLASS_CHARS);
+        cchName = (std::min)(cchName * 2, VREG__MAX_CLASS_CHARS);
         if (wantClass)
-            cchClass = (std::min)(cchClass * 2, MAX_CLASS_CHARS);
+            cchClass = (std::min)(cchClass * 2, VREG__MAX_CLASS_CHARS);
     }
     if (status != ERROR_SUCCESS)
         return status;
@@ -565,7 +899,7 @@ try
         );
     }
 
-    DWORD cchClass = INITIAL_NAME_CHARS;
+    DWORD cchClass = VREG__INITIAL_NAME_CHARS;
     DWORD cchClassOut = 0;
     std::wstring className;
     LSTATUS status;
@@ -587,12 +921,12 @@ try
             lpcbSecurityDescriptor,
             lpftLastWriteTime
         );
-        if (status != ERROR_MORE_DATA || cchClass >= MAX_CLASS_CHARS)
+        if (status != ERROR_MORE_DATA || cchClass >= VREG__MAX_CLASS_CHARS)
         {
             className.resize(cchClassOut);
             break;
         }
-        cchClass = (std::min)(cchClass * 2, MAX_CLASS_CHARS);
+        cchClass = (std::min)(cchClass * 2, VREG__MAX_CLASS_CHARS);
     }
     if (status != ERROR_SUCCESS)
     {

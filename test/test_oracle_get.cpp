@@ -5,6 +5,8 @@
 
 #include <VReg/hive.h>
 
+#include "core/hive.h"
+
 #include <Shlwapi.h>
 
 #include <catch2/catch_template_test_macros.hpp>
@@ -571,7 +573,8 @@ struct LoadMUIStringForms
         {
             auto* const pNode = Hive::NodeOf(hRoot);
             REQUIRE(
-                Hive::HiveOf(pNode)->SetMuiTextValue(
+                VReg__HiveSetMuiTextValue(
+                    Hive::HiveOf(pNode),
                     pNode,
                     L"Indirect",
                     ResolvedIndirect().c_str()

@@ -222,6 +222,9 @@ private:
         std::vector<std::wstring> path;
         Hive* pHive;
 
+        /// @ref pHive's C hive, which the nodes name their hive by.
+        VRegHive* pCHive;
+
         /// @ref KEY_WOW64_64KEY, @ref KEY_WOW64_32KEY or 0 for both views.
         REGSAM samView;
 
@@ -260,7 +263,7 @@ private:
     [[nodiscard]] const MountTable& Mounts() const noexcept;
 
     /// A mount of @p pHive here; null when it is not mounted.
-    [[nodiscard]] const MountPoint* MountOf(const Hive* pHive) const noexcept;
+    [[nodiscard]] const MountPoint* MountOf(const VRegHive* pHive) const noexcept;
 
     LSTATUS MountHive(
         HKEY hRoot,

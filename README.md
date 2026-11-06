@@ -155,7 +155,7 @@ write into it.
   call and forwards it to the `VirtualRegistry` can stand in front of it.
 - **MUI strings:** `RegLoadMUIString` never resolves a hive value's `@`
   resource reference (that would load a module) and answers
-  `ERROR_INVALID_DATA`. A value stored with `Hive::SetMuiTextValue` answers
+  `ERROR_INVALID_DATA`. A value stored with `VRegSetHiveMuiTextValue` answers
   with its text instead.
 
 Code that runs inside a hook (a custom `Registry` used as a base, for
@@ -411,7 +411,7 @@ in-memory `Hive`; the scenarios skip exactly these calls for the virtual run
 - `RegLoadMUIString` answers `ERROR_INVALID_DATA` for a hive value whether
   or not it is an `@` indirect string; resolving one would load a resource
   module, which a detour body MUST NOT do. A value stored with
-  `Hive::SetMuiTextValue` instead stands for the text an indirect string
+  `VRegSetHiveMuiTextValue` instead stands for the text an indirect string
   resolves to: it answers with that text, sized and truncated as native
   answers a resolved string, and ignores `pszDirectory` (there is no module
   to find).

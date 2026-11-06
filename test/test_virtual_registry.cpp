@@ -7,6 +7,8 @@
 #include <VReg/owned_values.h>
 #include <VReg/virtual_registry.h>
 
+#include "core/hive.h"
+
 #include <catch2/catch_test_macros.hpp>
 
 #include <array>
@@ -254,6 +256,38 @@ TEST_CASE("A frozen hive refuses writes and still answers reads")
         ) == ERROR_ACCESS_DENIED
     );
     CHECK(QueryDword(registry, hSub, L"v", status) == 7);
+}
+
+TEST_CASE("A hive created through the C functions takes MUI text by path")
+{
+    VRegHive* pHive = nullptr;
+    REQUIRE(VRegCreateHive(nullptr, &pHive) == ERROR_SUCCESS);
+    REQUIRE(VRegSetHiveMuiTextValue(pHive, L"Sub\\Deep", L"Name", L"Text") == ERROR_SUCCESS);
+
+    const std::array<VReg__WStringView, 2> path{{{L"Sub", 3}, {L"Deep", 4}}};
+    VReg__OpenResult opened{};
+    REQUIRE(
+        VReg__HiveOpenKey(pHive, VReg__HiveRoot(pHive), path.data(), path.size(), KEY_READ, &opened)
+        == ERROR_SUCCESS
+    );
+    REQUIRE(opened.pNode != nullptr);
+    VReg__WString text{};
+    CHECK(VReg__HiveQueryMuiText(pHive, opened.pNode, L"Name", &text) == ERROR_SUCCESS);
+    CHECK(std::wstring_view(VReg__WStringText(&text), text.cch) == L"Text");
+    VReg__WStringFree(VReg__HiveAllocContext(pHive), &text);
+
+    // A null path and name address the root's default value.
+    CHECK(VRegSetHiveMuiTextValue(pHive, nullptr, nullptr, L"Default") == ERROR_SUCCESS);
+    CHECK(VRegSetHiveMuiTextValue(pHive, L"\\Bad", L"Name", L"Text") == ERROR_BAD_PATHNAME);
+
+    CHECK_FALSE(VRegIsHiveFrozen(pHive));
+    VRegFreezeHive(pHive);
+    CHECK(VRegIsHiveFrozen(pHive));
+    CHECK(VRegSetHiveMuiTextValue(pHive, L"Sub", L"Name", L"Text") == ERROR_ACCESS_DENIED);
+    CHECK(VRegSetHiveMuiTextValue(pHive, L"New", L"Name", L"Text") == ERROR_ACCESS_DENIED);
+
+    VRegDestroyHive(pHive);
+    VRegDestroyHive(nullptr);
 }
 
 TEST_CASE("A value marked as MUI text loads as its text until written again")

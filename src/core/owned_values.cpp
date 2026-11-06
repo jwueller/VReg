@@ -43,7 +43,7 @@ try
         );
         if (status == ERROR_MORE_DATA)
         {
-            cbData = Grown(cbData, cbRead);
+            cbData = VReg__Grown(cbData, cbRead);
             continue;
         }
         if (status == ERROR_SUCCESS)
@@ -100,7 +100,7 @@ try
         );
         if (status == ERROR_MORE_DATA)
         {
-            cbData = Grown(cbData, cbRead);
+            cbData = VReg__Grown(cbData, cbRead);
             continue;
         }
         if (status == ERROR_SUCCESS)
@@ -163,7 +163,7 @@ LSTATUS EnumKey(
 ) noexcept
 try
 {
-    DWORD cchName = INITIAL_NAME_CHARS;
+    DWORD cchName = VREG__INITIAL_NAME_CHARS;
     for (;;)
     {
         name.assign(cchName, L'\0');
@@ -178,9 +178,9 @@ try
             nullptr,
             nullptr
         );
-        if (status == ERROR_MORE_DATA && cchName < MAX_CLASS_CHARS)
+        if (status == ERROR_MORE_DATA && cchName < VREG__MAX_CLASS_CHARS)
         {
-            cchName = (std::min)(Grown(cchName, cchRead), MAX_CLASS_CHARS);
+            cchName = (std::min)(VReg__Grown(cchName, cchRead), VREG__MAX_CLASS_CHARS);
             continue;
         }
         if (status == ERROR_SUCCESS)
@@ -203,7 +203,7 @@ LSTATUS EnumValue(
 ) noexcept
 try
 {
-    DWORD cchName = INITIAL_NAME_CHARS;
+    DWORD cchName = VREG__INITIAL_NAME_CHARS;
     DWORD cbData = 0;
     bool isSized = !pData;
     for (;;)
@@ -227,11 +227,11 @@ try
         if (status == ERROR_MORE_DATA)
         {
             cchName = (std::min)(
-                Grown(cchName, cchRead + 1),
-                MAX_VALUE_NAME_CHARS
+                VReg__Grown(cchName, cchRead + 1),
+                VREG__MAX_VALUE_NAME_CHARS
             );
             if (pData)
-                cbData = Grown(cbData, cbRead);
+                cbData = VReg__Grown(cbData, cbRead);
             if (pData && isSized)
                 pData->resize(cbData);
             continue;
@@ -285,7 +285,7 @@ try
         );
         if (status == ERROR_MORE_DATA)
         {
-            cbBuffer = Grown(cbBuffer, cbData);
+            cbBuffer = VReg__Grown(cbBuffer, cbData);
             continue;
         }
         if (status == ERROR_SUCCESS)
