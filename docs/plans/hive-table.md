@@ -1,16 +1,16 @@
-# A minimal API and hives as a function table
+# Hives as a function table
 
-Two pieces of work, in this order: first the public API is cut down to what
-earns its place, then a hive can be supplied by the caller as a function
-table plus a context pointer, mounted like any other hive. A caller can
-then expose a data structure of its own as registry keys, or compute values
-when they are read instead of storing them up front. The virtual registry
-keeps every Win32 rule (handles, caller buffers, ANSI and wide, views,
-mounts); a hive answers a small node-level interface with owned values.
+A hive can be supplied by the caller as a function table plus a context
+pointer, mounted like any other hive. A caller can then expose a data
+structure of its own as registry keys, or compute values when they are
+read instead of storing them up front. The virtual registry keeps every
+Win32 rule (handles, caller buffers, ANSI and wide, views, mounts); a hive
+answers a small node-level interface with owned values.
 
-The cleanup comes first so that the table is built on the final shape of
-the API. This file is deleted when the last step lands; git keeps how it
-got there.
+The API cleanup that preceded this (the allocation context, the test seams,
+one currency for `.reg` content, one hook installer, private names below
+the line, `RegLoadMUIStringW` resolving indirect strings itself) has landed;
+git holds its plan. This file is deleted when the last step lands.
 
 ## Why
 
@@ -56,13 +56,9 @@ Settled with the maintainer:
   this round.
 - Records live as long as the hive, as nodes do. The README's
   handle-identity divergence gets a sentence on growth.
-- The allocation context goes: nothing ever passed one, and a consumer who
-  overrides the allocator macros reaches their own state from the macros.
-- `RegLoadMUIStringW` resolves an indirect string of a hive value itself,
-  as native resolves one of a real value: the module load is the call's own
-  documented effect on the caller's thread, not a load VReg adds, so the
-  loader-lock rule does not apply to it. The MUI mark and its setter go.
-- The API cleanup below.
+- Every commit that changes `vreg.h` raises its version as CONTRIBUTING
+  says; a step that removes or changes a public function raises the minor
+  version, a purely internal one the patch version.
 
 Considered and left alone:
 
@@ -84,86 +80,8 @@ recorded):
   custom hives, which would split every mount and script function in two.
 - Agent's choice: slots take the hive, as `VRegVtbl` slots take the
   registry, and reach their object through `VRegGetHiveDelegate`.
-- Agent's choice: the resolver reads the string table itself through
-  `FindResourceExW`, `LoadResource` and `LockResource`, so the library
-  still links nothing beyond `kernel32` and `advapi32`. Passed over:
-  `LoadStringW`, which adds `user32`.
 
-## Part 1: the API cleanup
-
-Each item lands on its own with every test passing. Where a change makes
-a sentence of the README or ARCHITECTURE wrong, the same commit fixes it.
-
-### Allocation context
-
-Every constructor loses `pAllocContext`. `VREG_MALLOC`, `VREG_REALLOC` and
-`VREG_FREE` lose their first argument, and so does every private
-allocation helper; the hive's and the registries' context fields and
-`VReg_HiveAllocContext` go. `VRegFreeScriptBytes(pScript, pBytes)` becomes
-`VRegFree(p)`, the one function that frees anything the library hands out.
-Mechanical, but it touches most signatures in `vreg.h`, so it is one
-commit of its own with no other change in it.
-
-### Test seams leave the public constructors
-
-- `VRegCreateNative` takes no table. The live table is reached through
-  `VRegGetNativeFunctions`, and whoever needs to replace an entry (the
-  tests) does so there before anything uses the registry.
-  `VRegResolveNativeFunctions` goes; its body becomes the constructor's.
-- `VRegCreateVirtual(pBase, &pRegistry)`: the `NtQueryKey` parameter goes.
-  The registry resolves the export itself, as it does today when the
-  parameter is null, and the tests set the private field under
-  `VREG_INTERNAL`.
-
-### One currency for `.reg` content
-
-Producers (`VRegParseScript`, `VRegParseScriptFile`, `VRegSnapshotScript`,
-`VRegDeltaScript`) answer a `VRegScript`; every consumer takes an operation
-array. `VRegApplyScript` goes, since `VRegGetScriptOperations` plus
-`VRegApplyOperations` is the same call. `VRegWriteScript` and
-`VRegWriteScriptFile` take `(pOperations, cOperations, format, ...)`, which
-closes today's hole where a hand-built array can be applied but not
-written. The bytes `VRegWriteScript` answers are freed with `VRegFree`.
-
-### One hook installer
-
-`VRegInstallHooks` stays; `VRegAttachHooks` goes. A consumer with hooks of
-its own calls it beside its own transaction, since sharing one transaction
-buys nothing.
-
-### Private things leave the public part
-
-- `VRegIsHiveFrozen` and `VRegIsPredefinedHKey` become `VReg_` private
-  functions; the tests build with `VREG_INTERNAL` and keep using them.
-  `VRegIsVirtualHKey` stays public, since a wrapper in front of a registry
-  has a reason to ask it.
-- The `VReg_Node` typedef, `VREG_INTERNAL_VIRTUAL_HKEY_BASE` and the three
-  `VREG_INTERNAL_REGISTRY_*` X-macros move below the public part. The
-  public documentation of `VRegIsVirtualHKey` states the range in words.
-  (The node typedef comes back as the public key record in part 2.)
-
-### MUI text
-
-Native `RegLoadMUIStringW` answers `ERROR_INVALID_DATA` for a plain string
-(the oracle's `Plain` rows agree on native and virtual keys already) and
-resolves an indirect one, `@module,-id`, by loading the module as a data
-file and reading its string table; `pszDirectory` is where a relative
-module path is looked up. VReg does the same for a value a hive holds:
-read the value through the merged read, release every lock of its own,
-expand environment strings, load with `LOAD_LIBRARY_AS_IMAGE_RESOURCE` and
-`LOAD_LIBRARY_AS_DATAFILE`, read the string, free the module. The
-`Indirect*` oracle rows then run on virtual keys and must match native,
-status, sizes and bytes.
-
-With that, `VRegSetHiveMuiTextValue`, `VReg_HiveSetMuiTextValue`,
-`VReg_HiveQueryMuiText`, `VReg_HiveOpenLowerValueKey`, the per-value mark
-and its handling in the export go; a lower-backed value is read like any
-other and resolved by the same code instead of being forwarded to the
-lower key. The README loses the `RegLoadMUIString` divergence, and the
-loader-lock invariant in AGENTS and ARCHITECTURE gains its one qualifier:
-a load the hooked call itself makes natively is the caller's, not VReg's.
-
-## Part 2: hives as a function table
+## Design
 
 ### Nodes and handles
 
@@ -253,8 +171,7 @@ that two reads may differ.
 
 ### Redirects instead of the layered hive's escape hatches
 
-Two parts of the interface exist only for the layered hive (a third, the
-lower key behind a MUI string, goes in part 1):
+Two parts of the interface exist only for the layered hive:
 
 - `VReg_OpenResult.hLower`: a frozen layered hive answers an untouched key
   with a handle of its lower registry.
@@ -304,22 +221,10 @@ script, which is what the hive holds itself.
 
 ## Steps
 
-Each step lands on its own with every test passing, checked against native
-Windows as CONTRIBUTING describes, and corrects the README and
-ARCHITECTURE where it makes them wrong.
-
-Part 1, in the order of its sections:
-
-1. The allocation context, alone.
-2. The native and virtual constructors lose their test seams.
-3. `.reg` content: operations as the one input, `VRegApplyScript` gone.
-4. `VRegAttachHooks` gone.
-5. Private things below the line.
-6. `RegLoadMUIStringW` resolves indirect strings itself; the mark and the
-   lower-key forward go. Tests first: the `Indirect*` oracle rows run on
-   virtual keys.
-
-Part 2:
+Steps 1 to 6 were the API cleanup and have landed. Each remaining step
+lands on its own with every test passing, checked against native Windows
+as CONTRIBUTING describes, raises the header's version as CONTRIBUTING
+says, and corrects the README and ARCHITECTURE where it makes them wrong.
 
 7. Replace `hLower` and `VReg_HiveLower` with redirects, handled once in
    the virtual registry. No behaviour changes; the overlay tests cover it.
