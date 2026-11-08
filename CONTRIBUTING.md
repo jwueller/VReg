@@ -45,14 +45,17 @@ vcpkg x-add-version vreg --x-builtin-ports-root=ports --x-builtin-registry-versi
 
 ## Releasing
 
-`VREG_VERSION_MAJOR`, `VREG_VERSION_MINOR` and `VREG_VERSION_PATCH` in
-[vreg.h](./vreg.h) are the version under development and the one place it
-is written; CMake and the library derive everything else from them
-(`cmake/VRegVersion.cmake`). Every build but the
-tagged release reports itself as a preview of it
-(`X.Y.Z-preview.N+<commit>`). CI checks that a release tag names that
-version, that the port names a tagged release, and that `versions/` is up
-to date with the port.
+`VREG_VERSION_MAJOR`, `VREG_VERSION_MINOR`, `VREG_VERSION_PATCH` and
+`VREG_VERSION_TWEAK` in [vreg.h](./vreg.h) are the version and the one
+place it is written: `VREG_VERSION` packs them as `MAKEDLLVERULL` does, and
+CMake takes its project version from them (`cmake/VRegVersion.cmake`).
+`X.Y.Z` is the version under development, which a release tag `vX.Y.Z`
+makes final. Agent's choice: `VREG_VERSION_TWEAK` goes up by one with every
+change committed to vreg.h, so the four numbers order every copy of the
+header, a copied one included. Passed over: the git commit count, which a
+copied header cannot carry and which needed a header generated on every
+build. CI checks that a release tag names `X.Y.Z`, that the port names a
+tagged release, and that `versions/` is up to date with the port.
 
 1. Make sure it names the version to release (raise the minor or major
    version if the changes call for it), commit, and push.
@@ -68,5 +71,4 @@ to date with the port.
    the version entry as [The vcpkg port](#the-vcpkg-port) describes,
    commit, and push.
 5. Start the next version: raise the patch version in vreg.h, commit,
-   and push. Until then a build past the tag stops with a reminder, since
-   a preview of the released version would sort below it.
+   and push.

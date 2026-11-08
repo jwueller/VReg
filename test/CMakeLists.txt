@@ -47,7 +47,7 @@ target_link_libraries(VReg_Tests PRIVATE
 )
 
 # The tests reach the private declarations as well as the public ones, and
-# check what VRegGetFileVersion reports.
+# check that CMake's project version is the header's.
 target_compile_definitions(VReg_Tests PRIVATE
     VREG__INTERNAL
     VREG_TEST_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}

@@ -10,7 +10,7 @@ int main()
 #ifdef CONSUMER_WITH_DETOURS
     VRegNeutralizeHooks();
 #endif
-    const ULONGLONG version = VRegGetFileVersion();
+    const ULONGLONG version = VREG_VERSION;
     const bool isFound =
         static_cast<WORD>(version >> 48) == CONSUMER_VERSION_MAJOR
         && static_cast<WORD>(version >> 32) == CONSUMER_VERSION_MINOR

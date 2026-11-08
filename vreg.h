@@ -57,6 +57,23 @@ extern "C" {
 #endif
 
 // ==========================================================================
+// Version
+// ==========================================================================
+
+// The version of this header; VREG_VERSION_TWEAK goes up with every change.
+#define VREG_VERSION_MAJOR 0
+#define VREG_VERSION_MINOR 4
+#define VREG_VERSION_PATCH 1
+#define VREG_VERSION_TWEAK 0
+
+#define VREG_VERSION MAKEDLLVERULL(                                            \
+    VREG_VERSION_MAJOR,                                                        \
+    VREG_VERSION_MINOR,                                                        \
+    VREG_VERSION_PATCH,                                                        \
+    VREG_VERSION_TWEAK                                                         \
+)
+
+// ==========================================================================
 // Linkage
 // ==========================================================================
 
@@ -1621,33 +1638,6 @@ VREGDEF LSTATUS WINAPI VRegMount(
     _In_ VRegHive* pHive,
     _In_ REGSAM samView
 );
-
-// ==========================================================================
-// Version
-// ==========================================================================
-
-/// The version of this header: the version under development, which a
-/// release tag `vX.Y.Z` makes final.
-#define VREG_VERSION_MAJOR 0
-#define VREG_VERSION_MINOR 4
-#define VREG_VERSION_PATCH 1
-
-/// The version of the copy of VReg linked into the calling module, as text
-/// for display and logs. Its format is unspecified and may change; compare
-/// versions with @ref VRegGetFileVersion.
-VREGDEF _Ret_z_ LPCSTR WINAPI VRegGetVersion(void);
-
-/// The version of the copy of VReg linked into the calling module, which can
-/// differ from the copies other modules in the same process link, packed as
-/// @ref MAKEDLLVERULL packs a four-part version: major, minor, patch and
-/// revision from the high word down, the value a version resource's
-/// `dwFileVersionMS:dwFileVersionLS` reads as, so versions compare as
-/// numbers. Major, minor and patch are @ref VREG_VERSION_MAJOR,
-/// @ref VREG_VERSION_MINOR and @ref VREG_VERSION_PATCH. The revision counts
-/// the commits in the history a CMake build of a git checkout was built
-/// from, and is 0 otherwise. At build time, `find_package(VReg)` reports the
-/// same major, minor and patch.
-VREGDEF ULONGLONG WINAPI VRegGetFileVersion(void);
 
 // ==========================================================================
 // .reg scripts
@@ -9478,45 +9468,6 @@ VREGDEF BOOL VReg__IsStringType(const DWORD dwType)
 {
     return dwType == REG_SZ || dwType == REG_EXPAND_SZ || dwType == REG_MULTI_SZ;
 }
-
-// ==========================================================================
-// Version
-// ==========================================================================
-
-// The CMake build defines both before it includes the header, from what git
-// says about the checkout (cmake/VRegVersion.cmake): the commit count as
-// the revision, and a preview's distance and commit in the text.
-#ifndef VREG__VERSION_REVISION
-#define VREG__VERSION_REVISION 0
-#endif
-
-#define VREG__STRINGIZE_EXPANDED(x) #x
-#define VREG__STRINGIZE(x) VREG__STRINGIZE_EXPANDED(x)
-
-#ifndef VREG__VERSION_TEXT
-#define VREG__VERSION_TEXT                                                     \
-    VREG__STRINGIZE(VREG_VERSION_MAJOR) "." VREG__STRINGIZE(VREG_VERSION_MINOR) \
-        "." VREG__STRINGIZE(VREG_VERSION_PATCH)
-#endif
-
-// Major, minor, patch and revision from the high word down, as MAKEDLLVERULL
-// packs them.
-#define VREG__FILE_VERSION                                                     \
-    (((ULONGLONG)VREG_VERSION_MAJOR << 48) | ((ULONGLONG)VREG_VERSION_MINOR << 32) \
-        | ((ULONGLONG)VREG_VERSION_PATCH << 16) | (ULONGLONG)VREG__VERSION_REVISION)
-
-VREGDEF ULONGLONG WINAPI VRegGetFileVersion(void)
-{
-    return VREG__FILE_VERSION;
-}
-
-VREGDEF _Ret_z_ LPCSTR WINAPI VRegGetVersion(void)
-{
-    return VREG__VERSION_TEXT;
-}
-
-#undef VREG__STRINGIZE
-#undef VREG__STRINGIZE_EXPANDED
 
 // ==========================================================================
 // The virtual registry

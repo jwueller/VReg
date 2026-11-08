@@ -17,7 +17,7 @@ target_link_libraries(consumer PRIVATE
     VReg::VReg
 )
 
-# The version find_package found, which the linked copy must report.
+# The version find_package found, which the header it found must define.
 target_compile_definitions(consumer PRIVATE
     CONSUMER_VERSION_MAJOR=${VReg_VERSION_MAJOR}
     CONSUMER_VERSION_MINOR=${VReg_VERSION_MINOR}

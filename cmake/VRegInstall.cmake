@@ -37,10 +37,9 @@ configure_package_config_file(
     INSTALL_DESTINATION ${vreg_cmake_dir}
 )
 
-# Numeric: find_package cannot compare PROJECT_VERSION's semver string.
 write_basic_package_version_file(
     ${PROJECT_BINARY_DIR}/VRegConfigVersion.cmake
-    VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
+    VERSION ${PROJECT_VERSION}
     COMPATIBILITY SameMinorVersion
 )
 

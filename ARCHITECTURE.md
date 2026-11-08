@@ -528,15 +528,12 @@ Catch2.
     carries `VReg__` and a name unique across the file.
     `VREG_STATIC` makes the library's own functions static as well.
   - The implementation `#undef`s its local helper macros (X-macro
-    callbacks, the version's stringizing).
-  - The version: `VREG_VERSION_MAJOR`, `_MINOR` and `_PATCH` are written
-    in the header. The CMake build adds the revision and the preview text
-    git describes through a header `cmake/VRegVersion.cmake` writes on
-    every build, which `src/vreg.c` includes first; a copied header
-    reports the plain version with revision 0. Agent's choice: the header
-    owns the version, so a copied file says which it is; keeping it in
-    `vcpkg.json` with a checked copy in the header was passed over as two
-    places to bump.
+    callbacks).
+  - The version: `VREG_VERSION_MAJOR`, `_MINOR`, `_PATCH` and `_TWEAK` are
+    written in the header, and CMake reads its project version from them.
+    Agent's choice: the header owns the version, so a copied file says
+    which it is; keeping it in `vcpkg.json` with a checked copy in the
+    header was passed over as two places to bump.
   - It carries the full license text, since it is copied on its own, and a
     UTF-8 BOM, since that text is not ASCII and MSVC otherwise reads it in
     the consumer's code page.

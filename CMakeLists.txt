@@ -1,27 +1,16 @@
 cmake_minimum_required(VERSION 3.25)
 
+include(cmake/VRegVersion.cmake)
+vreg_read_version(${CMAKE_CURRENT_SOURCE_DIR}/vreg.h vregVersion)
+
 project(
     VReg
+    VERSION ${vregVersion}
     DESCRIPTION "A virtualized Windows registry"
     HOMEPAGE_URL "https://github.com/jwueller/VReg"
     LANGUAGES C CXX
 )
 
-# vreg.h owns the version; cmake/VRegVersion.cmake derives the rest.
-# PROJECT_VERSION_MAJOR to _TWEAK are numeric (TWEAK counts the commits), and
-# PROJECT_VERSION is the full semver string (X.Y.Z-preview.N+<commit>).
-set(VREG_SOURCE_COMMIT "" CACHE STRING "The commit to report for a build outside a git checkout")
-if(NOT VREG_SOURCE_COMMIT MATCHES "^([0-9A-Za-z-]+([.][0-9A-Za-z-]+)*)?$")
-    message(FATAL_ERROR "VREG_SOURCE_COMMIT is not semver build metadata: ${VREG_SOURCE_COMMIT}")
-endif()
-include(cmake/VRegVersion.cmake)
-vreg_compute_version("${PROJECT_SOURCE_DIR}" "${VREG_SOURCE_COMMIT}" "${PROJECT_IS_TOP_LEVEL}")
-foreach(part IN ITEMS MAJOR MINOR PATCH TWEAK)
-    set(PROJECT_VERSION_${part} "${VREG_VERSION_${part}}")
-    set(VReg_VERSION_${part} "${VREG_VERSION_${part}}")
-endforeach()
-set(PROJECT_VERSION "${VREG_VERSION}")
-set(VReg_VERSION "${VREG_VERSION}")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/vreg.h)
 
 if(NOT WIN32)
