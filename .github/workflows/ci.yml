@@ -95,6 +95,33 @@ jobs:
             exit 1
           fi
 
+      # The head of a push or pull request against its base, not each commit:
+      # a range may hold commits from before this rule. A new branch, or a
+      # force push whose old head is gone, compares its head with its parent.
+      - name: Every change to vreg.h raises the version
+        if: github.ref_type != 'tag'
+        env:
+          BEFORE: ${{ github.event.before }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          version() {
+            git show "$1:vreg.h" 2> /dev/null \
+              | sed -n 's/^#define VREG_VERSION_\(MAJOR\|MINOR\|PATCH\|TWEAK\) \([0-9]*\)$/\2/p' \
+              | paste -sd.
+          }
+          if [ -n "$BASE" ]; then
+            base=$(git merge-base "$BASE" "$HEAD")
+          elif git cat-file -e "$BEFORE^{commit}" 2> /dev/null; then
+            base=$BEFORE
+          else
+            base=$(git rev-parse "$HEAD^")
+          fi
+          if ! git diff --quiet "$base" "$HEAD" -- vreg.h && [ "$(version "$base")" = "$(version "$HEAD")" ]; then
+            echo "vreg.h changed since $base without raising its version (CONTRIBUTING.md, \"Releasing\")."
+            exit 1
+          fi
+
       - name: The port names a tagged release
         run: |
           version=$(jq -r '."version-semver"' ports/vreg/vcpkg.json)

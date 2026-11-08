@@ -49,16 +49,19 @@ vcpkg x-add-version vreg --x-builtin-ports-root=ports --x-builtin-registry-versi
 `VREG_VERSION_TWEAK` in [vreg.h](./vreg.h) are the version and the one
 place it is written: `VREG_VERSION` packs them as `MAKEDLLVERULL` does, and
 CMake takes its project version from them (`cmake/VRegVersion.cmake`).
-`X.Y.Z` is the version under development, which a release tag `vX.Y.Z`
-makes final. Agent's choice: `VREG_VERSION_TWEAK` goes up by one with every
-change committed to vreg.h, so the four numbers order every copy of the
-header, a copied one included. Passed over: the git commit count, which a
-copied header cannot carry and which needed a header generated on every
-build. CI checks that a release tag names `X.Y.Z`, that the port names a
-tagged release, and that `versions/` is up to date with the port.
+vreg.h is copied straight from the repository, so every commit that
+changes it raises its version as semver does, and the header is always
+exactly its version: the patch version for a compatible change, the minor
+version for a new feature. A breaking change raises the major version from
+1.0 on; until then the API is unstable and a breaking change raises the
+minor version, as the C API did when it moved from 0.4.1 to 0.5.0.
+`VREG_VERSION_TWEAK` stays 0: the fourth part exists only because the
+packed form has four. A tag `vX.Y.Z` and the port publish some of these
+versions, not all. CI checks that a change to vreg.h raises the version,
+that a release tag names `X.Y.Z`, that the port names a tagged release, and
+that `versions/` is up to date with the port.
 
-1. Make sure it names the version to release (raise the minor or major
-   version if the changes call for it), commit, and push.
+1. Pick the commit to release; its vreg.h names the version. Push it.
 2. Wait for CI to pass on that commit, the Wine jobs included: local test
    runs do not cover Wine. Tag only a commit CI passed on.
 3. Tag it `vX.Y.Z` and push the tag. Once CI passes on the tag, it
@@ -70,5 +73,3 @@ tagged release, and that `versions/` is up to date with the port.
    `https://github.com/jwueller/VReg/archive/vX.Y.Z.tar.gz`. Commit, add
    the version entry as [The vcpkg port](#the-vcpkg-port) describes,
    commit, and push.
-5. Start the next version: raise the patch version in vreg.h, commit,
-   and push.
