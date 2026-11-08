@@ -58,11 +58,11 @@ the API it reimplements. Change them freely before the first release.
   as C and as C++, and the tests are C++20. `WIN32_LEAN_AND_MEAN`,
   `NOMINMAX` and `UNICODE` everywhere in the library's own build.
 - Public functions are `VReg` plus a PascalCase name, `WINAPI`, declared
-  with `VREGDEF`; the `Reg*` family is `VReg` plus the Win32 name. Private
-  functions, static ones included, are `VReg__Name` (double underscore)
-  with a name unique across `vreg.h`, since its implementation is one
-  translation unit. Private types are
-  `VReg__Name`, public ones `VRegName`.
+  with `VREG_DECL`; the `Reg*` family is `VReg` plus the Win32 name, so a
+  public name carries no underscore. Private functions, static ones
+  included, are `VReg_Name` with a name unique across `vreg.h`, since its
+  implementation is one translation unit. Private types are `VReg_Name`,
+  public ones `VRegName`.
 - Hungarian prefixes like the Win32 API beside them: parameters and locals
   (`pszPath`, `cbData`, `hKey`), struct members in Win32's shape without
   `m_` (`pShared`, `cbData`), globals `g_`.
@@ -81,17 +81,20 @@ the API it reimplements. Change them freely before the first release.
   and where it fails (one header reached through two paths) guards would
   silently mix versions instead.
 - Constants are macros, ALL_CAPS like the Win32 ones beside them, prefixed
-  `VREG_` when public (`VREG_VIRTUAL_HKEY_BASE`) and `VREG__` when private
-  (`VREG__INITIAL_NAME_CHARS`). A name a Windows header already defines
+  `VREG_` when public (`VREG_VERSION_MAJOR`) and `VREG_INTERNAL_` when
+  private (`VREG_INTERNAL_INITIAL_NAME_CHARS`). A name a Windows header already defines
   (`TEXT`, `NO_DATA`) is taken by it: pick another, or use the Win32
   constant itself.
-- `VRegRegistryVtbl` holds one slot per form of the Win32 `Reg*` family,
+- `VRegVtbl` holds one slot per form of the Win32 `Reg*` family,
   `Reg` prefix included, and only the ANSI and wide names exist: a neutral
   name (`RegOpenKeyEx`) is a `winreg.h` macro, and VReg defines the same
-  selectors for its flat functions. Nothing else joins the table. Each slot
-  and flat function links its Microsoft documentation with `@see`, and the
-  README's [Supported functions](./README.md#supported-functions) lists
-  every `Reg*` function with the same links.
+  selectors for its flat functions. Nothing else joins the table. Each form
+  has one function typedef (`VRegOpenKeyExWFunction`) that links its
+  Microsoft documentation with `@see`; its slot, its flat function and every
+  declaration of an implementation use the typedef, and only definitions
+  repeat the signature. The README's
+  [Supported functions](./README.md#supported-functions) lists every `Reg*`
+  function with the same links.
 - Win32-shaped entry points return `LSTATUS`. There are no exceptions:
   every allocation is checked and a failure answers `ERROR_OUTOFMEMORY`, and
   a function with several resources frees them at one `done:` label.
@@ -126,8 +129,8 @@ the API it reimplements. Change them freely before the first release.
   each item, even a single one, on a line of its own; the IDE formatter
   keeps that layout. A multiline statement is set off by blank lines, with
   its comment attached.
-- Neither `min` nor `max` is called: the library uses `VReg__MinDword` and
-  `VReg__MaxDword` or a comparison, so the `windows.h` macros never apply,
+- Neither `min` nor `max` is called: the library uses `VReg_MinDword` and
+  `VReg_MaxDword` or a comparison, so the `windows.h` macros never apply,
   even in a consumer that includes it without `NOMINMAX`. A C++ test calls
   them parenthesized, `(std::max)(a, b)`.
 - Macros are tested with `#ifdef` or `#ifndef`, never with `defined`: a

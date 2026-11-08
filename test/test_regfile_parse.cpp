@@ -6,8 +6,7 @@
 
 #include <cstdio>
 
-using namespace VReg;
-using namespace VReg::Test;
+using namespace VRegTest;
 
 namespace
 {

@@ -34,7 +34,7 @@
         record(label, vregStatus, ##__VA_ARGS__);                              \
     } while (false)
 
-namespace VReg::Test
+namespace VRegTest
 {
 constexpr BYTE FILL = 0xCC;
 constexpr DWORD FILL_SIZE = 0xCCCCCCCC;
@@ -308,4 +308,4 @@ void QueryMatrix(
         );
     }
 }
-} // namespace VReg::Test
+} // namespace VRegTest

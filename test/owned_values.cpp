@@ -4,10 +4,10 @@
 
 #include <algorithm>
 
-namespace VReg
+namespace VRegTest
 {
 LSTATUS QueryValue(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const HKEY hKey,
     _In_opt_z_ const LPCWSTR lpValueName,
     _Out_opt_ const LPDWORD lpType,
@@ -44,7 +44,7 @@ try
         );
         if (status == ERROR_MORE_DATA)
         {
-            cbData = VReg__Grown(cbData, cbRead);
+            cbData = VReg_Grown(cbData, cbRead);
             continue;
         }
         if (status == ERROR_SUCCESS)
@@ -62,7 +62,7 @@ catch (...)
 }
 
 LSTATUS GetValue(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const HKEY hKey,
     _In_opt_z_ const LPCWSTR lpSubKey,
     _In_opt_z_ const LPCWSTR lpValue,
@@ -103,7 +103,7 @@ try
         );
         if (status == ERROR_MORE_DATA)
         {
-            cbData = VReg__Grown(cbData, cbRead);
+            cbData = VReg_Grown(cbData, cbRead);
             continue;
         }
         if (status == ERROR_SUCCESS)
@@ -121,7 +121,7 @@ catch (...)
 }
 
 LSTATUS GetString(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const HKEY hKey,
     _In_opt_z_ const LPCWSTR lpSubKey,
     _In_opt_z_ const LPCWSTR lpValue,
@@ -159,14 +159,14 @@ catch (...)
 }
 
 LSTATUS EnumKey(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const HKEY hKey,
     const DWORD dwIndex,
     std::wstring& name
 ) noexcept
 try
 {
-    DWORD cchName = VREG__INITIAL_NAME_CHARS;
+    DWORD cchName = VREG_INTERNAL_INITIAL_NAME_CHARS;
     for (;;)
     {
         name.assign(cchName, L'\0');
@@ -182,9 +182,9 @@ try
             nullptr,
             nullptr
         );
-        if (status == ERROR_MORE_DATA && cchName < VREG__MAX_CLASS_CHARS)
+        if (status == ERROR_MORE_DATA && cchName < VREG_INTERNAL_MAX_CLASS_CHARS)
         {
-            cchName = (std::min)(VReg__Grown(cchName, cchRead), VREG__MAX_CLASS_CHARS);
+            cchName = (std::min)(VReg_Grown(cchName, cchRead), VREG_INTERNAL_MAX_CLASS_CHARS);
             continue;
         }
         if (status == ERROR_SUCCESS)
@@ -198,7 +198,7 @@ catch (...)
 }
 
 LSTATUS EnumValue(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const HKEY hKey,
     const DWORD dwIndex,
     std::wstring& name,
@@ -207,7 +207,7 @@ LSTATUS EnumValue(
 ) noexcept
 try
 {
-    DWORD cchName = VREG__INITIAL_NAME_CHARS;
+    DWORD cchName = VREG_INTERNAL_INITIAL_NAME_CHARS;
     DWORD cbData = 0;
     bool isSized = !pData;
     for (;;)
@@ -232,11 +232,11 @@ try
         if (status == ERROR_MORE_DATA)
         {
             cchName = (std::min)(
-                VReg__Grown(cchName, cchRead + 1),
-                VREG__MAX_VALUE_NAME_CHARS
+                VReg_Grown(cchName, cchRead + 1),
+                VREG_INTERNAL_MAX_VALUE_NAME_CHARS
             );
             if (pData)
-                cbData = VReg__Grown(cbData, cbRead);
+                cbData = VReg_Grown(cbData, cbRead);
             if (pData && isSized)
                 pData->resize(cbData);
             continue;
@@ -265,7 +265,7 @@ catch (...)
 }
 
 LSTATUS LoadMUIString(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const HKEY hKey,
     _In_opt_z_ const LPCWSTR pszValue,
     const DWORD Flags,
@@ -291,7 +291,7 @@ try
         );
         if (status == ERROR_MORE_DATA)
         {
-            cbBuffer = VReg__Grown(cbBuffer, cbData);
+            cbBuffer = VReg_Grown(cbBuffer, cbData);
             continue;
         }
         if (status == ERROR_SUCCESS)
@@ -308,4 +308,4 @@ catch (...)
 {
     return ERROR_OUTOFMEMORY;
 }
-} // namespace VReg
+} // namespace VRegTest

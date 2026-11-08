@@ -15,8 +15,7 @@
 #include <type_traits>
 #include <utility>
 
-using namespace VReg;
-using namespace VReg::Test;
+using namespace VRegTest;
 
 namespace
 {
@@ -575,11 +574,11 @@ struct LoadMUIStringForms
         // A hive never resolves an indirect string, but answers a value marked
         // as MUI text with its text: here, what the indirect string resolves
         // to.
-        if (VReg__Node* const pNode = VReg__NodeOf(hRoot))
+        if (VReg_Node* const pNode = VReg_NodeOf(hRoot))
         {
             REQUIRE(
-                VReg__HiveSetMuiTextValue(
-                    VReg__NodeHive(pNode),
+                VReg_HiveSetMuiTextValue(
+                    VReg_NodeHive(pNode),
                     pNode,
                     L"Indirect",
                     ResolvedIndirect().c_str()

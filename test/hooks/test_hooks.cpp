@@ -20,8 +20,7 @@
 #include <string>
 #include <vector>
 
-using namespace VReg;
-using namespace VReg::Test;
+using namespace VRegTest;
 
 namespace
 {

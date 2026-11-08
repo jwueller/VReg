@@ -13,8 +13,7 @@
 #include <string>
 #include <vector>
 
-using namespace VReg;
-using namespace VReg::Test;
+using namespace VRegTest;
 
 namespace
 {
@@ -26,7 +25,7 @@ std::wstring WideFromBytes(const std::vector<std::byte>& bytes)
 }
 
 LSTATUS SetString(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const HKEY hKey,
     const wchar_t* const pszName,
     const DWORD dwType,
@@ -45,7 +44,7 @@ LSTATUS SetString(
 }
 
 LSTATUS SetDword(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const HKEY hKey,
     const wchar_t* const pszName,
     const DWORD dwValue

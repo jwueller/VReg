@@ -11,13 +11,12 @@
 #include <format>
 #include <map>
 
-using namespace VReg;
-using namespace VReg::Test;
+using namespace VRegTest;
 
 namespace
 {
 HKEY CreateKey(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const HKEY hParent,
     const wchar_t* const pszPath
 )
@@ -41,7 +40,7 @@ HKEY CreateKey(
 }
 
 HKEY OpenKey(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const HKEY hParent,
     const wchar_t* const pszPath
 )
@@ -61,7 +60,7 @@ HKEY OpenKey(
 }
 
 LSTATUS SetDword(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const HKEY hKey,
     const wchar_t* const pszName,
     const DWORD dwValue
@@ -79,7 +78,7 @@ LSTATUS SetDword(
 }
 
 DWORD QueryDword(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const HKEY hKey,
     const wchar_t* const pszName,
     LSTATUS& status
@@ -274,17 +273,17 @@ TEST_CASE("A hive created through the C functions takes MUI text by path")
     REQUIRE(VRegCreateHive(nullptr, &pHive) == ERROR_SUCCESS);
     REQUIRE(VRegSetHiveMuiTextValue(pHive, L"Sub\\Deep", L"Name", L"Text") == ERROR_SUCCESS);
 
-    const std::array<VReg__WStringView, 2> path{{{L"Sub", 3}, {L"Deep", 4}}};
-    VReg__OpenResult opened{};
+    const std::array<VReg_WStringView, 2> path{{{L"Sub", 3}, {L"Deep", 4}}};
+    VReg_OpenResult opened{};
     REQUIRE(
-        VReg__HiveOpenKey(pHive, VReg__HiveRoot(pHive), path.data(), path.size(), KEY_READ, &opened)
+        VReg_HiveOpenKey(pHive, VReg_HiveRoot(pHive), path.data(), path.size(), KEY_READ, &opened)
         == ERROR_SUCCESS
     );
     REQUIRE(opened.pNode != nullptr);
-    VReg__WString text{};
-    CHECK(VReg__HiveQueryMuiText(pHive, opened.pNode, L"Name", &text) == ERROR_SUCCESS);
-    CHECK(std::wstring_view(VReg__WStringText(&text), text.cch) == L"Text");
-    VReg__WStringFree(VReg__HiveAllocContext(pHive), &text);
+    VReg_WString text{};
+    CHECK(VReg_HiveQueryMuiText(pHive, opened.pNode, L"Name", &text) == ERROR_SUCCESS);
+    CHECK(std::wstring_view(VReg_WStringText(&text), text.cch) == L"Text");
+    VReg_WStringFree(VReg_HiveAllocContext(pHive), &text);
 
     // A null path and name address the root's default value.
     CHECK(VRegSetHiveMuiTextValue(pHive, nullptr, nullptr, L"Default") == ERROR_SUCCESS);
@@ -307,9 +306,9 @@ TEST_CASE("A value marked as MUI text loads as its text until written again")
     REQUIRE(VRegMount(registry, HKEY_CURRENT_USER, L"Test", hive, 0) == ERROR_SUCCESS);
     const HKEY hRoot = RootHandle(hive);
     const HKEY hSub = CreateKey(registry, hRoot, L"Sub");
-    auto* const pSub = VReg__NodeOf(hSub);
+    auto* const pSub = VReg_NodeOf(hSub);
 
-    REQUIRE(VReg__HiveSetMuiTextValue(hive, pSub, L"Name", L"Text") == ERROR_SUCCESS);
+    REQUIRE(VReg_HiveSetMuiTextValue(hive, pSub, L"Name", L"Text") == ERROR_SUCCESS);
 
     std::wstring text;
     CHECK(
@@ -364,9 +363,9 @@ TEST_CASE("A value marked as MUI text loads as its text until written again")
         ) == ERROR_INVALID_DATA
     );
 
-    CHECK(VReg__HiveSetMuiTextValue(hive, pSub, L"Name", L"Text") == ERROR_SUCCESS);
+    CHECK(VReg_HiveSetMuiTextValue(hive, pSub, L"Name", L"Text") == ERROR_SUCCESS);
     VRegFreezeHive(hive);
-    CHECK(VReg__HiveSetMuiTextValue(hive, pSub, L"Name", L"Other") == ERROR_ACCESS_DENIED);
+    CHECK(VReg_HiveSetMuiTextValue(hive, pSub, L"Name", L"Other") == ERROR_ACCESS_DENIED);
     CHECK(
         LoadMUIString(
             registry,
@@ -798,11 +797,11 @@ TEST_CASE("A handle released with its hive is invalid")
         );
         hRoot = RootHandle(hive);
         hChild = CreateKey(mounted, hRoot, L"Child");
-        CHECK(VReg__NodeOf(hChild) != nullptr);
+        CHECK(VReg_NodeOf(hChild) != nullptr);
     }
 
-    CHECK(VReg__NodeOf(hRoot) == nullptr);
-    CHECK(VReg__NodeOf(hChild) == nullptr);
+    CHECK(VReg_NodeOf(hRoot) == nullptr);
+    CHECK(VReg_NodeOf(hChild) == nullptr);
 
     LSTATUS status = ERROR_SUCCESS;
     QueryDword(registry, hRoot, L"v", status);
@@ -874,7 +873,7 @@ HKEY FakeKey(const std::uintptr_t id, const std::wstring& nativePath)
 }
 
 LSTATUS OpenVia(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const HKEY hParent,
     const wchar_t* const pszPath,
     const REGSAM sam,

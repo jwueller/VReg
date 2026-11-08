@@ -4,8 +4,7 @@
 
 #include <catch2/generators/catch_generators.hpp>
 
-using namespace VReg;
-using namespace VReg::Test;
+using namespace VRegTest;
 
 namespace
 {
@@ -36,7 +35,7 @@ struct Spec
     }
 };
 
-bool KeyExists(VRegRegistry* const registry, const wchar_t* const pszPath) noexcept
+bool KeyExists(VReg* const registry, const wchar_t* const pszPath) noexcept
 {
     HKEY hKey{};
     const auto status = VRegOpenKeyExW(

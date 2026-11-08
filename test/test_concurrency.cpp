@@ -18,8 +18,7 @@
 #include <thread>
 #include <vector>
 
-using namespace VReg;
-using namespace VReg::Test;
+using namespace VRegTest;
 using Clock = std::chrono::steady_clock;
 
 namespace
@@ -113,7 +112,7 @@ std::wstring RandomPath(Random& random)
 }
 
 void WriterLoop(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const HKEY hRoot,
     Shared& shared,
     const std::uint32_t seed
@@ -245,7 +244,7 @@ void WriterLoop(
 }
 
 void ReadKey(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const HKEY hKey,
     Shared& shared,
     Random& random
@@ -356,7 +355,7 @@ void ReadKey(
 }
 
 void ReaderLoop(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const HKEY hRoot,
     Shared& shared,
     const std::uint32_t seed
@@ -392,7 +391,7 @@ void ReaderLoop(
 }
 
 /// Registers one-shot watches on the whole hive and counts how many fire.
-void WatcherLoop(VRegRegistry* const registry, const HKEY hRoot, Shared& shared) noexcept
+void WatcherLoop(VReg* const registry, const HKEY hRoot, Shared& shared) noexcept
 {
     const HANDLE hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
     while (!shared.isStopped.load(std::memory_order_relaxed))
@@ -417,7 +416,7 @@ void WatcherLoop(VRegRegistry* const registry, const HKEY hRoot, Shared& shared)
 
 /// Exports the whole hive while the writers run.
 void ExporterLoop(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const wchar_t* const pszMount,
     Shared& shared
 )
@@ -436,7 +435,7 @@ void ExporterLoop(
 
 /// The hive, read by one thread with nothing else running, must agree with
 /// itself.
-void CheckConsistent(VRegRegistry* const registry, const HKEY hRoot)
+void CheckConsistent(VReg* const registry, const HKEY hRoot)
 {
     std::set<std::wstring> keys;
     for (DWORD i = 0;; ++i)
@@ -618,7 +617,7 @@ void CheckConsistent(VRegRegistry* const registry, const HKEY hRoot)
 /// Runs the workload against the hive mounted at @p pszMount for a bounded
 /// time. @p pfnFreezeMidway, when given, is called once halfway.
 void RunStress(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const wchar_t* const pszMount,
     const HKEY hRoot,
     void (*pfnFreezeMidway)(void*),
@@ -729,7 +728,7 @@ TEST_CASE("Readers and writers on a Hive frozen halfway")
 TEST_CASE("Readers and writers on a writable Hive over an app hive")
 {
     OverlayMount mount;
-    VRegRegistry* const native = mount.Native();
+    VReg* const native = mount.Native();
 
     // The lower layer holds names from the same closed set, so it shadows and
     // is shadowed.

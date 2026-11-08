@@ -11,5 +11,5 @@ extern "C" __declspec(dllexport) LONG __cdecl HookModuleInstall(
     const wchar_t* const pszPath
 )
 {
-    return VReg::Test::InstallMount(pszPath, VREG_HOOK_MODULE_NAME);
+    return VRegTest::InstallMount(pszPath, VREG_HOOK_MODULE_NAME);
 }

@@ -17,7 +17,7 @@
 #include <string_view>
 #include <vector>
 
-namespace VReg::Test
+namespace VRegTest
 {
 inline std::vector<std::byte> Utf16File(const std::wstring_view text)
 {
@@ -139,7 +139,7 @@ inline std::vector<std::byte> WriteBytes(const VRegScript* const pScript, const 
 /// A snapshot of @p pszPath below @p hRoot as file bytes; @p file is left
 /// alone on failure.
 inline LSTATUS TryExportSnapshot(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const HKEY hRoot,
     const LPCWSTR pszPath,
     const VRegFormat format,
@@ -160,7 +160,7 @@ inline LSTATUS TryExportSnapshot(
 }
 
 inline std::vector<std::byte> ExportSnapshot(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const HKEY hRoot,
     const LPCWSTR pszPath,
     const VRegFormat format
@@ -217,7 +217,7 @@ struct RegValue
 
 /// Opens @p path below HKEY_CURRENT_USER, which the registry maps to its hive.
 inline HKEY MustOpen(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const wchar_t* const pszPath,
     const REGSAM samDesired = KEY_READ
 )
@@ -238,7 +238,7 @@ inline HKEY MustOpen(
 
 /// Sets a value on the existing or new key @p pszPath.
 inline void MustSet(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const wchar_t* const pszPath,
     const wchar_t* const pszName,
     const DWORD dwType,
@@ -283,7 +283,7 @@ inline void MustSet(
 
 /// Reads a value back; fails the test when it is missing.
 inline RegValue MustGet(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const wchar_t* const pszPath,
     const wchar_t* const pszName
 )
@@ -305,13 +305,13 @@ inline RegValue MustGet(
     );
     return value;
 }
-} // namespace VReg::Test
+} // namespace VRegTest
 
-namespace VReg::Test
+namespace VRegTest
 {
 /// Checks a stored value's type and bytes.
 inline void CheckValue(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const wchar_t* const pszPath,
     const wchar_t* const pszName,
     const DWORD dwType,
@@ -322,4 +322,4 @@ inline void CheckValue(
     CHECK(value.dwType == dwType);
     CHECK(value.data == data);
 }
-} // namespace VReg::Test
+} // namespace VRegTest

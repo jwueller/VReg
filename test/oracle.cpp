@@ -8,7 +8,7 @@
 
 #pragma comment(lib, "advapi32.lib")
 
-namespace VReg::Test
+namespace VRegTest
 {
 AppHive::AppHive()
 {
@@ -60,7 +60,7 @@ VirtualHive::VirtualHive() :
     REQUIRE(VRegMount(m_registry, HKEY_CURRENT_USER, L"VRegOracle", m_hive, 0) == ERROR_SUCCESS);
 }
 
-VRegRegistry* VirtualHive::Registry() noexcept
+VReg* VirtualHive::Registry() noexcept
 {
     return m_registry;
 }
@@ -106,7 +106,7 @@ OverlayMount::~OverlayMount()
     );
 }
 
-VRegRegistry* OverlayMount::Registry() noexcept
+VReg* OverlayMount::Registry() noexcept
 {
     return m_registry;
 }
@@ -116,7 +116,7 @@ Api OverlayMount::AsApi() noexcept
     return {.pRegistry = m_registry, .isVirtualKeys = true};
 }
 
-VRegRegistry* OverlayMount::Native() noexcept
+VReg* OverlayMount::Native() noexcept
 {
     return m_native;
 }
@@ -177,10 +177,10 @@ void CheckSameRecording(const Recording& expected, const Recording& actual)
 
     CHECK(expected.size() == actual.size());
 }
-} // namespace VReg::Test
+} // namespace VRegTest
 
-std::string Catch::StringMaker<VReg::Test::Call>::convert(
-    const VReg::Test::Call& call
+std::string Catch::StringMaker<VRegTest::Call>::convert(
+    const VRegTest::Call& call
 )
 {
     auto text = std::format("{}: status {}", call.label, call.status);

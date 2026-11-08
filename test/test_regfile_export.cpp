@@ -4,8 +4,7 @@
 
 #include <algorithm>
 
-using namespace VReg;
-using namespace VReg::Test;
+using namespace VRegTest;
 
 namespace
 {
@@ -21,7 +20,7 @@ std::vector<std::byte> Sequence(const int first, const int count)
 
 /// A snapshot of @p pszPath below HKEY_CURRENT_USER.
 std::vector<std::byte> Export(
-    VRegRegistry* const registry,
+    VReg* const registry,
     const LPCWSTR pszPath,
     const VRegFormat format
 )

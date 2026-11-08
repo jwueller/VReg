@@ -49,7 +49,7 @@ target_link_libraries(VReg_Tests PRIVATE
 # The tests reach the private declarations as well as the public ones, and
 # check that CMake's project version is the header's.
 target_compile_definitions(VReg_Tests PRIVATE
-    VREG__INTERNAL
+    VREG_INTERNAL
     VREG_TEST_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
     VREG_TEST_VERSION_MINOR=${PROJECT_VERSION_MINOR}
     VREG_TEST_VERSION_PATCH=${PROJECT_VERSION_PATCH}

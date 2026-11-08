@@ -19,7 +19,7 @@
 #include <string>
 #include <vector>
 
-namespace VReg::Test
+namespace VRegTest
 {
 /// A registry hive loaded with `RegLoadAppKey` from a file in a fresh temp
 /// directory: real, private to this process, and gone with the object.
@@ -102,7 +102,7 @@ public:
     VirtualHive(const VirtualHive&) = delete;
     VirtualHive& operator=(const VirtualHive&) = delete;
 
-    [[nodiscard]] VRegRegistry* Registry() noexcept;
+    [[nodiscard]] VReg* Registry() noexcept;
 
     /// The hive's keys are virtual.
     [[nodiscard]] Api AsApi() noexcept;
@@ -137,9 +137,9 @@ public:
     OverlayMount(const OverlayMount&) = delete;
     OverlayMount& operator=(const OverlayMount&) = delete;
 
-    [[nodiscard]] VRegRegistry* Registry() noexcept;
+    [[nodiscard]] VReg* Registry() noexcept;
     [[nodiscard]] Api AsApi() noexcept;
-    [[nodiscard]] VRegRegistry* Native() noexcept;
+    [[nodiscard]] VReg* Native() noexcept;
     [[nodiscard]] VRegHive* Overlay() noexcept;
 
     /// The key of the app hive the overlay sits on.
@@ -169,10 +169,10 @@ Recording RecordOverlay()
 /// Checks @p actual against @p expected call by call, reporting the first
 /// few divergences with both calls in full.
 void CheckSameRecording(const Recording& expected, const Recording& actual);
-} // namespace VReg::Test
+} // namespace VRegTest
 
 template <>
-struct Catch::StringMaker<VReg::Test::Call>
+struct Catch::StringMaker<VRegTest::Call>
 {
-    static std::string convert(const VReg::Test::Call& call);
+    static std::string convert(const VRegTest::Call& call);
 };

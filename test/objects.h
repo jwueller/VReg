@@ -10,22 +10,22 @@
 
 #include <utility>
 
-namespace VReg::Test
+namespace VRegTest
 {
-/// Owns a @ref VRegRegistry.
+/// Owns a @ref VReg.
 class OwnedRegistry
 {
 public:
     OwnedRegistry() noexcept = default;
 
-    explicit OwnedRegistry(VRegRegistry* const pRegistry) noexcept :
+    explicit OwnedRegistry(VReg* const pRegistry) noexcept :
         m_pRegistry(pRegistry)
     {
     }
 
     ~OwnedRegistry()
     {
-        VRegDestroyRegistry(m_pRegistry);
+        VRegDestroy(m_pRegistry);
     }
 
     OwnedRegistry(OwnedRegistry&& other) noexcept :
@@ -37,7 +37,7 @@ public:
     {
         if (this != &other)
         {
-            VRegDestroyRegistry(m_pRegistry);
+            VRegDestroy(m_pRegistry);
             m_pRegistry = std::exchange(other.m_pRegistry, nullptr);
         }
         return *this;
@@ -46,26 +46,26 @@ public:
     OwnedRegistry(const OwnedRegistry&) = delete;
     OwnedRegistry& operator=(const OwnedRegistry&) = delete;
 
-    operator VRegRegistry*() const noexcept
+    operator VReg*() const noexcept
     {
         return m_pRegistry;
     }
 
-    [[nodiscard]] VRegRegistry* Get() const noexcept
+    [[nodiscard]] VReg* Get() const noexcept
     {
         return m_pRegistry;
     }
 
     /// Where a creation function stores the registry this then owns.
-    [[nodiscard]] VRegRegistry** Receive() noexcept
+    [[nodiscard]] VReg** Receive() noexcept
     {
-        VRegDestroyRegistry(m_pRegistry);
+        VRegDestroy(m_pRegistry);
         m_pRegistry = nullptr;
         return &m_pRegistry;
     }
 
 private:
-    VRegRegistry* m_pRegistry = nullptr;
+    VReg* m_pRegistry = nullptr;
 };
 
 /// Owns a @ref VRegHive.
@@ -168,21 +168,34 @@ private:
     VRegScript* m_pScript = nullptr;
 };
 
-/// The native registry over @p pFunctions, or the resolved table.
-inline OwnedRegistry MakeNativeRegistry(const VRegNativeFunctions* const pFunctions = nullptr)
+/// A registry over the slots of @p pVtbl, with @p pDelegate as their object.
+inline OwnedRegistry MakeCustomRegistry(
+    const VRegVtbl* const pVtbl,
+    void* const pDelegate
+)
 {
     OwnedRegistry registry;
-    REQUIRE(VRegCreateNativeRegistry(pFunctions, nullptr, registry.Receive()) == ERROR_SUCCESS);
+    REQUIRE(VRegCreateCustom(pVtbl, pDelegate, nullptr, registry.Receive()) == ERROR_SUCCESS);
+    return registry;
+}
+
+/// The native registry over @p pFunctions, or the resolved table.
+inline OwnedRegistry MakeNativeRegistry(
+    const VRegNativeFunctions* const pFunctions = nullptr
+)
+{
+    OwnedRegistry registry;
+    REQUIRE(VRegCreateNative(pFunctions, nullptr, registry.Receive()) == ERROR_SUCCESS);
     return registry;
 }
 
 inline OwnedRegistry MakeVirtualRegistry(
-    VRegRegistry* const pBase = nullptr,
+    VReg* const pBase = nullptr,
     const VRegNtQueryKeyFunction pfnNtQueryKey = nullptr
 )
 {
     OwnedRegistry registry;
-    REQUIRE(VRegCreateVirtualRegistry(pBase, pfnNtQueryKey, nullptr, registry.Receive()) == ERROR_SUCCESS);
+    REQUIRE(VRegCreateVirtual(pBase, pfnNtQueryKey, nullptr, registry.Receive()) == ERROR_SUCCESS);
     return registry;
 }
 
@@ -195,7 +208,7 @@ inline OwnedHive MakeHive()
 }
 
 inline OwnedHive MakeLayeredHive(
-    VRegRegistry* const pLower,
+    VReg* const pLower,
     const HKEY hLowerRoot,
     const wchar_t* const pszLowerPath,
     const REGSAM samLowerView = 0
@@ -210,23 +223,23 @@ inline OwnedHive MakeLayeredHive(
 /// The virtual handle of a hive's root.
 inline HKEY RootHandle(VRegHive* const pHive) noexcept
 {
-    return VReg__NodeHandle(VReg__HiveRoot(pHive));
+    return VReg_NodeHandle(VReg_HiveRoot(pHive));
 }
 
 /// A registry a scenario runs against, with what the scenario has to know
 /// about it.
 struct Api
 {
-    VRegRegistry* pRegistry;
+    VReg* pRegistry;
 
     /// Whether the registry's keys are virtual: one handle per node, no
     /// per-open access rights. Scenarios skip the calls whose answer virtual
     /// keys cannot match, for the reference and the virtual registry alike.
     bool isVirtualKeys;
 
-    operator VRegRegistry*() const noexcept
+    operator VReg*() const noexcept
     {
         return pRegistry;
     }
 };
-} // namespace VReg::Test
+} // namespace VRegTest

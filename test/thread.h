@@ -5,7 +5,7 @@
 #include <functional>
 #include <utility>
 
-namespace VReg::Test
+namespace VRegTest
 {
 /**
  * @brief Runs a function on a thread of its own; the destructor joins it.
@@ -58,4 +58,4 @@ private:
     std::function<void()> m_function;
     HANDLE m_hThread = nullptr;
 };
-} // namespace VReg::Test
+} // namespace VRegTest

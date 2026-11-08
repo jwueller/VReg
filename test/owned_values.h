@@ -10,7 +10,7 @@
 
 /**
  * @file
- * @brief Reads over any @ref VReg::Registry that size and fill a
+ * @brief Reads over any @ref VReg that size and fill a
  *  @ref std::wstring or `std::vector<std::byte>` themselves, retrying with a
  *  larger buffer while the value grows between the sizing call and the read.
  *
@@ -18,10 +18,10 @@
  *  no `Reg` prefix (which would also collide with the Win32 macros
  *  @ref RegQueryValue, @ref RegEnumKey, ...); the tests are what needs them.
  */
-namespace VReg
+namespace VRegTest
 {
 LSTATUS QueryValue(
-    VRegRegistry* const registry,
+    VReg* const registry,
     HKEY hKey,
     _In_opt_z_ LPCWSTR lpValueName,
     _Out_opt_ LPDWORD lpType,
@@ -29,7 +29,7 @@ LSTATUS QueryValue(
 ) noexcept;
 
 LSTATUS GetValue(
-    VRegRegistry* const registry,
+    VReg* const registry,
     HKEY hKey,
     _In_opt_z_ LPCWSTR lpSubKey,
     _In_opt_z_ LPCWSTR lpValue,
@@ -43,7 +43,7 @@ LSTATUS GetValue(
 /// @ref RRF_NOEXPAND also @ref REG_EXPAND_SZ (otherwise
 /// @ref Registry::RegGetValueW expands it into a @ref REG_SZ).
 LSTATUS GetString(
-    VRegRegistry* const registry,
+    VReg* const registry,
     HKEY hKey,
     _In_opt_z_ LPCWSTR lpSubKey,
     _In_opt_z_ LPCWSTR lpValue,
@@ -52,14 +52,14 @@ LSTATUS GetString(
 ) noexcept;
 
 LSTATUS EnumKey(
-    VRegRegistry* const registry,
+    VReg* const registry,
     HKEY hKey,
     DWORD dwIndex,
     std::wstring& name
 ) noexcept;
 
 LSTATUS EnumValue(
-    VRegRegistry* const registry,
+    VReg* const registry,
     HKEY hKey,
     DWORD dwIndex,
     std::wstring& name,
@@ -68,11 +68,11 @@ LSTATUS EnumValue(
 ) noexcept;
 
 LSTATUS LoadMUIString(
-    VRegRegistry* const registry,
+    VReg* const registry,
     HKEY hKey,
     _In_opt_z_ LPCWSTR pszValue,
     DWORD Flags,
     _In_opt_z_ LPCWSTR pszDirectory,
     std::wstring& text
 ) noexcept;
-} // namespace VReg
+} // namespace VRegTest

@@ -41,7 +41,7 @@ target_link_libraries(VReg_HookTests PRIVATE
 )
 
 target_compile_definitions(VReg_HookTests PRIVATE
-    VREG__INTERNAL
+    VREG_INTERNAL
 )
 
 set_target_properties(VReg_HookTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${_dir})

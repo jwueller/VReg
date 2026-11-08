@@ -5,8 +5,7 @@
 
 #include <catch2/generators/catch_generators.hpp>
 
-using namespace VReg;
-using namespace VReg::Test;
+using namespace VRegTest;
 
 namespace
 {
@@ -69,7 +68,7 @@ std::vector<Entry> AsciiEntries()
     // @formatter:on
 }
 
-void Populate(VRegRegistry* const registry, const std::vector<Entry>& entries)
+void Populate(VReg* const registry, const std::vector<Entry>& entries)
 {
     for (const auto& entry : entries)
         MustSet(
@@ -81,7 +80,7 @@ void Populate(VRegRegistry* const registry, const std::vector<Entry>& entries)
         );
 }
 
-void CheckSame(VRegRegistry* const registry, const std::vector<Entry>& entries)
+void CheckSame(VReg* const registry, const std::vector<Entry>& entries)
 {
     for (std::size_t i = 0; i < entries.size(); ++i)
     {

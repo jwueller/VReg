@@ -10,8 +10,7 @@
 #include <type_traits>
 #include <utility>
 
-using namespace VReg;
-using namespace VReg::Test;
+using namespace VRegTest;
 
 namespace
 {

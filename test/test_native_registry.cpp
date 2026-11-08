@@ -23,7 +23,7 @@ TEST_CASE("Export lookup agrees with the loader")
         );
         CAPTURE(pszName);
         CHECK(
-            VReg__FindExport(
+            VReg_FindExport(
                 hKernelBase,
                 pszName
             ) == reinterpret_cast<void*>(GetProcAddress(hKernelBase, pszName))
@@ -32,8 +32,8 @@ TEST_CASE("Export lookup agrees with the loader")
 
     SECTION("a missing name or module resolves to nothing")
     {
-        CHECK(VReg__FindExport(hKernelBase, "NoSuchExport") == nullptr);
-        CHECK(VReg__FindExport(nullptr, "RegOpenKeyExW") == nullptr);
+        CHECK(VReg_FindExport(hKernelBase, "NoSuchExport") == nullptr);
+        CHECK(VReg_FindExport(nullptr, "RegOpenKeyExW") == nullptr);
     }
 }
 
@@ -85,7 +85,7 @@ TEST_CASE("Forwarded exports are not resolved")
             continue;
 
         INFO(name);
-        CHECK(VReg__FindExport(hAdvapi32, name.c_str()) == nullptr);
+        CHECK(VReg_FindExport(hAdvapi32, name.c_str()) == nullptr);
         ++cForwarded;
     }
     CHECK(cForwarded > 0);

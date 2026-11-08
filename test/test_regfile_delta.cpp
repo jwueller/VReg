@@ -3,8 +3,7 @@
 
 #include "regfile_test.h"
 
-using namespace VReg;
-using namespace VReg::Test;
+using namespace VRegTest;
 
 namespace
 {

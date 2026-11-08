@@ -1,39 +1,41 @@
 #pragma once
 
+#include "objects.h"
+
 #include <vreg.h>
 
 #include <Windows.h>
 
-namespace VReg::Test
+namespace VRegTest
 {
-/// The real `Reg*` functions behind a @ref VRegRegistry with every slot
+/// The real `Reg*` functions behind a @ref VReg with every slot
 /// filled, so a scenario runs against the oracle and against any registry
 /// alike. Filled from this module's imports: exactly the functions an
 /// application calls.
 class Win32Registry
 {
 public:
-    Win32Registry() noexcept :
-        m_object{&VTBL, nullptr}
+    Win32Registry() :
+        m_registry(MakeCustomRegistry(&VTBL, nullptr))
     {
     }
 
     Win32Registry(const Win32Registry&) = delete;
     Win32Registry& operator=(const Win32Registry&) = delete;
 
-    operator VRegRegistry*() noexcept
+    operator VReg*() const noexcept
     {
-        return &m_object;
+        return m_registry;
     }
 
-    [[nodiscard]] VRegRegistry* Get() noexcept
+    [[nodiscard]] VReg* Get() const noexcept
     {
-        return &m_object;
+        return m_registry;
     }
 
 private:
     static LSTATUS WINAPI RegOpenKeyExW(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCWSTR lpSubKey,
         _In_ const DWORD ulOptions,
@@ -52,7 +54,7 @@ private:
     }
 
     static LSTATUS WINAPI RegCreateKeyExW(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_ const LPCWSTR lpSubKey,
         _Reserved_ const DWORD Reserved,
@@ -79,7 +81,7 @@ private:
     }
 
     static LSTATUS WINAPI RegCloseKey(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey
     ) noexcept
     {
@@ -90,7 +92,7 @@ private:
     }
 
     static LSTATUS WINAPI RegQueryValueExW(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCWSTR lpValueName,
         _Reserved_ const LPDWORD lpReserved,
@@ -111,7 +113,7 @@ private:
     }
 
     static LSTATUS WINAPI RegSetValueExW(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCWSTR lpValueName,
         _Reserved_ const DWORD Reserved,
@@ -132,7 +134,7 @@ private:
     }
 
     static LSTATUS WINAPI RegDeleteValueW(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCWSTR lpValueName
     ) noexcept
@@ -145,7 +147,7 @@ private:
     }
 
     static LSTATUS WINAPI RegDeleteKeyExW(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_ const LPCWSTR lpSubKey,
         _In_ const REGSAM samDesired,
@@ -162,7 +164,7 @@ private:
     }
 
     static LSTATUS WINAPI RegDeleteTreeW(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCWSTR lpSubKey
     ) noexcept
@@ -175,7 +177,7 @@ private:
     }
 
     static LSTATUS WINAPI RegEnumKeyExW(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_ const DWORD dwIndex,
         _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) const LPWSTR lpName,
@@ -200,7 +202,7 @@ private:
     }
 
     static LSTATUS WINAPI RegEnumValueW(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_ const DWORD dwIndex,
         _Out_writes_to_opt_(*lpcchValueName, *lpcchValueName + 1) const LPWSTR lpValueName,
@@ -225,7 +227,7 @@ private:
     }
 
     static LSTATUS WINAPI RegQueryInfoKeyW(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) const LPWSTR lpClass,
         _Inout_opt_ const LPDWORD lpcchClass,
@@ -258,7 +260,7 @@ private:
     }
 
     static LSTATUS WINAPI RegLoadMUIStringW(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCWSTR pszValue,
         _Out_writes_bytes_opt_(cbOutBuf) const LPWSTR pszOutBuf,
@@ -281,7 +283,7 @@ private:
     }
 
     static LSTATUS WINAPI RegGetValueW(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hkey,
         _In_opt_ const LPCWSTR lpSubKey,
         _In_opt_ const LPCWSTR lpValue,
@@ -317,7 +319,7 @@ private:
     }
 
     static LSTATUS WINAPI RegNotifyChangeKeyValue(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_ const BOOL bWatchSubtree,
         _In_ const DWORD dwNotifyFilter,
@@ -336,7 +338,7 @@ private:
     }
 
     static LSTATUS WINAPI RegFlushKey(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey
     ) noexcept
     {
@@ -347,7 +349,7 @@ private:
     }
 
     static LSTATUS WINAPI RegOpenKeyExA(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCSTR lpSubKey,
         _In_ const DWORD ulOptions,
@@ -366,7 +368,7 @@ private:
     }
 
     static LSTATUS WINAPI RegCreateKeyExA(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_ const LPCSTR lpSubKey,
         _Reserved_ const DWORD Reserved,
@@ -393,7 +395,7 @@ private:
     }
 
     static LSTATUS WINAPI RegQueryValueExA(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCSTR lpValueName,
         _Reserved_ const LPDWORD lpReserved,
@@ -414,7 +416,7 @@ private:
     }
 
     static LSTATUS WINAPI RegSetValueExA(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCSTR lpValueName,
         _Reserved_ const DWORD Reserved,
@@ -435,7 +437,7 @@ private:
     }
 
     static LSTATUS WINAPI RegDeleteValueA(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCSTR lpValueName
     ) noexcept
@@ -448,7 +450,7 @@ private:
     }
 
     static LSTATUS WINAPI RegDeleteKeyExA(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_ const LPCSTR lpSubKey,
         _In_ const REGSAM samDesired,
@@ -465,7 +467,7 @@ private:
     }
 
     static LSTATUS WINAPI RegDeleteTreeA(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCSTR lpSubKey
     ) noexcept
@@ -478,7 +480,7 @@ private:
     }
 
     static LSTATUS WINAPI RegEnumKeyExA(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_ const DWORD dwIndex,
         _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) const LPSTR lpName,
@@ -503,7 +505,7 @@ private:
     }
 
     static LSTATUS WINAPI RegEnumValueA(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_ const DWORD dwIndex,
         _Out_writes_to_opt_(*lpcchValueName, *lpcchValueName + 1) const LPSTR lpValueName,
@@ -528,7 +530,7 @@ private:
     }
 
     static LSTATUS WINAPI RegQueryInfoKeyA(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) const LPSTR lpClass,
         _Inout_opt_ const LPDWORD lpcchClass,
@@ -561,7 +563,7 @@ private:
     }
 
     static LSTATUS WINAPI RegLoadMUIStringA(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCSTR pszValue,
         _Out_writes_bytes_opt_(cbOutBuf) const LPSTR pszOutBuf,
@@ -584,7 +586,7 @@ private:
     }
 
     static LSTATUS WINAPI RegGetValueA(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hkey,
         _In_opt_ const LPCSTR lpSubKey,
         _In_opt_ const LPCSTR lpValue,
@@ -620,7 +622,7 @@ private:
     }
 
     static LSTATUS WINAPI RegOpenKeyA(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCSTR lpSubKey,
         _Out_ const PHKEY phkResult
@@ -635,7 +637,7 @@ private:
     }
 
     static LSTATUS WINAPI RegOpenKeyW(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCWSTR lpSubKey,
         _Out_ const PHKEY phkResult
@@ -650,7 +652,7 @@ private:
     }
 
     static LSTATUS WINAPI RegCreateKeyA(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCSTR lpSubKey,
         _Out_ const PHKEY phkResult
@@ -665,7 +667,7 @@ private:
     }
 
     static LSTATUS WINAPI RegCreateKeyW(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCWSTR lpSubKey,
         _Out_ const PHKEY phkResult
@@ -680,7 +682,7 @@ private:
     }
 
     static LSTATUS WINAPI RegQueryValueA(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCSTR lpSubKey,
         _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) const LPSTR lpData,
@@ -697,7 +699,7 @@ private:
     }
 
     static LSTATUS WINAPI RegQueryValueW(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCWSTR lpSubKey,
         _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) const LPWSTR lpData,
@@ -714,7 +716,7 @@ private:
     }
 
     static LSTATUS WINAPI RegSetValueA(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCSTR lpSubKey,
         _In_ const DWORD dwType,
@@ -733,7 +735,7 @@ private:
     }
 
     static LSTATUS WINAPI RegSetValueW(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCWSTR lpSubKey,
         _In_ const DWORD dwType,
@@ -752,7 +754,7 @@ private:
     }
 
     static LSTATUS WINAPI RegDeleteKeyA(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_ const LPCSTR lpSubKey
     ) noexcept
@@ -765,7 +767,7 @@ private:
     }
 
     static LSTATUS WINAPI RegDeleteKeyW(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_ const LPCWSTR lpSubKey
     ) noexcept
@@ -778,7 +780,7 @@ private:
     }
 
     static LSTATUS WINAPI RegEnumKeyA(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_ const DWORD dwIndex,
         _Out_writes_opt_(cchName) const LPSTR lpName,
@@ -795,7 +797,7 @@ private:
     }
 
     static LSTATUS WINAPI RegEnumKeyW(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_ const DWORD dwIndex,
         _Out_writes_opt_(cchName) const LPWSTR lpName,
@@ -812,7 +814,7 @@ private:
     }
 
     static LSTATUS WINAPI RegSetKeyValueA(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCSTR lpSubKey,
         _In_opt_ const LPCSTR lpValueName,
@@ -833,7 +835,7 @@ private:
     }
 
     static LSTATUS WINAPI RegSetKeyValueW(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCWSTR lpSubKey,
         _In_opt_ const LPCWSTR lpValueName,
@@ -854,7 +856,7 @@ private:
     }
 
     static LSTATUS WINAPI RegDeleteKeyValueA(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCSTR lpSubKey,
         _In_opt_ const LPCSTR lpValueName
@@ -869,7 +871,7 @@ private:
     }
 
     static LSTATUS WINAPI RegDeleteKeyValueW(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _In_opt_ const LPCWSTR lpSubKey,
         _In_opt_ const LPCWSTR lpValueName
@@ -884,7 +886,7 @@ private:
     }
 
     static LSTATUS WINAPI RegQueryMultipleValuesA(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _Out_writes_(num_vals) const PVALENTA val_list,
         _In_ const DWORD num_vals,
@@ -903,7 +905,7 @@ private:
     }
 
     static LSTATUS WINAPI RegQueryMultipleValuesW(
-        _In_ VRegRegistry* const pThis,
+        _In_ VReg* const pThis,
         _In_ const HKEY hKey,
         _Out_writes_(num_vals) const PVALENTW val_list,
         _In_ const DWORD num_vals,
@@ -921,12 +923,12 @@ private:
         );
     }
 
-    static const VRegRegistryVtbl VTBL;
+    static const VRegVtbl VTBL;
 
-    VRegRegistry m_object;
+    OwnedRegistry m_registry;
 };
 
-inline const VRegRegistryVtbl Win32Registry::VTBL = {
+inline const VRegVtbl Win32Registry::VTBL = {
     .RegOpenKeyExW = &Win32Registry::RegOpenKeyExW,
     .RegCreateKeyExW = &Win32Registry::RegCreateKeyExW,
     .RegCloseKey = &Win32Registry::RegCloseKey,
@@ -973,4 +975,4 @@ inline const VRegRegistryVtbl Win32Registry::VTBL = {
     .RegQueryMultipleValuesA = &Win32Registry::RegQueryMultipleValuesA,
     .RegQueryMultipleValuesW = &Win32Registry::RegQueryMultipleValuesW,
 };
-} // namespace VReg::Test
+} // namespace VRegTest

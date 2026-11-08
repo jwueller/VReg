@@ -9,13 +9,16 @@ It grew out of the virtual registry in [DirectRetrofit](https://retrofit.games).
 
 ## What it does
 
-- **The Win32 `Reg*` function family as an interface.** A `VRegRegistry`
-  is a function table with a slot for every member of the family, names and
-  signatures alike (ANSI and wide, `Ex` and pre-`Ex`); the flat `VReg*`
-  functions call the slots with the registry first, and the `UNICODE`
-  macros select among them as among the functions. Native, virtual and
-  in-memory registries, and any table of your own, are interchangeable
-  behind it; a slot left null is derived from the wide `Ex` forms.
+- **The Win32 `Reg*` function family as an interface.** A `VReg` is an
+  opaque registry handle; the flat `VReg*` functions take it first and
+  mirror every member of the family, names and signatures alike (ANSI and
+  wide, `Ex` and pre-`Ex`), and the `UNICODE` macros select among them as
+  among the functions. Native, virtual and in-memory registries are
+  interchangeable behind it, and `VRegCreateCustom` makes one from a
+  function table of your own (a `VRegVtbl` with a slot per form) and an
+  object its slots reach through `VRegGetDelegate`; a slot left null is
+  derived from the wide `Ex` forms. Each form has a function typedef
+  (`VRegOpenKeyExWFunction`) that the flat function and the slot share.
 - **Hives mounted into a virtual namespace.** A virtual registry mounts
   in-memory or overlay hives at registry paths and passes everything else to
   a base registry (usually the real one). An overlay hive adds, overrides
@@ -105,12 +108,12 @@ Keys and values added, overridden or deleted under one real key; everything
 else is the real registry.
 
 ```c
-VRegRegistry* native;
-VRegRegistry* registry;
+VReg* native;
+VReg* registry;
 VRegHive* overlay;
-VRegCreateNativeRegistry(NULL, NULL, &native);
+VRegCreateNative(NULL, NULL, &native);
 VRegCreateLayeredHive(native, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", 0, NULL, &overlay);
-VRegCreateVirtualRegistry(native, NULL, NULL, &registry);
+VRegCreateVirtual(native, NULL, NULL, &registry);
 VRegMount(registry, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", overlay, 0);
 
 const DWORD dwOne = 1;
@@ -127,10 +130,10 @@ answer `ERROR_OUTOFMEMORY` when memory ran out.
 ```c
 VRegHive* machine;
 VRegHive* user;
-VRegRegistry* registry;
+VReg* registry;
 VRegCreateHive(NULL, &machine);
 VRegCreateHive(NULL, &user);
-VRegCreateVirtualRegistry(NULL, NULL, NULL, &registry);   // no base: nothing else exists
+VRegCreateVirtual(NULL, NULL, NULL, &registry);   // no base: nothing else exists
 VRegMount(registry, HKEY_LOCAL_MACHINE, L"", machine, 0);
 VRegMount(registry, HKEY_CURRENT_USER, L"", user, 0);
 ```
@@ -139,11 +142,11 @@ VRegMount(registry, HKEY_CURRENT_USER, L"", user, 0);
 
 ```c
 // Never destroyed: the hooks use them until the process ends.
-VRegRegistry* native;
-VRegRegistry* registry;
+VReg* native;
+VReg* registry;
 VRegHive* hive;
-VRegCreateNativeRegistry(NULL, NULL, &native);
-VRegCreateVirtualRegistry(native, NULL, NULL, &registry);
+VRegCreateNative(NULL, NULL, &native);
+VRegCreateVirtual(native, NULL, NULL, &registry);
 VRegCreateHive(NULL, &hive);
 VRegMount(registry, HKEY_LOCAL_MACHINE, L"Software\\Vendor\\Game", hive, 0);
 // Fill the hive through registry (or VRegApplyScript), then:
@@ -169,7 +172,7 @@ write into it.
   code unmapped.
 - **Several modules** MAY each link VReg and install their own hooks; their
   handles never collide, and each answers only its own mounts.
-- **Tracing:** `VRegInstallHooks` takes any `VRegRegistry`, so a table
+- **Tracing:** `VRegInstallHooks` takes any `VReg`, so a table
   that logs each call and forwards it to the virtual registry can stand in
   front of it; a form it leaves null reaches it as the wide `Ex` form.
 - **MUI strings:** `RegLoadMUIString` never resolves a hive value's `@`
@@ -236,7 +239,7 @@ table slots, and, once hooked, for every virtual key.
 
 They answer `ERROR_NOT_SUPPORTED` on a virtual handle and pass through
 unchanged on a real one. They are hooked but have no slot in
-`VRegRegistryVtbl`.
+`VRegVtbl`.
 
 #### Hive files
 

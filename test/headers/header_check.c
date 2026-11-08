@@ -7,6 +7,6 @@
 #include <vreg.h>
 
 // The implementation's own macros stay out of the consumer's file.
-#ifdef VREG__REFUSED_HOOKS
-#error "The implementation leaks VREG__REFUSED_HOOKS."
+#ifdef VREG_INTERNAL_REFUSED_HOOKS
+#error "The implementation leaks VREG_INTERNAL_REFUSED_HOOKS."
 #endif

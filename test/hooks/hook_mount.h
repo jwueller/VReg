@@ -8,7 +8,7 @@
 
 #include <string_view>
 
-namespace VReg::Test
+namespace VRegTest
 {
 /// The name of the value that tells the hive of one module from another's.
 inline constexpr wchar_t MODULE_VALUE[] = L"Module";
@@ -25,13 +25,13 @@ inline LONG InstallMount(
 )
 {
     VRegHive* pHive = nullptr;
-    VRegRegistry* pNative = nullptr;
-    VRegRegistry* pRegistry = nullptr;
+    VReg* pNative = nullptr;
+    VReg* pRegistry = nullptr;
     LONG error = VRegCreateHive(nullptr, &pHive);
     if (error == ERROR_SUCCESS)
-        error = VRegCreateNativeRegistry(nullptr, nullptr, &pNative);
+        error = VRegCreateNative(nullptr, nullptr, &pNative);
     if (error == ERROR_SUCCESS)
-        error = VRegCreateVirtualRegistry(pNative, nullptr, nullptr, &pRegistry);
+        error = VRegCreateVirtual(pNative, nullptr, nullptr, &pRegistry);
     if (error == ERROR_SUCCESS)
         error = VRegMount(pRegistry, HKEY_CURRENT_USER, pszPath, pHive, 0);
     if (error != ERROR_SUCCESS)
@@ -56,4 +56,4 @@ inline LONG InstallMount(
     *ppIntercept = new InterceptRegistry(pRegistry);
     return VRegInstallHooks(**ppIntercept, pNative);
 }
-} // namespace VReg::Test
+} // namespace VRegTest

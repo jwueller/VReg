@@ -15,8 +15,7 @@
 #include <new>
 #include <vector>
 
-using namespace VReg;
-using namespace VReg::Test;
+using namespace VRegTest;
 
 namespace
 {
@@ -79,7 +78,7 @@ constexpr DWORD VALUE_BYTES = 256 * 1024;
 constexpr std::size_t LIMIT_BYTES = VALUE_BYTES / 16;
 
 /// Stores the large value the checks below ask for, through @p registry.
-void SetBigValue(VRegRegistry* const registry, const HKEY hKey)
+void SetBigValue(VReg* const registry, const HKEY hKey)
 {
     const std::vector<std::byte> value(VALUE_BYTES, std::byte{0x5A});
     REQUIRE(
@@ -97,7 +96,7 @@ void SetBigValue(VRegRegistry* const registry, const HKEY hKey)
 
 /// Asks for the size of the large value, by name and by enumeration, and
 /// checks that no allocation anywhere near its size happens meanwhile.
-void CheckSizeOnly(VRegRegistry* const registry, const HKEY hKey)
+void CheckSizeOnly(VReg* const registry, const HKEY hKey)
 {
     {
         DWORD dwType{};
