@@ -117,7 +117,7 @@ Implementations:
 
 A tree with one anonymous root, mounted at a path; several can be mounted at
 once, as with `RegLoadKey`. The public functions create, layer, freeze and
-destroy a `VRegHive` and set MUI text by path; the node-level interface the
+destroy a `VRegHive`; the node-level interface the
 virtual registry uses (the private "Hive internals" section, `VReg_Hive*`) answers owned
 values, while buffer and ANSI/wide rules
 stay in the virtual registry. One struct covers both kinds of hive, since
@@ -144,16 +144,6 @@ relation to the lower layer stay clear in it.
     a subkey of its root.
   - An upper-only key ends its enumerations with `ERROR_NO_MORE_ITEMS`,
     never `ERROR_FILE_NOT_FOUND`.
-  - `RegLoadMUIStringW` on a lower-backed value forwards to the lower key;
-    an upper value answers as any hive value does.
-- A hive never resolves an `@` resource reference for `RegLoadMUIString`,
-  since that would load a module under a possibly foreign loader lock. A
-  value stored with `VRegSetHiveMuiTextValue` carries a mark that makes it
-  stand for the text such a reference resolves to. Agent's choice: an
-  explicit mark per value, set through the hive. A value type of our own
-  would show through `RegQueryValueEx`, and answering every plain string
-  with its text would change what unmarked values answer, which consumers
-  rely on.
 
 ## Handles, freeze and locking
 
@@ -397,7 +387,9 @@ of each group.
 
 A detour body can run under a
 foreign loader lock, so it never loads a module, creates a thread, or blocks
-on a lock a loader-lock holder could own. Calls to the lower registry go
+on a lock a loader-lock holder could own. A load the hooked call itself
+makes natively is the caller's, not VReg's: `RegLoadMUIString` resolving an
+indirect string loads its module, as native does on the caller's thread. Calls to the lower registry go
 only through the base registry (the trampolines), never `::Reg*` directly,
 which would re-enter the hooks and bypass test stubs.
 

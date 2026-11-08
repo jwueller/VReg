@@ -176,10 +176,8 @@ write into it.
 - **Tracing:** `VRegInstallHooks` takes any `VReg`, so a table
   that logs each call and forwards it to the virtual registry can stand in
   front of it; a form it leaves null reaches it as the wide `Ex` form.
-- **MUI strings:** `RegLoadMUIString` never resolves a hive value's `@`
-  resource reference (that would load a module) and answers
-  `ERROR_INVALID_DATA`. A value stored with `VRegSetHiveMuiTextValue` answers
-  with its text instead.
+- **MUI strings:** `RegLoadMUIString` resolves an `@` indirect string in a
+  hive value as native does.
 
 Code that runs inside a hook (a registry table of your own used as a base,
 for instance) may run under another module's loader lock: it MUST NOT load a
@@ -433,13 +431,6 @@ an in-memory hive; the scenarios skip exactly these calls for the virtual run
   `SeBackupPrivilege` and answers `ERROR_ACCESS_DENIED` without it.
 - `REG_OPTION_CREATE_LINK` creates an ordinary key.
 - `RegQueryInfoKey` reports a security descriptor size of 0.
-- `RegLoadMUIString` answers `ERROR_INVALID_DATA` for a hive value whether
-  or not it is an `@` indirect string; resolving one would load a resource
-  module, which a detour body MUST NOT do. A value stored with
-  `VRegSetHiveMuiTextValue` instead stands for the text an indirect string
-  resolves to: it answers with that text, sized and truncated as native
-  answers a resolved string, and ignores `pszDirectory` (there is no module
-  to find).
 - Through an overlay, an entry the upper layer shadows or tombstones carries
   the letter case of the first call that named it, not the lower key's case
   (a name is found without regard to case, but enumerated as stored).

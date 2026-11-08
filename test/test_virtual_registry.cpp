@@ -267,116 +267,17 @@ TEST_CASE("A frozen hive refuses writes and still answers reads")
     CHECK(QueryDword(registry, hSub, L"v", status) == 7);
 }
 
-TEST_CASE("A hive created through the C functions takes MUI text by path")
+TEST_CASE("A hive created through the C functions freezes and is destroyed")
 {
     VRegHive* pHive = nullptr;
     REQUIRE(VRegCreateHive(&pHive) == ERROR_SUCCESS);
-    REQUIRE(VRegSetHiveMuiTextValue(pHive, L"Sub\\Deep", L"Name", L"Text") == ERROR_SUCCESS);
-
-    const std::array<VReg_WStringView, 2> path{{{L"Sub", 3}, {L"Deep", 4}}};
-    VReg_OpenResult opened{};
-    REQUIRE(
-        VReg_HiveOpenKey(pHive, VReg_HiveRoot(pHive), path.data(), path.size(), KEY_READ, &opened)
-        == ERROR_SUCCESS
-    );
-    REQUIRE(opened.pNode != nullptr);
-    VReg_WString text{};
-    CHECK(VReg_HiveQueryMuiText(pHive, opened.pNode, L"Name", &text) == ERROR_SUCCESS);
-    CHECK(std::wstring_view(VReg_WStringText(&text), text.cch) == L"Text");
-    VReg_WStringFree(&text);
-
-    // A null path and name address the root's default value.
-    CHECK(VRegSetHiveMuiTextValue(pHive, nullptr, nullptr, L"Default") == ERROR_SUCCESS);
-    CHECK(VRegSetHiveMuiTextValue(pHive, L"\\Bad", L"Name", L"Text") == ERROR_BAD_PATHNAME);
 
     CHECK_FALSE(VReg_HiveIsFrozen(pHive));
     VRegFreezeHive(pHive);
     CHECK(VReg_HiveIsFrozen(pHive));
-    CHECK(VRegSetHiveMuiTextValue(pHive, L"Sub", L"Name", L"Text") == ERROR_ACCESS_DENIED);
-    CHECK(VRegSetHiveMuiTextValue(pHive, L"New", L"Name", L"Text") == ERROR_ACCESS_DENIED);
 
     VRegDestroyHive(pHive);
     VRegDestroyHive(nullptr);
-}
-
-TEST_CASE("A value marked as MUI text loads as its text until written again")
-{
-    OwnedHive hive = MakeHive();
-    OwnedRegistry registry = MakeVirtualRegistry();
-    REQUIRE(VRegMount(registry, HKEY_CURRENT_USER, L"Test", hive, 0) == ERROR_SUCCESS);
-    const HKEY hRoot = RootHandle(hive);
-    const HKEY hSub = CreateKey(registry, hRoot, L"Sub");
-    auto* const pSub = VReg_NodeOf(hSub);
-
-    REQUIRE(VReg_HiveSetMuiTextValue(hive, pSub, L"Name", L"Text") == ERROR_SUCCESS);
-
-    std::wstring text;
-    CHECK(
-        LoadMUIString(
-            registry,
-            hSub,
-            L"Name",
-            0,
-            nullptr,
-            text
-        ) == ERROR_SUCCESS
-    );
-    CHECK(text == L"Text");
-
-    DWORD dwType = 0;
-    std::array<wchar_t, 8> data{};
-    DWORD cbData = sizeof(data);
-    CHECK(
-        VRegQueryValueExW(
-            registry,
-            hSub,
-            L"Name",
-            nullptr,
-            &dwType,
-            reinterpret_cast<BYTE*>(data.data()),
-            &cbData
-        ) == ERROR_SUCCESS
-    );
-    CHECK(dwType == REG_SZ);
-    CHECK(cbData == sizeof(L"Text"));
-    CHECK(std::wstring(data.data()) == L"Text");
-
-    CHECK(
-        VRegSetValueExW(
-            registry,
-            hSub,
-            L"Name",
-            0,
-            REG_SZ,
-            reinterpret_cast<const BYTE*>(L"Text"),
-            sizeof(L"Text")
-        ) == ERROR_SUCCESS
-    );
-    CHECK(
-        LoadMUIString(
-            registry,
-            hSub,
-            L"Name",
-            0,
-            nullptr,
-            text
-        ) == ERROR_INVALID_DATA
-    );
-
-    CHECK(VReg_HiveSetMuiTextValue(hive, pSub, L"Name", L"Text") == ERROR_SUCCESS);
-    VRegFreezeHive(hive);
-    CHECK(VReg_HiveSetMuiTextValue(hive, pSub, L"Name", L"Other") == ERROR_ACCESS_DENIED);
-    CHECK(
-        LoadMUIString(
-            registry,
-            hSub,
-            L"Name",
-            0,
-            nullptr,
-            text
-        ) == ERROR_SUCCESS
-    );
-    CHECK(text == L"Text");
 }
 
 TEST_CASE("Mount rejects what cannot be mounted")

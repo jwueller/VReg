@@ -1303,7 +1303,7 @@ TEST_CASE("A handle to an ancestor of the mount point opens down into the mount"
     );
 }
 
-TEST_CASE("RegLoadMUIStringW forwards a lower value to the lower key")
+TEST_CASE("RegLoadMUIStringW resolves a lower value as the lower key does")
 {
     Fixture fx;
     VReg* const native = fx.Native();
@@ -1376,7 +1376,7 @@ TEST_CASE("RegLoadMUIStringW forwards a lower value to the lower key")
         );
     }
 
-    SECTION("A value the upper layer holds is a literal")
+    SECTION("A value the upper layer holds resolves too")
     {
         REQUIRE(
             SetString(reg, fx.Root(), L"Indirect", MUI_STRING) == ERROR_SUCCESS
@@ -1393,8 +1393,9 @@ TEST_CASE("RegLoadMUIStringW forwards a lower value to the lower key")
                 &cb,
                 0,
                 nullptr
-            ) == ERROR_INVALID_DATA
+            ) == ERROR_SUCCESS
         );
+        CHECK(text == expected);
 
         REQUIRE(
             SetString(reg, fx.Root(), L"Plain", L"plain text") == ERROR_SUCCESS

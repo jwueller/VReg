@@ -57,7 +57,7 @@ extern "C" {
 
 // Raised with every change to this file; the tweak is always 0.
 #define VREG_VERSION_MAJOR 0
-#define VREG_VERSION_MINOR 5
+#define VREG_VERSION_MINOR 6
 #define VREG_VERSION_PATCH 0
 #define VREG_VERSION_TWEAK 0
 
@@ -843,23 +843,6 @@ VREG_DECL void WINAPI VRegFreezeHive(
     _In_ VRegHive* pHive
 );
 
-/**
- * @brief Creates the key @p pszPath below the hive's root if needed and sets
- *  its value @p pszName to @p pszText as a @ref REG_SZ marked as MUI text.
- *
- *  `RegLoadMUIStringW` answers an unmarked hive value @ref ERROR_INVALID_DATA,
- *  since resolving an `@` resource reference would load a module. A marked
- *  one stands for the text such a reference resolves to and answers with
- *  @p pszText itself. Any other write of the value drops the mark, and a
- *  `.reg` export carries it as a plain string.
- */
-VREG_DECL LSTATUS WINAPI VRegSetHiveMuiTextValue(
-    _In_ VRegHive* pHive,
-    _In_opt_z_ LPCWSTR pszPath,
-    _In_opt_z_ LPCWSTR pszName,
-    _In_z_ LPCWSTR pszText
-);
-
 // ==========================================================================
 // The native registry
 // ==========================================================================
@@ -1065,7 +1048,8 @@ VREG_DECL _Ret_notnull_ VRegNativeFunctions* WINAPI VRegGetNativeFunctions(
  *
  *  @p pBase answers everything outside the mounts; null for a registry held
  *  entirely in memory. The `ntdll` export for native path resolution is found
- *  here, so no call ever loads a module. Freed with @ref VRegDestroy.
+ *  here, so resolving a path never loads a module. Freed with
+ *  @ref VRegDestroy.
  */
 VREG_DECL LSTATUS WINAPI VRegCreateVirtual(
     _In_opt_ VReg* pBase,
@@ -1334,7 +1318,8 @@ extern "C" {
 //
 // Hook bodies may run under a foreign loader lock; nothing they reach loads
 // a module, creates a thread or waits on a lock a loader-lock holder could
-// own.
+// own. The one load is the call's own: `RegLoadMUIStringW` resolving an
+// indirect string loads its module, as it does natively.
 //
 // @note A thread still inside a hook body when its module unmaps crashes:
 // the module MUST NOT unload while registry calls are in flight. A module
@@ -1707,9 +1692,6 @@ typedef struct VReg_Value
     /// Hides the lower value of this name; only in a hive with a lower
     /// registry.
     BOOL isTombstone;
-
-    /// Stored by @ref VReg_HiveSetMuiTextValue: a terminated @ref REG_SZ.
-    BOOL isMuiText;
 } VReg_Value;
 
 /// A pending change notification: fires once, then is gone.
@@ -2177,33 +2159,6 @@ VREG_DECL LSTATUS VReg_HiveDeleteValue(
     _In_z_ LPCWSTR pszName
 );
 
-/**
- * @brief Sets value @p pszName of @p pNode to @p pszText as a @ref REG_SZ and
- *  marks it MUI text.
- *
- *  `RegLoadMUIStringW` answers an unmarked hive value @ref ERROR_INVALID_DATA,
- *  since resolving an `@` resource reference would load a module. A marked
- *  one stands for the text such a reference resolves to and answers with
- *  @p pszText itself. Any other write of the value drops the mark, and a
- *  `.reg` export carries it as a plain string.
- */
-VREG_DECL LSTATUS VReg_HiveSetMuiTextValue(
-    _In_ VRegHive* pHive,
-    _Inout_ VReg_Node* pNode,
-    _In_z_ LPCWSTR pszName,
-    _In_z_ LPCWSTR pszText
-);
-
-/// The text of value @p pszName of @p pNode if @ref VReg_HiveSetMuiTextValue
-/// stored it, or @ref ERROR_INVALID_DATA for any other value; a value from
-/// below is never marked.
-VREG_DECL LSTATUS VReg_HiveQueryMuiText(
-    _In_ VRegHive* pHive,
-    _In_ VReg_Node* pNode,
-    _In_z_ LPCWSTR pszName,
-    _Inout_ VReg_WString* pText
-);
-
 VREG_DECL LSTATUS VReg_HiveEnumKey(
     _In_ VRegHive* pHive,
     _In_ VReg_Node* pNode,
@@ -2279,17 +2234,6 @@ VREG_DECL LSTATUS VReg_HiveSnapshotUpper(
     _In_ VRegHive* pHive,
     _In_ VReg_UpperVisitor pfnVisit,
     _In_opt_ void* pContext
-);
-
-/// A key of @ref VReg_HiveLower holding value @p pszName of @p pNode, when
-/// that value shows through from below; null (and success) when the hive
-/// holds it or nothing does. The caller closes it through the lower
-/// registry.
-VREG_DECL LSTATUS VReg_HiveOpenLowerValueKey(
-    _In_ VRegHive* pHive,
-    _In_ VReg_Node* pNode,
-    _In_z_ LPCWSTR pszName,
-    _Out_ PHKEY phLower
 );
 
 // ==========================================================================
@@ -6964,8 +6908,7 @@ static LSTATUS VReg_HiveStoreValue(
     const VReg_WStringView name,
     const DWORD dwType,
     _In_reads_bytes_opt_(cbData) const BYTE* const pData,
-    const DWORD cbData,
-    const BOOL isMuiText
+    const DWORD cbData
 )
 {
     VReg_Buffer bytes = {0, 0, NULL};
@@ -6992,7 +6935,6 @@ static LSTATUS VReg_HiveStoreValue(
         pValue->dwType = dwType;
         pValue->data = bytes;
         pValue->isTombstone = FALSE;
-        pValue->isMuiText = isMuiText;
         bytes.pb = NULL;
     }
     else
@@ -7004,7 +6946,6 @@ static LSTATUS VReg_HiveStoreValue(
         value.dwType = dwType;
         value.data = bytes;
         value.isTombstone = FALSE;
-        value.isMuiText = isMuiText;
         if (!VReg_WStringAssign(&value.name, name.pch, name.cch))
         {
             status = ERROR_OUTOFMEMORY;
@@ -7042,76 +6983,7 @@ VREG_DECL LSTATUS VReg_HiveSetValue(
     const DWORD cbData
 )
 {
-    return VReg_HiveStoreValue(pHive, pNode, VReg_ViewOf(pszName), dwType, pData, cbData, FALSE);
-}
-
-VREG_DECL LSTATUS VReg_HiveSetMuiTextValue(
-    _In_ VRegHive* const pHive,
-    _Inout_ VReg_Node* const pNode,
-    _In_z_ const LPCWSTR pszName,
-    _In_z_ const LPCWSTR pszText
-)
-{
-    const VReg_WStringView text = VReg_ViewOf(pszText);
-    return VReg_HiveStoreValue(
-        pHive,
-        pNode,
-        VReg_ViewOf(pszName),
-        REG_SZ,
-        (const BYTE*)pszText,
-        (DWORD)((text.cch + 1) * sizeof(wchar_t)),
-        TRUE
-    );
-}
-
-VREG_DECL LSTATUS VReg_HiveQueryMuiText(
-    _In_ VRegHive* const pHive,
-    _In_ VReg_Node* const pNode,
-    _In_z_ const LPCWSTR pszName,
-    _Inout_ VReg_WString* const pText
-)
-{
-    const VReg_WStringView name = VReg_ViewOf(pszName);
-    const BOOL isLocked = VReg_HiveLockRead(pHive);
-    LSTATUS status = ERROR_SUCCESS;
-    BOOL isFound = TRUE;
-    const VReg_Value* pValue;
-    DWORD dwType;
-    DWORD cbData;
-
-    pValue = pNode->isDeleted ? NULL : VReg_HiveFindValue(pNode, name);
-    if (pNode->isDeleted)
-    {
-        status = ERROR_KEY_DELETED;
-    }
-    else if (pValue)
-    {
-        if (pValue->isTombstone)
-        {
-            status = ERROR_FILE_NOT_FOUND;
-        }
-        else if (!pValue->isMuiText)
-        {
-            status = ERROR_INVALID_DATA;
-        }
-        else
-        {
-            const SIZE_T cchText = pValue->data.cb < sizeof(wchar_t) ? 0 : pValue->data.cb / sizeof(wchar_t) - 1;
-            if (!VReg_WStringAssign(pText, (const wchar_t*)pValue->data.pb, cchText))
-                status = ERROR_OUTOFMEMORY;
-        }
-    }
-    else
-    {
-        isFound = FALSE;
-    }
-
-    VReg_HiveUnlockRead(pHive, isLocked);
-    if (isFound)
-        return status;
-
-    status = VReg_HiveQueryValue(pHive, pNode, pszName, &dwType, &cbData, NULL);
-    return status == ERROR_SUCCESS ? ERROR_INVALID_DATA : status;
+    return VReg_HiveStoreValue(pHive, pNode, VReg_ViewOf(pszName), dwType, pData, cbData);
 }
 
 VREG_DECL LSTATUS VReg_HiveDeleteValue(
@@ -7203,7 +7075,6 @@ VREG_DECL LSTATUS VReg_HiveDeleteValue(
                 VReg_BufferFree(&pValue->data);
                 pValue->dwType = REG_NONE;
                 pValue->isTombstone = TRUE;
-                pValue->isMuiText = FALSE;
             }
             else
             {
@@ -7985,110 +7856,6 @@ VREG_DECL LSTATUS VReg_HiveWatch(
     if (hOwn)
         CloseHandle(hOwn);
     return status;
-}
-
-VREG_DECL LSTATUS VReg_HiveOpenLowerValueKey(
-    _In_ VRegHive* const pHive,
-    _In_ VReg_Node* const pNode,
-    _In_z_ const LPCWSTR pszName,
-    _Out_ PHKEY const phLower
-)
-{
-    const VReg_WStringView name = VReg_ViewOf(pszName);
-    BOOL isLocked;
-    BOOL isFound = FALSE;
-    BOOL isVisible = FALSE;
-    VReg_WString viewPath = {0, 0, NULL};
-    HKEY hLower = NULL;
-    LSTATUS status = ERROR_SUCCESS;
-
-    *phLower = NULL;
-    isLocked = VReg_HiveLockRead(pHive);
-    if (pNode->isDeleted)
-        status = ERROR_KEY_DELETED;
-    else if (VReg_HiveFindValue(pNode, name))
-        isFound = TRUE;
-    else
-        status = VReg_HiveViewOf(pHive, pNode, &isVisible, &viewPath);
-    VReg_HiveUnlockRead(pHive, isLocked);
-    if (status != ERROR_SUCCESS || isFound || !isVisible)
-        goto done;
-
-    status = VReg_HiveOpenLower(pHive, &viewPath, KEY_QUERY_VALUE, &hLower);
-    if (status != ERROR_SUCCESS)
-    {
-        if (status == ERROR_FILE_NOT_FOUND)
-            status = ERROR_SUCCESS;
-        goto done;
-    }
-
-    status = VRegQueryValueExW(
-        pHive->pLower,
-        hLower,
-        pszName,
-        NULL,
-        NULL,
-        NULL,
-        NULL
-    );
-    if (status == ERROR_FILE_NOT_FOUND)
-    {
-        status = ERROR_SUCCESS;
-        goto done;
-    }
-    if (!VReg_StatusExists(status))
-        goto done;
-
-    *phLower = hLower;
-    hLower = NULL;
-    status = ERROR_SUCCESS;
-
-done:
-    VReg_HiveCloseLower(pHive, hLower);
-    VReg_WStringFree(&viewPath);
-    return status;
-}
-
-VREG_DECL LSTATUS WINAPI VRegSetHiveMuiTextValue(
-    _In_ VRegHive* const pHive,
-    _In_opt_z_ const LPCWSTR pszPath,
-    _In_opt_z_ const LPCWSTR pszName,
-    _In_z_ const LPCWSTR pszText
-)
-{
-    VReg_Array components = {NULL, 0, 0};
-    VReg_OpenResult opened;
-    DWORD dwDisposition = 0;
-    LSTATUS status = VReg_SplitPath(VReg_ViewOf(pszPath), &components);
-    if (status != ERROR_SUCCESS)
-    {
-        VReg_ArrayFree(&components);
-        return status;
-    }
-
-    status = VReg_HiveCreateKey(
-        pHive,
-        pHive->pRoot,
-        (const VReg_WStringView*)components.p,
-        components.count,
-        L"",
-        0,
-        KEY_SET_VALUE,
-        &opened,
-        &dwDisposition
-    );
-    VReg_ArrayFree(&components);
-    if (status != ERROR_SUCCESS)
-        return status;
-
-    // Frozen: the open answered with a lower key, which cannot take the value.
-    if (!opened.pNode)
-    {
-        VReg_HiveCloseLower(pHive, opened.hLower);
-        return ERROR_ACCESS_DENIED;
-    }
-
-    return VReg_HiveSetMuiTextValue(pHive, opened.pNode, pszName ? pszName : L"", pszText);
 }
 
 // ==========================================================================
@@ -10581,6 +10348,191 @@ done:
     return status;
 }
 
+/// Resolves the indirect string `@<module>,-<id>` in @p pData as
+/// `RegLoadMUIStringW` does natively: the module path with environment
+/// strings expanded, joined to @p pszDirectory when one is given and taken
+/// from the current directory otherwise, never from the search path; then
+/// string `id` of the module's string table in the user's UI language. Data
+/// that is no such string answers @ref ERROR_INVALID_DATA.
+static LSTATUS VReg_LoadIndirectString(
+    _In_ const VReg_Buffer* const pData,
+    const DWORD dwType,
+    _In_opt_z_ const LPCWSTR pszDirectory,
+    _Inout_ VReg_WString* const pText
+)
+{
+    const wchar_t* const pch = (const wchar_t*)pData->pb;
+    const SIZE_T cchData = pData->cb / sizeof(wchar_t);
+    SIZE_T cch = 0;
+    SIZE_T iComma = 1;
+    SIZE_T i;
+    DWORD dwId = 0;
+    DWORD cchNeeded;
+    DWORD cchWritten;
+    VReg_WString module = {0, 0, NULL};
+    VReg_WString expanded = {0, 0, NULL};
+    VReg_WString path = {0, 0, NULL};
+    HMODULE hModule = NULL;
+    HRSRC hResource;
+    HGLOBAL hBlock;
+    const WORD* pBlock;
+    SIZE_T cWords;
+    SIZE_T iWord = 0;
+    LSTATUS status = ERROR_SUCCESS;
+
+    if (dwType != REG_SZ && dwType != REG_EXPAND_SZ)
+        return ERROR_INVALID_DATA;
+
+    // The text ends at its first terminator or with the data. The module runs
+    // to the first comma, which a minus and at least one digit follow;
+    // leading zeros and anything after the digits are accepted, as natively.
+    while (cch < cchData && pch[cch] != L'\0')
+        ++cch;
+    while (iComma < cch && pch[iComma] != L',')
+        ++iComma;
+    if (
+        cch == 0
+        || pch[0] != L'@'
+        || iComma + 2 >= cch
+        || pch[iComma + 1] != L'-'
+        || pch[iComma + 2] < L'0'
+        || pch[iComma + 2] > L'9'
+    )
+        return ERROR_INVALID_DATA;
+
+    // An id past the 16-bit range names no string; the digits stop growing it.
+    for (i = iComma + 2; i < cch && pch[i] >= L'0' && pch[i] <= L'9'; ++i)
+    {
+        if (dwId <= 0xFFFF)
+            dwId = dwId * 10 + (DWORD)(pch[i] - L'0');
+    }
+
+    if (!VReg_WStringAssign(&module, pch + 1, iComma - 1))
+    {
+        status = ERROR_OUTOFMEMORY;
+        goto done;
+    }
+
+    cchNeeded = ExpandEnvironmentStringsW(VReg_WStringText(&module), NULL, 0);
+    if (cchNeeded == 0)
+    {
+        status = (LSTATUS)GetLastError();
+        goto done;
+    }
+    if (!VReg_WStringResize(&expanded, cchNeeded - 1))
+    {
+        status = ERROR_OUTOFMEMORY;
+        goto done;
+    }
+    cchWritten = ExpandEnvironmentStringsW(VReg_WStringText(&module), expanded.psz, cchNeeded);
+    if (cchWritten == 0 || cchWritten > cchNeeded)
+    {
+        status = cchWritten == 0 ? (LSTATUS)GetLastError() : ERROR_INSUFFICIENT_BUFFER;
+        goto done;
+    }
+    VReg_WStringTruncate(&expanded, cchWritten - 1);
+
+    if (pszDirectory)
+    {
+        const VReg_WStringView directory = VReg_ViewOf(pszDirectory);
+        if (
+            !VReg_WStringAssign(&path, directory.pch, directory.cch)
+            || !VReg_WStringAppendChar(&path, L'\\')
+            || !VReg_WStringAppend(&path, VReg_WStringText(&expanded), expanded.cch)
+        )
+        {
+            status = ERROR_OUTOFMEMORY;
+            goto done;
+        }
+    }
+    else
+    {
+        // An empty module path has no full path; natively it is not found.
+        cchNeeded = GetFullPathNameW(VReg_WStringText(&expanded), 0, NULL, NULL);
+        if (cchNeeded == 0)
+        {
+            status = ERROR_FILE_NOT_FOUND;
+            goto done;
+        }
+        if (!VReg_WStringResize(&path, cchNeeded - 1))
+        {
+            status = ERROR_OUTOFMEMORY;
+            goto done;
+        }
+        cchWritten = GetFullPathNameW(VReg_WStringText(&expanded), cchNeeded, path.psz, NULL);
+        if (cchWritten == 0 || cchWritten >= cchNeeded)
+        {
+            status = cchWritten == 0 ? (LSTATUS)GetLastError() : ERROR_INSUFFICIENT_BUFFER;
+            goto done;
+        }
+        VReg_WStringTruncate(&path, cchWritten);
+    }
+
+    // The one module load in a hook body: natively RegLoadMUIStringW loads
+    // the module on the caller's thread itself, so the load is the call's own
+    // documented effect, not one VReg adds.
+    hModule = LoadLibraryExW(
+        VReg_WStringText(&path),
+        NULL,
+        LOAD_LIBRARY_AS_IMAGE_RESOURCE | LOAD_LIBRARY_AS_DATAFILE
+    );
+    if (!hModule)
+    {
+        status = (LSTATUS)GetLastError();
+        goto done;
+    }
+    if (dwId > 0xFFFF)
+    {
+        status = ERROR_RESOURCE_NAME_NOT_FOUND;
+        goto done;
+    }
+
+    // A string table block holds 16 strings, each a length and that many
+    // characters. The neutral language lets the resource loader pick the
+    // user's UI language, as LoadStringW would without linking user32.
+    // RT_STRING is spelled out, since its macro follows UNICODE.
+    hResource = FindResourceExW(
+        hModule,
+        MAKEINTRESOURCEW(6),
+        MAKEINTRESOURCEW(dwId / 16 + 1),
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL)
+    );
+    if (!hResource)
+    {
+        status = (LSTATUS)GetLastError();
+        goto done;
+    }
+    hBlock = LoadResource(hModule, hResource);
+    pBlock = hBlock ? (const WORD*)LockResource(hBlock) : NULL;
+    if (!pBlock)
+    {
+        status = ERROR_RESOURCE_NAME_NOT_FOUND;
+        goto done;
+    }
+
+    cWords = SizeofResource(hModule, hResource) / sizeof(WORD);
+    for (i = 0; i < dwId % 16 && iWord < cWords; ++i)
+        iWord += 1 + (SIZE_T)pBlock[iWord];
+    if (iWord >= cWords || pBlock[iWord] == 0 || pBlock[iWord] > cWords - iWord - 1)
+    {
+        status = ERROR_RESOURCE_NAME_NOT_FOUND;
+        goto done;
+    }
+    if (!VReg_WStringAssign(pText, (const wchar_t*)(pBlock + iWord + 1), pBlock[iWord]))
+        status = ERROR_OUTOFMEMORY;
+
+done:
+    if (hModule)
+        FreeLibrary(hModule);
+    VReg_WStringFree(&path);
+    VReg_WStringFree(&expanded);
+    VReg_WStringFree(&module);
+    return status;
+}
+
+// Native leaves pszOutBuf untouched on failure, which the terminator its
+// LPWSTR type implies does not allow for.
+#pragma warning(suppress: 6054)
 VREG_DECL LSTATUS WINAPI VReg_VirtualRegLoadMUIStringW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
@@ -10593,8 +10545,10 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegLoadMUIStringW(
 )
 {
     VReg_Target target;
-    HKEY hLower = NULL;
+    VReg_Buffer data = {0, 0, NULL};
     VReg_WString text = {0, 0, NULL};
+    DWORD dwType;
+    DWORD cbData;
     DWORD cbText;
     LSTATUS status = VReg_Resolve(pRegistry, hKey, VReg_ViewOf(NULL), 0, &target);
     if (status != ERROR_SUCCESS)
@@ -10635,36 +10589,13 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegLoadMUIStringW(
         goto done;
     }
 
-    status = VReg_HiveOpenLowerValueKey(target.pHive, target.pNode, VReg_OrEmpty(pszValue), &hLower);
+    // The merged read answers an owned copy, so no lock of the hive is held
+    // while the string resolves.
+    status = VReg_HiveQueryValue(target.pHive, target.pNode, VReg_OrEmpty(pszValue), &dwType, &cbData, &data);
     if (status != ERROR_SUCCESS)
         goto done;
 
-    // A value from below is resolved there, as the system would. One the hive
-    // holds would need a resource module to resolve, unless it is marked as
-    // the text itself.
-    if (hLower)
-    {
-        VReg* const pLower = VReg_HiveLower(target.pHive);
-        // A lower handle exists only where there is a lower registry.
-        _Analysis_assume_(pLower);
-        status = VRegLoadMUIStringW(
-            pLower,
-            hLower,
-            pszValue,
-            pszOutBuf,
-            cbOutBuf,
-            pcbData,
-            Flags,
-            pszDirectory
-        );
-        VRegCloseKey(
-            pLower,
-            hLower
-        );
-        goto done;
-    }
-
-    status = VReg_HiveQueryMuiText(target.pHive, target.pNode, VReg_OrEmpty(pszValue), &text);
+    status = VReg_LoadIndirectString(&data, dwType, pszDirectory, &text);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -10700,8 +10631,8 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegLoadMUIStringW(
     CopyMemory(pszOutBuf, VReg_WStringText(&text), cbText);
 
 done:
-    if (target.pHive)
-        VReg_WStringFree(&text);
+    VReg_BufferFree(&data);
+    VReg_WStringFree(&text);
     VReg_TargetFree(&target);
     return status;
 }

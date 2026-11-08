@@ -32,8 +32,10 @@ work is done; git keeps how it got there.
 
 - **Detour bodies can run under a foreign loader lock.** Nothing reachable
   from one may load a module, create a thread, or wait on a lock that a
-  loader-lock holder could own. A hive's lock is never held across a call
-  into the lower registry.
+  loader-lock holder could own. A load the hooked call itself makes
+  natively is the caller's, not VReg's: `RegLoadMUIString` resolving an
+  indirect string. A hive's lock is never held across a call into the lower
+  registry.
 - **Lower-registry access goes only through the base `Registry`** (after
   hooking: the trampolines). A direct `::Reg*` call inside the library
   re-enters the hooks and bypasses test stubs.

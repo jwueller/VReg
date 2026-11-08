@@ -5,8 +5,6 @@
 
 #include <vreg.h>
 
-#include <Shlwapi.h>
-
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
 
@@ -19,21 +17,6 @@ using namespace VRegTest;
 
 namespace
 {
-/// What the scenario's `Indirect` value resolves to natively.
-std::wstring ResolvedIndirect()
-{
-    std::array<wchar_t, 256> text{};
-    REQUIRE(
-        SHLoadIndirectString(
-            L"@%SystemRoot%\\System32\\shell32.dll,-21770",
-            text.data(),
-            static_cast<UINT>(text.size()),
-            nullptr
-        ) == S_OK
-    );
-    return text.data();
-}
-
 LSTATUS GetEx(
     const Api& api,
     HKEY hKey,
@@ -571,21 +554,6 @@ struct LoadMUIStringForms
             RECORD("set " + Narrow(value.name), SetStored(api, hRoot, value));
         }
 
-        // A hive never resolves an indirect string, but answers a value marked
-        // as MUI text with its text: here, what the indirect string resolves
-        // to.
-        if (VReg_Node* const pNode = VReg_NodeOf(hRoot))
-        {
-            REQUIRE(
-                VReg_HiveSetMuiTextValue(
-                    VReg_NodeHive(pNode),
-                    pNode,
-                    L"Indirect",
-                    ResolvedIndirect().c_str()
-                ) == ERROR_SUCCESS
-            );
-        }
-
         for (const wchar_t* const pszName :
              {
                  L"Plain",
@@ -604,15 +572,6 @@ struct LoadMUIStringForms
                  L""
              })
         {
-            // Resolving an indirect string loads a resource module, which a
-            // virtual key never does.
-            if (
-                api.isVirtualKeys
-                && std::wstring_view(pszName).starts_with(L"Indirect")
-                && std::wstring_view(pszName) != L"Indirect"
-            )
-                continue;
-
             const auto label = Narrow(pszName);
             for (
                 const DWORD dwFlags :
@@ -697,26 +656,21 @@ struct LoadMUIStringForms
             std::array<wchar_t, 64> data;
             std::memset(data.data(), FILL, sizeof(data));
             DWORD cbData = FILL_SIZE;
-            // Natively the directory decides where the module is found; a
-            // value marked as MUI text has no module.
-            if (!api.isVirtualKeys || label != "Indirect")
-            {
-                RECORD(
-                    "muiW directory " + label,
-                    VRegLoadMUIStringW(
-                        api,
-                        hRoot,
-                        pszName,
-                        data.data(),
-                        128,
-                        &cbData,
-                        0,
-                        L"C:\\Windows\\System32"
-                    ),
-                    {cbData},
-                    {Bytes(data)}
-                );
-            }
+            RECORD(
+                "muiW directory " + label,
+                VRegLoadMUIStringW(
+                    api,
+                    hRoot,
+                    pszName,
+                    data.data(),
+                    128,
+                    &cbData,
+                    0,
+                    L"C:\\Windows\\System32"
+                ),
+                {cbData},
+                {Bytes(data)}
+            );
 
             const auto narrow = Narrow(pszName);
             std::array<char, 64> adata;
@@ -1279,7 +1233,7 @@ TEMPLATE_LIST_TEST_CASE(
     Win32Registry win32Registry;
     const Api win32 = ReducedReference(win32Registry);
     // The reference first, so it skips under Wine before the virtual run
-    // asks the system to resolve an indirect string (see ResolvedIndirect).
+    // resolves an indirect string.
     const auto expected = Record<TestType>(win32);
     CheckSameRecording(expected, RecordVirtual<TestType>());
 }
