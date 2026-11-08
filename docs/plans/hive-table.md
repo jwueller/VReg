@@ -86,14 +86,13 @@ recorded):
 ### Nodes and handles
 
 - A slot works on key records. Open and create take a parent record plus
-  the path below it and answer whether the key exists plus an optional
-  token that the record keeps. Agent's choice: the public slots take that
-  path as one backslash-separated `LPCWSTR` below the parent, the shape
-  `RegOpenKeyExW` gives its subkey, so no public string-view type is
-  needed; the hive joins the components it resolved, and the internal
-  registry implementation joins them again onto the lower path. Passed
-  over: a public view type (pointer plus length), one more type for one
-  parameter.
+  one name below it and answer whether the key exists plus an optional
+  token that the record keeps; a deeper path is one call per component,
+  so every record on the way, intermediate ones included, carries the
+  token its own call answered, and a provider that resolves keys through
+  tokens never falls back to paths. The internal registry implementation
+  still opens the whole remaining path in one call, as the layered hive
+  always did.
 - Slots receive the record and read it through `VRegGetHiveKeyToken`,
   `VRegGetHiveKeyName` and `VRegGetHiveKeyParent`, all allocation-free
   and valid for the hive's life. Agent's choice: name and parent instead
