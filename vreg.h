@@ -57,8 +57,8 @@ extern "C" {
 
 // Raised with every change to this file; the tweak is always 0.
 #define VREG_VERSION_MAJOR 0
-#define VREG_VERSION_MINOR 6
-#define VREG_VERSION_PATCH 2
+#define VREG_VERSION_MINOR 7
+#define VREG_VERSION_PATCH 0
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -798,8 +798,8 @@ VREG_DECL void WINAPI VRegDestroy(
  *
  *  Each key has exactly one virtual handle, issued when the key is created.
  *  Readers take the hive's lock shared and writers exclusive, until
- *  @ref VRegFreezeHive; after that nothing writes and readers take no lock
- *  at all. The lower registry is never called with the lock held, so a lower
+ *  @ref VRegFreezeHive; after that nothing writes and the readers of a hive
+ *  VReg holds itself take no lock at all. The lower registry is never called with the lock held, so a lower
  *  call that loads a module or takes a long time cannot hold up the hive.
  *
  *  Frozen, a layered hive answers an open of a key it has nothing at or below
@@ -837,10 +837,253 @@ VREG_DECL void WINAPI VRegDestroyHive(
     _In_opt_ VRegHive* pHive
 );
 
-/// Makes the hive immutable from now on, so its readers take no lock.
-/// Safe while it is mounted and in use; there is no way back.
+/// Makes the hive immutable from now on, so its readers take no lock; a hive
+/// @ref VRegCreateCustomHive made refuses writes from then on and keeps
+/// locking to add the records of keys it opens. Safe while it is mounted and
+/// in use; there is no way back.
 VREG_DECL void WINAPI VRegFreezeHive(
     _In_ VRegHive* pHive
+);
+
+// ==========================================================================
+// Custom hives
+// ==========================================================================
+
+/**
+ * @brief A key of a hive: the record VReg keeps for it, as a slot of a
+ *  @ref VRegHiveVtbl receives it.
+ *
+ *  Opaque, and valid for the life of the hive: VReg adds a record the first
+ *  time it opens or creates a key, keeps it until the hive is destroyed, and
+ *  answers every later call on that path with it. A provider over an
+ *  unbounded key space grows by one record per distinct key opened.
+ */
+typedef struct VReg_Node VRegHiveKey;
+
+/// Where a slot hands VReg what it answers, through the
+/// `VRegHiveResultSet*` functions. Opaque; valid only during the slot call.
+typedef struct VReg_HiveResult VRegHiveResult;
+
+/// Whether the key at @p pszSubKey below @p pParent exists:
+/// @ref ERROR_SUCCESS or @ref ERROR_FILE_NOT_FOUND. @p pszSubKey is one name;
+/// @p ppToken receives what the provider wants to keep for the key, which
+/// @ref VRegGetHiveKeyToken answers from then on (null is fine).
+typedef LSTATUS WINAPI VRegHiveOpenKeyFunction(
+    _In_ VRegHive* pHive,
+    _In_ VRegHiveKey* pParent,
+    _In_z_ LPCWSTR pszSubKey,
+    _Outptr_result_maybenull_ void** ppToken
+);
+
+/// Creates the key @p pszSubKey (one name) below @p pParent, or opens it
+/// when it exists; @p pIsCreated says which. @p dwOptions are those of
+/// @ref RegCreateKeyExW.
+typedef LSTATUS WINAPI VRegHiveCreateKeyFunction(
+    _In_ VRegHive* pHive,
+    _In_ VRegHiveKey* pParent,
+    _In_z_ LPCWSTR pszSubKey,
+    _In_z_ LPCWSTR pszClassName,
+    _In_ DWORD dwOptions,
+    _Outptr_result_maybenull_ void** ppToken,
+    _Out_ BOOL* pIsCreated
+);
+
+/// Deletes @p pKey, which MUST answer @ref ERROR_ACCESS_DENIED while it has
+/// subkeys, as native does.
+typedef LSTATUS WINAPI VRegHiveDeleteKeyFunction(
+    _In_ VRegHive* pHive,
+    _In_ VRegHiveKey* pKey
+);
+
+/// Deletes every subkey and value of @p pKey, leaving the key itself.
+typedef LSTATUS WINAPI VRegHiveDeleteTreeFunction(
+    _In_ VRegHive* pHive,
+    _In_ VRegHiveKey* pKey
+);
+
+/// The type and data of value @p pszName of @p pKey, through
+/// @ref VRegHiveResultSetValue. Two reads of a value MAY differ.
+typedef LSTATUS WINAPI VRegHiveQueryValueFunction(
+    _In_ VRegHive* pHive,
+    _In_ VRegHiveKey* pKey,
+    _In_z_ LPCWSTR pszName,
+    _In_ VRegHiveResult* pResult
+);
+
+typedef LSTATUS WINAPI VRegHiveSetValueFunction(
+    _In_ VRegHive* pHive,
+    _In_ VRegHiveKey* pKey,
+    _In_z_ LPCWSTR pszName,
+    _In_ DWORD dwType,
+    _In_reads_bytes_opt_(cbData) const BYTE* pData,
+    _In_ DWORD cbData
+);
+
+typedef LSTATUS WINAPI VRegHiveDeleteValueFunction(
+    _In_ VRegHive* pHive,
+    _In_ VRegHiveKey* pKey,
+    _In_z_ LPCWSTR pszName
+);
+
+/// Subkey @p dwIndex of @p pKey, through @ref VRegHiveResultSetName and, if
+/// the provider has them, @ref VRegHiveResultSetClass and
+/// @ref VRegHiveResultSetLastWrite; @ref ERROR_NO_MORE_ITEMS past the last.
+/// The order MUST stay stable while nothing changes; native enumerates
+/// subkeys by name.
+typedef LSTATUS WINAPI VRegHiveEnumKeyFunction(
+    _In_ VRegHive* pHive,
+    _In_ VRegHiveKey* pKey,
+    _In_ DWORD dwIndex,
+    _In_ VRegHiveResult* pResult
+);
+
+/// Value @p dwIndex of @p pKey, through @ref VRegHiveResultSetName and
+/// @ref VRegHiveResultSetValue; @ref ERROR_NO_MORE_ITEMS past the last. The
+/// order MUST stay stable while nothing changes; native enumerates values in
+/// creation order.
+typedef LSTATUS WINAPI VRegHiveEnumValueFunction(
+    _In_ VRegHive* pHive,
+    _In_ VRegHiveKey* pKey,
+    _In_ DWORD dwIndex,
+    _In_ VRegHiveResult* pResult
+);
+
+/// What `RegQueryInfoKeyW` reports for @p pKey, through
+/// @ref VRegHiveResultSetInfo and, if the provider has them,
+/// @ref VRegHiveResultSetClass and @ref VRegHiveResultSetLastWrite.
+typedef LSTATUS WINAPI VRegHiveQueryInfoFunction(
+    _In_ VRegHive* pHive,
+    _In_ VRegHiveKey* pKey,
+    _In_ VRegHiveResult* pResult
+);
+
+/// What `RegFlushKey` on @p pKey answers.
+typedef LSTATUS WINAPI VRegHiveCheckKeyFunction(
+    _In_ VRegHive* pHive,
+    _In_ VRegHiveKey* pKey
+);
+
+/// Frees what the delegate owns, before VReg frees the hive.
+typedef void WINAPI VRegHiveDestroyFunction(
+    _In_ VRegHive* pHive
+);
+
+/**
+ * @brief The slots of a hive @ref VRegCreateCustomHive makes: what the hive
+ *  holds, answered on demand, while VReg keeps every Win32 rule (handles,
+ *  caller buffers, ANSI and wide, views, mounts).
+ *
+ *  `OpenKey`, `QueryValue`, `EnumKey` and `EnumValue` are required. A null
+ *  `CreateKey` opens an existing key and answers a missing one
+ *  @ref ERROR_ACCESS_DENIED, as a frozen hive does; a null `DeleteKey`,
+ *  `DeleteTree`, `SetValue` or `DeleteValue` answers
+ *  @ref ERROR_ACCESS_DENIED. A null `QueryInfo` is derived by enumerating
+ *  keys and values once; a null `CheckKey` succeeds; a null `Destroy` does
+ *  nothing. VReg never derives `DeleteTree` from the other slots.
+ *
+ *  A slot receives names as the caller passed them and MUST compare them as
+ *  the registry does (@ref VRegCompareNames). Slots MAY run on any thread,
+ *  concurrently, and under a foreign loader lock: they MUST NOT load a
+ *  module, create a thread or wait on a lock a loader-lock holder could own.
+ *  VReg holds no lock of its own across a slot call; the provider locks its
+ *  own state. A slot never sees the access a key was opened with.
+ */
+typedef struct VRegHiveVtbl
+{
+    VRegHiveOpenKeyFunction* OpenKey;
+    VRegHiveCreateKeyFunction* CreateKey;
+    VRegHiveDeleteKeyFunction* DeleteKey;
+    VRegHiveDeleteTreeFunction* DeleteTree;
+    VRegHiveQueryValueFunction* QueryValue;
+    VRegHiveSetValueFunction* SetValue;
+    VRegHiveDeleteValueFunction* DeleteValue;
+    VRegHiveEnumKeyFunction* EnumKey;
+    VRegHiveEnumValueFunction* EnumValue;
+    VRegHiveQueryInfoFunction* QueryInfo;
+    VRegHiveCheckKeyFunction* CheckKey;
+    VRegHiveDestroyFunction* Destroy;
+} VRegHiveVtbl;
+
+/// Makes a hive whose keys and values the slots of @p pVtbl answer, which
+/// MUST outlive it; writes go through to the slots. @p pDelegate is the
+/// provider's object, which its slots reach through
+/// @ref VRegGetHiveDelegate. Answers @ref ERROR_INVALID_PARAMETER when a
+/// required slot is null. Freed with @ref VRegDestroyHive.
+VREG_DECL LSTATUS WINAPI VRegCreateCustomHive(
+    _In_ const VRegHiveVtbl* pVtbl,
+    _In_opt_ void* pDelegate,
+    _Outptr_ VRegHive** ppHive
+);
+
+/// The delegate a hive @ref VRegCreateCustomHive made was created with; null
+/// for any other hive.
+VREG_DECL _Ret_maybenull_ void* WINAPI VRegGetHiveDelegate(
+    _In_ VRegHive* pHive
+);
+
+/// What the provider's `OpenKey` or `CreateKey` kept for @p pKey; null for
+/// the root and for a key it kept nothing for.
+VREG_DECL _Ret_maybenull_ void* WINAPI VRegGetHiveKeyToken(
+    _In_ VRegHiveKey* pKey
+);
+
+/// The name of @p pKey as it was first opened or created; empty for the
+/// root.
+VREG_DECL _Ret_z_ LPCWSTR WINAPI VRegGetHiveKeyName(
+    _In_ VRegHiveKey* pKey
+);
+
+/// The key @p pKey is below; null for the root.
+VREG_DECL _Ret_maybenull_ VRegHiveKey* WINAPI VRegGetHiveKeyParent(
+    _In_ VRegHiveKey* pKey
+);
+
+/// Hands VReg a value: its type, and @p cbData bytes of data, which are
+/// copied. Answers @ref ERROR_OUTOFMEMORY when the copy fails, which the slot
+/// returns; every sink answers @ref ERROR_SUCCESS for what VReg did not ask
+/// for, and does nothing.
+VREG_DECL LSTATUS WINAPI VRegHiveResultSetValue(
+    _In_ VRegHiveResult* pResult,
+    _In_ DWORD dwType,
+    _In_reads_bytes_opt_(cbData) const BYTE* pData,
+    _In_ DWORD cbData
+);
+
+/// Hands VReg the name of an enumerated key or value, copied.
+VREG_DECL LSTATUS WINAPI VRegHiveResultSetName(
+    _In_ VRegHiveResult* pResult,
+    _In_z_ LPCWSTR pszName
+);
+
+/// Hands VReg the class of a key, copied.
+VREG_DECL LSTATUS WINAPI VRegHiveResultSetClass(
+    _In_ VRegHiveResult* pResult,
+    _In_z_ LPCWSTR pszClassName
+);
+
+/// Hands VReg the last write time of a key.
+VREG_DECL LSTATUS WINAPI VRegHiveResultSetLastWrite(
+    _In_ VRegHiveResult* pResult,
+    _In_ const FILETIME* pLastWrite
+);
+
+/// Hands VReg what `RegQueryInfoKeyW` counts for a key: lengths in
+/// characters without terminators, @p cbMaxValue in bytes.
+VREG_DECL LSTATUS WINAPI VRegHiveResultSetInfo(
+    _In_ VRegHiveResult* pResult,
+    _In_ DWORD cSubKeys,
+    _In_ DWORD cchMaxSubKey,
+    _In_ DWORD cchMaxClass,
+    _In_ DWORD cValues,
+    _In_ DWORD cchMaxValueName,
+    _In_ DWORD cbMaxValue
+);
+
+/// Compares two key or value names as the registry does: ordinal,
+/// case-insensitive by uppercase. Negative, zero or positive.
+VREG_DECL int WINAPI VRegCompareNames(
+    _In_z_ LPCWSTR pszLeft,
+    _In_z_ LPCWSTR pszRight
 );
 
 // ==========================================================================
@@ -2039,23 +2282,10 @@ typedef struct
     FILETIME lastWrite;
 } VReg_KeyInfo;
 
-/// What a slot of a hive's lower table answers, into storage the hive points
-/// it at; a pointer the hive leaves null asks for nothing there.
-typedef struct
+/// What a slot answers, into storage the hive points it at; a pointer the
+/// hive leaves null asks for nothing there. Public as @ref VRegHiveResult.
+typedef struct VReg_HiveResult
 {
-    /// @ref VRegHiveVtbl::OpenKey: the access to open with, and whether to
-    /// hand the key out as @ref redirect instead of only answering whether it
-    /// exists.
-    REGSAM samDesired;
-    BOOL isRedirect;
-    VReg_Redirect redirect;
-
-    /// @ref VRegHiveVtbl::OpenKey and @ref VRegHiveVtbl::CreateKey: what the
-    /// lower keeps for the key; @ref VRegHiveVtbl::CreateKey: whether it
-    /// created the key.
-    void* pToken;
-    BOOL isCreated;
-
     /// A value's type, and its data or, without @ref pData, its size.
     LPDWORD pdwType;
     LPDWORD pcbData;
@@ -2070,105 +2300,17 @@ typedef struct
     VReg_KeyInfo* pInfo;
 } VReg_HiveResult;
 
-/// Opens the key at @p cPath components below @p pParent: answers whether it
-/// exists, as the status of an open would.
-typedef LSTATUS WINAPI VRegHiveOpenKeyFunction(
+/// The open of a hive's lower over a registry, which the public slot leaves
+/// out: it opens with @p samDesired, and with @p isRedirect hands the key out
+/// in @p pRedirect instead of only answering whether it exists.
+typedef LSTATUS VReg_HiveOpenLowerFunction(
     _In_ VRegHive* pHive,
     _In_ VReg_Node* pParent,
-    _In_reads_(cPath) const VReg_WStringView* pPath,
-    _In_ SIZE_T cPath,
-    _Inout_ VReg_HiveResult* pResult
+    _In_z_ LPCWSTR pszSubKey,
+    REGSAM samDesired,
+    BOOL isRedirect,
+    _Out_ VReg_Redirect* pRedirect
 );
-
-typedef LSTATUS WINAPI VRegHiveCreateKeyFunction(
-    _In_ VRegHive* pHive,
-    _In_ VReg_Node* pParent,
-    _In_reads_(cPath) const VReg_WStringView* pPath,
-    _In_ SIZE_T cPath,
-    _In_z_ LPCWSTR pszClassName,
-    _In_ DWORD dwOptions,
-    _Inout_ VReg_HiveResult* pResult
-);
-
-typedef LSTATUS WINAPI VRegHiveDeleteKeyFunction(
-    _In_ VRegHive* pHive,
-    _In_ VReg_Node* pNode
-);
-
-typedef LSTATUS WINAPI VRegHiveDeleteTreeFunction(
-    _In_ VRegHive* pHive,
-    _In_ VReg_Node* pNode
-);
-
-typedef LSTATUS WINAPI VRegHiveQueryValueFunction(
-    _In_ VRegHive* pHive,
-    _In_ VReg_Node* pNode,
-    _In_z_ LPCWSTR pszName,
-    _Inout_ VReg_HiveResult* pResult
-);
-
-typedef LSTATUS WINAPI VRegHiveSetValueFunction(
-    _In_ VRegHive* pHive,
-    _In_ VReg_Node* pNode,
-    _In_z_ LPCWSTR pszName,
-    _In_ DWORD dwType,
-    _In_reads_bytes_opt_(cbData) const BYTE* pData,
-    _In_ DWORD cbData
-);
-
-typedef LSTATUS WINAPI VRegHiveDeleteValueFunction(
-    _In_ VRegHive* pHive,
-    _In_ VReg_Node* pNode,
-    _In_z_ LPCWSTR pszName
-);
-
-/// Entry @p dwIndex, in an order that stays stable while nothing changes.
-typedef LSTATUS WINAPI VRegHiveEnumKeyFunction(
-    _In_ VRegHive* pHive,
-    _In_ VReg_Node* pNode,
-    _In_ DWORD dwIndex,
-    _Inout_ VReg_HiveResult* pResult
-);
-
-typedef LSTATUS WINAPI VRegHiveEnumValueFunction(
-    _In_ VRegHive* pHive,
-    _In_ VReg_Node* pNode,
-    _In_ DWORD dwIndex,
-    _Inout_ VReg_HiveResult* pResult
-);
-
-typedef LSTATUS WINAPI VRegHiveQueryInfoFunction(
-    _In_ VRegHive* pHive,
-    _In_ VReg_Node* pNode,
-    _Inout_ VReg_HiveResult* pResult
-);
-
-typedef LSTATUS WINAPI VRegHiveCheckKeyFunction(
-    _In_ VRegHive* pHive,
-    _In_ VReg_Node* pNode
-);
-
-typedef void WINAPI VRegHiveDestroyFunction(
-    _In_ VRegHive* pHive
-);
-
-/// The lower of a hive: what lies below its own layer, reached only through
-/// these slots. A null slot is one the lower does not answer.
-typedef struct VRegHiveVtbl
-{
-    VRegHiveOpenKeyFunction* OpenKey;
-    VRegHiveCreateKeyFunction* CreateKey;
-    VRegHiveDeleteKeyFunction* DeleteKey;
-    VRegHiveDeleteTreeFunction* DeleteTree;
-    VRegHiveQueryValueFunction* QueryValue;
-    VRegHiveSetValueFunction* SetValue;
-    VRegHiveDeleteValueFunction* DeleteValue;
-    VRegHiveEnumKeyFunction* EnumKey;
-    VRegHiveEnumValueFunction* EnumValue;
-    VRegHiveQueryInfoFunction* QueryInfo;
-    VRegHiveCheckKeyFunction* CheckKey;
-    VRegHiveDestroyFunction* Destroy;
-} VRegHiveVtbl;
 
 typedef enum
 {
@@ -5790,6 +5932,10 @@ struct VRegHive
     const VRegHiveVtbl* pLowerVtbl;
     void* pLowerDelegate;
 
+    /// The lower's open with an access mask and redirects; set only for a
+    /// lower over a registry, which the hive then opens through it.
+    VReg_HiveOpenLowerFunction* pfnOpenLower;
+
     /// @ref VREG_INTERNAL_HIVE_COPY_UP or @ref VREG_INTERNAL_HIVE_WRITE_THROUGH.
     DWORD dwWriteMode;
 
@@ -5836,9 +5982,16 @@ VREG_DECL BOOL VReg_HiveIsFrozen(_In_ VRegHive* const pHive)
 }
 
 /// Takes the lock shared, or nothing once frozen; answers whether it did.
+/// Whether readers skip the lock: a frozen hive whose tree is all its own.
+/// A custom hive keeps locking once frozen, since it still adds records.
+static BOOL VReg_HiveIsLockFree(_In_ VRegHive* const pHive)
+{
+    return VReg_HiveIsFrozen(pHive) && pHive->dwWriteMode == VREG_INTERNAL_HIVE_COPY_UP;
+}
+
 static BOOL VReg_HiveLockRead(_In_ VRegHive* const pHive)
 {
-    if (VReg_HiveIsFrozen(pHive))
+    if (VReg_HiveIsLockFree(pHive))
         return FALSE;
 
     AcquireSRWLockShared(&pHive->lock);
@@ -5868,6 +6021,22 @@ static BOOL VReg_HiveLockWrite(_In_ VRegHive* const pHive)
 static void VReg_HiveUnlockWrite(_In_ VRegHive* const pHive)
 {
     ReleaseSRWLockExclusive(&pHive->lock);
+}
+
+/// Takes the lock exclusively to add or update records, which a custom hive
+/// does frozen or not; a frozen built-in hive takes none and answers FALSE.
+/// Released with @ref VReg_HiveUnlockWrite.
+static BOOL VReg_HiveLockRecords(_In_ VRegHive* const pHive)
+{
+    if (VReg_HiveIsLockFree(pHive))
+        return FALSE;
+
+    AcquireSRWLockExclusive(&pHive->lock);
+    if (!VReg_HiveIsLockFree(pHive))
+        return TRUE;
+
+    ReleaseSRWLockExclusive(&pHive->lock);
+    return FALSE;
 }
 
 // --- Nodes, values and watches ---
@@ -6142,6 +6311,42 @@ static void VReg_HiveResultInit(_Out_ VReg_HiveResult* const pResult)
     ZeroMemory(pResult, sizeof(*pResult));
 }
 
+/// Opens the lower key at @p cPath components below @p pParent: through the
+/// registry lower's own open, with @p samDesired and (when @p isRedirect) the
+/// key handed out in @p pRedirect, or through the provider's `OpenKey`, which
+/// answers @p ppToken.
+static LSTATUS VReg_HiveOpenLower(
+    _In_ VRegHive* const pHive,
+    _In_ VReg_Node* const pParent,
+    _In_reads_(cPath) const VReg_WStringView* const pPath,
+    const SIZE_T cPath,
+    const REGSAM samDesired,
+    const BOOL isRedirect,
+    _Out_ VReg_Redirect* const pRedirect,
+    _Outptr_result_maybenull_ void** const ppToken
+)
+{
+    VReg_WString subKey = {0, 0, NULL};
+    LSTATUS status;
+
+    *ppToken = NULL;
+    pRedirect->pRegistry = NULL;
+    pRedirect->hKey = NULL;
+    if (!VReg_HiveJoinPath(&subKey, pPath, cPath))
+    {
+        VReg_WStringFree(&subKey);
+        return ERROR_OUTOFMEMORY;
+    }
+
+    if (pHive->pfnOpenLower)
+        status = pHive->pfnOpenLower(pHive, pParent, VReg_WStringText(&subKey), samDesired, isRedirect, pRedirect);
+    else
+        status = pHive->pLowerVtbl->OpenKey(pHive, pParent, VReg_WStringText(&subKey), ppToken);
+
+    VReg_WStringFree(&subKey);
+    return status;
+}
+
 /// Whether the lower has a key at @p cPath components below @p pNode, opened
 /// with @p samDesired, as the status of that open.
 static LSTATUS VReg_HiveProbeLower(
@@ -6152,10 +6357,84 @@ static LSTATUS VReg_HiveProbeLower(
     const REGSAM samDesired
 )
 {
+    VReg_Redirect redirect;
+    void* pToken;
+    return VReg_HiveOpenLower(pHive, pNode, pPath, cPath, samDesired, FALSE, &redirect, &pToken);
+}
+
+/// What `RegQueryInfoKeyW` counts for the lower key of @p pNode, derived by
+/// enumerating its keys and values once; its own class stays empty and its
+/// last write zero.
+static LSTATUS VReg_HiveDeriveInfo(
+    _In_ VRegHive* const pHive,
+    _In_ VReg_Node* const pNode,
+    _Inout_ VReg_KeyInfo* const pInfo
+)
+{
+    VReg_WString name = {0, 0, NULL};
+    VReg_WString className = {0, 0, NULL};
     VReg_HiveResult result;
+    DWORD dwType;
+    DWORD cbData;
+    DWORD i;
+    LSTATUS status = ERROR_SUCCESS;
+
+    for (i = 0;; ++i)
+    {
+        VReg_WStringTruncate(&className, 0);
+        VReg_HiveResultInit(&result);
+        result.pName = &name;
+        result.pClassName = &className;
+        status = pHive->pLowerVtbl->EnumKey(pHive, pNode, i, &result);
+        if (status != ERROR_SUCCESS)
+            break;
+
+        ++pInfo->cSubKeys;
+        pInfo->cchMaxSubKey = VReg_MaxDword(pInfo->cchMaxSubKey, (DWORD)name.cch);
+        pInfo->cchMaxClass = VReg_MaxDword(pInfo->cchMaxClass, (DWORD)className.cch);
+    }
+    if (status != ERROR_NO_MORE_ITEMS)
+        goto done;
+
+    for (i = 0;; ++i)
+    {
+        cbData = 0;
+        VReg_HiveResultInit(&result);
+        result.pName = &name;
+        result.pdwType = &dwType;
+        result.pcbData = &cbData;
+        status = pHive->pLowerVtbl->EnumValue(pHive, pNode, i, &result);
+        if (status != ERROR_SUCCESS)
+            break;
+
+        ++pInfo->cValues;
+        pInfo->cchMaxValueName = VReg_MaxDword(pInfo->cchMaxValueName, (DWORD)name.cch);
+        pInfo->cbMaxValue = VReg_MaxDword(pInfo->cbMaxValue, cbData);
+    }
+    if (status == ERROR_NO_MORE_ITEMS)
+        status = ERROR_SUCCESS;
+
+done:
+    VReg_WStringFree(&name);
+    VReg_WStringFree(&className);
+    return status;
+}
+
+/// What `RegQueryInfoKeyW` reports for the lower key of @p pNode: the
+/// lower's `QueryInfo`, or derived when it has none.
+static LSTATUS VReg_HiveQueryLowerInfo(
+    _In_ VRegHive* const pHive,
+    _In_ VReg_Node* const pNode,
+    _Inout_ VReg_KeyInfo* const pInfo
+)
+{
+    VReg_HiveResult result;
+    if (!pHive->pLowerVtbl->QueryInfo)
+        return VReg_HiveDeriveInfo(pHive, pNode, pInfo);
+
     VReg_HiveResultInit(&result);
-    result.samDesired = samDesired;
-    return pHive->pLowerVtbl->OpenKey(pHive, pNode, pPath, cPath, &result);
+    result.pInfo = pInfo;
+    return pHive->pLowerVtbl->QueryInfo(pHive, pNode, &result);
 }
 
 /// The class of the lower key of @p pNode; empty when there is none.
@@ -6166,13 +6445,10 @@ static LSTATUS VReg_HiveQueryLowerClass(
 )
 {
     VReg_KeyInfo info;
-    VReg_HiveResult result;
     LSTATUS status;
 
     ZeroMemory(&info, sizeof(info));
-    VReg_HiveResultInit(&result);
-    result.pInfo = &info;
-    status = pHive->pLowerVtbl->QueryInfo(pHive, pNode, &result);
+    status = VReg_HiveQueryLowerInfo(pHive, pNode, &info);
     if (status == ERROR_SUCCESS && !VReg_WStringAssign(pClassName, VReg_WStringText(&info.className), info.className.cch))
         status = ERROR_OUTOFMEMORY;
     else if (status == ERROR_FILE_NOT_FOUND)
@@ -6197,19 +6473,8 @@ static LSTATUS VReg_HiveCreate(
     VRegHive* const pHive = (VRegHive*)VReg_AllocZeroed(sizeof(VRegHive));
     *ppHive = NULL;
     if (!pHive)
-    {
-        if (pLowerVtbl && pLowerVtbl->Destroy)
-        {
-            VRegHive owner;
-            ZeroMemory(&owner, sizeof(owner));
-            owner.pLowerDelegate = pLowerDelegate;
-            pLowerVtbl->Destroy(&owner);
-        }
         return ERROR_OUTOFMEMORY;
-    }
 
-    pHive->pLowerVtbl = pLowerVtbl;
-    pHive->pLowerDelegate = pLowerDelegate;
     pHive->dwWriteMode = dwWriteMode;
     InitializeSRWLock(&pHive->lock);
 
@@ -6236,6 +6501,9 @@ static LSTATUS VReg_HiveCreate(
         pRoot->isLowerBacked = TRUE;
     }
 
+    // Set last, so a failure above leaves the delegate to the caller.
+    pHive->pLowerVtbl = pLowerVtbl;
+    pHive->pLowerDelegate = pLowerDelegate;
     pHive->pRoot = pRoot;
     *ppHive = pHive;
     return ERROR_SUCCESS;
@@ -6244,6 +6512,117 @@ static LSTATUS VReg_HiveCreate(
 VREG_DECL LSTATUS WINAPI VRegCreateHive(_Outptr_ VRegHive** const ppHive)
 {
     return VReg_HiveCreate(NULL, NULL, VREG_INTERNAL_HIVE_COPY_UP, ppHive);
+}
+
+VREG_DECL LSTATUS WINAPI VRegCreateCustomHive(
+    _In_ const VRegHiveVtbl* const pVtbl,
+    _In_opt_ void* const pDelegate,
+    _Outptr_ VRegHive** const ppHive
+)
+{
+    *ppHive = NULL;
+    if (!pVtbl->OpenKey || !pVtbl->QueryValue || !pVtbl->EnumKey || !pVtbl->EnumValue)
+        return ERROR_INVALID_PARAMETER;
+
+    return VReg_HiveCreate(pVtbl, pDelegate, VREG_INTERNAL_HIVE_WRITE_THROUGH, ppHive);
+}
+
+VREG_DECL _Ret_maybenull_ void* WINAPI VRegGetHiveDelegate(_In_ VRegHive* const pHive)
+{
+    return pHive->dwWriteMode == VREG_INTERNAL_HIVE_WRITE_THROUGH ? pHive->pLowerDelegate : NULL;
+}
+
+VREG_DECL _Ret_maybenull_ void* WINAPI VRegGetHiveKeyToken(_In_ VRegHiveKey* const pKey)
+{
+    return pKey->pToken;
+}
+
+VREG_DECL _Ret_z_ LPCWSTR WINAPI VRegGetHiveKeyName(_In_ VRegHiveKey* const pKey)
+{
+    return VReg_WStringText(&pKey->name);
+}
+
+VREG_DECL _Ret_maybenull_ VRegHiveKey* WINAPI VRegGetHiveKeyParent(_In_ VRegHiveKey* const pKey)
+{
+    return pKey->pParent;
+}
+
+VREG_DECL LSTATUS WINAPI VRegHiveResultSetValue(
+    _In_ VRegHiveResult* const pResult,
+    _In_ const DWORD dwType,
+    _In_reads_bytes_opt_(cbData) const BYTE* const pData,
+    _In_ const DWORD cbData
+)
+{
+    if (pResult->pdwType)
+        *pResult->pdwType = dwType;
+    if (pResult->pcbData)
+        *pResult->pcbData = cbData;
+    if (pResult->pData && !VReg_BufferAssign(pResult->pData, pData, cbData))
+        return ERROR_OUTOFMEMORY;
+
+    return ERROR_SUCCESS;
+}
+
+VREG_DECL LSTATUS WINAPI VRegHiveResultSetName(_In_ VRegHiveResult* const pResult, _In_z_ const LPCWSTR pszName)
+{
+    const VReg_WStringView name = VReg_ViewOf(pszName);
+    if (pResult->pName && !VReg_WStringAssign(pResult->pName, name.pch, name.cch))
+        return ERROR_OUTOFMEMORY;
+
+    return ERROR_SUCCESS;
+}
+
+VREG_DECL LSTATUS WINAPI VRegHiveResultSetClass(_In_ VRegHiveResult* const pResult, _In_z_ const LPCWSTR pszClassName)
+{
+    const VReg_WStringView className = VReg_ViewOf(pszClassName);
+    VReg_WString* const pClassName = pResult->pInfo ? &pResult->pInfo->className : pResult->pClassName;
+    if (pClassName && !VReg_WStringAssign(pClassName, className.pch, className.cch))
+        return ERROR_OUTOFMEMORY;
+
+    return ERROR_SUCCESS;
+}
+
+VREG_DECL LSTATUS WINAPI VRegHiveResultSetLastWrite(
+    _In_ VRegHiveResult* const pResult,
+    _In_ const FILETIME* const pLastWrite
+)
+{
+    if (pResult->pInfo)
+        pResult->pInfo->lastWrite = *pLastWrite;
+    else if (pResult->pLastWrite)
+        *pResult->pLastWrite = *pLastWrite;
+
+    return ERROR_SUCCESS;
+}
+
+VREG_DECL LSTATUS WINAPI VRegHiveResultSetInfo(
+    _In_ VRegHiveResult* const pResult,
+    _In_ const DWORD cSubKeys,
+    _In_ const DWORD cchMaxSubKey,
+    _In_ const DWORD cchMaxClass,
+    _In_ const DWORD cValues,
+    _In_ const DWORD cchMaxValueName,
+    _In_ const DWORD cbMaxValue
+)
+{
+    VReg_KeyInfo* const pInfo = pResult->pInfo;
+    if (pInfo)
+    {
+        pInfo->cSubKeys = cSubKeys;
+        pInfo->cchMaxSubKey = cchMaxSubKey;
+        pInfo->cchMaxClass = cchMaxClass;
+        pInfo->cValues = cValues;
+        pInfo->cchMaxValueName = cchMaxValueName;
+        pInfo->cbMaxValue = cbMaxValue;
+    }
+
+    return ERROR_SUCCESS;
+}
+
+VREG_DECL int WINAPI VRegCompareNames(_In_z_ const LPCWSTR pszLeft, _In_z_ const LPCWSTR pszRight)
+{
+    return VReg_CompareNames(VReg_ViewOf(pszLeft), VReg_ViewOf(pszRight));
 }
 
 VREG_DECL void WINAPI VRegDestroyHive(_In_opt_ VRegHive* const pHive)
@@ -6352,6 +6731,89 @@ static LSTATUS VReg_HiveWalkUpper(
     return status;
 }
 
+/// The record of the key @p name below @p pParent, added (lower-backed,
+/// keeping @p pToken) unless another thread added it meanwhile.
+static LSTATUS VReg_HiveAddRecord(
+    _In_ VRegHive* const pHive,
+    _Inout_ VReg_Node* const pParent,
+    const VReg_WStringView name,
+    _In_opt_ void* const pToken,
+    _Outptr_ VReg_Node** const ppRecord
+)
+{
+    VReg_Node* pRecord = NULL;
+    LSTATUS status = ERROR_SUCCESS;
+
+    *ppRecord = NULL;
+    if (!VReg_HiveLockRecords(pHive))
+        return ERROR_ACCESS_DENIED;
+
+    if (pParent->isDeleted)
+    {
+        status = ERROR_KEY_DELETED;
+    }
+    else
+    {
+        pRecord = VReg_HiveFindChild(pParent, name, NULL);
+        if (!pRecord)
+        {
+            status = VReg_HiveAddChild(pHive, pParent, name, VREG_INTERNAL_NO_NAME, FALSE, &pRecord);
+            if (status == ERROR_SUCCESS)
+            {
+                pRecord->isTransparent = TRUE;
+                pRecord->isLowerBacked = TRUE;
+                pRecord->pToken = pToken;
+            }
+        }
+    }
+
+    VReg_HiveUnlockWrite(pHive);
+    if (status == ERROR_SUCCESS)
+        *ppRecord = pRecord;
+    return status;
+}
+
+/// Opens a custom hive's key at @p cPath components below @p pCurrent one
+/// key at a time, adding a record with its token for each, so a provider
+/// finds every key it answered through the token it kept.
+static LSTATUS VReg_HiveOpenRecords(
+    _In_ VRegHive* const pHive,
+    _In_ VReg_Node* pCurrent,
+    _In_reads_(cPath) const VReg_WStringView* const pPath,
+    const SIZE_T cPath,
+    _Out_ VReg_OpenResult* const pResult
+)
+{
+    SIZE_T i;
+    for (i = 0; i < cPath; ++i)
+    {
+        VReg_Redirect redirect;
+        void* pToken;
+        LSTATUS status = VReg_HiveOpenLower(pHive, pCurrent, pPath + i, 1, 0, FALSE, &redirect, &pToken);
+        if (status == ERROR_SUCCESS)
+            status = VReg_HiveAddRecord(pHive, pCurrent, pPath[i], pToken, &pCurrent);
+        if (status != ERROR_SUCCESS)
+            return status;
+    }
+
+    pResult->pNode = pCurrent;
+    return ERROR_SUCCESS;
+}
+
+/// Fires @p dwFilter on @p pNode after a write went through to the provider.
+static void VReg_HiveRecordChanged(_In_ VRegHive* const pHive, _Inout_ VReg_Node* const pNode, const DWORD dwFilter)
+{
+    if (!VReg_HiveLockRecords(pHive))
+        return;
+
+    if (!pNode->isDeleted)
+    {
+        VReg_HiveTouch(pNode);
+        VReg_HiveNotify(pNode, dwFilter);
+    }
+    VReg_HiveUnlockWrite(pHive);
+}
+
 VREG_DECL LSTATUS VReg_HiveOpenKey(
     _In_ VRegHive* const pHive,
     _In_ VReg_Node* const pParent,
@@ -6364,7 +6826,9 @@ VREG_DECL LSTATUS VReg_HiveOpenKey(
     VReg_Node* pCurrent = pParent;
     SIZE_T cMatched = 0;
     BOOL isVisible = FALSE;
-    VReg_HiveResult lower;
+    BOOL isRedirect;
+    REGSAM samLower;
+    void* pToken;
     LSTATUS status;
 
     pResult->pNode = NULL;
@@ -6385,21 +6849,29 @@ VREG_DECL LSTATUS VReg_HiveOpenKey(
         goto done;
     }
 
+    if (!pHive->pfnOpenLower)
+    {
+        status = VReg_HiveOpenRecords(pHive, pCurrent, pPath + cMatched, cPath - cMatched, pResult);
+        goto done;
+    }
+
     // Nothing of the upper layer is at or below the key, so it is the lower
     // key's to answer. A frozen hive hands the lower key out; a writable one
     // only asks whether it exists.
-    VReg_HiveResultInit(&lower);
-    lower.isRedirect = VReg_HiveIsFrozen(pHive);
-    lower.samDesired = lower.isRedirect ? samDesired : KEY_QUERY_VALUE | (samDesired & KEY_WOW64_RES);
-    status = pHive->pLowerVtbl->OpenKey(pHive, pCurrent, pPath + cMatched, cPath - cMatched, &lower);
-    if (status != ERROR_SUCCESS)
+    isRedirect = VReg_HiveIsFrozen(pHive);
+    samLower = isRedirect ? samDesired : KEY_QUERY_VALUE | (samDesired & KEY_WOW64_RES);
+    status = VReg_HiveOpenLower(
+        pHive,
+        pCurrent,
+        pPath + cMatched,
+        cPath - cMatched,
+        samLower,
+        isRedirect,
+        &pResult->redirect,
+        &pToken
+    );
+    if (status != ERROR_SUCCESS || isRedirect)
         goto done;
-
-    if (lower.isRedirect)
-    {
-        pResult->redirect = lower.redirect;
-        goto done;
-    }
 
     // Writable: every open inside the mount answers with a node, or a write
     // through a lower handle handed out now would miss a later copy-up.
@@ -6442,11 +6914,7 @@ VREG_DECL LSTATUS VReg_HiveOpenKey(
         }
 
         if (status == ERROR_SUCCESS)
-        {
-            if (!pCurrent->pToken)
-                pCurrent->pToken = lower.pToken;
             pResult->pNode = pCurrent;
-        }
     }
 
     VReg_HiveUnlockWrite(pHive);
@@ -6507,6 +6975,76 @@ static LSTATUS VReg_HiveMeasureUpper(
     return status;
 }
 
+/// @ref VReg_HiveCreateKey on a custom hive: an existing key opens, and each
+/// missing key is created through the provider, one at a time, the class
+/// going to the last.
+static LSTATUS VReg_HiveCreateKeyThrough(
+    _In_ VRegHive* const pHive,
+    _Inout_ VReg_Node* const pParent,
+    _In_reads_(cPath) const VReg_WStringView* const pPath,
+    const SIZE_T cPath,
+    _In_z_ const LPCWSTR pszClassName,
+    const DWORD dwOptions,
+    const REGSAM samDesired,
+    _Out_ VReg_OpenResult* const pResult,
+    _Out_ LPDWORD const pdwDisposition
+)
+{
+    VReg_Node* pCurrent = pParent;
+    SIZE_T cMatched = 0;
+    BOOL isVisible = FALSE;
+    VReg_WString name = {0, 0, NULL};
+    SIZE_T i;
+    LSTATUS status;
+
+    *pdwDisposition = REG_OPENED_EXISTING_KEY;
+    status = VReg_HiveOpenKey(pHive, pParent, pPath, cPath, samDesired, pResult);
+    if (status != ERROR_FILE_NOT_FOUND)
+        return status;
+    if (VReg_HiveIsFrozen(pHive) || !pHive->pLowerVtbl->CreateKey)
+        return ERROR_ACCESS_DENIED;
+
+    // The open recorded every key that exists; the rest is created.
+    status = VReg_HiveWalkUpper(pHive, pParent, pPath, cPath, &pCurrent, &cMatched, &isVisible);
+    for (i = cMatched; status == ERROR_SUCCESS && i < cPath; ++i)
+    {
+        const BOOL isLast = i + 1 == cPath;
+        void* pToken = NULL;
+        BOOL isCreated = FALSE;
+        VReg_Node* pRecord = NULL;
+        if (!VReg_WStringAssign(&name, pPath[i].pch, pPath[i].cch))
+        {
+            status = ERROR_OUTOFMEMORY;
+            break;
+        }
+
+        status = pHive->pLowerVtbl->CreateKey(
+            pHive,
+            pCurrent,
+            VReg_WStringText(&name),
+            isLast ? pszClassName : L"",
+            dwOptions,
+            &pToken,
+            &isCreated
+        );
+        if (status == ERROR_SUCCESS)
+            status = VReg_HiveAddRecord(pHive, pCurrent, pPath[i], pToken, &pRecord);
+        if (status != ERROR_SUCCESS)
+            break;
+
+        if (isCreated)
+            VReg_HiveRecordChanged(pHive, pCurrent, REG_NOTIFY_CHANGE_NAME);
+        if (isLast && isCreated)
+            *pdwDisposition = REG_CREATED_NEW_KEY;
+        pCurrent = pRecord;
+    }
+
+    VReg_WStringFree(&name);
+    if (status == ERROR_SUCCESS)
+        pResult->pNode = pCurrent;
+    return status;
+}
+
 VREG_DECL LSTATUS VReg_HiveCreateKey(
     _In_ VRegHive* const pHive,
     _Inout_ VReg_Node* const pParent,
@@ -6534,6 +7072,21 @@ VREG_DECL LSTATUS VReg_HiveCreateKey(
     pResult->redirect.pRegistry = NULL;
     pResult->redirect.hKey = NULL;
     *pdwDisposition = REG_OPENED_EXISTING_KEY;
+
+    if (pHive->dwWriteMode == VREG_INTERNAL_HIVE_WRITE_THROUGH)
+    {
+        return VReg_HiveCreateKeyThrough(
+            pHive,
+            pParent,
+            pPath,
+            cPath,
+            pszClassName,
+            dwOptions,
+            samDesired,
+            pResult,
+            pdwDisposition
+        );
+    }
 
     if (VReg_HiveIsFrozen(pHive))
     {
@@ -6712,6 +7265,37 @@ static LSTATUS VReg_HiveInspectForDelete(
     return status;
 }
 
+/// @ref VReg_HiveDeleteKey on a custom hive: the provider deletes, and the
+/// record is marked deleted.
+static LSTATUS VReg_HiveDeleteKeyThrough(
+    _In_ VRegHive* const pHive,
+    _Inout_ VReg_Node* const pParent,
+    _In_reads_(cPath) const VReg_WStringView* const pPath,
+    const SIZE_T cPath
+)
+{
+    VReg_OpenResult opened;
+    LSTATUS status;
+
+    if (VReg_HiveIsFrozen(pHive) || !pHive->pLowerVtbl->DeleteKey)
+        return ERROR_ACCESS_DENIED;
+
+    status = VReg_HiveOpenKey(pHive, pParent, pPath, cPath, KEY_READ, &opened);
+    if (status != ERROR_SUCCESS)
+        return status;
+    if (!opened.pNode->pParent)
+        return ERROR_ACCESS_DENIED;
+
+    status = pHive->pLowerVtbl->DeleteKey(pHive, opened.pNode);
+    if (status != ERROR_SUCCESS || !VReg_HiveLockRecords(pHive))
+        return status;
+
+    if (!opened.pNode->isDeleted)
+        VReg_HiveRemove(opened.pNode);
+    VReg_HiveUnlockWrite(pHive);
+    return ERROR_SUCCESS;
+}
+
 VREG_DECL LSTATUS VReg_HiveDeleteKey(
     _In_ VRegHive* const pHive,
     _Inout_ VReg_Node* const pParent,
@@ -6730,6 +7314,8 @@ VREG_DECL LSTATUS VReg_HiveDeleteKey(
     SIZE_T i;
     LSTATUS status;
 
+    if (pHive->dwWriteMode == VREG_INTERNAL_HIVE_WRITE_THROUGH)
+        return VReg_HiveDeleteKeyThrough(pHive, pParent, pPath, cPath);
     if (VReg_HiveIsFrozen(pHive))
         return ERROR_ACCESS_DENIED;
 
@@ -6835,8 +7421,45 @@ done:
     return status;
 }
 
+/// Whether @p pNode was deleted through VReg, read under the lock.
+static BOOL VReg_HiveIsDeleted(_In_ VRegHive* const pHive, _In_ const VReg_Node* const pNode)
+{
+    const BOOL isLocked = VReg_HiveLockRead(pHive);
+    const BOOL isDeleted = pNode->isDeleted;
+    VReg_HiveUnlockRead(pHive, isLocked);
+    return isDeleted;
+}
+
+/// @ref VReg_HiveDeleteTree on a custom hive: the provider empties the key,
+/// and the records below it are marked deleted.
+static LSTATUS VReg_HiveDeleteTreeThrough(_In_ VRegHive* const pHive, _Inout_ VReg_Node* const pNode)
+{
+    LSTATUS status;
+    if (VReg_HiveIsFrozen(pHive) || !pHive->pLowerVtbl->DeleteTree)
+        return ERROR_ACCESS_DENIED;
+    if (VReg_HiveIsDeleted(pHive, pNode))
+        return ERROR_KEY_DELETED;
+
+    status = pHive->pLowerVtbl->DeleteTree(pHive, pNode);
+    if (status != ERROR_SUCCESS || !VReg_HiveLockRecords(pHive))
+        return status;
+
+    if (!pNode->isDeleted)
+    {
+        while (pNode->children.count != 0)
+            VReg_HiveRemove(VREG_INTERNAL_NODE_AT(&pNode->children, pNode->children.count - 1));
+
+        VReg_HiveTouch(pNode);
+        VReg_HiveNotify(pNode, REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_LAST_SET);
+    }
+    VReg_HiveUnlockWrite(pHive);
+    return ERROR_SUCCESS;
+}
+
 VREG_DECL LSTATUS VReg_HiveDeleteTree(_In_ VRegHive* const pHive, _Inout_ VReg_Node* const pNode)
 {
+    if (pHive->dwWriteMode == VREG_INTERNAL_HIVE_WRITE_THROUGH)
+        return VReg_HiveDeleteTreeThrough(pHive, pNode);
     if (!VReg_HiveLockWrite(pHive))
         return ERROR_ACCESS_DENIED;
     if (pNode->isDeleted)
@@ -7033,7 +7656,19 @@ VREG_DECL LSTATUS VReg_HiveSetValue(
     const DWORD cbData
 )
 {
-    return VReg_HiveStoreValue(pHive, pNode, VReg_ViewOf(pszName), dwType, pData, cbData);
+    LSTATUS status;
+    if (pHive->dwWriteMode != VREG_INTERNAL_HIVE_WRITE_THROUGH)
+        return VReg_HiveStoreValue(pHive, pNode, VReg_ViewOf(pszName), dwType, pData, cbData);
+
+    if (VReg_HiveIsFrozen(pHive) || !pHive->pLowerVtbl->SetValue)
+        return ERROR_ACCESS_DENIED;
+    if (VReg_HiveIsDeleted(pHive, pNode))
+        return ERROR_KEY_DELETED;
+
+    status = pHive->pLowerVtbl->SetValue(pHive, pNode, pszName, dwType, pData, cbData);
+    if (status == ERROR_SUCCESS)
+        VReg_HiveRecordChanged(pHive, pNode, REG_NOTIFY_CHANGE_LAST_SET);
+    return status;
 }
 
 VREG_DECL LSTATUS VReg_HiveDeleteValue(
@@ -7052,6 +7687,18 @@ VREG_DECL LSTATUS VReg_HiveDeleteValue(
 
     if (VReg_HiveIsFrozen(pHive))
         return ERROR_ACCESS_DENIED;
+    if (pHive->dwWriteMode == VREG_INTERNAL_HIVE_WRITE_THROUGH)
+    {
+        if (!pHive->pLowerVtbl->DeleteValue)
+            return ERROR_ACCESS_DENIED;
+        if (VReg_HiveIsDeleted(pHive, pNode))
+            return ERROR_KEY_DELETED;
+
+        status = pHive->pLowerVtbl->DeleteValue(pHive, pNode, pszName);
+        if (status == ERROR_SUCCESS)
+            VReg_HiveRecordChanged(pHive, pNode, REG_NOTIFY_CHANGE_LAST_SET);
+        return status;
+    }
 
     isLocked = VReg_HiveLockRead(pHive);
     pValue = pNode->isDeleted ? NULL : VReg_HiveFindValue(pNode, name);
@@ -7575,9 +8222,7 @@ VREG_DECL LSTATUS VReg_HiveQueryInfo(
     if (status != ERROR_SUCCESS || !isVisible)
         goto done;
 
-    VReg_HiveResultInit(&lower);
-    lower.pInfo = &lowerInfo;
-    status = pHive->pLowerVtbl->QueryInfo(pHive, pNode, &lower);
+    status = VReg_HiveQueryLowerInfo(pHive, pNode, &lowerInfo);
     if (status == ERROR_FILE_NOT_FOUND)
     {
         status = ERROR_SUCCESS;
@@ -7737,10 +8382,12 @@ VREG_DECL LSTATUS VReg_HiveSnapshotUpper(
 
 VREG_DECL LSTATUS VReg_HiveCheckKey(_In_ VRegHive* const pHive, _In_ VReg_Node* const pNode)
 {
-    const BOOL isLocked = VReg_HiveLockRead(pHive);
-    const LSTATUS status = pNode->isDeleted ? ERROR_KEY_DELETED : ERROR_SUCCESS;
-    VReg_HiveUnlockRead(pHive, isLocked);
-    return status;
+    if (VReg_HiveIsDeleted(pHive, pNode))
+        return ERROR_KEY_DELETED;
+    if (pHive->pLowerVtbl && pHive->pLowerVtbl->CheckKey)
+        return pHive->pLowerVtbl->CheckKey(pHive, pNode);
+
+    return ERROR_SUCCESS;
 }
 
 VREG_DECL LSTATUS VReg_HiveWatch(
@@ -7815,18 +8462,18 @@ VREG_DECL void VReg_CloseRedirect(_In_ const VReg_Redirect* const pRedirect)
     );
 }
 
-/// Opens the lower key at @p cPath components below @p pNode with
-/// @p samDesired and the lower's view.
+/// Opens the lower key at @p pszSubKey below @p pNode with @p samDesired and
+/// the lower's view.
 static LSTATUS VReg_RegistryLowerOpen(
     _In_ VRegHive* const pHive,
     _In_ const VReg_Node* const pNode,
-    _In_reads_(cPath) const VReg_WStringView* const pPath,
-    const SIZE_T cPath,
+    _In_z_ const LPCWSTR pszSubKey,
     const REGSAM samDesired,
     _Out_ PHKEY const phKey
 )
 {
     const VReg_RegistryLower* const pLower = (const VReg_RegistryLower*)pHive->pLowerDelegate;
+    const VReg_WStringView subKey = VReg_ViewOf(pszSubKey);
     VReg_WString path = {0, 0, NULL};
     LSTATUS status;
 
@@ -7834,7 +8481,7 @@ static LSTATUS VReg_RegistryLowerOpen(
     if (
         !VReg_WStringAssign(&path, VReg_WStringText(&pLower->path), pLower->path.cch)
         || !VReg_HiveAppendNodePath(&path, pNode)
-        || !VReg_HiveJoinPath(&path, pPath, cPath)
+        || (subKey.cch != 0 && !VReg_AppendPathComponent(&path, subKey.pch, subKey.cch))
     )
     {
         VReg_WStringFree(&path);
@@ -7862,23 +8509,28 @@ static void VReg_RegistryLowerClose(_In_ VRegHive* const pHive, _In_ const HKEY 
     );
 }
 
-static LSTATUS WINAPI VReg_RegistryLowerOpenKey(
+/// The hive's own open of the lower, with the access and redirect the
+/// public slot leaves out (@ref VReg_HiveOpenLowerFunction).
+static LSTATUS VReg_RegistryLowerOpenAs(
     _In_ VRegHive* const pHive,
     _In_ VReg_Node* const pParent,
-    _In_reads_(cPath) const VReg_WStringView* const pPath,
-    _In_ const SIZE_T cPath,
-    _Inout_ VReg_HiveResult* const pResult
+    _In_z_ const LPCWSTR pszSubKey,
+    const REGSAM samDesired,
+    const BOOL isRedirect,
+    _Out_ VReg_Redirect* const pRedirect
 )
 {
     HKEY hKey;
-    const LSTATUS status = VReg_RegistryLowerOpen(pHive, pParent, pPath, cPath, pResult->samDesired, &hKey);
+    const LSTATUS status = VReg_RegistryLowerOpen(pHive, pParent, pszSubKey, samDesired, &hKey);
+    pRedirect->pRegistry = NULL;
+    pRedirect->hKey = NULL;
     if (status != ERROR_SUCCESS)
         return status;
 
-    if (pResult->isRedirect)
+    if (isRedirect)
     {
-        pResult->redirect.pRegistry = ((const VReg_RegistryLower*)pHive->pLowerDelegate)->pRegistry;
-        pResult->redirect.hKey = hKey;
+        pRedirect->pRegistry = ((const VReg_RegistryLower*)pHive->pLowerDelegate)->pRegistry;
+        pRedirect->hKey = hKey;
     }
     else
     {
@@ -7886,6 +8538,18 @@ static LSTATUS WINAPI VReg_RegistryLowerOpenKey(
     }
 
     return ERROR_SUCCESS;
+}
+
+static LSTATUS WINAPI VReg_RegistryLowerOpenKey(
+    _In_ VRegHive* const pHive,
+    _In_ VRegHiveKey* const pParent,
+    _In_z_ const LPCWSTR pszSubKey,
+    _Outptr_result_maybenull_ void** const ppToken
+)
+{
+    VReg_Redirect redirect;
+    *ppToken = NULL;
+    return VReg_RegistryLowerOpenAs(pHive, pParent, pszSubKey, KEY_QUERY_VALUE, FALSE, &redirect);
 }
 
 static LSTATUS WINAPI VReg_RegistryLowerQueryValue(
@@ -7897,7 +8561,7 @@ static LSTATUS WINAPI VReg_RegistryLowerQueryValue(
 {
     VReg* const pRegistry = ((const VReg_RegistryLower*)pHive->pLowerDelegate)->pRegistry;
     HKEY hKey;
-    LSTATUS status = VReg_RegistryLowerOpen(pHive, pNode, NULL, 0, KEY_QUERY_VALUE, &hKey);
+    LSTATUS status = VReg_RegistryLowerOpen(pHive, pNode, L"", KEY_QUERY_VALUE, &hKey);
     if (status != ERROR_SUCCESS)
         return status;
 
@@ -7940,7 +8604,7 @@ static LSTATUS WINAPI VReg_RegistryLowerEnumKey(
     DWORD cchClass;
     FILETIME lastWrite;
     HKEY hKey;
-    LSTATUS status = VReg_RegistryLowerOpen(pHive, pNode, NULL, 0, KEY_ENUMERATE_SUB_KEYS | KEY_QUERY_VALUE, &hKey);
+    LSTATUS status = VReg_RegistryLowerOpen(pHive, pNode, L"", KEY_ENUMERATE_SUB_KEYS | KEY_QUERY_VALUE, &hKey);
     if (status != ERROR_SUCCESS)
         return status;
 
@@ -8012,7 +8676,7 @@ static LSTATUS WINAPI VReg_RegistryLowerEnumValue(
     VReg_WString sizeName = {0, 0, NULL};
     DWORD cchName;
     HKEY hKey;
-    LSTATUS status = VReg_RegistryLowerOpen(pHive, pNode, NULL, 0, KEY_QUERY_VALUE, &hKey);
+    LSTATUS status = VReg_RegistryLowerOpen(pHive, pNode, L"", KEY_QUERY_VALUE, &hKey);
     if (status != ERROR_SUCCESS)
         return status;
 
@@ -8065,7 +8729,7 @@ static LSTATUS WINAPI VReg_RegistryLowerQueryInfo(
     VReg* const pRegistry = ((const VReg_RegistryLower*)pHive->pLowerDelegate)->pRegistry;
     VReg_KeyInfo* const pInfo = pResult->pInfo;
     HKEY hKey;
-    LSTATUS status = VReg_RegistryLowerOpen(pHive, pNode, NULL, 0, KEY_QUERY_VALUE | KEY_ENUMERATE_SUB_KEYS, &hKey);
+    LSTATUS status = VReg_RegistryLowerOpen(pHive, pNode, L"", KEY_QUERY_VALUE | KEY_ENUMERATE_SUB_KEYS, &hKey);
     if (status != ERROR_SUCCESS)
         return status;
 
@@ -8126,6 +8790,7 @@ VREG_DECL LSTATUS WINAPI VRegCreateLayeredHive(
 {
     const VReg_WStringView lowerPath = VReg_ViewOf(pszLowerPath);
     VReg_RegistryLower* const pDelegate = (VReg_RegistryLower*)VReg_AllocZeroed(sizeof(VReg_RegistryLower));
+    LSTATUS status;
     *ppHive = NULL;
     if (!pDelegate)
         return ERROR_OUTOFMEMORY;
@@ -8139,7 +8804,16 @@ VREG_DECL LSTATUS WINAPI VRegCreateLayeredHive(
         return ERROR_OUTOFMEMORY;
     }
 
-    return VReg_HiveCreate(&VReg_RegistryLowerVtbl, pDelegate, VREG_INTERNAL_HIVE_COPY_UP, ppHive);
+    status = VReg_HiveCreate(&VReg_RegistryLowerVtbl, pDelegate, VREG_INTERNAL_HIVE_COPY_UP, ppHive);
+    if (status != ERROR_SUCCESS)
+    {
+        VReg_WStringFree(&pDelegate->path);
+        VReg_Free(pDelegate);
+        return status;
+    }
+
+    (*ppHive)->pfnOpenLower = &VReg_RegistryLowerOpenAs;
+    return ERROR_SUCCESS;
 }
 
 // ==========================================================================

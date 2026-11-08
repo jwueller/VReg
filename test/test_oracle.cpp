@@ -4,6 +4,7 @@
 // scenarios live in the sibling test_oracle_*.cpp files; scenario.h says how
 // to write one.
 
+#include "forwarding_hive.h"
 #include "scenario.h"
 
 #include <catch2/catch_template_test_macros.hpp>
@@ -2463,4 +2464,13 @@ TEMPLATE_LIST_TEST_CASE(
     Win32Registry win32Registry;
     const Api win32 = ReducedReference(win32Registry);
     CheckSameRecording(Record<TestType>(win32), RecordOverlay<TestType>());
+}
+
+TEMPLATE_LIST_TEST_CASE(
+    "Key scenarios answer on a custom hive as on the hive it forwards to",
+    "[oracle][custom][keys]",
+    Scenarios
+)
+{
+    CheckSameRecording(RecordVirtual<TestType>(), RecordCustom<TestType>());
 }

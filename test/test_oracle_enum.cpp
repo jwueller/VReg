@@ -1,5 +1,6 @@
 // Enumeration and key information scenarios. See scenario.h.
 
+#include "forwarding_hive.h"
 #include "scenario.h"
 
 #include <catch2/catch_template_test_macros.hpp>
@@ -1137,4 +1138,13 @@ TEMPLATE_LIST_TEST_CASE(
     Win32Registry win32Registry;
     const Api win32 = ReducedReference(win32Registry);
     CheckSameRecording(Record<TestType>(win32), RecordOverlay<TestType>());
+}
+
+TEMPLATE_LIST_TEST_CASE(
+    "Enumeration scenarios answer on a custom hive as on the hive it forwards to",
+    "[oracle][custom][enum]",
+    Scenarios
+)
+{
+    CheckSameRecording(RecordVirtual<TestType>(), RecordCustom<TestType>());
 }

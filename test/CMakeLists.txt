@@ -11,6 +11,7 @@ target_compile_options(VReg_TestSettings INTERFACE
 
 set(VREG_TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/app_hive_registry.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/forwarding_hive.h
     ${CMAKE_CURRENT_SOURCE_DIR}/intercept_registry.h
     ${CMAKE_CURRENT_SOURCE_DIR}/no_dialogs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/objects.h
@@ -21,6 +22,7 @@ set(VREG_TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/regfile_test.h
     ${CMAKE_CURRENT_SOURCE_DIR}/scenario.h
     ${CMAKE_CURRENT_SOURCE_DIR}/test_concurrency.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_custom_hive.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_handle.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_handle_probe.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_native_registry.cpp

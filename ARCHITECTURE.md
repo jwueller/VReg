@@ -120,10 +120,12 @@ once, as with `RegLoadKey`. The public functions create, layer, freeze and
 destroy a `VRegHive`; the node-level interface the
 virtual registry uses (the private "Hive internals" section, `VReg_Hive*`) answers owned
 values, while buffer and ANSI/wide rules
-stay in the virtual registry. One struct covers both kinds of hive, since
-they differ only in whether reads fall through: an in-memory hive is a
-layered one with nothing below it, and the flags that describe a node's
-relation to the lower layer stay clear in it.
+stay in the virtual registry. One struct covers every kind of hive, since
+they differ only in what lies below the node tree, reached through a
+`VRegHiveVtbl`: nothing (in memory), a registry subtree (layered) or the
+caller's table (custom). An in-memory hive is a layered one with nothing
+below it, and the flags that describe a node's relation to the lower layer
+stay clear in it.
 
 - `VRegCreateHive`: in memory, starts empty.
 - `VRegCreateLayeredHive(lower, lower root, lower path, view)`: reads its
@@ -215,7 +217,8 @@ from one namespace:
 Chosen per mount:
 
 - **Frozen**: the hive is built, then frozen (`Freeze()` on the hive) before
-  it is mounted, and is immutable from then on; every read is lock-free.
+  it is mounted, and is immutable from then on; every read of a built-in
+  hive is lock-free (a custom hive keeps locking to add its records).
   Writes answer `ERROR_ACCESS_DENIED`. Opening a lower-only key (nothing in
   the upper layer at or below it) returns the lower handle itself, at no
   cost on keys the mount does not touch.

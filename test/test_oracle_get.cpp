@@ -1,6 +1,7 @@
 // RegGetValue, the MUI string loaders and RegQueryMultipleValues. See
 // scenario.h.
 
+#include "forwarding_hive.h"
 #include "scenario.h"
 
 #include <vreg.h>
@@ -1247,4 +1248,13 @@ TEMPLATE_LIST_TEST_CASE(
     Win32Registry win32Registry;
     const Api win32 = ReducedReference(win32Registry);
     CheckSameRecording(Record<TestType>(win32), RecordOverlay<TestType>());
+}
+
+TEMPLATE_LIST_TEST_CASE(
+    "Lookup scenarios answer on a custom hive as on the hive it forwards to",
+    "[oracle][custom][get]",
+    Scenarios
+)
+{
+    CheckSameRecording(RecordVirtual<TestType>(), RecordCustom<TestType>());
 }

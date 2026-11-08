@@ -39,8 +39,10 @@ work is done; git keeps how it got there.
 - **Lower-registry access goes only through the base `Registry`** (after
   hooking: the trampolines). A direct `::Reg*` call inside the library
   re-enters the hooks and bypasses test stubs.
-- **Frozen hives are immutable**; their readers take no lock. The mount
-  table is replaced copy-on-write, and old tables are never freed.
+- **Frozen hives are immutable**; the readers of a built-in one (in memory
+  or layered) take no lock, while a custom hive keeps locking to add the
+  records of keys it opens. The mount table is replaced copy-on-write, and
+  old tables are never freed.
 - **Virtual handles are odd values at most `0x7FFFFFFF`.** Never hand one to
   a real registry API. The shared handle section's layout is an ABI between
   separately built copies, so it never changes.
