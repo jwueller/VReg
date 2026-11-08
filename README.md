@@ -404,7 +404,10 @@ Measured by the oracle; each is an input no sane caller relies on.
 - Strings set without a terminator: native `RegSetValueExW` and
   `RegSetValueExA` read one character past `cbData` and store an extra
   terminator when it is zero. Ours never reads past `cbData`: the wide form
-  stores exactly the bytes given, and the ANSI form always terminates.
+  stores exactly the bytes given, and the ANSI form always terminates. For
+  `REG_SZ` data passed to `RegSetValueExA` without its terminator, native's
+  stored size depends on the byte after the buffer, which varies with memory
+  layout; VReg always stores the terminator.
 - `RegGetValueA` on a string with an odd byte count: native keeps the stray
   byte in the buffer tail.
 - `RegQueryMultipleValuesA` with a buffer that holds some narrowed values

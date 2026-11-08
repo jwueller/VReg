@@ -97,7 +97,6 @@ std::vector<AnsiItem> AnsiItems()
     using namespace std::string_literals;
     return {
         {"Sz", REG_SZ, "text\0"s, 5},
-        {"SzNoTerminatorGuardNul", REG_SZ, "text\0\0"s, 4},
         {"SzNonAscii", REG_SZ, "a\xe4\x80\0"s, 4},
         {"SzNonAsciiNoTerminator", REG_SZ, "a\xe4\x80\0"s, 3},
         {"SzEmpty", REG_SZ, "X"s, 0},
@@ -1986,4 +1985,53 @@ TEMPLATE_LIST_TEST_CASE(
 )
 {
     CheckSameRecording(RecordVirtual<TestType>(), RecordCustom<TestType>());
+}
+
+// Native RegSetValueExA reads the byte after unterminated data and keeps it as
+// the terminator when it is zero, but what it finds there varies with memory
+// layout even when the caller's buffer holds a zero, so native has no answer
+// to compare with. VReg always appends the terminator.
+TEST_CASE("An unterminated ANSI string is stored with its terminator")
+{
+    VirtualHive hive;
+    const char data[] = "text\0";
+    REQUIRE(
+        VRegSetValueExA(
+            hive.Registry(),
+            hive.Root(),
+            "SzNoTerminator",
+            0,
+            REG_SZ,
+            reinterpret_cast<const BYTE*>(data),
+            4
+        ) == ERROR_SUCCESS
+    );
+
+    DWORD cbAnsi = 0;
+    CHECK(
+        VRegQueryValueExA(
+            hive.Registry(),
+            hive.Root(),
+            "SzNoTerminator",
+            nullptr,
+            nullptr,
+            nullptr,
+            &cbAnsi
+        ) == ERROR_SUCCESS
+    );
+    CHECK(cbAnsi == 5);
+
+    DWORD cbWide = 0;
+    CHECK(
+        VRegQueryValueExW(
+            hive.Registry(),
+            hive.Root(),
+            L"SzNoTerminator",
+            nullptr,
+            nullptr,
+            nullptr,
+            &cbWide
+        ) == ERROR_SUCCESS
+    );
+    CHECK(cbWide == sizeof(L"text"));
 }
