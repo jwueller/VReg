@@ -5,7 +5,7 @@
 int main()
 {
     VRegScript* pScript = nullptr;
-    const LSTATUS status = VRegParseScript("", 0, nullptr, &pScript, nullptr);
+    const LSTATUS status = VRegParseScript("", 0, &pScript, nullptr);
     VRegDestroyScript(pScript);
 #ifdef CONSUMER_WITH_DETOURS
     VRegNeutralizeHooks();

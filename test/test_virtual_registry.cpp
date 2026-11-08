@@ -270,7 +270,7 @@ TEST_CASE("A frozen hive refuses writes and still answers reads")
 TEST_CASE("A hive created through the C functions takes MUI text by path")
 {
     VRegHive* pHive = nullptr;
-    REQUIRE(VRegCreateHive(nullptr, &pHive) == ERROR_SUCCESS);
+    REQUIRE(VRegCreateHive(&pHive) == ERROR_SUCCESS);
     REQUIRE(VRegSetHiveMuiTextValue(pHive, L"Sub\\Deep", L"Name", L"Text") == ERROR_SUCCESS);
 
     const std::array<VReg_WStringView, 2> path{{{L"Sub", 3}, {L"Deep", 4}}};
@@ -283,7 +283,7 @@ TEST_CASE("A hive created through the C functions takes MUI text by path")
     VReg_WString text{};
     CHECK(VReg_HiveQueryMuiText(pHive, opened.pNode, L"Name", &text) == ERROR_SUCCESS);
     CHECK(std::wstring_view(VReg_WStringText(&text), text.cch) == L"Text");
-    VReg_WStringFree(VReg_HiveAllocContext(pHive), &text);
+    VReg_WStringFree(&text);
 
     // A null path and name address the root's default value.
     CHECK(VRegSetHiveMuiTextValue(pHive, nullptr, nullptr, L"Default") == ERROR_SUCCESS);

@@ -175,7 +175,7 @@ inline OwnedRegistry MakeCustomRegistry(
 )
 {
     OwnedRegistry registry;
-    REQUIRE(VRegCreateCustom(pVtbl, pDelegate, nullptr, registry.Receive()) == ERROR_SUCCESS);
+    REQUIRE(VRegCreateCustom(pVtbl, pDelegate, registry.Receive()) == ERROR_SUCCESS);
     return registry;
 }
 
@@ -185,7 +185,7 @@ inline OwnedRegistry MakeNativeRegistry(
 )
 {
     OwnedRegistry registry;
-    REQUIRE(VRegCreateNative(pFunctions, nullptr, registry.Receive()) == ERROR_SUCCESS);
+    REQUIRE(VRegCreateNative(pFunctions, registry.Receive()) == ERROR_SUCCESS);
     return registry;
 }
 
@@ -195,7 +195,7 @@ inline OwnedRegistry MakeVirtualRegistry(
 )
 {
     OwnedRegistry registry;
-    REQUIRE(VRegCreateVirtual(pBase, pfnNtQueryKey, nullptr, registry.Receive()) == ERROR_SUCCESS);
+    REQUIRE(VRegCreateVirtual(pBase, pfnNtQueryKey, registry.Receive()) == ERROR_SUCCESS);
     return registry;
 }
 
@@ -203,7 +203,7 @@ inline OwnedRegistry MakeVirtualRegistry(
 inline OwnedHive MakeHive()
 {
     OwnedHive hive;
-    REQUIRE(VRegCreateHive(nullptr, hive.Receive()) == ERROR_SUCCESS);
+    REQUIRE(VRegCreateHive(hive.Receive()) == ERROR_SUCCESS);
     return hive;
 }
 
@@ -215,7 +215,7 @@ inline OwnedHive MakeLayeredHive(
 )
 {
     OwnedHive hive;
-    const auto status = VRegCreateLayeredHive(pLower, hLowerRoot, pszLowerPath, samLowerView, nullptr, hive.Receive());
+    const auto status = VRegCreateLayeredHive(pLower, hLowerRoot, pszLowerPath, samLowerView, hive.Receive());
     REQUIRE(status == ERROR_SUCCESS);
     return hive;
 }

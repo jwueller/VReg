@@ -24,7 +24,7 @@ public:
     explicit InterceptRegistry(VReg* const pInner) :
         m_pInner(pInner)
     {
-        if (VRegCreateCustom(&VTBL, this, nullptr, &m_pRegistry) != ERROR_SUCCESS)
+        if (VRegCreateCustom(&VTBL, this, &m_pRegistry) != ERROR_SUCCESS)
             throw std::bad_alloc();
     }
 

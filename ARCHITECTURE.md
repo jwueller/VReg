@@ -38,16 +38,14 @@ exists without it.
 
 The library is C99 with `windows.h` as its one dependency: it allocates
 through `VREG_MALLOC`, `VREG_REALLOC` and `VREG_FREE` (the process heap by
-default), each given the allocation context a registry or hive was created
-with, and reaches no C runtime function (the hooks' `atexit` excepted). Every
-function is declared `VREG_DECL`, which `VREG_STATIC` turns into `static`.
+default), and reaches no C runtime function (the hooks' `atexit` excepted).
+Every function is declared `VREG_DECL`, which `VREG_STATIC` turns into `static`.
 
 ### `VReg`: the `Reg*` function family
 
 - A registry is an opaque handle, as a hive and a script are, so nothing
   outside the implementation depends on its layout. Inside it is one tagged
-  struct: its kind, its allocation context and a union with what the kind
-  needs. The native and virtual registries are kinds of their own, so the
+  struct: its kind and a union with what the kind needs. The native and virtual registries are kinds of their own, so the
   flat functions call them directly and neither needs a function table, a
   struct of its own or a cast.
 - Any other implementation is a custom registry: `VRegCreateCustom` makes
@@ -121,7 +119,7 @@ A tree with one anonymous root, mounted at a path; several can be mounted at
 once, as with `RegLoadKey`. The public functions create, layer, freeze and
 destroy a `VRegHive` and set MUI text by path; the node-level interface the
 virtual registry uses (the private "Hive internals" section, `VReg_Hive*`) answers owned
-values, allocated with the hive's context, while buffer and ANSI/wide rules
+values, while buffer and ANSI/wide rules
 stay in the virtual registry. One struct covers both kinds of hive, since
 they differ only in whether reads fall through: an in-memory hive is a
 layered one with nothing below it, and the flags that describe a node's

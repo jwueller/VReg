@@ -111,9 +111,9 @@ else is the real registry.
 VReg* native;
 VReg* registry;
 VRegHive* overlay;
-VRegCreateNative(NULL, NULL, &native);
-VRegCreateLayeredHive(native, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", 0, NULL, &overlay);
-VRegCreateVirtual(native, NULL, NULL, &registry);
+VRegCreateNative(NULL, &native);
+VRegCreateLayeredHive(native, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", 0, &overlay);
+VRegCreateVirtual(native, NULL, &registry);
 VRegMount(registry, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", overlay, 0);
 
 const DWORD dwOne = 1;
@@ -131,9 +131,9 @@ answer `ERROR_OUTOFMEMORY` when memory ran out.
 VRegHive* machine;
 VRegHive* user;
 VReg* registry;
-VRegCreateHive(NULL, &machine);
-VRegCreateHive(NULL, &user);
-VRegCreateVirtual(NULL, NULL, NULL, &registry);   // no base: nothing else exists
+VRegCreateHive(&machine);
+VRegCreateHive(&user);
+VRegCreateVirtual(NULL, NULL, &registry);   // no base: nothing else exists
 VRegMount(registry, HKEY_LOCAL_MACHINE, L"", machine, 0);
 VRegMount(registry, HKEY_CURRENT_USER, L"", user, 0);
 ```
@@ -145,9 +145,9 @@ VRegMount(registry, HKEY_CURRENT_USER, L"", user, 0);
 VReg* native;
 VReg* registry;
 VRegHive* hive;
-VRegCreateNative(NULL, NULL, &native);
-VRegCreateVirtual(native, NULL, NULL, &registry);
-VRegCreateHive(NULL, &hive);
+VRegCreateNative(NULL, &native);
+VRegCreateVirtual(native, NULL, &registry);
+VRegCreateHive(&hive);
 VRegMount(registry, HKEY_LOCAL_MACHINE, L"Software\\Vendor\\Game", hive, 0);
 // Fill the hive through registry (or VRegApplyScript), then:
 VRegFreezeHive(hive);

@@ -424,7 +424,7 @@ void ExporterLoop(
     while (!shared.isStopped.load(std::memory_order_relaxed))
     {
         OwnedScript script;
-        const auto status = VRegSnapshotScript(registry, HKEY_CURRENT_USER, pszMount, nullptr, script.Receive());
+        const auto status = VRegSnapshotScript(registry, HKEY_CURRENT_USER, pszMount, script.Receive());
         // A key may be deleted between listing and opening it.
         if (status == ERROR_SUCCESS)
             shared.cSnapshots.fetch_add(1, std::memory_order_relaxed);

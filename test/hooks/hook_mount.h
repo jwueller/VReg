@@ -27,11 +27,11 @@ inline LONG InstallMount(
     VRegHive* pHive = nullptr;
     VReg* pNative = nullptr;
     VReg* pRegistry = nullptr;
-    LONG error = VRegCreateHive(nullptr, &pHive);
+    LONG error = VRegCreateHive(&pHive);
     if (error == ERROR_SUCCESS)
-        error = VRegCreateNative(nullptr, nullptr, &pNative);
+        error = VRegCreateNative(nullptr, &pNative);
     if (error == ERROR_SUCCESS)
-        error = VRegCreateVirtual(pNative, nullptr, nullptr, &pRegistry);
+        error = VRegCreateVirtual(pNative, nullptr, &pRegistry);
     if (error == ERROR_SUCCESS)
         error = VRegMount(pRegistry, HKEY_CURRENT_USER, pszPath, pHive, 0);
     if (error != ERROR_SUCCESS)

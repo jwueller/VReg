@@ -459,7 +459,6 @@ TEST_CASE("A snapshot script written to a file has the same bytes and keeps a fi
             registry,
             HKEY_CURRENT_USER,
             L"E",
-            nullptr,
             snapshot.Receive()
         ) == ERROR_SUCCESS
     );
@@ -474,7 +473,6 @@ TEST_CASE("A snapshot script written to a file has the same bytes and keeps a fi
     REQUIRE(
         VRegParseScriptFile(
             path.c_str(),
-            nullptr,
             script.Receive(),
             nullptr
         ) == ERROR_SUCCESS
@@ -488,7 +486,6 @@ TEST_CASE("A snapshot script written to a file has the same bytes and keeps a fi
             registry,
             HKEY_CURRENT_USER,
             L"Missing",
-            nullptr,
             missing.Receive()
         ) == ERROR_FILE_NOT_FOUND
     );

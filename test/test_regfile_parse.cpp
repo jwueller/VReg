@@ -483,7 +483,6 @@ TEST_CASE("ParseFile reads a file and reports a missing one")
     CHECK(
         VRegParseScriptFile(
             path.c_str(),
-            nullptr,
             script.Receive(),
             nullptr
         ) == ERROR_SUCCESS
@@ -492,7 +491,6 @@ TEST_CASE("ParseFile reads a file and reports a missing one")
     CHECK(
         VRegParseScriptFile(
             (directory / L"missing.reg").c_str(),
-            nullptr,
             script.Receive(),
             nullptr
         ) == ERROR_FILE_NOT_FOUND

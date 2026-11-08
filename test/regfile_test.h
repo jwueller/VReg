@@ -72,7 +72,6 @@ inline LSTATUS Parse(
     return VRegParseScript(
         file.data(),
         file.size(),
-        nullptr,
         script.Receive(),
         pError
     );
@@ -122,10 +121,7 @@ inline LSTATUS TryWriteBytes(
 
     const auto* const pFirst = static_cast<const std::byte*>(pBytes);
     file.assign(pFirst, pFirst + cbBytes);
-    VRegFreeScriptBytes(
-        pScript,
-        pBytes
-    );
+    VRegFree(pBytes);
     return ERROR_SUCCESS;
 }
 
@@ -151,7 +147,6 @@ inline LSTATUS TryExportSnapshot(
         registry,
         hRoot,
         pszPath,
-        nullptr,
         script.Receive()
     );
     if (status != ERROR_SUCCESS)
@@ -186,7 +181,6 @@ inline LSTATUS TryExportDelta(
         hive,
         hRoot,
         pszPath,
-        nullptr,
         script.Receive()
     );
     if (status != ERROR_SUCCESS)

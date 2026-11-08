@@ -779,7 +779,6 @@ VREG_DECL VRegQueryMultipleValuesWFunction VRegQueryMultipleValuesW;
 VREG_DECL LSTATUS WINAPI VRegCreateCustom(
     _In_ const VRegVtbl* pVtbl,
     _In_opt_ void* pDelegate,
-    _In_opt_ void* pAllocContext,
     _Outptr_ VReg** ppRegistry
 );
 
@@ -837,10 +836,8 @@ typedef struct VRegHive VRegHive;
 /// the hive, so a pointer to one stays valid for the hive's life.
 typedef struct VReg_Node VReg_Node;
 
-/// A hive held entirely in memory; starts empty. @p pAllocContext is passed
-/// to every allocation the hive makes.
+/// A hive held entirely in memory; starts empty.
 VREG_DECL LSTATUS WINAPI VRegCreateHive(
-    _In_opt_ void* pAllocContext,
     _Outptr_ VRegHive** ppHive
 );
 
@@ -852,7 +849,6 @@ VREG_DECL LSTATUS WINAPI VRegCreateLayeredHive(
     _In_ HKEY hLowerRoot,
     _In_opt_z_ LPCWSTR pszLowerPath,
     _In_ REGSAM samLowerView,
-    _In_opt_ void* pAllocContext,
     _Outptr_ VRegHive** ppHive
 );
 
@@ -1123,7 +1119,6 @@ VREG_DECL void WINAPI VRegResolveNativeFunctions(
 /// Freed with @ref VRegDestroy.
 VREG_DECL LSTATUS WINAPI VRegCreateNative(
     _In_opt_ const VRegNativeFunctions* pFunctions,
-    _In_opt_ void* pAllocContext,
     _Outptr_ VReg** ppRegistry
 );
 
@@ -1179,7 +1174,6 @@ typedef LONG (NTAPI* VRegNtQueryKeyFunction)(
 VREG_DECL LSTATUS WINAPI VRegCreateVirtual(
     _In_opt_ VReg* pBase,
     _In_opt_ VRegNtQueryKeyFunction pfnNtQueryKey,
-    _In_opt_ void* pAllocContext,
     _Outptr_ VReg** ppRegistry
 );
 
@@ -1286,7 +1280,6 @@ typedef struct
 VREG_DECL LSTATUS WINAPI VRegParseScript(
     _In_reads_bytes_(cbFile) const void* pFile,
     _In_ SIZE_T cbFile,
-    _In_opt_ void* pAllocContext,
     _Outptr_ VRegScript** ppScript,
     _Out_opt_ VRegParseError* pError
 );
@@ -1295,7 +1288,6 @@ VREG_DECL LSTATUS WINAPI VRegParseScript(
 /// answer the Win32 error.
 VREG_DECL LSTATUS WINAPI VRegParseScriptFile(
     _In_z_ LPCWSTR pszPath,
-    _In_opt_ void* pAllocContext,
     _Outptr_ VRegScript** ppScript,
     _Out_opt_ VRegParseError* pError
 );
@@ -1354,7 +1346,6 @@ VREG_DECL LSTATUS WINAPI VRegSnapshotScript(
     _In_ VReg* pRegistry,
     _In_ HKEY hRoot,
     _In_opt_z_ LPCWSTR pszPath,
-    _In_opt_ void* pAllocContext,
     _Outptr_ VRegScript** ppScript
 );
 
@@ -1379,13 +1370,12 @@ VREG_DECL LSTATUS WINAPI VRegDeltaScript(
     _In_ VRegHive* pHive,
     _In_ HKEY hRoot,
     _In_opt_z_ LPCWSTR pszPath,
-    _In_opt_ void* pAllocContext,
     _Outptr_ VRegScript** ppScript
 );
 
 /**
  * @brief Lays @p pScript out as a regedit-style file in @p format, into bytes
- *  allocated with the script's context, freed with @ref VRegFreeScriptBytes.
+ *  freed with @ref VRegFree.
  *
  *  Each key operation is a `[key]` or `[-key]` line and each value operation
  *  a `"name"=...` line under it; a value whose key differs from the last key
@@ -1404,9 +1394,10 @@ VREG_DECL LSTATUS WINAPI VRegWriteScript(
     _Out_ SIZE_T* pcbBytes
 );
 
-VREG_DECL void WINAPI VRegFreeScriptBytes(
-    _In_ const VRegScript* pScript,
-    _In_opt_ void* pBytes
+/// Frees memory VReg handed to the caller to free, such as the bytes of
+/// @ref VRegWriteScript; null is ignored.
+VREG_DECL void WINAPI VRegFree(
+    _In_opt_ void* p
 );
 
 /// @ref VRegWriteScript into the file @p pszPath. An existing file is replaced
@@ -1523,22 +1514,21 @@ extern "C" {
 
 // How VReg allocates. A consumer overrides `VREG_MALLOC`,
 // `VREG_REALLOC` and `VREG_FREE` together, before the implementation is
-// compiled; each takes the allocation context the registry or hive that
-// allocates was created with. The defaults use the process heap: no CRT
-// dependency, and safe under the loader lock.
+// compiled. The defaults use the process heap: no CRT dependency, and
+// safe under the loader lock.
 
 #ifndef VREG_MALLOC
-#define VREG_MALLOC(pAllocContext, cb) \
+#define VREG_MALLOC(cb) \
     HeapAlloc(GetProcessHeap(), 0, (cb))
 #endif
 
 #ifndef VREG_REALLOC
-#define VREG_REALLOC(pAllocContext, p, cb) \
+#define VREG_REALLOC(p, cb) \
     HeapReAlloc(GetProcessHeap(), 0, (p), (cb))
 #endif
 
 #ifndef VREG_FREE
-#define VREG_FREE(pAllocContext, p) \
+#define VREG_FREE(p) \
     HeapFree(GetProcessHeap(), 0, (p))
 #endif
 
@@ -1555,27 +1545,23 @@ VREG_DECL void VReg_AssertFailed(void);
 
 /// Null for @p cb of zero or when memory ran out.
 VREG_DECL _Ret_maybenull_ void* VReg_Alloc(
-    _In_opt_ void* pAllocContext,
     SIZE_T cb
 );
 
 /// Like @ref VReg_Alloc, zero-filled.
 VREG_DECL _Ret_maybenull_ void* VReg_AllocZeroed(
-    _In_opt_ void* pAllocContext,
     SIZE_T cb
 );
 
 /// Resizes @p p (null allocates) to @p cb bytes; null when memory ran out,
 /// leaving @p p as it was.
 VREG_DECL _Ret_maybenull_ void* VReg_ReAlloc(
-    _In_opt_ void* pAllocContext,
     _In_opt_ void* p,
     SIZE_T cb
 );
 
 /// Frees @p p; null is ignored.
 VREG_DECL void VReg_Free(
-    _In_opt_ void* pAllocContext,
     _In_opt_ void* p
 );
 
@@ -1583,8 +1569,7 @@ VREG_DECL void VReg_Free(
 // Buffers
 // ==========================================================================
 
-// Owned, growable storage with an allocation context passed to every
-// call that may allocate: a byte buffer, a wide string and an array of
+// Owned, growable storage: a byte buffer, a wide string and an array of
 // fixed-size elements. A zero-filled instance is empty and needs no
 // initialization; every call that grows answers FALSE when memory ran out
 // and leaves the instance as it was.
@@ -1617,7 +1602,6 @@ typedef struct
 } VReg_Buffer;
 
 VREG_DECL BOOL VReg_BufferReserve(
-    _In_opt_ void* pAllocContext,
     _Inout_ VReg_Buffer* pBuffer,
     SIZE_T cbCapacity
 );
@@ -1625,27 +1609,23 @@ VREG_DECL BOOL VReg_BufferReserve(
 /// Sets the size to @p cb, growing the capacity if needed; new bytes are
 /// indeterminate.
 VREG_DECL BOOL VReg_BufferResize(
-    _In_opt_ void* pAllocContext,
     _Inout_ VReg_Buffer* pBuffer,
     SIZE_T cb
 );
 
 VREG_DECL BOOL VReg_BufferAssign(
-    _In_opt_ void* pAllocContext,
     _Inout_ VReg_Buffer* pBuffer,
     _In_reads_bytes_opt_(cb) const void* p,
     SIZE_T cb
 );
 
 VREG_DECL BOOL VReg_BufferAppend(
-    _In_opt_ void* pAllocContext,
     _Inout_ VReg_Buffer* pBuffer,
     _In_reads_bytes_(cb) const void* p,
     SIZE_T cb
 );
 
 VREG_DECL void VReg_BufferFree(
-    _In_opt_ void* pAllocContext,
     _Inout_ VReg_Buffer* pBuffer
 );
 
@@ -1669,7 +1649,6 @@ VREG_DECL VReg_WStringView VReg_WStringViewOf(
 
 /// Room for @p cch characters and the terminator.
 VREG_DECL BOOL VReg_WStringReserve(
-    _In_opt_ void* pAllocContext,
     _Inout_ VReg_WString* pString,
     SIZE_T cch
 );
@@ -1677,27 +1656,23 @@ VREG_DECL BOOL VReg_WStringReserve(
 /// Sets the length to @p cch, growing if needed, and terminates; new
 /// characters are indeterminate.
 VREG_DECL BOOL VReg_WStringResize(
-    _In_opt_ void* pAllocContext,
     _Inout_ VReg_WString* pString,
     SIZE_T cch
 );
 
 VREG_DECL BOOL VReg_WStringAssign(
-    _In_opt_ void* pAllocContext,
     _Inout_ VReg_WString* pString,
     _In_reads_opt_(cch) const wchar_t* pch,
     SIZE_T cch
 );
 
 VREG_DECL BOOL VReg_WStringAppend(
-    _In_opt_ void* pAllocContext,
     _Inout_ VReg_WString* pString,
     _In_reads_(cch) const wchar_t* pch,
     SIZE_T cch
 );
 
 VREG_DECL BOOL VReg_WStringAppendChar(
-    _In_opt_ void* pAllocContext,
     _Inout_ VReg_WString* pString,
     wchar_t ch
 );
@@ -1709,7 +1684,6 @@ VREG_DECL void VReg_WStringTruncate(
 );
 
 VREG_DECL void VReg_WStringFree(
-    _In_opt_ void* pAllocContext,
     _Inout_ VReg_WString* pString
 );
 
@@ -1725,7 +1699,6 @@ typedef struct
 #define VREG_INTERNAL_AT(pArray, T, index) (((T*)(pArray)->p)[index])
 
 VREG_DECL BOOL VReg_ArrayReserve(
-    _In_opt_ void* pAllocContext,
     _Inout_ VReg_Array* pArray,
     SIZE_T cbElement,
     SIZE_T capacity
@@ -1733,7 +1706,6 @@ VREG_DECL BOOL VReg_ArrayReserve(
 
 /// Inserts a copy of @p pElement before @p index, which is at most the count.
 VREG_DECL BOOL VReg_ArrayInsert(
-    _In_opt_ void* pAllocContext,
     _Inout_ VReg_Array* pArray,
     SIZE_T cbElement,
     SIZE_T index,
@@ -1741,7 +1713,6 @@ VREG_DECL BOOL VReg_ArrayInsert(
 );
 
 VREG_DECL BOOL VReg_ArrayAppend(
-    _In_opt_ void* pAllocContext,
     _Inout_ VReg_Array* pArray,
     SIZE_T cbElement,
     _In_reads_bytes_(cbElement) const void* pElement
@@ -1755,13 +1726,11 @@ VREG_DECL void VReg_ArrayRemoveAt(
 );
 
 VREG_DECL void VReg_ArrayFree(
-    _In_opt_ void* pAllocContext,
     _Inout_ VReg_Array* pArray
 );
 
 /// Appends a copy of @p text to @p pArray, an array of @ref VReg_WString.
 VREG_DECL BOOL VReg_WStringArrayAppend(
-    _In_opt_ void* pAllocContext,
     _Inout_ VReg_Array* pArray,
     VReg_WStringView text
 );
@@ -1769,7 +1738,6 @@ VREG_DECL BOOL VReg_WStringArrayAppend(
 /// Adds a copy of @p text to @p pArray, an array of @ref VReg_WString sorted
 /// by @ref VReg_CompareNames, unless an equal name is there already.
 VREG_DECL BOOL VReg_WStringArrayInsertSorted(
-    _In_opt_ void* pAllocContext,
     _Inout_ VReg_Array* pArray,
     VReg_WStringView text
 );
@@ -1784,7 +1752,6 @@ VREG_DECL BOOL VReg_WStringArrayContainsSorted(
 /// Frees the strings of @p pArray, an array of @ref VReg_WString, and the
 /// array itself.
 VREG_DECL void VReg_WStringArrayFree(
-    _In_opt_ void* pAllocContext,
     _Inout_ VReg_Array* pArray
 );
 
@@ -1797,7 +1764,6 @@ VREG_DECL void VReg_WStringArrayFree(
 /// @ref ERROR_OUTOFMEMORY when memory ran out or the text is longer than the
 /// conversion can take.
 VREG_DECL LSTATUS VReg_WideFromAnsi(
-    _In_opt_ void* pAllocContext,
     _In_reads_(cch) const char* pch,
     SIZE_T cch,
     _Inout_ VReg_WString* pText
@@ -1808,7 +1774,6 @@ VREG_DECL LSTATUS VReg_WideFromAnsi(
 /// its default character. Answers @ref ERROR_OUTOFMEMORY as
 /// @ref VReg_WideFromAnsi does.
 VREG_DECL LSTATUS VReg_AnsiFromWide(
-    _In_opt_ void* pAllocContext,
     _In_reads_(cch) const wchar_t* pch,
     SIZE_T cch,
     _Inout_ VReg_Buffer* pText
@@ -1823,7 +1788,6 @@ typedef struct VReg_WideArg
 
 /// Fills @p pArg from @p psz; a zero-filled @p pArg stands for a null one.
 VREG_DECL LSTATUS VReg_WideArgInit(
-    _In_opt_ void* pAllocContext,
     _In_opt_z_ LPCSTR psz,
     _Out_ VReg_WideArg* pArg
 );
@@ -1839,7 +1803,6 @@ VREG_DECL _Ret_maybenull_ LPWSTR VReg_WideArgMutable(
 );
 
 VREG_DECL void VReg_WideArgFree(
-    _In_opt_ void* pAllocContext,
     _Inout_ VReg_WideArg* pArg
 );
 
@@ -1939,8 +1902,7 @@ VREG_DECL _Ret_maybenull_ void* VReg_FindRegistryExport(_In_z_ const char* pszNa
 
 // Reads over a @ref VReg that size and fill owned storage
 // themselves, retrying with a larger buffer while the value grows between
-// the sizing call and the read. The storage is allocated with the
-// @p pAllocContext given and stays the caller's to free.
+// the sizing call and the read. The storage stays the caller's to free.
 
 // Names and classes are read into a temporary buffer of 256 characters, which
 // holds the longest key name, and grow by doubling on ERROR_MORE_DATA, up to
@@ -1957,7 +1919,6 @@ VREG_DECL LSTATUS VReg_QueryValueOwned(
     _In_ VReg* pRegistry,
     _In_ HKEY hKey,
     _In_opt_z_ LPCWSTR lpValueName,
-    _In_opt_ void* pAllocContext,
     _Out_opt_ LPDWORD lpType,
     _Inout_ VReg_Buffer* pData
 );
@@ -1968,7 +1929,6 @@ VREG_DECL LSTATUS VReg_GetValueOwned(
     _In_opt_z_ LPCWSTR lpSubKey,
     _In_opt_z_ LPCWSTR lpValue,
     _In_ DWORD dwFlags,
-    _In_opt_ void* pAllocContext,
     _Out_opt_ LPDWORD pdwType,
     _Inout_ VReg_Buffer* pData
 );
@@ -1977,7 +1937,6 @@ VREG_DECL LSTATUS VReg_EnumKeyOwned(
     _In_ VReg* pRegistry,
     _In_ HKEY hKey,
     _In_ DWORD dwIndex,
-    _In_opt_ void* pAllocContext,
     _Inout_ VReg_WString* pName
 );
 
@@ -1986,7 +1945,6 @@ VREG_DECL LSTATUS VReg_EnumValueOwned(
     _In_ VReg* pRegistry,
     _In_ HKEY hKey,
     _In_ DWORD dwIndex,
-    _In_opt_ void* pAllocContext,
     _Inout_ VReg_WString* pName,
     _Out_opt_ LPDWORD lpType,
     _Inout_opt_ VReg_Buffer* pData
@@ -1998,7 +1956,6 @@ VREG_DECL LSTATUS VReg_EnumValueOwned(
 VREG_DECL LSTATUS VReg_QueryInfoKeyOwned(
     _In_ VReg* pRegistry,
     _In_ HKEY hKey,
-    _In_opt_ void* pAllocContext,
     _Inout_ VReg_WString* pClass,
     _Inout_opt_ LPDWORD lpcchClassReported,
     _Reserved_ LPDWORD lpReserved,
@@ -2150,9 +2107,7 @@ VREG_DECL UINT_PTR VReg_IndexFromVirtualHKey(_In_opt_ HKEY hKey);
 // node answers @ref ERROR_KEY_DELETED, and a write to a frozen hive
 // @ref ERROR_ACCESS_DENIED.
 //
-// A string or buffer a function fills is the caller's, allocated with the
-// hive's allocation context (@ref VReg_HiveAllocContext) and freed by the
-// caller with it.
+// A string or buffer a function fills is the caller's to free.
 
 /// Where an open landed: a node of the hive, or (for a key a frozen layered
 /// hive leaves untouched) a handle its lower registry opened, which the
@@ -2226,14 +2181,6 @@ VREG_DECL _Ret_notnull_ VReg_Node* VReg_HiveRoot(
 /// The registry below the hive, which answers the handles in
 /// @ref VReg_OpenResult::hLower; null for a hive with nothing below it.
 VREG_DECL _Ret_maybenull_ VReg* VReg_HiveLower(
-    _In_ VRegHive* pHive
-);
-
-VREG_DECL _Ret_maybenull_ void* VReg_HiveAllocContext(
-    _In_ VRegHive* pHive
-);
-
-VREG_DECL _Ret_maybenull_ void* VReg_HiveAllocContext(
     _In_ VRegHive* pHive
 );
 
@@ -2445,16 +2392,12 @@ VREG_DECL LSTATUS VReg_HiveOpenLowerValueKey(
 #define VREG_INTERNAL_KIND_NATIVE 1
 #define VREG_INTERNAL_KIND_VIRTUAL 2
 
-/// A registry: its kind, its allocation context and what the kind needs.
+/// A registry: its kind and what the kind needs.
 struct VReg
 {
     /// @ref VREG_INTERNAL_KIND_CUSTOM, @ref VREG_INTERNAL_KIND_NATIVE or
     /// @ref VREG_INTERNAL_KIND_VIRTUAL.
     DWORD dwKind;
-
-    /// What the registry allocates with, passed to `VREG_MALLOC` and its
-    /// companions; the flat functions allocate their temporaries with it too.
-    void* pAllocContext;
 
     /// The member of @ref dwKind.
     union
@@ -2521,7 +2464,7 @@ VREG_DECL void WINAPI VReg_VirtualDestroy(
 /// @ref VReg_WStringView: empty components are skipped, a trailing backslash
 /// is ignored, a leading one answers @ref ERROR_BAD_PATHNAME and a component
 /// over @ref VREG_INTERNAL_MAX_KEY_NAME_CHARS @ref ERROR_INVALID_PARAMETER.
-VREG_DECL LSTATUS VReg_SplitPath(_In_opt_ void* pAllocContext, VReg_WStringView path, _Inout_ VReg_Array* pComponents);
+VREG_DECL LSTATUS VReg_SplitPath(VReg_WStringView path, _Inout_ VReg_Array* pComponents);
 
 // ==========================================================================
 // Status
@@ -2546,8 +2489,6 @@ typedef struct
 
 struct VRegScript
 {
-    void* pAllocContext;
-
     /// `VRegOperation`, pointing into @ref entries.
     VReg_Array operations;
 
@@ -2576,7 +2517,6 @@ VREG_DECL BOOL VReg_FindRoot(
 );
 
 VREG_DECL LSTATUS VReg_ScriptCreate(
-    _In_opt_ void* pAllocContext,
     _Outptr_ VRegScript** ppScript
 );
 
@@ -2597,7 +2537,6 @@ VREG_DECL LSTATUS VReg_ScriptAppend(
 /// @ref VRegParseScript documents. Answers @ref ERROR_INVALID_DATA with
 /// @p pError (zeroed by the caller) set on bytes the encoding cannot hold.
 VREG_DECL LSTATUS VReg_DecodeFile(
-    _In_opt_ void* pAllocContext,
     _In_reads_bytes_(cbFile) const void* pFile,
     SIZE_T cbFile,
     _Inout_ VReg_WString* pText,
@@ -2608,7 +2547,6 @@ VREG_DECL LSTATUS VReg_DecodeFile(
 /// @ref ERROR_NO_UNICODE_TRANSLATION when the format's code page cannot hold
 /// it.
 VREG_DECL LSTATUS VReg_EncodeFile(
-    _In_opt_ void* pAllocContext,
     _In_ const VReg_WString* pText,
     VRegFormat format,
     _Inout_ VReg_Buffer* pFile
@@ -2616,7 +2554,6 @@ VREG_DECL LSTATUS VReg_EncodeFile(
 
 /// Reads and writes whole files; Win32 errors answer as is.
 VREG_DECL LSTATUS VReg_ReadWholeFile(
-    _In_opt_ void* pAllocContext,
     _In_z_ LPCWSTR pszPath,
     _Inout_ VReg_Buffer* pFile
 );
@@ -2651,23 +2588,20 @@ VREG_DECL void VReg_AssertFailed(void)
 }
 
 VREG_DECL _Ret_maybenull_ void* VReg_Alloc(
-    _In_opt_ void* const pAllocContext,
     const SIZE_T cb
 )
 {
-    (void)pAllocContext;
     if (cb == 0)
         return NULL;
 
-    return VREG_MALLOC(pAllocContext, cb);
+    return VREG_MALLOC(cb);
 }
 
 VREG_DECL _Ret_maybenull_ void* VReg_AllocZeroed(
-    _In_opt_ void* const pAllocContext,
     const SIZE_T cb
 )
 {
-    void* const p = VReg_Alloc(pAllocContext, cb);
+    void* const p = VReg_Alloc(cb);
     if (p)
         ZeroMemory(p, cb);
 
@@ -2675,31 +2609,27 @@ VREG_DECL _Ret_maybenull_ void* VReg_AllocZeroed(
 }
 
 VREG_DECL _Ret_maybenull_ void* VReg_ReAlloc(
-    _In_opt_ void* const pAllocContext,
     _In_opt_ void* const p,
     const SIZE_T cb
 )
 {
-    (void)pAllocContext;
     if (!p)
-        return VReg_Alloc(pAllocContext, cb);
+        return VReg_Alloc(cb);
     if (cb == 0)
     {
-        VREG_FREE(pAllocContext, p);
+        VREG_FREE(p);
         return NULL;
     }
 
-    return VREG_REALLOC(pAllocContext, p, cb);
+    return VREG_REALLOC(p, cb);
 }
 
 VREG_DECL void VReg_Free(
-    _In_opt_ void* const pAllocContext,
     _In_opt_ void* const p
 )
 {
-    (void)pAllocContext;
     if (p)
-        VREG_FREE(pAllocContext, p);
+        VREG_FREE(p);
 }
 
 // ==========================================================================
@@ -2720,7 +2650,6 @@ static SIZE_T VReg_AnsiLength(_In_z_ const char* const psz)
 /// @ref ERROR_NO_UNICODE_TRANSLATION when the conversion fails, leaving
 /// @p pText empty.
 static LSTATUS VReg_WideFromMultiByte(
-    _In_opt_ void* const pAllocContext,
     const UINT codePage,
     const DWORD dwFlags,
     _In_reads_(cch) const char* const pch,
@@ -2731,7 +2660,7 @@ static LSTATUS VReg_WideFromMultiByte(
     int cchWide;
     if (cch > (SIZE_T)MAXINT32)
         return ERROR_OUTOFMEMORY;
-    if (!VReg_WStringResize(pAllocContext, pText, 0))
+    if (!VReg_WStringResize(pText, 0))
         return ERROR_OUTOFMEMORY;
     if (cch == 0)
         return ERROR_SUCCESS;
@@ -2739,7 +2668,7 @@ static LSTATUS VReg_WideFromMultiByte(
     cchWide = MultiByteToWideChar(codePage, dwFlags, pch, (int)cch, NULL, 0);
     if (cchWide <= 0)
         return ERROR_NO_UNICODE_TRANSLATION;
-    if (!VReg_WStringResize(pAllocContext, pText, (SIZE_T)cchWide))
+    if (!VReg_WStringResize(pText, (SIZE_T)cchWide))
         return ERROR_OUTOFMEMORY;
 
     MultiByteToWideChar(codePage, dwFlags, pch, (int)cch, pText->psz, cchWide);
@@ -2750,7 +2679,6 @@ static LSTATUS VReg_WideFromMultiByte(
 /// @ref WideCharToMultiByte flags @p dwFlags, reporting a default character
 /// through @p pfUsedDefault. Fails as @ref VReg_WideFromMultiByte does.
 static LSTATUS VReg_MultiByteFromWide(
-    _In_opt_ void* const pAllocContext,
     const UINT codePage,
     const DWORD dwFlags,
     _Out_opt_ BOOL* const pfUsedDefault,
@@ -2764,7 +2692,7 @@ static LSTATUS VReg_MultiByteFromWide(
         *pfUsedDefault = FALSE;
     if (cch > (SIZE_T)MAXINT32)
         return ERROR_OUTOFMEMORY;
-    if (!VReg_BufferResize(pAllocContext, pText, 0))
+    if (!VReg_BufferResize(pText, 0))
         return ERROR_OUTOFMEMORY;
     if (cch == 0)
         return ERROR_SUCCESS;
@@ -2772,7 +2700,7 @@ static LSTATUS VReg_MultiByteFromWide(
     cbText = WideCharToMultiByte(codePage, dwFlags, pch, (int)cch, NULL, 0, NULL, pfUsedDefault);
     if (cbText <= 0)
         return ERROR_NO_UNICODE_TRANSLATION;
-    if (!VReg_BufferResize(pAllocContext, pText, (SIZE_T)cbText))
+    if (!VReg_BufferResize(pText, (SIZE_T)cbText))
         return ERROR_OUTOFMEMORY;
 
     WideCharToMultiByte(codePage, dwFlags, pch, (int)cch, (char*)pText->pb, cbText, NULL, pfUsedDefault);
@@ -2780,27 +2708,24 @@ static LSTATUS VReg_MultiByteFromWide(
 }
 
 VREG_DECL LSTATUS VReg_WideFromAnsi(
-    _In_opt_ void* const pAllocContext,
     _In_reads_(cch) const char* const pch,
     const SIZE_T cch,
     _Inout_ VReg_WString* const pText
 )
 {
-    return VReg_WideFromMultiByte(pAllocContext, CP_ACP, 0, pch, cch, pText);
+    return VReg_WideFromMultiByte(CP_ACP, 0, pch, cch, pText);
 }
 
 VREG_DECL LSTATUS VReg_AnsiFromWide(
-    _In_opt_ void* const pAllocContext,
     _In_reads_(cch) const wchar_t* const pch,
     const SIZE_T cch,
     _Inout_ VReg_Buffer* const pText
 )
 {
-    return VReg_MultiByteFromWide(pAllocContext, CP_ACP, 0, NULL, pch, cch, pText);
+    return VReg_MultiByteFromWide(CP_ACP, 0, NULL, pch, cch, pText);
 }
 
 VREG_DECL LSTATUS VReg_WideArgInit(
-    _In_opt_ void* const pAllocContext,
     _In_opt_z_ const LPCSTR psz,
     _Out_ VReg_WideArg* const pArg
 )
@@ -2810,7 +2735,7 @@ VREG_DECL LSTATUS VReg_WideArgInit(
     if (!psz)
         return ERROR_SUCCESS;
 
-    return VReg_WideFromAnsi(pAllocContext, psz, VReg_AnsiLength(psz), &pArg->text);
+    return VReg_WideFromAnsi(psz, VReg_AnsiLength(psz), &pArg->text);
 }
 
 VREG_DECL _Ret_maybenull_z_ LPCWSTR VReg_WideArgText(_In_ const VReg_WideArg* const pArg)
@@ -2824,15 +2749,15 @@ VREG_DECL _Ret_maybenull_ LPWSTR VReg_WideArgMutable(_In_ VReg_WideArg* const pA
         return NULL;
 
     // An unallocated empty string has no storage to hand out.
-    if (!pArg->text.psz && !VReg_WStringReserve(NULL, &pArg->text, 0))
+    if (!pArg->text.psz && !VReg_WStringReserve(&pArg->text, 0))
         return NULL;
 
     return pArg->text.psz;
 }
 
-VREG_DECL void VReg_WideArgFree(_In_opt_ void* const pAllocContext, _Inout_ VReg_WideArg* const pArg)
+VREG_DECL void VReg_WideArgFree(_Inout_ VReg_WideArg* const pArg)
 {
-    VReg_WStringFree(pAllocContext, &pArg->text);
+    VReg_WStringFree(&pArg->text);
 }
 
 // ==========================================================================
@@ -2875,7 +2800,6 @@ VREG_DECL VReg_WStringView VReg_ViewOf(_In_opt_z_ const LPCWSTR psz)
 }
 
 VREG_DECL BOOL VReg_BufferReserve(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_Buffer* const pBuffer,
     const SIZE_T cbCapacity
 )
@@ -2884,7 +2808,7 @@ VREG_DECL BOOL VReg_BufferReserve(
     if (cbCapacity <= pBuffer->cbCapacity)
         return TRUE;
 
-    pb = (BYTE*)VReg_ReAlloc(pAllocContext, pBuffer->pb, cbCapacity);
+    pb = (BYTE*)VReg_ReAlloc(pBuffer->pb, cbCapacity);
     if (!pb)
         return FALSE;
 
@@ -2894,7 +2818,6 @@ VREG_DECL BOOL VReg_BufferReserve(
 }
 
 VREG_DECL BOOL VReg_BufferResize(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_Buffer* const pBuffer,
     const SIZE_T cb
 )
@@ -2902,7 +2825,7 @@ VREG_DECL BOOL VReg_BufferResize(
     if (cb > pBuffer->cbCapacity)
     {
         const SIZE_T cbGrown = VReg_GrownCapacity(pBuffer->cbCapacity, cb);
-        if (!VReg_BufferReserve(pAllocContext, pBuffer, cbGrown))
+        if (!VReg_BufferReserve(pBuffer, cbGrown))
             return FALSE;
     }
 
@@ -2911,13 +2834,12 @@ VREG_DECL BOOL VReg_BufferResize(
 }
 
 VREG_DECL BOOL VReg_BufferAssign(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_Buffer* const pBuffer,
     _In_reads_bytes_opt_(cb) const void* const p,
     const SIZE_T cb
 )
 {
-    if (!VReg_BufferResize(pAllocContext, pBuffer, cb))
+    if (!VReg_BufferResize(pBuffer, cb))
         return FALSE;
 
     if (cb != 0)
@@ -2931,14 +2853,13 @@ VREG_DECL BOOL VReg_BufferAssign(
 }
 
 VREG_DECL BOOL VReg_BufferAppend(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_Buffer* const pBuffer,
     _In_reads_bytes_(cb) const void* const p,
     const SIZE_T cb
 )
 {
     const SIZE_T cbOld = pBuffer->cb;
-    if (!VReg_BufferResize(pAllocContext, pBuffer, cbOld + cb))
+    if (!VReg_BufferResize(pBuffer, cbOld + cb))
         return FALSE;
 
     if (cb != 0)
@@ -2948,11 +2869,10 @@ VREG_DECL BOOL VReg_BufferAppend(
 }
 
 VREG_DECL void VReg_BufferFree(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_Buffer* const pBuffer
 )
 {
-    VReg_Free(pAllocContext, pBuffer->pb);
+    VReg_Free(pBuffer->pb);
     pBuffer->pb = NULL;
     pBuffer->cb = 0;
     pBuffer->cbCapacity = 0;
@@ -2976,7 +2896,6 @@ VREG_DECL VReg_WStringView VReg_WStringViewOf(
 }
 
 VREG_DECL BOOL VReg_WStringReserve(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_WString* const pString,
     const SIZE_T cch
 )
@@ -2985,7 +2904,7 @@ VREG_DECL BOOL VReg_WStringReserve(
     if (cch < pString->cchCapacity)
         return TRUE;
 
-    psz = (wchar_t*)VReg_ReAlloc(pAllocContext, pString->psz, (cch + 1) * sizeof(wchar_t));
+    psz = (wchar_t*)VReg_ReAlloc(pString->psz, (cch + 1) * sizeof(wchar_t));
     if (!psz)
         return FALSE;
 
@@ -2998,7 +2917,6 @@ VREG_DECL BOOL VReg_WStringReserve(
 }
 
 VREG_DECL BOOL VReg_WStringResize(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_WString* const pString,
     const SIZE_T cch
 )
@@ -3006,7 +2924,7 @@ VREG_DECL BOOL VReg_WStringResize(
     if (cch >= pString->cchCapacity)
     {
         const SIZE_T cchGrown = VReg_GrownCapacity(pString->cchCapacity, cch + 1) - 1;
-        if (!VReg_WStringReserve(pAllocContext, pString, cchGrown))
+        if (!VReg_WStringReserve(pString, cchGrown))
             return FALSE;
     }
 
@@ -3018,13 +2936,12 @@ VREG_DECL BOOL VReg_WStringResize(
 }
 
 VREG_DECL BOOL VReg_WStringAssign(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_WString* const pString,
     _In_reads_opt_(cch) const wchar_t* const pch,
     const SIZE_T cch
 )
 {
-    if (!VReg_WStringResize(pAllocContext, pString, cch))
+    if (!VReg_WStringResize(pString, cch))
         return FALSE;
 
     if (cch != 0)
@@ -3038,14 +2955,13 @@ VREG_DECL BOOL VReg_WStringAssign(
 }
 
 VREG_DECL BOOL VReg_WStringAppend(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_WString* const pString,
     _In_reads_(cch) const wchar_t* const pch,
     const SIZE_T cch
 )
 {
     const SIZE_T cchOld = pString->cch;
-    if (!VReg_WStringResize(pAllocContext, pString, cchOld + cch))
+    if (!VReg_WStringResize(pString, cchOld + cch))
         return FALSE;
 
     if (cch != 0)
@@ -3055,26 +2971,24 @@ VREG_DECL BOOL VReg_WStringAppend(
 }
 
 VREG_DECL BOOL VReg_WStringAppendChar(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_WString* const pString,
     const wchar_t ch
 )
 {
-    return VReg_WStringAppend(pAllocContext, pString, &ch, 1);
+    return VReg_WStringAppend(pString, &ch, 1);
 }
 
 /// Appends a key path component, after a backslash unless @p pPath is empty.
 static BOOL VReg_AppendPathComponent(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_WString* const pPath,
     _In_reads_(cch) const wchar_t* const pch,
     const SIZE_T cch
 )
 {
-    if (pPath->cch != 0 && !VReg_WStringAppendChar(pAllocContext, pPath, L'\\'))
+    if (pPath->cch != 0 && !VReg_WStringAppendChar(pPath, L'\\'))
         return FALSE;
 
-    return VReg_WStringAppend(pAllocContext, pPath, pch, cch);
+    return VReg_WStringAppend(pPath, pch, cch);
 }
 
 VREG_DECL void VReg_WStringTruncate(
@@ -3089,18 +3003,16 @@ VREG_DECL void VReg_WStringTruncate(
 }
 
 VREG_DECL void VReg_WStringFree(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_WString* const pString
 )
 {
-    VReg_Free(pAllocContext, pString->psz);
+    VReg_Free(pString->psz);
     pString->psz = NULL;
     pString->cch = 0;
     pString->cchCapacity = 0;
 }
 
 VREG_DECL BOOL VReg_ArrayReserve(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_Array* const pArray,
     const SIZE_T cbElement,
     const SIZE_T capacity
@@ -3110,7 +3022,7 @@ VREG_DECL BOOL VReg_ArrayReserve(
     if (capacity <= pArray->capacity)
         return TRUE;
 
-    p = VReg_ReAlloc(pAllocContext, pArray->p, capacity * cbElement);
+    p = VReg_ReAlloc(pArray->p, capacity * cbElement);
     if (!p)
         return FALSE;
 
@@ -3120,7 +3032,6 @@ VREG_DECL BOOL VReg_ArrayReserve(
 }
 
 VREG_DECL BOOL VReg_ArrayInsert(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_Array* const pArray,
     const SIZE_T cbElement,
     const SIZE_T index,
@@ -3132,7 +3043,7 @@ VREG_DECL BOOL VReg_ArrayInsert(
     if (pArray->count == pArray->capacity)
     {
         const SIZE_T grown = VReg_GrownCapacity(pArray->capacity, pArray->count + 1);
-        if (!VReg_ArrayReserve(pAllocContext, pArray, cbElement, grown))
+        if (!VReg_ArrayReserve(pArray, cbElement, grown))
             return FALSE;
     }
 
@@ -3144,13 +3055,12 @@ VREG_DECL BOOL VReg_ArrayInsert(
 }
 
 VREG_DECL BOOL VReg_ArrayAppend(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_Array* const pArray,
     const SIZE_T cbElement,
     _In_reads_bytes_(cbElement) const void* const pElement
 )
 {
-    return VReg_ArrayInsert(pAllocContext, pArray, cbElement, pArray->count, pElement);
+    return VReg_ArrayInsert(pArray, cbElement, pArray->count, pElement);
 }
 
 VREG_DECL void VReg_ArrayRemoveAt(
@@ -3166,28 +3076,26 @@ VREG_DECL void VReg_ArrayRemoveAt(
 }
 
 VREG_DECL void VReg_ArrayFree(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_Array* const pArray
 )
 {
-    VReg_Free(pAllocContext, pArray->p);
+    VReg_Free(pArray->p);
     pArray->p = NULL;
     pArray->count = 0;
     pArray->capacity = 0;
 }
 
 VREG_DECL BOOL VReg_WStringArrayAppend(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_Array* const pArray,
     const VReg_WStringView text
 )
 {
     VReg_WString copy = {0, 0, NULL};
-    if (!VReg_WStringAssign(pAllocContext, &copy, text.pch, text.cch))
+    if (!VReg_WStringAssign(&copy, text.pch, text.cch))
         return FALSE;
-    if (!VReg_ArrayAppend(pAllocContext, pArray, sizeof(copy), &copy))
+    if (!VReg_ArrayAppend(pArray, sizeof(copy), &copy))
     {
-        VReg_WStringFree(pAllocContext, &copy);
+        VReg_WStringFree(&copy);
         return FALSE;
     }
 
@@ -3195,19 +3103,17 @@ VREG_DECL BOOL VReg_WStringArrayAppend(
 }
 
 VREG_DECL void VReg_WStringArrayFree(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_Array* const pArray
 )
 {
     SIZE_T i;
     for (i = 0; i < pArray->count; ++i)
-        VReg_WStringFree(pAllocContext, &VREG_INTERNAL_AT(pArray, VReg_WString, i));
+        VReg_WStringFree(&VREG_INTERNAL_AT(pArray, VReg_WString, i));
 
-    VReg_ArrayFree(pAllocContext, pArray);
+    VReg_ArrayFree(pArray);
 }
 
 VREG_DECL BOOL VReg_WStringArrayInsertSorted(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_Array* const pList,
     const VReg_WStringView name
 )
@@ -3227,11 +3133,11 @@ VREG_DECL BOOL VReg_WStringArrayInsertSorted(
             hi = mid;
     }
 
-    if (!VReg_WStringAssign(pAllocContext, &copy, name.pch, name.cch))
+    if (!VReg_WStringAssign(&copy, name.pch, name.cch))
         return FALSE;
-    if (!VReg_ArrayInsert(pAllocContext, pList, sizeof(copy), lo, &copy))
+    if (!VReg_ArrayInsert(pList, sizeof(copy), lo, &copy))
     {
-        VReg_WStringFree(pAllocContext, &copy);
+        VReg_WStringFree(&copy);
         return FALSE;
     }
 
@@ -3468,10 +3374,9 @@ VREG_DECL LSTATUS WINAPI VRegOpenKeyExA(
             phkResult
         );
 
-    void* const pAllocContext = pRegistry->pAllocContext;
     VReg_WideArg subKey = {FALSE, {0, 0, NULL}};
     HKEY hPrevious;
-    LSTATUS status = VReg_WideArgInit(pAllocContext, lpSubKey, &subKey);
+    LSTATUS status = VReg_WideArgInit(lpSubKey, &subKey);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -3492,7 +3397,7 @@ VREG_DECL LSTATUS WINAPI VRegOpenKeyExA(
         *phkResult = hPrevious;
 
 done:
-    VReg_WideArgFree(pAllocContext, &subKey);
+    VReg_WideArgFree(&subKey);
     return status;
 }
 
@@ -3523,15 +3428,14 @@ VREG_DECL LSTATUS WINAPI VRegCreateKeyExA(
             lpdwDisposition
         );
 
-    void* const pAllocContext = pRegistry->pAllocContext;
     VReg_WideArg subKey = {FALSE, {0, 0, NULL}};
     VReg_WideArg className = {FALSE, {0, 0, NULL}};
     HKEY hPrevious;
-    LSTATUS status = VReg_WideArgInit(pAllocContext, lpSubKey, &subKey);
+    LSTATUS status = VReg_WideArgInit(lpSubKey, &subKey);
     if (status != ERROR_SUCCESS)
         goto done;
 
-    status = VReg_WideArgInit(pAllocContext, lpClass, &className);
+    status = VReg_WideArgInit(lpClass, &className);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -3557,8 +3461,8 @@ VREG_DECL LSTATUS WINAPI VRegCreateKeyExA(
         *phkResult = hPrevious;
 
 done:
-    VReg_WideArgFree(pAllocContext, &className);
-    VReg_WideArgFree(pAllocContext, &subKey);
+    VReg_WideArgFree(&className);
+    VReg_WideArgFree(&subKey);
     return status;
 }
 
@@ -3583,7 +3487,6 @@ VREG_DECL LSTATUS WINAPI VRegQueryValueExA(
             lpcbData
         );
 
-    void* const pAllocContext = pRegistry->pAllocContext;
     VReg_WideArg valueName = {FALSE, {0, 0, NULL}};
     VReg_Buffer value = {0, 0, NULL};
     VReg_Buffer text = {0, 0, NULL};
@@ -3596,7 +3499,7 @@ VREG_DECL LSTATUS WINAPI VRegQueryValueExA(
     if ((lpData && !lpcbData) || lpReserved)
         return ERROR_INVALID_PARAMETER;
 
-    status = VReg_WideArgInit(pAllocContext, lpValueName, &valueName);
+    status = VReg_WideArgInit(lpValueName, &valueName);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -3655,14 +3558,13 @@ VREG_DECL LSTATUS WINAPI VRegQueryValueExA(
         pRegistry,
         hKey,
         VReg_WideArgText(&valueName),
-        pAllocContext,
         &dwType,
         &value
     );
     if (status != ERROR_SUCCESS)
         goto done;
 
-    status = VReg_AnsiFromWide(pAllocContext, (const wchar_t*)value.pb, value.cb / sizeof(wchar_t), &text);
+    status = VReg_AnsiFromWide((const wchar_t*)value.pb, value.cb / sizeof(wchar_t), &text);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -3696,9 +3598,9 @@ VREG_DECL LSTATUS WINAPI VRegQueryValueExA(
         *lpcbData = cbText;
 
 done:
-    VReg_BufferFree(pAllocContext, &text);
-    VReg_BufferFree(pAllocContext, &value);
-    VReg_WideArgFree(pAllocContext, &valueName);
+    VReg_BufferFree(&text);
+    VReg_BufferFree(&value);
+    VReg_WideArgFree(&valueName);
     return status;
 }
 
@@ -3723,10 +3625,9 @@ VREG_DECL LSTATUS WINAPI VRegSetValueExA(
             cbData
         );
 
-    void* const pAllocContext = pRegistry->pAllocContext;
     VReg_WideArg valueName = {FALSE, {0, 0, NULL}};
     VReg_WString text = {0, 0, NULL};
-    LSTATUS status = VReg_WideArgInit(pAllocContext, lpValueName, &valueName);
+    LSTATUS status = VReg_WideArgInit(lpValueName, &valueName);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -3744,7 +3645,7 @@ VREG_DECL LSTATUS WINAPI VRegSetValueExA(
         goto done;
     }
 
-    status = VReg_WideFromAnsi(pAllocContext, (const char*)lpData, cbData, &text);
+    status = VReg_WideFromAnsi((const char*)lpData, cbData, &text);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -3754,7 +3655,7 @@ VREG_DECL LSTATUS WINAPI VRegSetValueExA(
     // native does, can fault at the end of a page.
     if (text.cch > 0 && text.psz[text.cch - 1] != L'\0')
     {
-        if (!VReg_WStringAppendChar(pAllocContext, &text, L'\0'))
+        if (!VReg_WStringAppendChar(&text, L'\0'))
         {
             status = ERROR_OUTOFMEMORY;
             goto done;
@@ -3772,8 +3673,8 @@ VREG_DECL LSTATUS WINAPI VRegSetValueExA(
     );
 
 done:
-    VReg_WStringFree(pAllocContext, &text);
-    VReg_WideArgFree(pAllocContext, &valueName);
+    VReg_WStringFree(&text);
+    VReg_WideArgFree(&valueName);
     return status;
 }
 
@@ -3790,9 +3691,8 @@ VREG_DECL LSTATUS WINAPI VRegDeleteValueA(
             lpValueName
         );
 
-    void* const pAllocContext = pRegistry->pAllocContext;
     VReg_WideArg valueName = {FALSE, {0, 0, NULL}};
-    LSTATUS status = VReg_WideArgInit(pAllocContext, lpValueName, &valueName);
+    LSTATUS status = VReg_WideArgInit(lpValueName, &valueName);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -3803,7 +3703,7 @@ VREG_DECL LSTATUS WINAPI VRegDeleteValueA(
     );
 
 done:
-    VReg_WideArgFree(pAllocContext, &valueName);
+    VReg_WideArgFree(&valueName);
     return status;
 }
 
@@ -3824,9 +3724,8 @@ VREG_DECL LSTATUS WINAPI VRegDeleteKeyExA(
             Reserved
         );
 
-    void* const pAllocContext = pRegistry->pAllocContext;
     VReg_WideArg subKey = {FALSE, {0, 0, NULL}};
-    LSTATUS status = VReg_WideArgInit(pAllocContext, lpSubKey, &subKey);
+    LSTATUS status = VReg_WideArgInit(lpSubKey, &subKey);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -3842,7 +3741,7 @@ VREG_DECL LSTATUS WINAPI VRegDeleteKeyExA(
     );
 
 done:
-    VReg_WideArgFree(pAllocContext, &subKey);
+    VReg_WideArgFree(&subKey);
     return status;
 }
 
@@ -3859,9 +3758,8 @@ VREG_DECL LSTATUS WINAPI VRegDeleteTreeA(
             lpSubKey
         );
 
-    void* const pAllocContext = pRegistry->pAllocContext;
     VReg_WideArg subKey = {FALSE, {0, 0, NULL}};
-    LSTATUS status = VReg_WideArgInit(pAllocContext, lpSubKey, &subKey);
+    LSTATUS status = VReg_WideArgInit(lpSubKey, &subKey);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -3872,7 +3770,7 @@ VREG_DECL LSTATUS WINAPI VRegDeleteTreeA(
     );
 
 done:
-    VReg_WideArgFree(pAllocContext, &subKey);
+    VReg_WideArgFree(&subKey);
     return status;
 }
 
@@ -3901,7 +3799,6 @@ VREG_DECL LSTATUS WINAPI VRegEnumKeyExA(
             lpftLastWriteTime
         );
 
-    void* const pAllocContext = pRegistry->pAllocContext;
     VReg_WString name = {0, 0, NULL};
     VReg_WString className = {0, 0, NULL};
     VReg_Buffer nameA = {0, 0, NULL};
@@ -3923,8 +3820,8 @@ VREG_DECL LSTATUS WINAPI VRegEnumKeyExA(
     ZeroMemory(&ftLastWrite, sizeof(ftLastWrite));
     for (;;)
     {
-        if (!VReg_WStringResize(pAllocContext, &name, cchName)
-            || !VReg_WStringResize(pAllocContext, &className, cchClass))
+        if (!VReg_WStringResize(&name, cchName)
+            || !VReg_WStringResize(&className, cchClass))
         {
             status = ERROR_OUTOFMEMORY;
             goto done;
@@ -3961,7 +3858,7 @@ VREG_DECL LSTATUS WINAPI VRegEnumKeyExA(
     if (lpftLastWriteTime)
         *lpftLastWriteTime = ftLastWrite;
 
-    status = VReg_AnsiFromWide(pAllocContext, VReg_WStringText(&name), name.cch, &nameA);
+    status = VReg_AnsiFromWide(VReg_WStringText(&name), name.cch, &nameA);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -3978,7 +3875,7 @@ VREG_DECL LSTATUS WINAPI VRegEnumKeyExA(
     }
     else if (lpcchClass)
     {
-        status = VReg_AnsiFromWide(pAllocContext, VReg_WStringText(&className), className.cch, &classA);
+        status = VReg_AnsiFromWide(VReg_WStringText(&className), className.cch, &classA);
         if (status != ERROR_SUCCESS)
             goto done;
 
@@ -3993,10 +3890,10 @@ VREG_DECL LSTATUS WINAPI VRegEnumKeyExA(
     status = ERROR_SUCCESS;
 
 done:
-    VReg_BufferFree(pAllocContext, &classA);
-    VReg_BufferFree(pAllocContext, &nameA);
-    VReg_WStringFree(pAllocContext, &className);
-    VReg_WStringFree(pAllocContext, &name);
+    VReg_BufferFree(&classA);
+    VReg_BufferFree(&nameA);
+    VReg_WStringFree(&className);
+    VReg_WStringFree(&name);
     return status;
 }
 
@@ -4025,7 +3922,6 @@ VREG_DECL LSTATUS WINAPI VRegEnumValueA(
             lpcbData
         );
 
-    void* const pAllocContext = pRegistry->pAllocContext;
     VReg_WString name = {0, 0, NULL};
     VReg_Buffer value = {0, 0, NULL};
     VReg_Buffer nameA = {0, 0, NULL};
@@ -4044,7 +3940,6 @@ VREG_DECL LSTATUS WINAPI VRegEnumValueA(
         pRegistry,
         hKey,
         dwIndex,
-        pAllocContext,
         &name,
         &dwType,
         lpcbData ? &value : NULL
@@ -4052,7 +3947,7 @@ VREG_DECL LSTATUS WINAPI VRegEnumValueA(
     if (status != ERROR_SUCCESS)
         goto done;
 
-    status = VReg_AnsiFromWide(pAllocContext, VReg_WStringText(&name), name.cch, &nameA);
+    status = VReg_AnsiFromWide(VReg_WStringText(&name), name.cch, &nameA);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -4060,7 +3955,7 @@ VREG_DECL LSTATUS WINAPI VRegEnumValueA(
     cbValue = (DWORD)value.cb;
     if (lpcbData && isString)
     {
-        status = VReg_AnsiFromWide(pAllocContext, (const wchar_t*)value.pb, value.cb / sizeof(wchar_t), &text);
+        status = VReg_AnsiFromWide((const wchar_t*)value.pb, value.cb / sizeof(wchar_t), &text);
         if (status != ERROR_SUCCESS)
             goto done;
 
@@ -4121,10 +4016,10 @@ VREG_DECL LSTATUS WINAPI VRegEnumValueA(
     status = ERROR_SUCCESS;
 
 done:
-    VReg_BufferFree(pAllocContext, &text);
-    VReg_BufferFree(pAllocContext, &nameA);
-    VReg_BufferFree(pAllocContext, &value);
-    VReg_WStringFree(pAllocContext, &name);
+    VReg_BufferFree(&text);
+    VReg_BufferFree(&nameA);
+    VReg_BufferFree(&value);
+    VReg_WStringFree(&name);
     return status;
 }
 
@@ -4164,7 +4059,6 @@ VREG_DECL LSTATUS WINAPI VRegQueryInfoKeyA(
             lpftLastWriteTime
         );
 
-    void* const pAllocContext = pRegistry->pAllocContext;
     VReg_WString className = {0, 0, NULL};
     VReg_Buffer classA = {0, 0, NULL};
     BOOL wantClass;
@@ -4200,7 +4094,6 @@ VREG_DECL LSTATUS WINAPI VRegQueryInfoKeyA(
     status = VReg_QueryInfoKeyOwned(
         pRegistry,
         hKey,
-        pAllocContext,
         &className,
         lpcchClass,
         lpReserved,
@@ -4216,7 +4109,7 @@ VREG_DECL LSTATUS WINAPI VRegQueryInfoKeyA(
     if (status != ERROR_SUCCESS)
         goto done;
 
-    status = VReg_AnsiFromWide(pAllocContext, VReg_WStringText(&className), className.cch, &classA);
+    status = VReg_AnsiFromWide(VReg_WStringText(&className), className.cch, &classA);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -4236,8 +4129,8 @@ VREG_DECL LSTATUS WINAPI VRegQueryInfoKeyA(
     status = ERROR_SUCCESS;
 
 done:
-    VReg_BufferFree(pAllocContext, &classA);
-    VReg_WStringFree(pAllocContext, &className);
+    VReg_BufferFree(&classA);
+    VReg_WStringFree(&className);
     return status;
 }
 
@@ -4313,7 +4206,6 @@ VREG_DECL LSTATUS WINAPI VRegGetValueA(
             pcbData
         );
 
-    void* const pAllocContext = pRegistry->pAllocContext;
     VReg_WideArg subKey = {FALSE, {0, 0, NULL}};
     VReg_WideArg value = {FALSE, {0, 0, NULL}};
     VReg_Buffer data = {0, 0, NULL};
@@ -4350,11 +4242,11 @@ VREG_DECL LSTATUS WINAPI VRegGetValueA(
     if (pvData && !pcbData)
         return ERROR_INVALID_PARAMETER;
 
-    status = VReg_WideArgInit(pAllocContext, lpSubKey, &subKey);
+    status = VReg_WideArgInit(lpSubKey, &subKey);
     if (status != ERROR_SUCCESS)
         goto done;
 
-    status = VReg_WideArgInit(pAllocContext, lpValue, &value);
+    status = VReg_WideArgInit(lpValue, &value);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -4421,7 +4313,6 @@ VREG_DECL LSTATUS WINAPI VRegGetValueA(
         VReg_WideArgText(&subKey),
         VReg_WideArgText(&value),
         dwFlagsRead,
-        pAllocContext,
         &dwType,
         &data
     );
@@ -4442,7 +4333,6 @@ VREG_DECL LSTATUS WINAPI VRegGetValueA(
             VReg_WideArgText(&subKey),
             VReg_WideArgText(&value),
             dwFlagsStored,
-            pAllocContext,
             &dwReadType,
             &stored
         );
@@ -4462,7 +4352,7 @@ VREG_DECL LSTATUS WINAPI VRegGetValueA(
         cbStoredRaw = cbStoredQuery - VReg_MinDword(cbStoredQuery, 2);
     }
 
-    status = VReg_AnsiFromWide(pAllocContext, (const wchar_t*)data.pb, data.cb / sizeof(wchar_t), &text);
+    status = VReg_AnsiFromWide((const wchar_t*)data.pb, data.cb / sizeof(wchar_t), &text);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -4479,7 +4369,6 @@ VREG_DECL LSTATUS WINAPI VRegGetValueA(
     if (isExpanded)
     {
         status = VReg_AnsiFromWide(
-            pAllocContext,
             (const wchar_t*)stored.pb,
             cbStoredRaw / sizeof(wchar_t),
             &rawText
@@ -4517,7 +4406,6 @@ VREG_DECL LSTATUS WINAPI VRegGetValueA(
             // Native copies the unexpanded text, then clears its first
             // character.
             status = VReg_AnsiFromWide(
-                pAllocContext,
                 (const wchar_t*)stored.pb,
                 stored.cb / sizeof(wchar_t),
                 &storedText
@@ -4582,13 +4470,13 @@ forward:
     );
 
 done:
-    VReg_BufferFree(pAllocContext, &storedText);
-    VReg_BufferFree(pAllocContext, &rawText);
-    VReg_BufferFree(pAllocContext, &text);
-    VReg_BufferFree(pAllocContext, &stored);
-    VReg_BufferFree(pAllocContext, &data);
-    VReg_WideArgFree(pAllocContext, &value);
-    VReg_WideArgFree(pAllocContext, &subKey);
+    VReg_BufferFree(&storedText);
+    VReg_BufferFree(&rawText);
+    VReg_BufferFree(&text);
+    VReg_BufferFree(&stored);
+    VReg_BufferFree(&data);
+    VReg_WideArgFree(&value);
+    VReg_WideArgFree(&subKey);
     return status;
 }
 
@@ -5318,7 +5206,6 @@ VREG_DECL LSTATUS WINAPI VRegQueryMultipleValuesA(
             ldwTotsize
         );
 
-    void* const pAllocContext = pRegistry->pAllocContext;
     VReg_PlacedValue* pPlaced = NULL;
     VReg_WideArg name = {FALSE, {0, 0, NULL}};
     BYTE* pbBuffer;
@@ -5339,7 +5226,7 @@ VREG_DECL LSTATUS WINAPI VRegQueryMultipleValuesA(
     pbBuffer = (BYTE*)lpValueBuf;
     if (num_vals > 0)
     {
-        pPlaced = (VReg_PlacedValue*)VReg_AllocZeroed(pAllocContext, (SIZE_T)num_vals * sizeof(*pPlaced));
+        pPlaced = (VReg_PlacedValue*)VReg_AllocZeroed((SIZE_T)num_vals * sizeof(*pPlaced));
         if (!pPlaced)
             return ERROR_OUTOFMEMORY;
     }
@@ -5368,7 +5255,7 @@ VREG_DECL LSTATUS WINAPI VRegQueryMultipleValuesA(
         for (i = 0; i < num_vals; ++i)
         {
             cbWide = 0;
-            status = VReg_WideArgInit(pAllocContext, val_list[i].ve_valuename, &name);
+            status = VReg_WideArgInit(val_list[i].ve_valuename, &name);
             if (status == ERROR_SUCCESS)
             {
                 status = VRegQueryValueExW(
@@ -5381,7 +5268,7 @@ VREG_DECL LSTATUS WINAPI VRegQueryMultipleValuesA(
                     &cbWide
                 );
             }
-            VReg_WideArgFree(pAllocContext, &name);
+            VReg_WideArgFree(&name);
             if (status != ERROR_SUCCESS)
                 goto done;
 
@@ -5420,7 +5307,7 @@ VREG_DECL LSTATUS WINAPI VRegQueryMultipleValuesA(
     status = ERROR_SUCCESS;
 
 done:
-    VReg_Free(pAllocContext, pPlaced);
+    VReg_Free(pPlaced);
     return status;
 }
 
@@ -5445,7 +5332,6 @@ VREG_DECL LSTATUS WINAPI VRegQueryMultipleValuesW(
             ldwTotsize
         );
 
-    void* const pAllocContext = pRegistry->pAllocContext;
     VReg_PlacedValue* pPlaced = NULL;
     BYTE* pbBuffer;
     DWORD cbBuffer;
@@ -5468,7 +5354,7 @@ VREG_DECL LSTATUS WINAPI VRegQueryMultipleValuesW(
     pbBuffer = (BYTE*)lpValueBuf;
     if (num_vals > 0)
     {
-        pPlaced = (VReg_PlacedValue*)VReg_AllocZeroed(pAllocContext, (SIZE_T)num_vals * sizeof(*pPlaced));
+        pPlaced = (VReg_PlacedValue*)VReg_AllocZeroed((SIZE_T)num_vals * sizeof(*pPlaced));
         if (!pPlaced)
             return ERROR_OUTOFMEMORY;
     }
@@ -5540,7 +5426,7 @@ VREG_DECL LSTATUS WINAPI VRegQueryMultipleValuesW(
     status = ERROR_SUCCESS;
 
 done:
-    VReg_Free(pAllocContext, pPlaced);
+    VReg_Free(pPlaced);
     return status;
 }
 
@@ -5582,7 +5468,7 @@ static INIT_ONCE g_processSpaceOnce = INIT_ONCE_STATIC_INIT;
 
 // Agent's choice: the block tables come from the process heap directly, not
 // from the allocation macros. They live for the process and belong to no hive
-// or registry, so no caller's allocation context could own them.
+// or registry.
 static void* VReg_AllocateZeroed(const SIZE_T cb)
 {
     return HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, cb);
@@ -5838,8 +5724,6 @@ VREG_DECL UINT_PTR VReg_IndexFromVirtualHKey(_In_opt_ const HKEY hKey)
 
 struct VRegHive
 {
-    void* pAllocContext;
-
     /// Null for a hive held entirely in memory.
     VReg* pLower;
     HKEY hLowerRoot;
@@ -5925,30 +5809,30 @@ static void VReg_HiveUnlockWrite(_In_ VRegHive* const pHive)
 
 // --- Nodes, values and watches ---
 
-static void VReg_ValueFree(_In_opt_ void* const pAllocContext, _Inout_ VReg_Value* const pValue)
+static void VReg_ValueFree(_Inout_ VReg_Value* const pValue)
 {
-    VReg_WStringFree(pAllocContext, &pValue->name);
-    VReg_BufferFree(pAllocContext, &pValue->data);
+    VReg_WStringFree(&pValue->name);
+    VReg_BufferFree(&pValue->data);
 }
 
-static void VReg_NodeClearValues(_In_opt_ void* const pAllocContext, _Inout_ VReg_Node* const pNode)
+static void VReg_NodeClearValues(_Inout_ VReg_Node* const pNode)
 {
     SIZE_T i;
     for (i = 0; i < pNode->values.count; ++i)
-        VReg_ValueFree(pAllocContext, &VREG_INTERNAL_VALUE_AT(&pNode->values, i));
+        VReg_ValueFree(&VREG_INTERNAL_VALUE_AT(&pNode->values, i));
 
     pNode->values.count = 0;
 }
 
-static void VReg_NodeFree(_In_opt_ void* const pAllocContext, _Inout_ VReg_Node* const pNode)
+static void VReg_NodeFree(_Inout_ VReg_Node* const pNode)
 {
-    VReg_NodeClearValues(pAllocContext, pNode);
-    VReg_ArrayFree(pAllocContext, &pNode->values);
-    VReg_ArrayFree(pAllocContext, &pNode->children);
-    VReg_ArrayFree(pAllocContext, &pNode->watches);
-    VReg_WStringFree(pAllocContext, &pNode->name);
-    VReg_WStringFree(pAllocContext, &pNode->className);
-    VReg_Free(pAllocContext, pNode);
+    VReg_NodeClearValues(pNode);
+    VReg_ArrayFree(&pNode->values);
+    VReg_ArrayFree(&pNode->children);
+    VReg_ArrayFree(&pNode->watches);
+    VReg_WStringFree(&pNode->name);
+    VReg_WStringFree(&pNode->className);
+    VReg_Free(pNode);
 }
 
 /// Stamps @p pNode as written now.
@@ -6074,9 +5958,8 @@ static LSTATUS VReg_HiveAddChild(
     _Outptr_ VReg_Node** const ppChild
 )
 {
-    void* const pAllocContext = pHive->pAllocContext;
     SIZE_T index = 0;
-    VReg_Node* const pNode = (VReg_Node*)VReg_AllocZeroed(pAllocContext, sizeof(VReg_Node));
+    VReg_Node* const pNode = (VReg_Node*)VReg_AllocZeroed(sizeof(VReg_Node));
     if (!pNode)
         return ERROR_OUTOFMEMORY;
 
@@ -6089,25 +5972,25 @@ static LSTATUS VReg_HiveAddChild(
     // Every allocation happens before the handle is bound, so a failure
     // leaves no handle pointing at a freed node.
     if (
-        !VReg_WStringAssign(pAllocContext, &pNode->name, name.pch, name.cch)
-        || !VReg_WStringAssign(pAllocContext, &pNode->className, className.pch, className.cch)
-        || !VReg_ArrayReserve(pAllocContext, &pHive->nodes, sizeof(pNode), pHive->nodes.count + 1)
-        || !VReg_ArrayReserve(pAllocContext, &pParent->children, sizeof(pNode), pParent->children.count + 1)
+        !VReg_WStringAssign(&pNode->name, name.pch, name.cch)
+        || !VReg_WStringAssign(&pNode->className, className.pch, className.cch)
+        || !VReg_ArrayReserve(&pHive->nodes, sizeof(pNode), pHive->nodes.count + 1)
+        || !VReg_ArrayReserve(&pParent->children, sizeof(pNode), pParent->children.count + 1)
     )
     {
-        VReg_NodeFree(pAllocContext, pNode);
+        VReg_NodeFree(pNode);
         return ERROR_OUTOFMEMORY;
     }
 
     pNode->hKey = VReg_HandleSpaceAllocate(VReg_ProcessHandleSpace(), pNode);
     if (!pNode->hKey)
     {
-        VReg_NodeFree(pAllocContext, pNode);
+        VReg_NodeFree(pNode);
         return ERROR_OUTOFMEMORY;
     }
 
-    VReg_ArrayInsert(pAllocContext, &pParent->children, sizeof(pNode), index, &pNode);
-    VReg_ArrayAppend(pAllocContext, &pHive->nodes, sizeof(pNode), &pNode);
+    VReg_ArrayInsert(&pParent->children, sizeof(pNode), index, &pNode);
+    VReg_ArrayAppend(&pHive->nodes, sizeof(pNode), &pNode);
     VReg_HiveTouch(pParent);
     *ppChild = pNode;
     return ERROR_SUCCESS;
@@ -6145,7 +6028,6 @@ static void VReg_HiveRemove(_Inout_ VReg_Node* const pNode)
 
 /// Appends @p cNames path components to @p pPath, separated by backslashes.
 static BOOL VReg_HiveJoinPath(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_WString* const pPath,
     _In_reads_(cNames) const VReg_WStringView* const pNames,
     const SIZE_T cNames
@@ -6154,7 +6036,7 @@ static BOOL VReg_HiveJoinPath(
     SIZE_T i;
     for (i = 0; i < cNames; ++i)
     {
-        if (!VReg_AppendPathComponent(pAllocContext, pPath, pNames[i].pch, pNames[i].cch))
+        if (!VReg_AppendPathComponent(pPath, pNames[i].pch, pNames[i].cch))
             return FALSE;
     }
 
@@ -6162,17 +6044,16 @@ static BOOL VReg_HiveJoinPath(
 }
 
 static BOOL VReg_HiveAppendNodePath(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_WString* const pPath,
     _In_ const VReg_Node* const pNode
 )
 {
     if (!pNode->pParent)
         return TRUE;
-    if (!VReg_HiveAppendNodePath(pAllocContext, pPath, pNode->pParent))
+    if (!VReg_HiveAppendNodePath(pPath, pNode->pParent))
         return FALSE;
 
-    return VReg_AppendPathComponent(pAllocContext, pPath, VReg_WStringText(&pNode->name), pNode->name.cch);
+    return VReg_AppendPathComponent(pPath, VReg_WStringText(&pNode->name), pNode->name.cch);
 }
 
 /// Whether @p pNode's lower key shows through, and its path (read under the
@@ -6196,8 +6077,8 @@ static LSTATUS VReg_HiveViewOf(
     }
 
     if (
-        !VReg_WStringAssign(pHive->pAllocContext, pPath, VReg_WStringText(&pHive->lowerPath), pHive->lowerPath.cch)
-        || !VReg_HiveAppendNodePath(pHive->pAllocContext, pPath, pNode)
+        !VReg_WStringAssign(pPath, VReg_WStringText(&pHive->lowerPath), pHive->lowerPath.cch)
+        || !VReg_HiveAppendNodePath(pPath, pNode)
     )
         return ERROR_OUTOFMEMORY;
 
@@ -6241,7 +6122,7 @@ static LSTATUS VReg_HiveQueryLowerClass(
     HKEY hLower = NULL;
     LSTATUS status;
 
-    if (!VReg_WStringResize(pHive->pAllocContext, pClassName, 0))
+    if (!VReg_WStringResize(pClassName, 0))
         return ERROR_OUTOFMEMORY;
 
     status = VReg_HiveOpenLower(pHive, pPath, KEY_QUERY_VALUE, &hLower);
@@ -6251,7 +6132,6 @@ static LSTATUS VReg_HiveQueryLowerClass(
     status = VReg_QueryInfoKeyOwned(
         pHive->pLower,
         hLower,
-        pHive->pAllocContext,
         pClassName,
         NULL,
         NULL,
@@ -6275,30 +6155,28 @@ static LSTATUS VReg_HiveCreate(
     _In_opt_ const HKEY hLowerRoot,
     const VReg_WStringView lowerPath,
     const REGSAM samLowerView,
-    _In_opt_ void* const pAllocContext,
     _Outptr_ VRegHive** const ppHive
 )
 {
     VReg_Node* pRoot;
-    VRegHive* const pHive = (VRegHive*)VReg_AllocZeroed(pAllocContext, sizeof(VRegHive));
+    VRegHive* const pHive = (VRegHive*)VReg_AllocZeroed(sizeof(VRegHive));
     *ppHive = NULL;
     if (!pHive)
         return ERROR_OUTOFMEMORY;
 
-    pHive->pAllocContext = pAllocContext;
     pHive->pLower = pLower;
     pHive->hLowerRoot = hLowerRoot;
     pHive->samLowerView = samLowerView;
     InitializeSRWLock(&pHive->lock);
 
-    pRoot = (VReg_Node*)VReg_AllocZeroed(pAllocContext, sizeof(VReg_Node));
+    pRoot = (VReg_Node*)VReg_AllocZeroed(sizeof(VReg_Node));
     if (
-        !VReg_WStringAssign(pAllocContext, &pHive->lowerPath, lowerPath.pch, lowerPath.cch)
+        !VReg_WStringAssign(&pHive->lowerPath, lowerPath.pch, lowerPath.cch)
         || !pRoot
-        || !VReg_ArrayAppend(pAllocContext, &pHive->nodes, sizeof(pRoot), &pRoot)
+        || !VReg_ArrayAppend(&pHive->nodes, sizeof(pRoot), &pRoot)
     )
     {
-        VReg_Free(pAllocContext, pRoot);
+        VReg_Free(pRoot);
         VRegDestroyHive(pHive);
         return ERROR_OUTOFMEMORY;
     }
@@ -6323,9 +6201,9 @@ static LSTATUS VReg_HiveCreate(
     return ERROR_SUCCESS;
 }
 
-VREG_DECL LSTATUS WINAPI VRegCreateHive(_In_opt_ void* const pAllocContext, _Outptr_ VRegHive** const ppHive)
+VREG_DECL LSTATUS WINAPI VRegCreateHive(_Outptr_ VRegHive** const ppHive)
 {
-    return VReg_HiveCreate(NULL, NULL, VREG_INTERNAL_NO_NAME, 0, pAllocContext, ppHive);
+    return VReg_HiveCreate(NULL, NULL, VREG_INTERNAL_NO_NAME, 0, ppHive);
 }
 
 VREG_DECL LSTATUS WINAPI VRegCreateLayeredHive(
@@ -6333,11 +6211,10 @@ VREG_DECL LSTATUS WINAPI VRegCreateLayeredHive(
     _In_ const HKEY hLowerRoot,
     _In_opt_z_ const LPCWSTR pszLowerPath,
     _In_ const REGSAM samLowerView,
-    _In_opt_ void* const pAllocContext,
     _Outptr_ VRegHive** const ppHive
 )
 {
-    return VReg_HiveCreate(pLower, hLowerRoot, VReg_ViewOf(pszLowerPath), samLowerView, pAllocContext, ppHive);
+    return VReg_HiveCreate(pLower, hLowerRoot, VReg_ViewOf(pszLowerPath), samLowerView, ppHive);
 }
 
 VREG_DECL void WINAPI VRegDestroyHive(_In_opt_ VRegHive* const pHive)
@@ -6351,12 +6228,12 @@ VREG_DECL void WINAPI VRegDestroyHive(_In_opt_ VRegHive* const pHive)
         VReg_Node* const pNode = VREG_INTERNAL_NODE_AT(&pHive->nodes, i);
         VReg_HiveDropWatches(pNode);
         VReg_HandleSpaceRelease(VReg_ProcessHandleSpace(), pNode->hKey);
-        VReg_NodeFree(pHive->pAllocContext, pNode);
+        VReg_NodeFree(pNode);
     }
 
-    VReg_ArrayFree(pHive->pAllocContext, &pHive->nodes);
-    VReg_WStringFree(pHive->pAllocContext, &pHive->lowerPath);
-    VReg_Free(pHive->pAllocContext, pHive);
+    VReg_ArrayFree(&pHive->nodes);
+    VReg_WStringFree(&pHive->lowerPath);
+    VReg_Free(pHive);
 }
 
 VREG_DECL void WINAPI VRegFreezeHive(_In_ VRegHive* const pHive)
@@ -6386,11 +6263,6 @@ VREG_DECL _Ret_notnull_ VReg_Node* VReg_HiveRoot(_In_ VRegHive* const pHive)
 VREG_DECL _Ret_maybenull_ VReg* VReg_HiveLower(_In_ VRegHive* const pHive)
 {
     return pHive->pLower;
-}
-
-VREG_DECL _Ret_maybenull_ void* VReg_HiveAllocContext(_In_ VRegHive* const pHive)
-{
-    return pHive->pAllocContext;
 }
 
 VREG_DECL HKEY VReg_NodeHandle(_In_ const VReg_Node* const pNode)
@@ -6497,7 +6369,7 @@ VREG_DECL LSTATUS VReg_HiveOpenKey(
 
     // Nothing of the upper layer is at or below the key, so it is the lower
     // key's to answer.
-    if (!VReg_HiveJoinPath(pHive->pAllocContext, &lowerPath, pPath + cMatched, cPath - cMatched))
+    if (!VReg_HiveJoinPath(&lowerPath, pPath + cMatched, cPath - cMatched))
     {
         status = ERROR_OUTOFMEMORY;
         goto done;
@@ -6565,7 +6437,7 @@ VREG_DECL LSTATUS VReg_HiveOpenKey(
 
 done:
     VReg_HiveCloseLower(pHive, hLower);
-    VReg_WStringFree(pHive->pAllocContext, &lowerPath);
+    VReg_WStringFree(&lowerPath);
     return status;
 }
 
@@ -6666,8 +6538,8 @@ VREG_DECL LSTATUS VReg_HiveCreateKey(
         {
             HKEY hLower = NULL;
             if (
-                !VReg_WStringAssign(pHive->pAllocContext, &probePath, viewPath.psz, viewPath.cch)
-                || !VReg_HiveJoinPath(pHive->pAllocContext, &probePath, pPath + cUpper, cLower + 1 - cUpper)
+                !VReg_WStringAssign(&probePath, viewPath.psz, viewPath.cch)
+                || !VReg_HiveJoinPath(&probePath, pPath + cUpper, cLower + 1 - cUpper)
             )
             {
                 status = ERROR_OUTOFMEMORY;
@@ -6727,7 +6599,7 @@ VREG_DECL LSTATUS VReg_HiveCreateKey(
             {
                 // Created again over a deleted lower key: nothing below shows.
                 const VReg_WStringView newClass = isLast ? className : VREG_INTERNAL_NO_NAME;
-                if (!VReg_WStringAssign(pHive->pAllocContext, &pChild->className, newClass.pch, newClass.cch))
+                if (!VReg_WStringAssign(&pChild->className, newClass.pch, newClass.cch))
                 {
                     status = ERROR_OUTOFMEMORY;
                     break;
@@ -6784,8 +6656,8 @@ VREG_DECL LSTATUS VReg_HiveCreateKey(
     VReg_HiveUnlockWrite(pHive);
 
 done:
-    VReg_WStringFree(pHive->pAllocContext, &viewPath);
-    VReg_WStringFree(pHive->pAllocContext, &probePath);
+    VReg_WStringFree(&viewPath);
+    VReg_WStringFree(&probePath);
     return status;
 }
 
@@ -6819,7 +6691,7 @@ static LSTATUS VReg_HiveInspectForDelete(
         const VReg_Node* const pChild = VREG_INTERNAL_NODE_AT(&pNode->children, i);
         if (!pChild->isTombstone)
             status = ERROR_ACCESS_DENIED;
-        else if (!VReg_WStringArrayInsertSorted(pHive->pAllocContext, pTombstones, VReg_WStringViewOf(&pChild->name)))
+        else if (!VReg_WStringArrayInsertSorted(pTombstones, VReg_WStringViewOf(&pChild->name)))
             status = ERROR_OUTOFMEMORY;
     }
 
@@ -6830,7 +6702,7 @@ static LSTATUS VReg_HiveInspectForDelete(
     if (status == ERROR_SUCCESS)
     {
         const VReg_WStringView keyName = VReg_WStringViewOf(&pNode->name);
-        if (!VReg_WStringAssign(pHive->pAllocContext, pKeyName, keyName.pch, keyName.cch))
+        if (!VReg_WStringAssign(pKeyName, keyName.pch, keyName.cch))
             status = ERROR_OUTOFMEMORY;
     }
 
@@ -6845,7 +6717,6 @@ VREG_DECL LSTATUS VReg_HiveDeleteKey(
     const SIZE_T cPath
 )
 {
-    void* const pAllocContext = pHive->pAllocContext;
     VReg_OpenResult opened;
     VReg_Node* pNode;
     VReg_Array tombstones = {NULL, 0, 0};
@@ -6894,7 +6765,7 @@ VREG_DECL LSTATUS VReg_HiveDeleteKey(
     if (isParentVisible)
     {
         const VReg_WStringView keyNameView = VReg_WStringViewOf(&keyName);
-        if (!VReg_HiveJoinPath(pAllocContext, &parentViewPath, &keyNameView, 1))
+        if (!VReg_HiveJoinPath(&parentViewPath, &keyNameView, 1))
         {
             status = ERROR_OUTOFMEMORY;
             goto done;
@@ -6908,7 +6779,7 @@ VREG_DECL LSTATUS VReg_HiveDeleteKey(
         status = ERROR_SUCCESS;
         for (i = 0; hasLower && isVisible; ++i)
         {
-            const LSTATUS enumStatus = VReg_EnumKeyOwned(pHive->pLower, hLower, (DWORD)i, pAllocContext, &lowerName);
+            const LSTATUS enumStatus = VReg_EnumKeyOwned(pHive->pLower, hLower, (DWORD)i, &lowerName);
             if (enumStatus == ERROR_NO_MORE_ITEMS)
                 break;
             if (enumStatus != ERROR_SUCCESS)
@@ -6972,11 +6843,11 @@ VREG_DECL LSTATUS VReg_HiveDeleteKey(
 
 done:
     VReg_HiveCloseLower(pHive, hLower);
-    VReg_WStringArrayFree(pAllocContext, &tombstones);
-    VReg_WStringFree(pAllocContext, &viewPath);
-    VReg_WStringFree(pAllocContext, &parentViewPath);
-    VReg_WStringFree(pAllocContext, &keyName);
-    VReg_WStringFree(pAllocContext, &lowerName);
+    VReg_WStringArrayFree(&tombstones);
+    VReg_WStringFree(&viewPath);
+    VReg_WStringFree(&parentViewPath);
+    VReg_WStringFree(&keyName);
+    VReg_WStringFree(&lowerName);
     return status;
 }
 
@@ -6993,7 +6864,7 @@ VREG_DECL LSTATUS VReg_HiveDeleteTree(_In_ VRegHive* const pHive, _Inout_ VReg_N
     while (pNode->children.count != 0)
         VReg_HiveRemove(VREG_INTERNAL_NODE_AT(&pNode->children, pNode->children.count - 1));
 
-    VReg_NodeClearValues(pHive->pAllocContext, pNode);
+    VReg_NodeClearValues(pNode);
     pNode->isOpaque = pHive->pLower != NULL;
     pNode->isTransparent = FALSE;
     pNode->isLowerBacked = FALSE;
@@ -7044,7 +6915,7 @@ static LSTATUS VReg_HiveQueryUpperValue(
         {
             *pdwType = pValue->dwType;
             *pcbData = (DWORD)pValue->data.cb;
-            if (pData && !VReg_BufferAssign(pHive->pAllocContext, pData, pValue->data.pb, pValue->data.cb))
+            if (pData && !VReg_BufferAssign(pData, pValue->data.pb, pValue->data.cb))
                 status = ERROR_OUTOFMEMORY;
         }
     }
@@ -7109,13 +6980,13 @@ VREG_DECL LSTATUS VReg_HiveQueryValue(
         goto done;
     }
 
-    status = VReg_QueryValueOwned(pHive->pLower, hLower, pszName, pHive->pAllocContext, pdwType, pData);
+    status = VReg_QueryValueOwned(pHive->pLower, hLower, pszName, pdwType, pData);
     if (status == ERROR_SUCCESS)
         *pcbData = (DWORD)pData->cb;
 
 done:
     VReg_HiveCloseLower(pHive, hLower);
-    VReg_WStringFree(pHive->pAllocContext, &viewPath);
+    VReg_WStringFree(&viewPath);
     return status;
 }
 
@@ -7129,17 +7000,16 @@ static LSTATUS VReg_HiveStoreValue(
     const BOOL isMuiText
 )
 {
-    void* const pAllocContext = pHive->pAllocContext;
     VReg_Buffer bytes = {0, 0, NULL};
     VReg_Value* pValue;
     LSTATUS status = ERROR_SUCCESS;
 
-    if (!VReg_BufferAssign(pAllocContext, &bytes, pData, cbData))
+    if (!VReg_BufferAssign(&bytes, pData, cbData))
         return ERROR_OUTOFMEMORY;
 
     if (!VReg_HiveLockWrite(pHive))
     {
-        VReg_BufferFree(pAllocContext, &bytes);
+        VReg_BufferFree(&bytes);
         return ERROR_ACCESS_DENIED;
     }
 
@@ -7150,7 +7020,7 @@ static LSTATUS VReg_HiveStoreValue(
     }
     else if (pValue)
     {
-        VReg_BufferFree(pAllocContext, &pValue->data);
+        VReg_BufferFree(&pValue->data);
         pValue->dwType = dwType;
         pValue->data = bytes;
         pValue->isTombstone = FALSE;
@@ -7167,13 +7037,13 @@ static LSTATUS VReg_HiveStoreValue(
         value.data = bytes;
         value.isTombstone = FALSE;
         value.isMuiText = isMuiText;
-        if (!VReg_WStringAssign(pAllocContext, &value.name, name.pch, name.cch))
+        if (!VReg_WStringAssign(&value.name, name.pch, name.cch))
         {
             status = ERROR_OUTOFMEMORY;
         }
-        else if (!VReg_ArrayAppend(pAllocContext, &pNode->values, sizeof(value), &value))
+        else if (!VReg_ArrayAppend(&pNode->values, sizeof(value), &value))
         {
-            VReg_WStringFree(pAllocContext, &value.name);
+            VReg_WStringFree(&value.name);
             status = ERROR_OUTOFMEMORY;
         }
         else
@@ -7191,7 +7061,7 @@ static LSTATUS VReg_HiveStoreValue(
 
     VReg_HiveUnlockWrite(pHive);
     if (bytes.pb)
-        VReg_BufferFree(pAllocContext, &bytes);
+        VReg_BufferFree(&bytes);
     return status;
 }
 
@@ -7259,7 +7129,7 @@ VREG_DECL LSTATUS VReg_HiveQueryMuiText(
         else
         {
             const SIZE_T cchText = pValue->data.cb < sizeof(wchar_t) ? 0 : pValue->data.cb / sizeof(wchar_t) - 1;
-            if (!VReg_WStringAssign(pHive->pAllocContext, pText, (const wchar_t*)pValue->data.pb, cchText))
+            if (!VReg_WStringAssign(pText, (const wchar_t*)pValue->data.pb, cchText))
                 status = ERROR_OUTOFMEMORY;
         }
     }
@@ -7282,7 +7152,6 @@ VREG_DECL LSTATUS VReg_HiveDeleteValue(
     _In_z_ const LPCWSTR pszName
 )
 {
-    void* const pAllocContext = pHive->pAllocContext;
     const VReg_WStringView name = VReg_ViewOf(pszName);
     BOOL isLocked;
     BOOL isInUpper = FALSE;
@@ -7363,7 +7232,7 @@ VREG_DECL LSTATUS VReg_HiveDeleteValue(
         {
             if (pValue)
             {
-                VReg_BufferFree(pAllocContext, &pValue->data);
+                VReg_BufferFree(&pValue->data);
                 pValue->dwType = REG_NONE;
                 pValue->isTombstone = TRUE;
                 pValue->isMuiText = FALSE;
@@ -7374,13 +7243,13 @@ VREG_DECL LSTATUS VReg_HiveDeleteValue(
                 ZeroMemory(&tombstone, sizeof(tombstone));
                 tombstone.dwType = REG_NONE;
                 tombstone.isTombstone = TRUE;
-                if (!VReg_WStringAssign(pAllocContext, &tombstone.name, name.pch, name.cch))
+                if (!VReg_WStringAssign(&tombstone.name, name.pch, name.cch))
                 {
                     status = ERROR_OUTOFMEMORY;
                 }
-                else if (!VReg_ArrayAppend(pAllocContext, &pNode->values, sizeof(tombstone), &tombstone))
+                else if (!VReg_ArrayAppend(&pNode->values, sizeof(tombstone), &tombstone))
                 {
-                    VReg_WStringFree(pAllocContext, &tombstone.name);
+                    VReg_WStringFree(&tombstone.name);
                     status = ERROR_OUTOFMEMORY;
                 }
             }
@@ -7388,7 +7257,7 @@ VREG_DECL LSTATUS VReg_HiveDeleteValue(
         else if (pValue)
         {
             const SIZE_T index = (SIZE_T)(pValue - &VREG_INTERNAL_VALUE_AT(&pNode->values, 0));
-            VReg_ValueFree(pAllocContext, pValue);
+            VReg_ValueFree(pValue);
             VReg_ArrayRemoveAt(&pNode->values, sizeof(*pValue), index);
         }
 
@@ -7404,7 +7273,7 @@ VREG_DECL LSTATUS VReg_HiveDeleteValue(
 
 done:
     VReg_HiveCloseLower(pHive, hLower);
-    VReg_WStringFree(pAllocContext, &viewPath);
+    VReg_WStringFree(&viewPath);
     return status;
 }
 
@@ -7432,7 +7301,6 @@ static LSTATUS VReg_HiveEnumUpperKey(
     _Inout_ VReg_Array* const pShadowed
 )
 {
-    void* const pAllocContext = pHive->pAllocContext;
     const BOOL isLocked = VReg_HiveLockRead(pHive);
     LSTATUS status = ERROR_SUCCESS;
     DWORD cUpper = 0;
@@ -7457,9 +7325,8 @@ static LSTATUS VReg_HiveEnumUpperKey(
         if (!pChild->isTombstone && cUpper++ == dwIndex)
         {
             if (
-                !VReg_WStringAssign(pAllocContext, pName, VReg_WStringText(&pChild->name), pChild->name.cch)
+                !VReg_WStringAssign(pName, VReg_WStringText(&pChild->name), pChild->name.cch)
                 || !VReg_WStringAssign(
-                    pAllocContext,
                     pClassName,
                     VReg_WStringText(&pChild->className),
                     pChild->className.cch
@@ -7483,7 +7350,7 @@ static LSTATUS VReg_HiveEnumUpperKey(
             break;
         }
 
-        if (!VReg_WStringArrayInsertSorted(pAllocContext, pShadowed, VReg_WStringViewOf(&pChild->name)))
+        if (!VReg_WStringArrayInsertSorted(pShadowed, VReg_WStringViewOf(&pChild->name)))
             status = ERROR_OUTOFMEMORY;
     }
 
@@ -7504,7 +7371,6 @@ VREG_DECL LSTATUS VReg_HiveEnumKey(
     _Out_ FILETIME* const pLastWrite
 )
 {
-    void* const pAllocContext = pHive->pAllocContext;
     BOOL isFound = FALSE;
     BOOL isClassVisible = FALSE;
     BOOL isVisible = FALSE;
@@ -7576,8 +7442,8 @@ VREG_DECL LSTATUS VReg_HiveEnumKey(
         goto done;
 
     if (
-        !VReg_WStringResize(pAllocContext, &nameBuffer, VREG_INTERNAL_INITIAL_NAME_CHARS)
-        || !VReg_WStringResize(pAllocContext, &classBuffer, cchMaxClass + 1)
+        !VReg_WStringResize(&nameBuffer, VREG_INTERNAL_INITIAL_NAME_CHARS)
+        || !VReg_WStringResize(&classBuffer, cchMaxClass + 1)
     )
     {
         status = ERROR_OUTOFMEMORY;
@@ -7612,8 +7478,8 @@ VREG_DECL LSTATUS VReg_HiveEnumKey(
             continue;
 
         if (
-            !VReg_WStringAssign(pAllocContext, pName, lowerName.pch, lowerName.cch)
-            || !VReg_WStringAssign(pAllocContext, pClassName, classBuffer.psz, cchClass)
+            !VReg_WStringAssign(pName, lowerName.pch, lowerName.cch)
+            || !VReg_WStringAssign(pClassName, classBuffer.psz, cchClass)
         )
         {
             status = ERROR_OUTOFMEMORY;
@@ -7627,11 +7493,11 @@ VREG_DECL LSTATUS VReg_HiveEnumKey(
 
 done:
     VReg_HiveCloseLower(pHive, hLower);
-    VReg_WStringArrayFree(pAllocContext, &shadowed);
-    VReg_WStringFree(pAllocContext, &classPath);
-    VReg_WStringFree(pAllocContext, &viewPath);
-    VReg_WStringFree(pAllocContext, &nameBuffer);
-    VReg_WStringFree(pAllocContext, &classBuffer);
+    VReg_WStringArrayFree(&shadowed);
+    VReg_WStringFree(&classPath);
+    VReg_WStringFree(&viewPath);
+    VReg_WStringFree(&nameBuffer);
+    VReg_WStringFree(&classBuffer);
     return status;
 }
 
@@ -7652,7 +7518,6 @@ static LSTATUS VReg_HiveEnumUpperValue(
     _Inout_ VReg_Array* const pShadowed
 )
 {
-    void* const pAllocContext = pHive->pAllocContext;
     const BOOL isLocked = VReg_HiveLockRead(pHive);
     LSTATUS status = ERROR_SUCCESS;
     DWORD cUpper = 0;
@@ -7672,8 +7537,8 @@ static LSTATUS VReg_HiveEnumUpperValue(
         {
             *pIsFound = TRUE;
             if (
-                !VReg_WStringAssign(pAllocContext, pName, VReg_WStringText(&pValue->name), pValue->name.cch)
-                || (pData && !VReg_BufferAssign(pAllocContext, pData, pValue->data.pb, pValue->data.cb))
+                !VReg_WStringAssign(pName, VReg_WStringText(&pValue->name), pValue->name.cch)
+                || (pData && !VReg_BufferAssign(pData, pValue->data.pb, pValue->data.cb))
             )
             {
                 status = ERROR_OUTOFMEMORY;
@@ -7685,7 +7550,7 @@ static LSTATUS VReg_HiveEnumUpperValue(
             break;
         }
 
-        if (!VReg_WStringArrayInsertSorted(pAllocContext, pShadowed, VReg_WStringViewOf(&pValue->name)))
+        if (!VReg_WStringArrayInsertSorted(pShadowed, VReg_WStringViewOf(&pValue->name)))
             status = ERROR_OUTOFMEMORY;
     }
 
@@ -7707,7 +7572,6 @@ VREG_DECL LSTATUS VReg_HiveEnumValue(
     _Inout_opt_ VReg_Buffer* const pData
 )
 {
-    void* const pAllocContext = pHive->pAllocContext;
     BOOL isFound = FALSE;
     BOOL isVisible = FALSE;
     VReg_WString viewPath = {0, 0, NULL};
@@ -7751,7 +7615,7 @@ VREG_DECL LSTATUS VReg_HiveEnumValue(
     for (i = 0;; ++i)
     {
         DWORD cchName;
-        status = VReg_EnumValueOwned(pHive->pLower, hLower, i, pAllocContext, pName, pdwType, NULL);
+        status = VReg_EnumValueOwned(pHive->pLower, hLower, i, pName, pdwType, NULL);
         if (status != ERROR_SUCCESS)
             goto done;
 
@@ -7763,13 +7627,13 @@ VREG_DECL LSTATUS VReg_HiveEnumValue(
             // The scan fetched no data; enumerate the matching entry again
             // with it, so name, type and data all come from the one call,
             // should the entry have changed since the scan.
-            status = VReg_EnumValueOwned(pHive->pLower, hLower, i, pAllocContext, pName, pdwType, pData);
+            status = VReg_EnumValueOwned(pHive->pLower, hLower, i, pName, pdwType, pData);
             if (status == ERROR_SUCCESS)
                 *pcbData = (DWORD)pData->cb;
             goto done;
         }
 
-        if (!VReg_WStringResize(pAllocContext, &sizeName, pName->cch))
+        if (!VReg_WStringResize(&sizeName, pName->cch))
         {
             status = ERROR_OUTOFMEMORY;
             goto done;
@@ -7793,9 +7657,9 @@ VREG_DECL LSTATUS VReg_HiveEnumValue(
 
 done:
     VReg_HiveCloseLower(pHive, hLower);
-    VReg_WStringArrayFree(pAllocContext, &shadowed);
-    VReg_WStringFree(pAllocContext, &viewPath);
-    VReg_WStringFree(pAllocContext, &sizeName);
+    VReg_WStringArrayFree(&shadowed);
+    VReg_WStringFree(&viewPath);
+    VReg_WStringFree(&sizeName);
     return status;
 }
 
@@ -7814,7 +7678,6 @@ static LSTATUS VReg_HiveQueryUpperInfo(
     _Inout_ VReg_WString* const pViewPath
 )
 {
-    void* const pAllocContext = pHive->pAllocContext;
     const BOOL isLocked = VReg_HiveLockRead(pHive);
     LSTATUS status = ERROR_SUCCESS;
     SIZE_T i;
@@ -7831,7 +7694,7 @@ static LSTATUS VReg_HiveQueryUpperInfo(
         if (pChild->isTransparent)
             continue;
 
-        if (!VReg_WStringArrayInsertSorted(pAllocContext, pShadowedKeys, VReg_WStringViewOf(&pChild->name)))
+        if (!VReg_WStringArrayInsertSorted(pShadowedKeys, VReg_WStringViewOf(&pChild->name)))
         {
             status = ERROR_OUTOFMEMORY;
             break;
@@ -7847,7 +7710,7 @@ static LSTATUS VReg_HiveQueryUpperInfo(
     for (i = 0; status == ERROR_SUCCESS && i < pNode->values.count; ++i)
     {
         const VReg_Value* const pValue = &VREG_INTERNAL_VALUE_AT(&pNode->values, i);
-        if (!VReg_WStringArrayInsertSorted(pAllocContext, pShadowedValues, VReg_WStringViewOf(&pValue->name)))
+        if (!VReg_WStringArrayInsertSorted(pShadowedValues, VReg_WStringViewOf(&pValue->name)))
         {
             status = ERROR_OUTOFMEMORY;
             break;
@@ -7866,7 +7729,7 @@ static LSTATUS VReg_HiveQueryUpperInfo(
         *pIsLowerBacked = pNode->isLowerBacked;
         pInfo->lastWrite = pNode->lastWrite;
         const VReg_WStringView className = VReg_WStringViewOf(&pNode->className);
-        if (!VReg_WStringAssign(pAllocContext, &pInfo->className, className.pch, className.cch))
+        if (!VReg_WStringAssign(&pInfo->className, className.pch, className.cch))
             status = ERROR_OUTOFMEMORY;
     }
     if (status == ERROR_SUCCESS)
@@ -7882,7 +7745,6 @@ VREG_DECL LSTATUS VReg_HiveQueryInfo(
     _Inout_ VReg_KeyInfo* const pInfo
 )
 {
-    void* const pAllocContext = pHive->pAllocContext;
     VReg_Array shadowedKeys = {NULL, 0, 0};
     VReg_Array shadowedValues = {NULL, 0, 0};
     BOOL isTransparent = FALSE;
@@ -7935,7 +7797,6 @@ VREG_DECL LSTATUS VReg_HiveQueryInfo(
     status = VReg_QueryInfoKeyOwned(
         pHive->pLower,
         hLower,
-        pAllocContext,
         &lowerClass,
         NULL,
         NULL,
@@ -7999,7 +7860,7 @@ VREG_DECL LSTATUS VReg_HiveQueryInfo(
     pInfo->cchMaxClass = VReg_MaxDword(pInfo->cchMaxClass, cchMaxClass);
     pInfo->cchMaxValueName = VReg_MaxDword(pInfo->cchMaxValueName, cchMaxValueName);
     pInfo->cbMaxValue = VReg_MaxDword(pInfo->cbMaxValue, cbMaxValue);
-    if (isLowerBacked && !VReg_WStringAssign(pAllocContext, &pInfo->className, lowerClass.psz, lowerClass.cch))
+    if (isLowerBacked && !VReg_WStringAssign(&pInfo->className, lowerClass.psz, lowerClass.cch))
     {
         status = ERROR_OUTOFMEMORY;
         goto done;
@@ -8009,10 +7870,10 @@ VREG_DECL LSTATUS VReg_HiveQueryInfo(
 
 done:
     VReg_HiveCloseLower(pHive, hLower);
-    VReg_WStringArrayFree(pAllocContext, &shadowedKeys);
-    VReg_WStringArrayFree(pAllocContext, &shadowedValues);
-    VReg_WStringFree(pAllocContext, &viewPath);
-    VReg_WStringFree(pAllocContext, &lowerClass);
+    VReg_WStringArrayFree(&shadowedKeys);
+    VReg_WStringArrayFree(&shadowedValues);
+    VReg_WStringFree(&viewPath);
+    VReg_WStringFree(&lowerClass);
     return status;
 }
 
@@ -8030,7 +7891,6 @@ static LSTATUS VReg_HiveListUpper(
     _In_opt_ void* const pContext
 )
 {
-    void* const pAllocContext = pHive->pAllocContext;
     const BOOL isBare = pNode->isTransparent && pNode->values.count == 0;
     const SIZE_T cchPath = pPath->cch;
     VReg_UpperRecord record;
@@ -8068,8 +7928,8 @@ static LSTATUS VReg_HiveListUpper(
     {
         const VReg_Node* const pChild = VREG_INTERNAL_NODE_AT(&pNode->children, i);
         if (
-            (pPath->cch != 0 && !VReg_WStringAppendChar(pAllocContext, pPath, L'\\'))
-            || !VReg_WStringAppend(pAllocContext, pPath, VReg_WStringText(&pChild->name), pChild->name.cch)
+            (pPath->cch != 0 && !VReg_WStringAppendChar(pPath, L'\\'))
+            || !VReg_WStringAppend(pPath, VReg_WStringText(&pChild->name), pChild->name.cch)
         )
             return ERROR_OUTOFMEMORY;
 
@@ -8105,7 +7965,7 @@ VREG_DECL LSTATUS VReg_HiveSnapshotUpper(
     const BOOL isLocked = VReg_HiveLockRead(pHive);
     const LSTATUS status = VReg_HiveListUpper(pHive, pHive->pRoot, &path, pfnVisit, pContext);
     VReg_HiveUnlockRead(pHive, isLocked);
-    VReg_WStringFree(pHive->pAllocContext, &path);
+    VReg_WStringFree(&path);
     return status;
 }
 
@@ -8146,7 +8006,7 @@ VREG_DECL LSTATUS VReg_HiveWatch(
         watch.hEvent = hOwn;
         watch.isSubtree = bWatchSubtree != FALSE;
         watch.dwFilter = dwFilter;
-        if (VReg_ArrayAppend(pHive->pAllocContext, &pNode->watches, sizeof(watch), &watch))
+        if (VReg_ArrayAppend(&pNode->watches, sizeof(watch), &watch))
             hOwn = NULL;
         else
             status = ERROR_OUTOFMEMORY;
@@ -8217,7 +8077,7 @@ VREG_DECL LSTATUS VReg_HiveOpenLowerValueKey(
 
 done:
     VReg_HiveCloseLower(pHive, hLower);
-    VReg_WStringFree(pHive->pAllocContext, &viewPath);
+    VReg_WStringFree(&viewPath);
     return status;
 }
 
@@ -8231,10 +8091,10 @@ VREG_DECL LSTATUS WINAPI VRegSetHiveMuiTextValue(
     VReg_Array components = {NULL, 0, 0};
     VReg_OpenResult opened;
     DWORD dwDisposition = 0;
-    LSTATUS status = VReg_SplitPath(pHive->pAllocContext, VReg_ViewOf(pszPath), &components);
+    LSTATUS status = VReg_SplitPath(VReg_ViewOf(pszPath), &components);
     if (status != ERROR_SUCCESS)
     {
-        VReg_ArrayFree(pHive->pAllocContext, &components);
+        VReg_ArrayFree(&components);
         return status;
     }
 
@@ -8249,7 +8109,7 @@ VREG_DECL LSTATUS WINAPI VRegSetHiveMuiTextValue(
         &opened,
         &dwDisposition
     );
-    VReg_ArrayFree(pHive->pAllocContext, &components);
+    VReg_ArrayFree(&components);
     if (status != ERROR_SUCCESS)
         return status;
 
@@ -8280,17 +8140,15 @@ VREG_DECL void WINAPI VRegResolveNativeFunctions(_Out_ VRegNativeFunctions* cons
 
 VREG_DECL LSTATUS WINAPI VRegCreateNative(
     _In_opt_ const VRegNativeFunctions* const pFunctions,
-    _In_opt_ void* const pAllocContext,
     _Outptr_ VReg** const ppRegistry
 )
 {
-    VReg* const pRegistry = (VReg*)VReg_AllocZeroed(pAllocContext, sizeof(VReg));
+    VReg* const pRegistry = (VReg*)VReg_AllocZeroed(sizeof(VReg));
     *ppRegistry = NULL;
     if (!pRegistry)
         return ERROR_OUTOFMEMORY;
 
     pRegistry->dwKind = VREG_INTERNAL_KIND_NATIVE;
-    pRegistry->pAllocContext = pAllocContext;
     if (pFunctions)
         pRegistry->implementation.native = *pFunctions;
     else
@@ -8318,7 +8176,6 @@ VREG_DECL LSTATUS VReg_QueryValueOwned(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_z_ const LPCWSTR lpValueName,
-    _In_opt_ void* const pAllocContext,
     _Out_opt_ const LPDWORD lpType,
     _Inout_ VReg_Buffer* const pData
 )
@@ -8341,7 +8198,7 @@ VREG_DECL LSTATUS VReg_QueryValueOwned(
     {
         DWORD cbRead = cbData;
         LSTATUS status;
-        if (!VReg_BufferResize(pAllocContext, pData, cbData))
+        if (!VReg_BufferResize(pData, cbData))
             return ERROR_OUTOFMEMORY;
 
         status = VRegQueryValueExW(
@@ -8374,7 +8231,6 @@ VREG_DECL LSTATUS VReg_GetValueOwned(
     _In_opt_z_ const LPCWSTR lpSubKey,
     _In_opt_z_ const LPCWSTR lpValue,
     _In_ const DWORD dwFlags,
-    _In_opt_ void* const pAllocContext,
     _Out_opt_ const LPDWORD pdwType,
     _Inout_ VReg_Buffer* const pData
 )
@@ -8398,7 +8254,7 @@ VREG_DECL LSTATUS VReg_GetValueOwned(
     {
         DWORD cbRead = cbData;
         LSTATUS status;
-        if (!VReg_BufferResize(pAllocContext, pData, cbData))
+        if (!VReg_BufferResize(pData, cbData))
             return ERROR_OUTOFMEMORY;
 
         status = VRegGetValueW(
@@ -8430,7 +8286,6 @@ VREG_DECL LSTATUS VReg_EnumKeyOwned(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_WString* const pName
 )
 {
@@ -8439,7 +8294,7 @@ VREG_DECL LSTATUS VReg_EnumKeyOwned(
     {
         DWORD cchRead = cchName;
         LSTATUS status;
-        if (!VReg_WStringResize(pAllocContext, pName, cchName))
+        if (!VReg_WStringResize(pName, cchName))
             return ERROR_OUTOFMEMORY;
 
         status = VRegEnumKeyExW(
@@ -8468,7 +8323,6 @@ VREG_DECL LSTATUS VReg_EnumValueOwned(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_WString* const pName,
     _Out_opt_ const LPDWORD lpType,
     _Inout_opt_ VReg_Buffer* const pData
@@ -8483,7 +8337,7 @@ VREG_DECL LSTATUS VReg_EnumValueOwned(
         DWORD cbRead = cbData;
         DWORD dwType = 0;
         LSTATUS status;
-        if (!VReg_WStringResize(pAllocContext, pName, cchName))
+        if (!VReg_WStringResize(pName, cchName))
             return ERROR_OUTOFMEMORY;
 
         status = VRegEnumValueW(
@@ -8503,7 +8357,7 @@ VREG_DECL LSTATUS VReg_EnumValueOwned(
             if (pData)
             {
                 cbData = VReg_Grown(cbData, cbRead);
-                if (isSized && !VReg_BufferResize(pAllocContext, pData, cbData))
+                if (isSized && !VReg_BufferResize(pData, cbData))
                     return ERROR_OUTOFMEMORY;
             }
             continue;
@@ -8511,7 +8365,7 @@ VREG_DECL LSTATUS VReg_EnumValueOwned(
         if (status == ERROR_SUCCESS && !isSized)
         {
             cbData = cbRead;
-            if (!VReg_BufferResize(pAllocContext, pData, cbData))
+            if (!VReg_BufferResize(pData, cbData))
                 return ERROR_OUTOFMEMORY;
 
             isSized = TRUE;
@@ -8532,7 +8386,6 @@ VREG_DECL LSTATUS VReg_EnumValueOwned(
 VREG_DECL LSTATUS VReg_QueryInfoKeyOwned(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_WString* const pClass,
     _Inout_opt_ const LPDWORD lpcchClassReported,
     _Reserved_ const LPDWORD lpReserved,
@@ -8551,7 +8404,7 @@ VREG_DECL LSTATUS VReg_QueryInfoKeyOwned(
     {
         DWORD cchRead = cchClass;
         LSTATUS status;
-        if (!VReg_WStringResize(pAllocContext, pClass, cchClass))
+        if (!VReg_WStringResize(pClass, cchClass))
             return ERROR_OUTOFMEMORY;
 
         status = VRegQueryInfoKeyW(
@@ -8587,7 +8440,6 @@ VREG_DECL LSTATUS VReg_QueryInfoKeyOwned(
 // ==========================================================================
 
 VREG_DECL LSTATUS VReg_SplitPath(
-    _In_opt_ void* const pAllocContext,
     const VReg_WStringView path,
     _Inout_ VReg_Array* const pComponents
 )
@@ -8609,7 +8461,7 @@ VREG_DECL LSTATUS VReg_SplitPath(
         {
             if (component.cch > VREG_INTERNAL_MAX_KEY_NAME_CHARS)
                 return ERROR_INVALID_PARAMETER;
-            if (!VReg_ArrayAppend(pAllocContext, pComponents, sizeof(component), &component))
+            if (!VReg_ArrayAppend(pComponents, sizeof(component), &component))
                 return ERROR_OUTOFMEMORY;
         }
 
@@ -9356,7 +9208,7 @@ VREG_DECL void WINAPI VRegDestroy(
     switch (pRegistry->dwKind)
     {
     case VREG_INTERNAL_KIND_NATIVE:
-        VReg_Free(pRegistry->pAllocContext, pRegistry);
+        VReg_Free(pRegistry);
         break;
 
     case VREG_INTERNAL_KIND_VIRTUAL:
@@ -9366,7 +9218,7 @@ VREG_DECL void WINAPI VRegDestroy(
     default:
         if (pRegistry->implementation.custom.lpVtbl->Destroy)
             pRegistry->implementation.custom.lpVtbl->Destroy(pRegistry);
-        VReg_Free(pRegistry->pAllocContext, pRegistry);
+        VReg_Free(pRegistry);
         break;
     }
 }
@@ -9374,17 +9226,15 @@ VREG_DECL void WINAPI VRegDestroy(
 VREG_DECL LSTATUS WINAPI VRegCreateCustom(
     _In_ const VRegVtbl* const pVtbl,
     _In_opt_ void* const pDelegate,
-    _In_opt_ void* const pAllocContext,
     _Outptr_ VReg** const ppRegistry
 )
 {
-    VReg* const pRegistry = (VReg*)VReg_AllocZeroed(pAllocContext, sizeof(VReg));
+    VReg* const pRegistry = (VReg*)VReg_AllocZeroed(sizeof(VReg));
     *ppRegistry = NULL;
     if (!pRegistry)
         return ERROR_OUTOFMEMORY;
 
     pRegistry->dwKind = VREG_INTERNAL_KIND_CUSTOM;
-    pRegistry->pAllocContext = pAllocContext;
     pRegistry->implementation.custom.lpVtbl = pVtbl;
     pRegistry->implementation.custom.pDelegate = pDelegate;
 
@@ -9560,14 +9410,14 @@ static BOOL VReg_Admits(const REGSAM samMount, const REGSAM samCall)
 }
 
 /// The string form of the current user's SID; empty when it cannot be read.
-static LSTATUS VReg_CurrentUserSid(_In_opt_ void* const pAllocContext, _Inout_ VReg_WString* pSid)
+static LSTATUS VReg_CurrentUserSid(_Inout_ VReg_WString* pSid)
 {
     HANDLE hToken = NULL;
     DWORD cbUser = 0;
     VReg_Buffer user = {0, 0, NULL};
     LSTATUS status = ERROR_SUCCESS;
 
-    if (!VReg_WStringResize(pAllocContext, pSid, 0))
+    if (!VReg_WStringResize(pSid, 0))
         return ERROR_OUTOFMEMORY;
     if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
         return ERROR_SUCCESS;
@@ -9575,7 +9425,7 @@ static LSTATUS VReg_CurrentUserSid(_In_opt_ void* const pAllocContext, _Inout_ V
     GetTokenInformation(hToken, TokenUser, NULL, 0, &cbUser);
     if (cbUser != 0)
     {
-        if (!VReg_BufferResize(pAllocContext, &user, cbUser))
+        if (!VReg_BufferResize(&user, cbUser))
         {
             status = ERROR_OUTOFMEMORY;
         }
@@ -9584,14 +9434,14 @@ static LSTATUS VReg_CurrentUserSid(_In_opt_ void* const pAllocContext, _Inout_ V
             LPWSTR pszSid = NULL;
             if (ConvertSidToStringSidW(((const TOKEN_USER*)user.pb)->User.Sid, &pszSid))
             {
-                if (!VReg_WStringAssign(pAllocContext, pSid, pszSid, VReg_ViewOf(pszSid).cch))
+                if (!VReg_WStringAssign(pSid, pszSid, VReg_ViewOf(pszSid).cch))
                     status = ERROR_OUTOFMEMORY;
                 LocalFree(pszSid);
             }
         }
     }
 
-    VReg_BufferFree(pAllocContext, &user);
+    VReg_BufferFree(&user);
     CloseHandle(hToken);
     return status;
 }
@@ -9599,7 +9449,6 @@ static LSTATUS VReg_CurrentUserSid(_In_opt_ void* const pAllocContext, _Inout_ V
 /// Appends the native path of a predefined root to @p pPath as components;
 /// nothing for a root with none.
 static LSTATUS VReg_NativeRootPath(
-    _In_opt_ void* const pAllocContext,
     const HKEY hRoot,
     _Inout_ VReg_Array* const pPath
 )
@@ -9618,7 +9467,7 @@ static LSTATUS VReg_NativeRootPath(
     }
     else if (hRoot == HKEY_CURRENT_USER)
     {
-        status = VReg_CurrentUserSid(pAllocContext, &sid);
+        status = VReg_CurrentUserSid(&sid);
         if (status == ERROR_SUCCESS && sid.cch != 0)
             pszSecond = L"USER";
     }
@@ -9626,14 +9475,14 @@ static LSTATUS VReg_NativeRootPath(
     if (status == ERROR_SUCCESS && pszSecond)
     {
         if (
-            !VReg_WStringArrayAppend(pAllocContext, pPath, VReg_ViewOf(L"REGISTRY"))
-            || !VReg_WStringArrayAppend(pAllocContext, pPath, VReg_ViewOf(pszSecond))
-            || (sid.cch != 0 && !VReg_WStringArrayAppend(pAllocContext, pPath, VReg_WStringViewOf(&sid)))
+            !VReg_WStringArrayAppend(pPath, VReg_ViewOf(L"REGISTRY"))
+            || !VReg_WStringArrayAppend(pPath, VReg_ViewOf(pszSecond))
+            || (sid.cch != 0 && !VReg_WStringArrayAppend(pPath, VReg_WStringViewOf(&sid)))
         )
             status = ERROR_OUTOFMEMORY;
     }
 
-    VReg_WStringFree(pAllocContext, &sid);
+    VReg_WStringFree(&sid);
     return status;
 }
 
@@ -9698,10 +9547,10 @@ static _Ret_maybenull_ const VReg_MountPoint* VReg_MountOf(
     return NULL;
 }
 
-static void VReg_MountPointFree(_In_opt_ void* const pAllocContext, _Inout_ VReg_MountPoint* const pMount)
+static void VReg_MountPointFree(_Inout_ VReg_MountPoint* const pMount)
 {
-    VReg_WStringArrayFree(pAllocContext, &pMount->path);
-    VReg_WStringArrayFree(pAllocContext, &pMount->nativePath);
+    VReg_WStringArrayFree(&pMount->path);
+    VReg_WStringArrayFree(&pMount->nativePath);
 }
 
 /// Whether the mount @p pMount is of @p hRoot at the path @p pPath, by the
@@ -9731,9 +9580,8 @@ static BOOL VReg_MountIsAt(
 /// it then owns. Under the mount lock.
 static LSTATUS VReg_PublishMount(_In_ VReg* const pThis, _In_ const VReg_MountPoint* const pMount)
 {
-    void* const pAllocContext = pThis->pAllocContext;
     VReg_MountTable* const pOld = pThis->implementation.virtualRegistry.pMounts;
-    VReg_MountTable* const pNew = (VReg_MountTable*)VReg_AllocZeroed(pAllocContext, sizeof(VReg_MountTable));
+    VReg_MountTable* const pNew = (VReg_MountTable*)VReg_AllocZeroed(sizeof(VReg_MountTable));
     SIZE_T i;
     if (!pNew)
         return ERROR_OUTOFMEMORY;
@@ -9743,22 +9591,22 @@ static LSTATUS VReg_PublishMount(_In_ VReg* const pThis, _In_ const VReg_MountPo
         const VReg_MountPoint* const pExisting = &VREG_INTERNAL_MOUNT_AT(&pOld->mounts, i);
         if (VReg_MountIsAt(pExisting, pMount->hRoot, &pMount->path))
         {
-            VReg_ArrayFree(pAllocContext, &pNew->mounts);
-            VReg_Free(pAllocContext, pNew);
+            VReg_ArrayFree(&pNew->mounts);
+            VReg_Free(pNew);
             return ERROR_ALREADY_EXISTS;
         }
-        if (!VReg_ArrayAppend(pAllocContext, &pNew->mounts, sizeof(*pExisting), pExisting))
+        if (!VReg_ArrayAppend(&pNew->mounts, sizeof(*pExisting), pExisting))
         {
-            VReg_ArrayFree(pAllocContext, &pNew->mounts);
-            VReg_Free(pAllocContext, pNew);
+            VReg_ArrayFree(&pNew->mounts);
+            VReg_Free(pNew);
             return ERROR_OUTOFMEMORY;
         }
     }
 
-    if (!VReg_ArrayAppend(pAllocContext, &pNew->mounts, sizeof(*pMount), pMount))
+    if (!VReg_ArrayAppend(&pNew->mounts, sizeof(*pMount), pMount))
     {
-        VReg_ArrayFree(pAllocContext, &pNew->mounts);
-        VReg_Free(pAllocContext, pNew);
+        VReg_ArrayFree(&pNew->mounts);
+        VReg_Free(pNew);
         return ERROR_OUTOFMEMORY;
     }
 
@@ -9769,11 +9617,11 @@ static LSTATUS VReg_PublishMount(_In_ VReg* const pThis, _In_ const VReg_MountPo
 
 // --- Resolution ---
 
-static void VReg_TargetFree(_In_opt_ void* const pAllocContext, _Inout_ VReg_Target* const pTarget)
+static void VReg_TargetFree(_Inout_ VReg_Target* const pTarget)
 {
-    VReg_ArrayFree(pAllocContext, &pTarget->components);
-    VReg_ArrayFree(pAllocContext, &pTarget->full);
-    VReg_WStringFree(pAllocContext, &pTarget->nativeText);
+    VReg_ArrayFree(&pTarget->components);
+    VReg_ArrayFree(&pTarget->full);
+    VReg_WStringFree(&pTarget->nativeText);
 }
 
 /// Looks for a mount a real key plus the subkey components lands in, by
@@ -9786,7 +9634,6 @@ static LSTATUS VReg_ResolveNative(
     _Out_ BOOL* const pIsResolved
 )
 {
-    void* const pAllocContext = pThis->pAllocContext;
     const VReg_MountTable* const pTable = VReg_MountsOf(pThis);
     BOOL isGated = FALSE;
     VReg_Buffer buffer = {0, 0, NULL};
@@ -9816,7 +9663,7 @@ static LSTATUS VReg_ResolveNative(
         return ERROR_SUCCESS;
 
     // The name is a KEY_NAME_INFORMATION: a byte count, then the characters.
-    if (!VReg_BufferResize(pAllocContext, &buffer, 1024))
+    if (!VReg_BufferResize(&buffer, 1024))
         return ERROR_OUTOFMEMORY;
 
     for (;;)
@@ -9836,7 +9683,7 @@ static LSTATUS VReg_ResolveNative(
             || cbResult <= buffer.cb
         )
             goto done;
-        if (!VReg_BufferResize(pAllocContext, &buffer, cbResult))
+        if (!VReg_BufferResize(&buffer, cbResult))
         {
             status = ERROR_OUTOFMEMORY;
             goto done;
@@ -9850,7 +9697,6 @@ static LSTATUS VReg_ResolveNative(
         goto done;
     if (
         !VReg_WStringAssign(
-            pAllocContext,
             &pTarget->nativeText,
             (const wchar_t*)(buffer.pb + sizeof(ULONG)),
             cbName / sizeof(wchar_t)
@@ -9871,7 +9717,7 @@ static LSTATUS VReg_ResolveNative(
             VReg_WStringView component;
             component.pch = pTarget->nativeText.psz + start;
             component.cch = end - start;
-            if (!VReg_ArrayAppend(pAllocContext, &pTarget->full, sizeof(component), &component))
+            if (!VReg_ArrayAppend(&pTarget->full, sizeof(component), &component))
             {
                 status = ERROR_OUTOFMEMORY;
                 goto done;
@@ -9884,7 +9730,7 @@ static LSTATUS VReg_ResolveNative(
     for (i = 0; i < pTarget->components.count; ++i)
     {
         const VReg_WStringView* const pComponent = &VREG_INTERNAL_VIEW_AT(&pTarget->components, i);
-        if (!VReg_ArrayAppend(pAllocContext, &pTarget->full, sizeof(*pComponent), pComponent))
+        if (!VReg_ArrayAppend(&pTarget->full, sizeof(*pComponent), pComponent))
         {
             status = ERROR_OUTOFMEMORY;
             goto done;
@@ -9921,7 +9767,7 @@ static LSTATUS VReg_ResolveNative(
     }
 
 done:
-    VReg_BufferFree(pAllocContext, &buffer);
+    VReg_BufferFree(&buffer);
     return status;
 }
 
@@ -9936,14 +9782,13 @@ static LSTATUS VReg_Resolve(
     _Out_ VReg_Target* const pTarget
 )
 {
-    void* const pAllocContext = pThis->pAllocContext;
     LSTATUS splitStatus;
     BOOL isSplit;
     BOOL isResolved = FALSE;
     VReg_Node* pNode;
 
     ZeroMemory(pTarget, sizeof(*pTarget));
-    splitStatus = VReg_SplitPath(pAllocContext, subKey, &pTarget->components);
+    splitStatus = VReg_SplitPath(subKey, &pTarget->components);
     if (splitStatus == ERROR_OUTOFMEMORY)
         return splitStatus;
 
@@ -10092,7 +9937,7 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegOpenKeyExW(
         *phkResult = result.hLower ? result.hLower : VReg_NodeHandle(result.pNode);
 
 done:
-    VReg_TargetFree(pRegistry->pAllocContext, &target);
+    VReg_TargetFree(&target);
     return status;
 }
 
@@ -10185,7 +10030,7 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegCreateKeyExW(
         *lpdwDisposition = dwDisposition;
 
 done:
-    VReg_TargetFree(pRegistry->pAllocContext, &target);
+    VReg_TargetFree(&target);
     return status;
 }
 
@@ -10285,8 +10130,8 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegQueryValueExW(
 
 done:
     if (target.pHive)
-        VReg_BufferFree(VReg_HiveAllocContext(target.pHive), &value);
-    VReg_TargetFree(pRegistry->pAllocContext, &target);
+        VReg_BufferFree(&value);
+    VReg_TargetFree(&target);
     return status;
 }
 
@@ -10344,7 +10189,7 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegSetValueExW(
     );
 
 done:
-    VReg_TargetFree(pRegistry->pAllocContext, &target);
+    VReg_TargetFree(&target);
     return status;
 }
 
@@ -10377,7 +10222,7 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegDeleteValueW(
     status = VReg_HiveDeleteValue(target.pHive, target.pNode, VReg_OrEmpty(lpValueName));
 
 done:
-    VReg_TargetFree(pRegistry->pAllocContext, &target);
+    VReg_TargetFree(&target);
     return status;
 }
 
@@ -10419,7 +10264,7 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegDeleteKeyExW(
     status = VReg_HiveDeleteKey(target.pHive, target.pNode, target.pRest, target.cRest);
 
 done:
-    VReg_TargetFree(pRegistry->pAllocContext, &target);
+    VReg_TargetFree(&target);
     return status;
 }
 
@@ -10475,7 +10320,7 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegDeleteTreeW(
     status = VReg_HiveDeleteKey(target.pHive, target.pNode, target.pRest, target.cRest);
 
 done:
-    VReg_TargetFree(pRegistry->pAllocContext, &target);
+    VReg_TargetFree(&target);
     return status;
 }
 
@@ -10559,10 +10404,10 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegEnumKeyExW(
 done:
     if (target.pHive)
     {
-        VReg_WStringFree(VReg_HiveAllocContext(target.pHive), &name);
-        VReg_WStringFree(VReg_HiveAllocContext(target.pHive), &className);
+        VReg_WStringFree(&name);
+        VReg_WStringFree(&className);
     }
-    VReg_TargetFree(pRegistry->pAllocContext, &target);
+    VReg_TargetFree(&target);
     return status;
 }
 
@@ -10662,10 +10507,10 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegEnumValueW(
 done:
     if (target.pHive)
     {
-        VReg_WStringFree(VReg_HiveAllocContext(target.pHive), &name);
-        VReg_BufferFree(VReg_HiveAllocContext(target.pHive), &value);
+        VReg_WStringFree(&name);
+        VReg_BufferFree(&value);
     }
-    VReg_TargetFree(pRegistry->pAllocContext, &target);
+    VReg_TargetFree(&target);
     return status;
 }
 
@@ -10773,8 +10618,8 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegQueryInfoKeyW(
 
 done:
     if (target.pHive)
-        VReg_WStringFree(VReg_HiveAllocContext(target.pHive), &info.className);
-    VReg_TargetFree(pRegistry->pAllocContext, &target);
+        VReg_WStringFree(&info.className);
+    VReg_TargetFree(&target);
     return status;
 }
 
@@ -10898,8 +10743,8 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegLoadMUIStringW(
 
 done:
     if (target.pHive)
-        VReg_WStringFree(VReg_HiveAllocContext(target.pHive), &text);
-    VReg_TargetFree(pRegistry->pAllocContext, &target);
+        VReg_WStringFree(&text);
+    VReg_TargetFree(&target);
     return status;
 }
 
@@ -10969,7 +10814,6 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegGetValueW(
         RRF_RT_REG_QWORD,
     };
 
-    void* pHiveContext = NULL;
     VReg_Target target;
     VReg_OpenResult result;
     VReg_Node* pNode;
@@ -11032,7 +10876,6 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegGetValueW(
         goto done;
     }
 
-    pHiveContext = VReg_HiveAllocContext(target.pHive);
     pNode = target.pNode;
     if (target.cRest != 0)
     {
@@ -11093,8 +10936,8 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegGetValueW(
             cwchAdded = 1;
 
         if (
-            !VReg_BufferAssign(pHiveContext, &stages[1], stages[0].pb, cwch * sizeof(wchar_t))
-            || !VReg_BufferAppend(pHiveContext, &stages[1], ZEROS, cwchAdded * sizeof(wchar_t))
+            !VReg_BufferAssign(&stages[1], stages[0].pb, cwch * sizeof(wchar_t))
+            || !VReg_BufferAppend(&stages[1], ZEROS, cwchAdded * sizeof(wchar_t))
         )
         {
             status = ERROR_OUTOFMEMORY;
@@ -11110,7 +10953,7 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegGetValueW(
             // The text was terminated above, so the stage holds at least that.
             _Analysis_assume_(pszRaw != NULL);
             cwchExpanded = ExpandEnvironmentStringsW(pszRaw, NULL, 0);
-            if (!VReg_BufferResize(pHiveContext, &stages[2], (SIZE_T)cwchExpanded * sizeof(wchar_t)))
+            if (!VReg_BufferResize(&stages[2], (SIZE_T)cwchExpanded * sizeof(wchar_t)))
             {
                 status = ERROR_OUTOFMEMORY;
                 goto done;
@@ -11176,8 +11019,8 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegGetValueW(
 
 done:
     for (i = 0; i < 3; ++i)
-        VReg_BufferFree(pHiveContext, &stages[i]);
-    VReg_TargetFree(pRegistry->pAllocContext, &target);
+        VReg_BufferFree(&stages[i]);
+    VReg_TargetFree(&target);
     return status;
 }
 
@@ -11245,7 +11088,7 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegNotifyChangeKeyValue(
     CloseHandle(hOwn);
 
 done:
-    VReg_TargetFree(pRegistry->pAllocContext, &target);
+    VReg_TargetFree(&target);
     return status;
 }
 
@@ -11276,7 +11119,7 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegFlushKey(
     status = VReg_HiveCheckKey(target.pHive, target.pNode);
 
 done:
-    VReg_TargetFree(pRegistry->pAllocContext, &target);
+    VReg_TargetFree(&target);
     return status;
 }
 
@@ -11284,7 +11127,6 @@ done:
 
 VREG_DECL void WINAPI VReg_VirtualDestroy(_In_ VReg* const pRegistry)
 {
-    void* const pAllocContext = pRegistry->pAllocContext;
     VReg_MountTable* pTable = pRegistry->implementation.virtualRegistry.pMounts;
     BOOL isNewest = TRUE;
     while (pTable)
@@ -11294,32 +11136,30 @@ VREG_DECL void WINAPI VReg_VirtualDestroy(_In_ VReg* const pRegistry)
         {
             SIZE_T i;
             for (i = 0; i < pTable->mounts.count; ++i)
-                VReg_MountPointFree(pAllocContext, &VREG_INTERNAL_MOUNT_AT(&pTable->mounts, i));
+                VReg_MountPointFree(&VREG_INTERNAL_MOUNT_AT(&pTable->mounts, i));
         }
 
-        VReg_ArrayFree(pAllocContext, &pTable->mounts);
-        VReg_Free(pAllocContext, pTable);
+        VReg_ArrayFree(&pTable->mounts);
+        VReg_Free(pTable);
         pTable = pPrevious;
         isNewest = FALSE;
     }
 
-    VReg_Free(pAllocContext, pRegistry);
+    VReg_Free(pRegistry);
 }
 
 VREG_DECL LSTATUS WINAPI VRegCreateVirtual(
     _In_opt_ VReg* const pBase,
     _In_opt_ const VRegNtQueryKeyFunction pfnNtQueryKey,
-    _In_opt_ void* const pAllocContext,
     _Outptr_ VReg** const ppRegistry
 )
 {
-    VReg* const pRegistry = (VReg*)VReg_AllocZeroed(pAllocContext, sizeof(VReg));
+    VReg* const pRegistry = (VReg*)VReg_AllocZeroed(sizeof(VReg));
     *ppRegistry = NULL;
     if (!pRegistry)
         return ERROR_OUTOFMEMORY;
 
     pRegistry->dwKind = VREG_INTERNAL_KIND_VIRTUAL;
-    pRegistry->pAllocContext = pAllocContext;
     pRegistry->implementation.virtualRegistry.pBase = pBase;
     pRegistry->implementation.virtualRegistry.pfnNtQueryKey = pfnNtQueryKey;
     InitializeSRWLock(&pRegistry->implementation.virtualRegistry.mountLock);
@@ -11339,7 +11179,6 @@ VREG_DECL LSTATUS WINAPI VRegMount(
     _In_ const REGSAM samView
 )
 {
-    void* pAllocContext;
     VReg_Array components = {NULL, 0, 0};
     VReg_MountPoint mount;
     SIZE_T i;
@@ -11350,33 +11189,32 @@ VREG_DECL LSTATUS WINAPI VRegMount(
     if (samView != 0 && samView != KEY_WOW64_64KEY && samView != KEY_WOW64_32KEY)
         return ERROR_INVALID_PARAMETER;
 
-    pAllocContext = pRegistry->pAllocContext;
     ZeroMemory(&mount, sizeof(mount));
     mount.hRoot = hRoot;
     mount.pHive = pHive;
     mount.samView = samView;
 
-    status = VReg_SplitPath(pAllocContext, VReg_ViewOf(pszPath), &components);
+    status = VReg_SplitPath(VReg_ViewOf(pszPath), &components);
     if (status != ERROR_SUCCESS)
     {
-        VReg_ArrayFree(pAllocContext, &components);
+        VReg_ArrayFree(&components);
         return status == ERROR_OUTOFMEMORY ? status : ERROR_BAD_PATHNAME;
     }
 
     for (i = 0; status == ERROR_SUCCESS && i < components.count; ++i)
     {
-        if (!VReg_WStringArrayAppend(pAllocContext, &mount.path, VREG_INTERNAL_VIEW_AT(&components, i)))
+        if (!VReg_WStringArrayAppend(&mount.path, VREG_INTERNAL_VIEW_AT(&components, i)))
             status = ERROR_OUTOFMEMORY;
     }
     if (status == ERROR_SUCCESS)
-        status = VReg_NativeRootPath(pAllocContext, hRoot, &mount.nativePath);
+        status = VReg_NativeRootPath(hRoot, &mount.nativePath);
     for (i = 0; status == ERROR_SUCCESS && mount.nativePath.count != 0 && i < components.count; ++i)
     {
         const VReg_WStringView component = VREG_INTERNAL_VIEW_AT(&components, i);
-        if (!VReg_IsWow6432Node(component) && !VReg_WStringArrayAppend(pAllocContext, &mount.nativePath, component))
+        if (!VReg_IsWow6432Node(component) && !VReg_WStringArrayAppend(&mount.nativePath, component))
             status = ERROR_OUTOFMEMORY;
     }
-    VReg_ArrayFree(pAllocContext, &components);
+    VReg_ArrayFree(&components);
 
     if (status == ERROR_SUCCESS)
     {
@@ -11386,7 +11224,7 @@ VREG_DECL LSTATUS WINAPI VRegMount(
     }
 
     if (status != ERROR_SUCCESS)
-        VReg_MountPointFree(pAllocContext, &mount);
+        VReg_MountPointFree(&mount);
     return status;
 }
 
@@ -11434,8 +11272,8 @@ static LSTATUS VReg_PerformSetValue(_In_ const VRegOperation* const pOperation, 
         static const BYTE PADDING[4] = {0x11, 0x11, 0x11, 0x11};
         VReg_Buffer padded = {0, 0, NULL};
         if (
-            !VReg_BufferAssign(pRegistry->pAllocContext, &padded, pData, cbData)
-            || !VReg_BufferAppend(pRegistry->pAllocContext, &padded, PADDING, sizeof(PADDING))
+            !VReg_BufferAssign(&padded, pData, cbData)
+            || !VReg_BufferAppend(&padded, PADDING, sizeof(PADDING))
         )
         {
             status = ERROR_OUTOFMEMORY;
@@ -11453,7 +11291,7 @@ static LSTATUS VReg_PerformSetValue(_In_ const VRegOperation* const pOperation, 
             );
         }
 
-        VReg_BufferFree(pRegistry->pAllocContext, &padded);
+        VReg_BufferFree(&padded);
     }
     else
     {
@@ -11602,7 +11440,6 @@ typedef struct VReg_ValueEntry
 /// Inserts @p pEntry into @p pValues, an array of @ref VReg_ValueEntry sorted
 /// by name; the array owns the entry from then on.
 static BOOL VReg_InsertValueSorted(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_Array* const pValues,
     _In_ const VReg_ValueEntry* const pEntry
 )
@@ -11620,17 +11457,17 @@ static BOOL VReg_InsertValueSorted(
             hi = mid;
     }
 
-    return VReg_ArrayInsert(pAllocContext, pValues, sizeof(*pEntry), lo, pEntry);
+    return VReg_ArrayInsert(pValues, sizeof(*pEntry), lo, pEntry);
 }
 
-static void VReg_FreeValues(_In_opt_ void* const pAllocContext, _Inout_ VReg_Array* const pValues)
+static void VReg_FreeValues(_Inout_ VReg_Array* const pValues)
 {
     SIZE_T i;
     for (i = 0; i < pValues->count; ++i)
     {
         VReg_ValueEntry* const pEntry = &VREG_INTERNAL_AT(pValues, VReg_ValueEntry, i);
-        VReg_WStringFree(pAllocContext, &pEntry->name);
-        VReg_BufferFree(pAllocContext, &pEntry->data);
+        VReg_WStringFree(&pEntry->name);
+        VReg_BufferFree(&pEntry->data);
     }
 
     pValues->count = 0;
@@ -11662,24 +11499,23 @@ static LSTATUS VReg_FlushValues(
         );
     }
 
-    VReg_FreeValues(pScript->pAllocContext, pValues);
+    VReg_FreeValues(pValues);
     return status;
 }
 
 /// Appends @p path to @p pPrefix with a backslash between, into @p pFull.
 static BOOL VReg_JoinKeyPath(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_WString* const pFull,
     const VReg_WStringView prefix,
     const VReg_WStringView path
 )
 {
-    if (!VReg_WStringAssign(pAllocContext, pFull, prefix.pch, prefix.cch))
+    if (!VReg_WStringAssign(pFull, prefix.pch, prefix.cch))
         return FALSE;
     if (path.cch == 0)
         return TRUE;
 
-    return VReg_AppendPathComponent(pAllocContext, pFull, path.pch, path.cch);
+    return VReg_AppendPathComponent(pFull, path.pch, path.cch);
 }
 
 // --- Snapshot ---
@@ -11695,7 +11531,6 @@ static LSTATUS VReg_WalkKey(
     const unsigned depth
 )
 {
-    void* const pAllocContext = pScript->pAllocContext;
     VReg_Array values = {NULL, 0, 0};
     VReg_Array subkeys = {NULL, 0, 0};
     VReg_WString name = {0, 0, NULL};
@@ -11727,20 +11562,20 @@ static LSTATUS VReg_WalkKey(
     {
         VReg_ValueEntry entry;
         ZeroMemory(&entry, sizeof(entry));
-        status = VReg_EnumValueOwned(pRegistry, hKey, dwIndex, pAllocContext, &entry.name, &entry.dwType, &entry.data);
+        status = VReg_EnumValueOwned(pRegistry, hKey, dwIndex, &entry.name, &entry.dwType, &entry.data);
         if (status == ERROR_NO_MORE_ITEMS)
         {
-            VReg_WStringFree(pAllocContext, &entry.name);
-            VReg_BufferFree(pAllocContext, &entry.data);
+            VReg_WStringFree(&entry.name);
+            VReg_BufferFree(&entry.data);
             status = ERROR_SUCCESS;
             break;
         }
-        if (status == ERROR_SUCCESS && !VReg_InsertValueSorted(pAllocContext, &values, &entry))
+        if (status == ERROR_SUCCESS && !VReg_InsertValueSorted(&values, &entry))
             status = ERROR_OUTOFMEMORY;
         if (status != ERROR_SUCCESS)
         {
-            VReg_WStringFree(pAllocContext, &entry.name);
-            VReg_BufferFree(pAllocContext, &entry.data);
+            VReg_WStringFree(&entry.name);
+            VReg_BufferFree(&entry.data);
             goto done;
         }
     }
@@ -11751,7 +11586,7 @@ static LSTATUS VReg_WalkKey(
 
     for (dwIndex = 0;; ++dwIndex)
     {
-        status = VReg_EnumKeyOwned(pRegistry, hKey, dwIndex, pAllocContext, &name);
+        status = VReg_EnumKeyOwned(pRegistry, hKey, dwIndex, &name);
         if (status == ERROR_NO_MORE_ITEMS)
         {
             status = ERROR_SUCCESS;
@@ -11759,7 +11594,7 @@ static LSTATUS VReg_WalkKey(
         }
         if (status != ERROR_SUCCESS)
             goto done;
-        if (!VReg_WStringArrayInsertSorted(pAllocContext, &subkeys, VReg_WStringViewOf(&name)))
+        if (!VReg_WStringArrayInsertSorted(&subkeys, VReg_WStringViewOf(&name)))
         {
             status = ERROR_OUTOFMEMORY;
             goto done;
@@ -11784,7 +11619,7 @@ static LSTATUS VReg_WalkKey(
         if (status != ERROR_SUCCESS)
             goto done;
 
-        if (!VReg_JoinKeyPath(pAllocContext, &childPath, VReg_WStringViewOf(pPath), VReg_WStringViewOf(pSubkey)))
+        if (!VReg_JoinKeyPath(&childPath, VReg_WStringViewOf(pPath), VReg_WStringViewOf(pSubkey)))
             status = ERROR_OUTOFMEMORY;
         else
             status = VReg_WalkKey(pScript, pRegistry, hRoot, hSubkey, &childPath, depth + 1);
@@ -11798,11 +11633,11 @@ static LSTATUS VReg_WalkKey(
     }
 
 done:
-    VReg_FreeValues(pAllocContext, &values);
-    VReg_ArrayFree(pAllocContext, &values);
-    VReg_WStringArrayFree(pAllocContext, &subkeys);
-    VReg_WStringFree(pAllocContext, &name);
-    VReg_WStringFree(pAllocContext, &childPath);
+    VReg_FreeValues(&values);
+    VReg_ArrayFree(&values);
+    VReg_WStringArrayFree(&subkeys);
+    VReg_WStringFree(&name);
+    VReg_WStringFree(&childPath);
     return status;
 }
 
@@ -11810,7 +11645,6 @@ VREG_DECL LSTATUS WINAPI VRegSnapshotScript(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hRoot,
     _In_opt_z_ const LPCWSTR pszPath,
-    _In_opt_ void* const pAllocContext,
     _Outptr_ VRegScript** const ppScript
 )
 {
@@ -11823,7 +11657,7 @@ VREG_DECL LSTATUS WINAPI VRegSnapshotScript(
     if (!VReg_RootName(hRoot))
         return ERROR_INVALID_HANDLE;
 
-    status = VReg_ScriptCreate(pAllocContext, &pScript);
+    status = VReg_ScriptCreate(&pScript);
     if (status != ERROR_SUCCESS)
         return status;
 
@@ -11838,7 +11672,7 @@ VREG_DECL LSTATUS WINAPI VRegSnapshotScript(
     if (status != ERROR_SUCCESS)
         goto done;
 
-    if (!VReg_WStringAssign(pAllocContext, &path, pszPath, VReg_ViewOf(pszPath).cch))
+    if (!VReg_WStringAssign(&path, pszPath, VReg_ViewOf(pszPath).cch))
         status = ERROR_OUTOFMEMORY;
     else
         status = VReg_WalkKey(pScript, pRegistry, hRoot, hKey, &path, 0);
@@ -11849,7 +11683,7 @@ VREG_DECL LSTATUS WINAPI VRegSnapshotScript(
     );
 
 done:
-    VReg_WStringFree(pAllocContext, &path);
+    VReg_WStringFree(&path);
     if (status != ERROR_SUCCESS)
     {
         VRegDestroyScript(pScript);
@@ -11878,7 +11712,6 @@ typedef struct VReg_DeltaWalk
 static LSTATUS VReg_VisitUpper(_In_ void* const pContext, _In_ const VReg_UpperRecord* const pRecord)
 {
     VReg_DeltaWalk* const pWalk = (VReg_DeltaWalk*)pContext;
-    void* const pAllocContext = pWalk->pScript->pAllocContext;
     LSTATUS status;
 
     if (pRecord->kind == VREG_INTERNAL_UPPER_VALUE)
@@ -11888,13 +11721,13 @@ static LSTATUS VReg_VisitUpper(_In_ void* const pContext, _In_ const VReg_UpperR
         entry.dwType = pRecord->dwType;
         entry.isTombstone = pRecord->isTombstone;
         if (
-            !VReg_WStringAssign(pAllocContext, &entry.name, pRecord->name.pch, pRecord->name.cch)
-            || !VReg_BufferAssign(pAllocContext, &entry.data, pRecord->pData, pRecord->cbData)
-            || !VReg_InsertValueSorted(pAllocContext, &pWalk->values, &entry)
+            !VReg_WStringAssign(&entry.name, pRecord->name.pch, pRecord->name.cch)
+            || !VReg_BufferAssign(&entry.data, pRecord->pData, pRecord->cbData)
+            || !VReg_InsertValueSorted(&pWalk->values, &entry)
         )
         {
-            VReg_WStringFree(pAllocContext, &entry.name);
-            VReg_BufferFree(pAllocContext, &entry.data);
+            VReg_WStringFree(&entry.name);
+            VReg_BufferFree(&entry.data);
             return ERROR_OUTOFMEMORY;
         }
 
@@ -11904,7 +11737,7 @@ static LSTATUS VReg_VisitUpper(_In_ void* const pContext, _In_ const VReg_UpperR
     status = VReg_FlushValues(pWalk->pScript, pWalk->hRoot, VReg_WStringViewOf(&pWalk->keyPath), &pWalk->values);
     if (status != ERROR_SUCCESS)
         return status;
-    if (!VReg_JoinKeyPath(pAllocContext, &pWalk->keyPath, pWalk->prefix, pRecord->path))
+    if (!VReg_JoinKeyPath(&pWalk->keyPath, pWalk->prefix, pRecord->path))
         return ERROR_OUTOFMEMORY;
 
     if (pRecord->isTombstone || pRecord->isOpaque)
@@ -11943,7 +11776,6 @@ VREG_DECL LSTATUS WINAPI VRegDeltaScript(
     _In_ VRegHive* const pHive,
     _In_ const HKEY hRoot,
     _In_opt_z_ const LPCWSTR pszPath,
-    _In_opt_ void* const pAllocContext,
     _Outptr_ VRegScript** const ppScript
 )
 {
@@ -11957,7 +11789,7 @@ VREG_DECL LSTATUS WINAPI VRegDeltaScript(
     ZeroMemory(&walk, sizeof(walk));
     walk.hRoot = hRoot;
     walk.prefix = VReg_ViewOf(pszPath);
-    status = VReg_ScriptCreate(pAllocContext, &walk.pScript);
+    status = VReg_ScriptCreate(&walk.pScript);
     if (status != ERROR_SUCCESS)
         return status;
 
@@ -11965,9 +11797,9 @@ VREG_DECL LSTATUS WINAPI VRegDeltaScript(
     if (status == ERROR_SUCCESS)
         status = VReg_FlushValues(walk.pScript, hRoot, VReg_WStringViewOf(&walk.keyPath), &walk.values);
 
-    VReg_FreeValues(pAllocContext, &walk.values);
-    VReg_ArrayFree(pAllocContext, &walk.values);
-    VReg_WStringFree(pAllocContext, &walk.keyPath);
+    VReg_FreeValues(&walk.values);
+    VReg_ArrayFree(&walk.values);
+    VReg_WStringFree(&walk.keyPath);
     if (status != ERROR_SUCCESS)
     {
         VRegDestroyScript(walk.pScript);
@@ -12000,7 +11832,6 @@ typedef enum VReg_KeyState
 
 typedef struct VReg_Parser
 {
-    void* pAllocContext;
     VRegScript* pScript;
 
     /// The logical line being parsed: a line of the file with its
@@ -12184,13 +12015,12 @@ static LSTATUS VReg_ReadLogicalLine(
     _Out_ SIZE_T* const pLast
 )
 {
-    void* const pAllocContext = pParser->pAllocContext;
     VReg_WStringView physical = VREG_INTERNAL_AT(pLines, VReg_WStringView, index);
     VReg_LineSegment segment;
     SIZE_T current = index;
 
     pParser->segments.count = 0;
-    if (!VReg_WStringResize(pAllocContext, &pParser->text, 0))
+    if (!VReg_WStringResize(&pParser->text, 0))
         return ERROR_OUTOFMEMORY;
 
     segment.start = 0;
@@ -12202,14 +12032,14 @@ static LSTATUS VReg_ReadLogicalLine(
         --physical.cch;
         ++segment.column;
     }
-    if (!VReg_ArrayAppend(pAllocContext, &pParser->segments, sizeof(segment), &segment))
+    if (!VReg_ArrayAppend(&pParser->segments, sizeof(segment), &segment))
         return ERROR_OUTOFMEMORY;
 
     *pLast = index;
     if (physical.cch == 0 || physical.pch[0] == L';')
         return ERROR_SUCCESS;
 
-    if (!VReg_WStringAssign(pAllocContext, &pParser->text, physical.pch, physical.cch))
+    if (!VReg_WStringAssign(&pParser->text, physical.pch, physical.cch))
         return ERROR_OUTOFMEMORY;
     if (physical.pch[0] == L'[')
         return ERROR_SUCCESS;
@@ -12237,8 +12067,8 @@ static LSTATUS VReg_ReadLogicalLine(
             ++segment.column;
         }
         if (
-            !VReg_ArrayAppend(pAllocContext, &pParser->segments, sizeof(segment), &segment)
-            || !VReg_WStringAppend(pAllocContext, &pParser->text, next.pch, next.cch)
+            !VReg_ArrayAppend(&pParser->segments, sizeof(segment), &segment)
+            || !VReg_WStringAppend(&pParser->text, next.pch, next.cch)
         )
             return ERROR_OUTOFMEMORY;
     }
@@ -12249,7 +12079,6 @@ static LSTATUS VReg_ReadLogicalLine(
 
 static LSTATUS VReg_ParseKey(_Inout_ VReg_Parser* const pParser)
 {
-    void* const pAllocContext = pParser->pAllocContext;
     const VReg_WStringView text = VReg_WStringViewOf(&pParser->text);
     SIZE_T close = text.cch;
     BOOL isDelete;
@@ -12304,15 +12133,14 @@ static LSTATUS VReg_ParseKey(_Inout_ VReg_Parser* const pParser)
 
     pParser->state = isDelete ? VREG_INTERNAL_KEY_DELETED : VREG_INTERNAL_KEY_OPEN;
     pParser->hRoot = hRoot;
-    return VReg_WStringAssign(pAllocContext, &pParser->path, path.pch, path.cch) ? ERROR_SUCCESS : ERROR_OUTOFMEMORY;
+    return VReg_WStringAssign(&pParser->path, path.pch, path.cch) ? ERROR_SUCCESS : ERROR_OUTOFMEMORY;
 }
 
 /// Reads a quoted string at the position (on its opening quote) into @p pText.
 static LSTATUS VReg_ParseQuoted(_Inout_ VReg_Parser* const pParser, _Inout_ VReg_WString* const pText)
 {
-    void* const pAllocContext = pParser->pAllocContext;
     ++pParser->pos;
-    if (!VReg_WStringResize(pAllocContext, pText, 0))
+    if (!VReg_WStringResize(pText, 0))
         return ERROR_OUTOFMEMORY;
 
     for (;;)
@@ -12342,7 +12170,7 @@ static LSTATUS VReg_ParseQuoted(_Inout_ VReg_Parser* const pParser, _Inout_ VReg
             ch = VReg_Current(pParser);
         }
 
-        if (!VReg_WStringAppendChar(pAllocContext, pText, ch))
+        if (!VReg_WStringAppendChar(pText, ch))
             return ERROR_OUTOFMEMORY;
 
         ++pParser->pos;
@@ -12392,7 +12220,7 @@ static LSTATUS VReg_ParseHexBytes(_Inout_ VReg_Parser* const pParser, _Inout_ VR
             return status;
 
         byte = (BYTE)dwByte;
-        if (!VReg_BufferAppend(pParser->pAllocContext, pData, &byte, 1))
+        if (!VReg_BufferAppend(pData, &byte, 1))
             return ERROR_OUTOFMEMORY;
 
         VReg_SkipBlanks(pParser);
@@ -12408,7 +12236,6 @@ static LSTATUS VReg_ParseHexBytes(_Inout_ VReg_Parser* const pParser, _Inout_ VR
 
 static LSTATUS VReg_ParseValue(_Inout_ VReg_Parser* const pParser)
 {
-    void* const pAllocContext = pParser->pAllocContext;
     VReg_WString name = {0, 0, NULL};
     VReg_WString text = {0, 0, NULL};
     VReg_Buffer data = {0, 0, NULL};
@@ -12465,7 +12292,7 @@ static LSTATUS VReg_ParseValue(_Inout_ VReg_Parser* const pParser)
         if (status == ERROR_SUCCESS)
         {
             dwType = REG_SZ;
-            if (!VReg_BufferAssign(pAllocContext, &data, VReg_WStringText(&text), (text.cch + 1) * sizeof(wchar_t)))
+            if (!VReg_BufferAssign(&data, VReg_WStringText(&text), (text.cch + 1) * sizeof(wchar_t)))
                 status = ERROR_OUTOFMEMORY;
         }
     }
@@ -12478,7 +12305,7 @@ static LSTATUS VReg_ParseValue(_Inout_ VReg_Parser* const pParser)
         if (status == ERROR_SUCCESS)
         {
             dwType = REG_DWORD;
-            if (!VReg_BufferAssign(pAllocContext, &data, &dwValue, sizeof(dwValue)))
+            if (!VReg_BufferAssign(&data, &dwValue, sizeof(dwValue)))
                 status = ERROR_OUTOFMEMORY;
         }
     }
@@ -12516,9 +12343,9 @@ static LSTATUS VReg_ParseValue(_Inout_ VReg_Parser* const pParser)
     );
 
 done:
-    VReg_WStringFree(pAllocContext, &name);
-    VReg_WStringFree(pAllocContext, &text);
-    VReg_BufferFree(pAllocContext, &data);
+    VReg_WStringFree(&name);
+    VReg_WStringFree(&text);
+    VReg_BufferFree(&data);
     return status;
 }
 
@@ -12543,7 +12370,6 @@ static LSTATUS VReg_ParseText(
     _Inout_opt_ VRegParseError* const pError
 )
 {
-    void* const pAllocContext = pParser->pAllocContext;
     VReg_Array lines = {NULL, 0, 0};
     VReg_WStringView header;
     SIZE_T start;
@@ -12556,7 +12382,7 @@ static LSTATUS VReg_ParseText(
         VReg_WStringView line = VReg_Substring(text, start, end - start);
         if (line.cch != 0 && line.pch[line.cch - 1] == L'\r')
             --line.cch;
-        if (!VReg_ArrayAppend(pAllocContext, &lines, sizeof(line), &line))
+        if (!VReg_ArrayAppend(&lines, sizeof(line), &line))
         {
             status = ERROR_OUTOFMEMORY;
             goto done;
@@ -12602,14 +12428,13 @@ static LSTATUS VReg_ParseText(
     }
 
 done:
-    VReg_ArrayFree(pAllocContext, &lines);
+    VReg_ArrayFree(&lines);
     return status;
 }
 
 VREG_DECL LSTATUS WINAPI VRegParseScript(
     _In_reads_bytes_(cbFile) const void* const pFile,
     _In_ const SIZE_T cbFile,
-    _In_opt_ void* const pAllocContext,
     _Outptr_ VRegScript** const ppScript,
     _Out_opt_ VRegParseError* const pError
 )
@@ -12622,23 +12447,22 @@ VREG_DECL LSTATUS WINAPI VRegParseScript(
     if (pError)
         ZeroMemory(pError, sizeof(*pError));
 
-    status = VReg_DecodeFile(pAllocContext, pFile, cbFile, &text, pError);
+    status = VReg_DecodeFile(pFile, cbFile, &text, pError);
     if (status != ERROR_SUCCESS)
     {
-        VReg_WStringFree(pAllocContext, &text);
+        VReg_WStringFree(&text);
         return status;
     }
 
     ZeroMemory(&parser, sizeof(parser));
-    parser.pAllocContext = pAllocContext;
-    status = VReg_ScriptCreate(pAllocContext, &parser.pScript);
+    status = VReg_ScriptCreate(&parser.pScript);
     if (status == ERROR_SUCCESS)
         status = VReg_ParseText(&parser, VReg_WStringViewOf(&text), pError);
 
-    VReg_WStringFree(pAllocContext, &parser.text);
-    VReg_WStringFree(pAllocContext, &parser.path);
-    VReg_ArrayFree(pAllocContext, &parser.segments);
-    VReg_WStringFree(pAllocContext, &text);
+    VReg_WStringFree(&parser.text);
+    VReg_WStringFree(&parser.path);
+    VReg_ArrayFree(&parser.segments);
+    VReg_WStringFree(&text);
     if (status != ERROR_SUCCESS)
     {
         VRegDestroyScript(parser.pScript);
@@ -12651,7 +12475,6 @@ VREG_DECL LSTATUS WINAPI VRegParseScript(
 
 VREG_DECL LSTATUS WINAPI VRegParseScriptFile(
     _In_z_ const LPCWSTR pszPath,
-    _In_opt_ void* const pAllocContext,
     _Outptr_ VRegScript** const ppScript,
     _Out_opt_ VRegParseError* const pError
 )
@@ -12662,11 +12485,11 @@ VREG_DECL LSTATUS WINAPI VRegParseScriptFile(
     *ppScript = NULL;
     if (pError)
         ZeroMemory(pError, sizeof(*pError));
-    status = VReg_ReadWholeFile(pAllocContext, pszPath, &file);
+    status = VReg_ReadWholeFile(pszPath, &file);
     if (status == ERROR_SUCCESS)
-        status = VRegParseScript(file.pb, file.cb, pAllocContext, ppScript, pError);
+        status = VRegParseScript(file.pb, file.cb, ppScript, pError);
 
-    VReg_BufferFree(pAllocContext, &file);
+    VReg_BufferFree(&file);
     return status;
 }
 
@@ -12715,14 +12538,13 @@ VREG_DECL BOOL VReg_FindRoot(const VReg_WStringView name, _Out_ PHKEY const phRo
     return FALSE;
 }
 
-VREG_DECL LSTATUS VReg_ScriptCreate(_In_opt_ void* const pAllocContext, _Outptr_ VRegScript** const ppScript)
+VREG_DECL LSTATUS VReg_ScriptCreate(_Outptr_ VRegScript** const ppScript)
 {
-    VRegScript* const pScript = (VRegScript*)VReg_AllocZeroed(pAllocContext, sizeof(VRegScript));
+    VRegScript* const pScript = (VRegScript*)VReg_AllocZeroed(sizeof(VRegScript));
     *ppScript = NULL;
     if (!pScript)
         return ERROR_OUTOFMEMORY;
 
-    pScript->pAllocContext = pAllocContext;
     *ppScript = pScript;
     return ERROR_SUCCESS;
 }
@@ -12739,21 +12561,20 @@ VREG_DECL LSTATUS VReg_ScriptAppend(
     const SIZE_T line
 )
 {
-    void* const pAllocContext = pScript->pAllocContext;
     VReg_ScriptEntry entry;
     VRegOperation operation;
     ZeroMemory(&entry, sizeof(entry));
     if (
-        !VReg_WStringAssign(pAllocContext, &entry.path, path.pch, path.cch)
-        || !VReg_WStringAssign(pAllocContext, &entry.name, name.pch, name.cch)
-        || !VReg_BufferAssign(pAllocContext, &entry.data, pData, cbData)
-        || !VReg_ArrayReserve(pAllocContext, &pScript->operations, sizeof(operation), pScript->operations.count + 1)
-        || !VReg_ArrayAppend(pAllocContext, &pScript->entries, sizeof(entry), &entry)
+        !VReg_WStringAssign(&entry.path, path.pch, path.cch)
+        || !VReg_WStringAssign(&entry.name, name.pch, name.cch)
+        || !VReg_BufferAssign(&entry.data, pData, cbData)
+        || !VReg_ArrayReserve(&pScript->operations, sizeof(operation), pScript->operations.count + 1)
+        || !VReg_ArrayAppend(&pScript->entries, sizeof(entry), &entry)
     )
     {
-        VReg_WStringFree(pAllocContext, &entry.path);
-        VReg_WStringFree(pAllocContext, &entry.name);
-        VReg_BufferFree(pAllocContext, &entry.data);
+        VReg_WStringFree(&entry.path);
+        VReg_WStringFree(&entry.name);
+        VReg_BufferFree(&entry.data);
         return ERROR_OUTOFMEMORY;
     }
 
@@ -12767,7 +12588,7 @@ VREG_DECL LSTATUS VReg_ScriptAppend(
     operation.pData = entry.data.pb;
     operation.cbData = cbData;
     operation.line = line;
-    VReg_ArrayAppend(pAllocContext, &pScript->operations, sizeof(operation), &operation);
+    VReg_ArrayAppend(&pScript->operations, sizeof(operation), &operation);
     return ERROR_SUCCESS;
 }
 
@@ -12780,14 +12601,14 @@ VREG_DECL void WINAPI VRegDestroyScript(_In_opt_ VRegScript* const pScript)
     for (i = 0; i < pScript->entries.count; ++i)
     {
         VReg_ScriptEntry* const pEntry = &VREG_INTERNAL_AT(&pScript->entries, VReg_ScriptEntry, i);
-        VReg_WStringFree(pScript->pAllocContext, &pEntry->path);
-        VReg_WStringFree(pScript->pAllocContext, &pEntry->name);
-        VReg_BufferFree(pScript->pAllocContext, &pEntry->data);
+        VReg_WStringFree(&pEntry->path);
+        VReg_WStringFree(&pEntry->name);
+        VReg_BufferFree(&pEntry->data);
     }
 
-    VReg_ArrayFree(pScript->pAllocContext, &pScript->entries);
-    VReg_ArrayFree(pScript->pAllocContext, &pScript->operations);
-    VReg_Free(pScript->pAllocContext, pScript);
+    VReg_ArrayFree(&pScript->entries);
+    VReg_ArrayFree(&pScript->operations);
+    VReg_Free(pScript);
 }
 
 VREG_DECL _Ret_notnull_ const VRegOperation* WINAPI VRegGetScriptOperations(
@@ -12800,9 +12621,9 @@ VREG_DECL _Ret_notnull_ const VRegOperation* WINAPI VRegGetScriptOperations(
     return pScript->operations.count == 0 ? &NONE : (const VRegOperation*)pScript->operations.p;
 }
 
-VREG_DECL void WINAPI VRegFreeScriptBytes(_In_ const VRegScript* const pScript, _In_opt_ void* const pBytes)
+VREG_DECL void WINAPI VRegFree(_In_opt_ void* const p)
 {
-    VReg_Free(pScript->pAllocContext, pBytes);
+    VReg_Free(p);
 }
 
 // ==========================================================================
@@ -12838,7 +12659,6 @@ static BOOL VReg_StartsWithAscii(
 }
 
 static LSTATUS VReg_Widen(
-    _In_opt_ void* const pAllocContext,
     const UINT codePage,
     _In_reads_bytes_(cb) const BYTE* const pb,
     const SIZE_T cb,
@@ -12847,7 +12667,7 @@ static LSTATUS VReg_Widen(
 )
 {
     const DWORD dwFlags = codePage == CP_UTF8 ? MB_ERR_INVALID_CHARS : 0;
-    const LSTATUS status = VReg_WideFromMultiByte(pAllocContext, codePage, dwFlags, (const char*)pb, cb, pText);
+    const LSTATUS status = VReg_WideFromMultiByte(codePage, dwFlags, (const char*)pb, cb, pText);
     if (status == ERROR_NO_UNICODE_TRANSLATION)
         return VReg_DecodeFail(pError, "the text is not valid in its encoding");
 
@@ -12855,7 +12675,6 @@ static LSTATUS VReg_Widen(
 }
 
 VREG_DECL LSTATUS VReg_DecodeFile(
-    _In_opt_ void* const pAllocContext,
     _In_reads_bytes_(cbFile) const void* const pFile,
     const SIZE_T cbFile,
     _Inout_ VReg_WString* const pText,
@@ -12871,7 +12690,7 @@ VREG_DECL LSTATUS VReg_DecodeFile(
         const SIZE_T cbBody = cbFile - 2;
         if (cbBody % sizeof(wchar_t) != 0)
             return VReg_DecodeFail(pError, "a UTF-16 file has an odd byte count");
-        if (!VReg_WStringAssign(pAllocContext, pText, (const wchar_t*)(pb + 2), cbBody / sizeof(wchar_t)))
+        if (!VReg_WStringAssign(pText, (const wchar_t*)(pb + 2), cbBody / sizeof(wchar_t)))
             return ERROR_OUTOFMEMORY;
 
         return ERROR_SUCCESS;
@@ -12879,10 +12698,9 @@ VREG_DECL LSTATUS VReg_DecodeFile(
     if (cbFile >= 2 && pb[0] == 0xFE && pb[1] == 0xFF)
         return VReg_DecodeFail(pError, "big-endian UTF-16 is not supported");
     if (cbFile >= 3 && pb[0] == 0xEF && pb[1] == 0xBB && pb[2] == 0xBF)
-        return VReg_Widen(pAllocContext, CP_UTF8, pb + 3, cbFile - 3, pText, pError);
+        return VReg_Widen(CP_UTF8, pb + 3, cbFile - 3, pText, pError);
 
     return VReg_Widen(
-        pAllocContext,
         VReg_StartsWithAscii(pb, cbFile, "REGEDIT4") ? CP_ACP : CP_UTF8,
         pb,
         cbFile,
@@ -12892,7 +12710,6 @@ VREG_DECL LSTATUS VReg_DecodeFile(
 }
 
 VREG_DECL LSTATUS VReg_EncodeFile(
-    _In_opt_ void* const pAllocContext,
     _In_ const VReg_WString* const pText,
     const VRegFormat format,
     _Inout_ VReg_Buffer* const pFile
@@ -12903,15 +12720,15 @@ VREG_DECL LSTATUS VReg_EncodeFile(
     BOOL fUsedDefault = FALSE;
     LSTATUS status;
 
-    if (!VReg_BufferResize(pAllocContext, pFile, 0))
+    if (!VReg_BufferResize(pFile, 0))
         return ERROR_OUTOFMEMORY;
 
     if (format == VREG_FORMAT_UNICODE)
     {
         static const BYTE BOM[2] = {0xFF, 0xFE};
         if (
-            !VReg_BufferAppend(pAllocContext, pFile, BOM, sizeof(BOM))
-            || !VReg_BufferAppend(pAllocContext, pFile, VReg_WStringText(pText), pText->cch * sizeof(wchar_t))
+            !VReg_BufferAppend(pFile, BOM, sizeof(BOM))
+            || !VReg_BufferAppend(pFile, VReg_WStringText(pText), pText->cch * sizeof(wchar_t))
         )
             return ERROR_OUTOFMEMORY;
 
@@ -12925,7 +12742,6 @@ VREG_DECL LSTATUS VReg_EncodeFile(
     codePage = format == VREG_FORMAT_UTF8 ? CP_UTF8 : CP_ACP;
     isUtf8 = codePage == CP_UTF8 || GetACP() == CP_UTF8;
     status = VReg_MultiByteFromWide(
-        pAllocContext,
         codePage,
         isUtf8 ? WC_ERR_INVALID_CHARS : WC_NO_BEST_FIT_CHARS,
         isUtf8 ? NULL : &fUsedDefault,
@@ -12945,7 +12761,6 @@ VREG_DECL LSTATUS VReg_EncodeFile(
 }
 
 VREG_DECL LSTATUS VReg_ReadWholeFile(
-    _In_opt_ void* const pAllocContext,
     _In_z_ const LPCWSTR pszPath,
     _Inout_ VReg_Buffer* const pFile
 )
@@ -12973,7 +12788,7 @@ VREG_DECL LSTATUS VReg_ReadWholeFile(
     {
         status = ERROR_FILE_TOO_LARGE;
     }
-    else if (!VReg_BufferResize(pAllocContext, pFile, (SIZE_T)size.QuadPart))
+    else if (!VReg_BufferResize(pFile, (SIZE_T)size.QuadPart))
     {
         status = ERROR_OUTOFMEMORY;
     }
@@ -13022,13 +12837,12 @@ static const wchar_t VREG_INTERNAL_NEWLINE[] = L"\r\n";
 
 /// Appends the terminated literal @p psz.
 static BOOL VReg_OutAppend(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_WString* const pOut,
     _In_z_ const wchar_t* const psz
 )
 {
     const VReg_WStringView text = VReg_ViewOf(psz);
-    return VReg_WStringAppend(pAllocContext, pOut, text.pch, text.cch);
+    return VReg_WStringAppend(pOut, text.pch, text.cch);
 }
 
 static BOOL VReg_HasLineBreak(const VReg_WStringView text)
@@ -13044,25 +12858,24 @@ static BOOL VReg_HasLineBreak(const VReg_WStringView text)
 }
 
 static BOOL VReg_AppendQuoted(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_WString* const pOut,
     const VReg_WStringView text
 )
 {
     SIZE_T i;
-    if (!VReg_WStringAppendChar(pAllocContext, pOut, L'"'))
+    if (!VReg_WStringAppendChar(pOut, L'"'))
         return FALSE;
 
     for (i = 0; i < text.cch; ++i)
     {
         const wchar_t ch = text.pch[i];
-        if ((ch == L'\\' || ch == L'"') && !VReg_WStringAppendChar(pAllocContext, pOut, L'\\'))
+        if ((ch == L'\\' || ch == L'"') && !VReg_WStringAppendChar(pOut, L'\\'))
             return FALSE;
-        if (!VReg_WStringAppendChar(pAllocContext, pOut, ch))
+        if (!VReg_WStringAppendChar(pOut, ch))
             return FALSE;
     }
 
-    return VReg_WStringAppendChar(pAllocContext, pOut, L'"');
+    return VReg_WStringAppendChar(pOut, L'"');
 }
 
 /// The text a REG_SZ takes in the friendly form; FALSE when the form would not
@@ -13103,7 +12916,6 @@ static BOOL VReg_FriendlyString(
 
 /// Appends @p value in lowercase hex with at least @p cchMin digits.
 static BOOL VReg_AppendHexNumber(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_WString* const pOut,
     DWORD value,
     const SIZE_T cchMin
@@ -13123,12 +12935,12 @@ static BOOL VReg_AppendHexNumber(
 
     for (i = cchDigits; i < cchMin; ++i)
     {
-        if (!VReg_WStringAppendChar(pAllocContext, pOut, L'0'))
+        if (!VReg_WStringAppendChar(pOut, L'0'))
             return FALSE;
     }
     for (i = 0; i < cchDigits; ++i)
     {
-        if (!VReg_WStringAppendChar(pAllocContext, pOut, wszDigits[cchDigits - 1 - i]))
+        if (!VReg_WStringAppendChar(pOut, wszDigits[cchDigits - 1 - i]))
             return FALSE;
     }
 
@@ -13136,7 +12948,6 @@ static BOOL VReg_AppendHexNumber(
 }
 
 static BOOL VReg_AppendHex(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_WString* const pOut,
     _In_ const VRegOperation* const pOperation,
     SIZE_T column
@@ -13147,15 +12958,15 @@ static BOOL VReg_AppendHex(
 
     if (pOperation->dwType == REG_BINARY)
     {
-        if (!VReg_OutAppend(pAllocContext, pOut, L"hex:"))
+        if (!VReg_OutAppend(pOut, L"hex:"))
             return FALSE;
     }
     else
     {
         if (
-            !VReg_OutAppend(pAllocContext, pOut, L"hex(")
-            || !VReg_AppendHexNumber(pAllocContext, pOut, pOperation->dwType, 1)
-            || !VReg_OutAppend(pAllocContext, pOut, L"):")
+            !VReg_OutAppend(pOut, L"hex(")
+            || !VReg_AppendHexNumber(pOut, pOperation->dwType, 1)
+            || !VReg_OutAppend(pOut, L"):")
         )
             return FALSE;
     }
@@ -13163,17 +12974,17 @@ static BOOL VReg_AppendHex(
     column += pOut->cch - cchBefore;
     for (i = 0; i < pOperation->cbData; ++i)
     {
-        if (!VReg_AppendHexNumber(pAllocContext, pOut, pOperation->pData[i], 2))
+        if (!VReg_AppendHexNumber(pOut, pOperation->pData[i], 2))
             return FALSE;
 
         column += 2;
         if (i + 1 == pOperation->cbData)
             break;
-        if (!VReg_WStringAppendChar(pAllocContext, pOut, L','))
+        if (!VReg_WStringAppendChar(pOut, L','))
             return FALSE;
         if (++column > VREG_INTERNAL_HEX_WRAP_COLUMN)
         {
-            if (!VReg_OutAppend(pAllocContext, pOut, L"\\\r\n  "))
+            if (!VReg_OutAppend(pOut, L"\\\r\n  "))
                 return FALSE;
 
             column = 2;
@@ -13184,7 +12995,6 @@ static BOOL VReg_AppendHex(
 }
 
 static BOOL VReg_AppendValue(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_WString* const pOut,
     _In_ const VRegOperation* const pOperation
 )
@@ -13195,40 +13005,39 @@ static BOOL VReg_AppendValue(
     BOOL isAppended;
 
     if (name.cch == 0)
-        isAppended = VReg_WStringAppendChar(pAllocContext, pOut, L'@');
+        isAppended = VReg_WStringAppendChar(pOut, L'@');
     else
-        isAppended = VReg_AppendQuoted(pAllocContext, pOut, name);
-    if (!isAppended || !VReg_WStringAppendChar(pAllocContext, pOut, L'='))
+        isAppended = VReg_AppendQuoted(pOut, name);
+    if (!isAppended || !VReg_WStringAppendChar(pOut, L'='))
         return FALSE;
 
     if (pOperation->kind == VREG_OPERATION_DELETE_VALUE)
     {
-        isAppended = VReg_WStringAppendChar(pAllocContext, pOut, L'-');
+        isAppended = VReg_WStringAppendChar(pOut, L'-');
     }
     else if (pOperation->dwType == REG_SZ && VReg_FriendlyString(pOperation->pData, pOperation->cbData, &text))
     {
-        isAppended = VReg_AppendQuoted(pAllocContext, pOut, text);
+        isAppended = VReg_AppendQuoted(pOut, text);
     }
     else if (pOperation->dwType == REG_DWORD && pOperation->cbData == sizeof(DWORD))
     {
         DWORD dwValue;
         CopyMemory(&dwValue, pOperation->pData, sizeof(dwValue));
         isAppended =
-            VReg_OutAppend(pAllocContext, pOut, L"dword:")
-            && VReg_AppendHexNumber(pAllocContext, pOut, dwValue, 8);
+            VReg_OutAppend(pOut, L"dword:")
+            && VReg_AppendHexNumber(pOut, dwValue, 8);
     }
     else
     {
-        isAppended = VReg_AppendHex(pAllocContext, pOut, pOperation, pOut->cch - lineStart);
+        isAppended = VReg_AppendHex(pOut, pOperation, pOut->cch - lineStart);
     }
 
-    return isAppended && VReg_OutAppend(pAllocContext, pOut, VREG_INTERNAL_NEWLINE);
+    return isAppended && VReg_OutAppend(pOut, VREG_INTERNAL_NEWLINE);
 }
 
 /// Appends `[key]` or `[-key]` for @p pOperation's key, preceded by a blank
 /// line unless it opens the file.
 static LSTATUS VReg_AppendKeyLine(
-    _In_opt_ void* const pAllocContext,
     _Inout_ VReg_WString* const pOut,
     _In_ const VRegOperation* const pOperation,
     const BOOL isDelete,
@@ -13241,13 +13050,13 @@ static LSTATUS VReg_AppendKeyLine(
         return ERROR_INVALID_HANDLE;
 
     if (
-        (!isFirst && !VReg_OutAppend(pAllocContext, pOut, VREG_INTERNAL_NEWLINE))
-        || !VReg_OutAppend(pAllocContext, pOut, isDelete ? L"[-" : L"[")
-        || !VReg_OutAppend(pAllocContext, pOut, pszRoot)
-        || (path.cch != 0 && !VReg_WStringAppendChar(pAllocContext, pOut, L'\\'))
-        || !VReg_WStringAppend(pAllocContext, pOut, path.pch, path.cch)
-        || !VReg_OutAppend(pAllocContext, pOut, L"]")
-        || !VReg_OutAppend(pAllocContext, pOut, VREG_INTERNAL_NEWLINE)
+        (!isFirst && !VReg_OutAppend(pOut, VREG_INTERNAL_NEWLINE))
+        || !VReg_OutAppend(pOut, isDelete ? L"[-" : L"[")
+        || !VReg_OutAppend(pOut, pszRoot)
+        || (path.cch != 0 && !VReg_WStringAppendChar(pOut, L'\\'))
+        || !VReg_WStringAppend(pOut, path.pch, path.cch)
+        || !VReg_OutAppend(pOut, L"]")
+        || !VReg_OutAppend(pOut, VREG_INTERNAL_NEWLINE)
     )
         return ERROR_OUTOFMEMORY;
 
@@ -13268,7 +13077,6 @@ VREG_DECL LSTATUS WINAPI VRegWriteScript(
     _Out_ SIZE_T* const pcbBytes
 )
 {
-    void* const pAllocContext = pScript->pAllocContext;
     VReg_WString out = {0, 0, NULL};
     VReg_Buffer file = {0, 0, NULL};
     const VRegOperation* pLastKey = NULL;
@@ -13279,12 +13087,11 @@ VREG_DECL LSTATUS WINAPI VRegWriteScript(
     *pcbBytes = 0;
     if (
         !VReg_OutAppend(
-            pAllocContext,
             &out,
             format == VREG_FORMAT_REGEDIT4 ? L"REGEDIT4" : L"Windows Registry Editor Version 5.00"
         )
-        || !VReg_OutAppend(pAllocContext, &out, VREG_INTERNAL_NEWLINE)
-        || !VReg_OutAppend(pAllocContext, &out, VREG_INTERNAL_NEWLINE)
+        || !VReg_OutAppend(&out, VREG_INTERNAL_NEWLINE)
+        || !VReg_OutAppend(&out, VREG_INTERNAL_NEWLINE)
     )
     {
         status = ERROR_OUTOFMEMORY;
@@ -13307,7 +13114,6 @@ VREG_DECL LSTATUS WINAPI VRegWriteScript(
         if (isKey || !pLastKey || !VReg_SameKey(pLastKey, pOperation))
         {
             status = VReg_AppendKeyLine(
-                pAllocContext,
                 &out,
                 pOperation,
                 pOperation->kind == VREG_OPERATION_DELETE_KEY,
@@ -13319,20 +13125,20 @@ VREG_DECL LSTATUS WINAPI VRegWriteScript(
             pLastKey = pOperation;
         }
 
-        if (!isKey && !VReg_AppendValue(pAllocContext, &out, pOperation))
+        if (!isKey && !VReg_AppendValue(&out, pOperation))
         {
             status = ERROR_OUTOFMEMORY;
             goto done;
         }
     }
 
-    if (pScript->operations.count != 0 && !VReg_OutAppend(pAllocContext, &out, VREG_INTERNAL_NEWLINE))
+    if (pScript->operations.count != 0 && !VReg_OutAppend(&out, VREG_INTERNAL_NEWLINE))
     {
         status = ERROR_OUTOFMEMORY;
         goto done;
     }
 
-    status = VReg_EncodeFile(pAllocContext, &out, format, &file);
+    status = VReg_EncodeFile(&out, format, &file);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -13343,8 +13149,8 @@ VREG_DECL LSTATUS WINAPI VRegWriteScript(
     file.pb = NULL;
 
 done:
-    VReg_WStringFree(pAllocContext, &out);
-    VReg_BufferFree(pAllocContext, &file);
+    VReg_WStringFree(&out);
+    VReg_BufferFree(&file);
     return status;
 }
 
@@ -13361,7 +13167,7 @@ VREG_DECL LSTATUS WINAPI VRegWriteScriptFile(
         return status;
 
     status = VReg_WriteWholeFile(pszPath, pBytes, cbBytes);
-    VRegFreeScriptBytes(pScript, pBytes);
+    VRegFree(pBytes);
     return status;
 }
 
@@ -14536,7 +14342,6 @@ static LSTATUS VReg_RefuseMountPathW(
 )
 {
     VReg* const pRegistry = VReg_HookRegistry();
-    void* const pAllocContext = pRegistry->pAllocContext;
     const VReg_WStringView subKey = VReg_ViewOf(pszSubKey);
     VReg_WString prefix = {0, 0, NULL};
     LSTATUS status = ERROR_SUCCESS;
@@ -14549,7 +14354,7 @@ static LSTATUS VReg_RefuseMountPathW(
         if (end != subKey.cch && subKey.pch[end] != L'\\')
             continue;
 
-        if (!VReg_WStringAssign(pAllocContext, &prefix, subKey.pch, end))
+        if (!VReg_WStringAssign(&prefix, subKey.pch, end))
         {
             status = ERROR_OUTOFMEMORY;
             break;
@@ -14582,7 +14387,7 @@ static LSTATUS VReg_RefuseMountPathW(
         }
     }
 
-    VReg_WStringFree(pAllocContext, &prefix);
+    VReg_WStringFree(&prefix);
     return status;
 }
 
@@ -14592,13 +14397,12 @@ static LSTATUS VReg_RefuseMountPathA(
     const REGSAM samDesired
 )
 {
-    void* const pAllocContext = VReg_HookRegistry()->pAllocContext;
     VReg_WideArg subKey;
-    LSTATUS status = VReg_WideArgInit(pAllocContext, pszSubKey, &subKey);
+    LSTATUS status = VReg_WideArgInit(pszSubKey, &subKey);
     if (status == ERROR_SUCCESS)
         status = VReg_RefuseMountPathW(hKey, VReg_WideArgText(&subKey), samDesired);
 
-    VReg_WideArgFree(pAllocContext, &subKey);
+    VReg_WideArgFree(&subKey);
     return status;
 }
 
