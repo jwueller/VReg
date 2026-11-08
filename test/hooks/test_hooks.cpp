@@ -1146,14 +1146,13 @@ TEST_CASE("RegLoadMUIStringA answers not implemented on virtual handles")
     CHECK(!RealKeyExists(name));
 }
 
-TEST_CASE("A second Attach answers already initialized")
+TEST_CASE("A second Install answers already initialized")
 {
     const auto name = MountName(L"Exe");
     REQUIRE(InstallMount(name.c_str(), L"Exe") == NO_ERROR);
 
     OwnedRegistry native = MakeNativeRegistry();
     OwnedRegistry registry = MakeVirtualRegistry(native);
-    CHECK(VRegAttachHooks(registry, native) == ERROR_ALREADY_INITIALIZED);
     CHECK(VRegInstallHooks(registry, native) == ERROR_ALREADY_INITIALIZED);
     CHECK(ReadMountModule(name) == L"Exe");
     CHECK(!RealKeyExists(name));

@@ -1429,19 +1429,14 @@ extern "C" {
 // @ref GET_MODULE_HANDLE_EX_FLAG_PIN), which keeps it loaded until the
 // process exits.
 
-/// Calls @ref DetourAttach for every hook, inside a transaction the caller
-/// begins and commits (for example one that also carries its own hooks).
-/// Every hook calls through @p pRegistry, which MAY wrap the registry that
-/// answers (to trace each call, say). @p pNative is the registry below the
-/// hooks, the one @p pRegistry reaches for whatever it does not answer: it
-/// MUST be one @ref VRegCreateNative made, and the commit turns its
-/// function table into the trampolines. Both MUST outlive the process.
-/// Answers the first Detours error, or @ref ERROR_ALREADY_INITIALIZED when
-/// this copy attached before.
-VREG_DECL LONG WINAPI VRegAttachHooks(_In_ VReg* pRegistry, _In_ VReg* pNative);
-
-/// @ref VRegAttachHooks in a transaction of its own, enrolling only the
-/// calling thread.
+/// Calls @ref DetourAttach for every hook in a Detours transaction of its
+/// own, enrolling only the calling thread. Every hook calls through
+/// @p pRegistry, which MAY wrap the registry that answers (to trace each
+/// call, say). @p pNative is the registry below the hooks, the one
+/// @p pRegistry reaches for whatever it does not answer: it MUST be one
+/// @ref VRegCreateNative made, and the commit turns its function table into
+/// the trampolines. Both MUST outlive the process. Answers the first Detours
+/// error, or @ref ERROR_ALREADY_INITIALIZED when this copy installed before.
 VREG_DECL LONG WINAPI VRegInstallHooks(_In_ VReg* pRegistry, _In_ VReg* pNative);
 
 /// Makes every hook of this copy pass calls straight through, for good.
@@ -15014,7 +15009,7 @@ static void __cdecl VReg_NeutralizeHooksAtExit(void)
     VRegNeutralizeHooks();
 }
 
-VREG_DECL LONG WINAPI VRegAttachHooks(_In_ VReg* const pRegistry, _In_ VReg* const pNative)
+VREG_DECL LONG WINAPI VRegInstallHooks(_In_ VReg* const pRegistry, _In_ VReg* const pNative)
 {
     static volatile LONG s_isAttached;
     VRegNativeFunctions* functions;
@@ -15023,9 +15018,19 @@ VREG_DECL LONG WINAPI VRegAttachHooks(_In_ VReg* const pRegistry, _In_ VReg* con
     SIZE_T cHooks = 0;
     SIZE_T i;
     DWORD dwOld = 0;
+    LONG error = DetourTransactionBegin();
+    if (error != NO_ERROR)
+        return error;
+
+    error = DetourUpdateThread(GetCurrentThread());
+    if (error != NO_ERROR)
+        goto done;
 
     if (InterlockedExchange(&s_isAttached, 1))
-        return ERROR_ALREADY_INITIALIZED;
+    {
+        error = ERROR_ALREADY_INITIALIZED;
+        goto done;
+    }
 
     WritePointerRelease((PVOID volatile*)&g_pRegistry, pRegistry);
     functions = VRegGetNativeFunctions(pNative);
@@ -15066,7 +15071,8 @@ VREG_DECL LONG WINAPI VRegAttachHooks(_In_ VReg* const pRegistry, _In_ VReg* con
     if (!g_pbThunks)
     {
         InterlockedExchange(&s_isAttached, 0);
-        return ERROR_NOT_ENOUGH_MEMORY;
+        error = ERROR_NOT_ENOUGH_MEMORY;
+        goto done;
     }
 
     for (i = 0; i < cHooks; ++i)
@@ -15079,21 +15085,22 @@ VREG_DECL LONG WINAPI VRegAttachHooks(_In_ VReg* const pRegistry, _In_ VReg* con
     if (!VirtualProtect(g_pbThunks, VREG_INTERNAL_THUNK_PAGE_SIZE, PAGE_EXECUTE_READ, &dwOld))
     {
         InterlockedExchange(&s_isAttached, 0);
-        return (LONG)GetLastError();
+        error = (LONG)GetLastError();
+        goto done;
     }
     FlushInstructionCache(GetCurrentProcess(), g_pbThunks, VREG_INTERNAL_THUNK_PAGE_SIZE);
 
     WriteRelease(&g_cHooks, (LONG)cHooks);
     for (i = 0; i < cHooks; ++i)
     {
-        // The caller aborts the transaction on failure, so nothing is hooked
-        // and a later attempt may start over (with fresh thunks).
-        const LONG error = DetourAttach(hooks[i].ppTarget, thunks[i]);
+        // The transaction is aborted on failure, so nothing is hooked and a
+        // later attempt may start over (with fresh thunks).
+        error = DetourAttach(hooks[i].ppTarget, thunks[i]);
         if (error != NO_ERROR)
         {
             WriteRelease(&g_cHooks, 0);
             InterlockedExchange(&s_isAttached, 0);
-            return error;
+            goto done;
         }
     }
 
@@ -15102,19 +15109,8 @@ VREG_DECL LONG WINAPI VRegAttachHooks(_In_ VReg* const pRegistry, _In_ VReg* con
     // table, which runs for a DLL at its detach. A TLS callback would avoid
     // the CRT but is MSVC-specific and far less plain.
     atexit(VReg_NeutralizeHooksAtExit);
-    return NO_ERROR;
-}
 
-VREG_DECL LONG WINAPI VRegInstallHooks(_In_ VReg* const pRegistry, _In_ VReg* const pNative)
-{
-    LONG error = DetourTransactionBegin();
-    if (error != NO_ERROR)
-        return error;
-
-    error = DetourUpdateThread(GetCurrentThread());
-    if (error == NO_ERROR)
-        error = VRegAttachHooks(pRegistry, pNative);
-
+done:
     if (error != NO_ERROR)
     {
         DetourTransactionAbort();
