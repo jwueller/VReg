@@ -5467,14 +5467,6 @@ struct VReg_HandleDirectory
 static VReg_HandleSpace g_processSpace;
 static INIT_ONCE g_processSpaceOnce = INIT_ONCE_STATIC_INIT;
 
-// Agent's choice: the block tables come from the process heap directly, not
-// from the allocation macros. They live for the process and belong to no hive
-// or registry.
-static void* VReg_AllocateZeroed(const SIZE_T cb)
-{
-    return HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, cb);
-}
-
 VREG_DECL void VReg_HandleSpaceInit(_Out_ VReg_HandleSpace* const pSpace, _In_z_ const LPCWSTR pszName)
 {
     HANDLE hSection;
@@ -5613,14 +5605,14 @@ static BOOL VReg_AddBlock(_Inout_ VReg_HandleSpace* const pSpace, const UINT_PTR
 
     if (!pDirectory)
     {
-        pDirectory = (VReg_HandleDirectory*)VReg_AllocateZeroed(sizeof(VReg_HandleDirectory));
+        pDirectory = (VReg_HandleDirectory*)VReg_AllocZeroed(sizeof(VReg_HandleDirectory));
         if (!pDirectory)
             return FALSE;
 
         WritePointerRelease((PVOID volatile*)pDirectorySlot, pDirectory);
     }
 
-    pBlock = (VReg_HandleBlock*)VReg_AllocateZeroed(sizeof(VReg_HandleBlock));
+    pBlock = (VReg_HandleBlock*)VReg_AllocZeroed(sizeof(VReg_HandleBlock));
     if (!pBlock)
         return FALSE;
 
