@@ -237,8 +237,10 @@ Chosen per mount:
 `RegNotifyChangeKeyValue` on a virtual key registers a one-shot watch on the
 key's node, kept in the hive's tree (so every hive kind has it).
 
-- A frozen hive accepts the call and never signals; it has no writes to
-  watch. Freezing drops the watches already registered without signaling.
+- A frozen built-in hive accepts the call and never signals; it has no
+  writes to watch. Freezing it drops the watches already registered without
+  signaling. A frozen custom hive keeps its watches and registers new ones,
+  since its provider still signals its own changes.
 - A writable hive signals the event of every watch that a write matches, and
   drops it (a registration fires once). `REG_NOTIFY_CHANGE_NAME` matches a
   subkey added or deleted on the watched key, `REG_NOTIFY_CHANGE_LAST_SET`
@@ -254,6 +256,11 @@ key's node, kept in the hive's tree (so every hive kind has it).
 - Through an overlay only writes made through the hive are seen. A change in
   the lower registry never signals, and opening a lower key (which creates a
   transparent node) is not a change.
+- A custom hive's provider reports a change it made on its own with
+  `VRegNotifyHiveChange(hive, key, filter)`, which fires the watches as a
+  write through the hive would, under the same lock; it must not be called
+  from inside a slot. A key the provider deletes on its own is reported to
+  its parent and is not marked deleted.
 - Agent's choice: a synchronous call (`fAsynchronous` false) waits for the
   change on a private event, like the native call, so a watcher thread written
   for the native registry keeps working; it never returns on a key nothing

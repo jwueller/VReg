@@ -5,12 +5,14 @@
 #include "forwarding_hive.h"
 #include "objects.h"
 #include "owned_values.h"
+#include "thread.h"
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <array>
 #include <cstddef>
 #include <cstring>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -743,4 +745,336 @@ TEST_CASE("VRegCompareNames is the registry's collation")
     CHECK(VRegCompareNames(L"b", L"a") > 0);
     CHECK(VRegCompareNames(L"", L"a") < 0);
     CHECK(VRegCompareNames(L"ä", L"Ä") == 0);
+}
+
+namespace
+{
+constexpr DWORD NAME = REG_NOTIFY_CHANGE_NAME;
+constexpr DWORD LAST_SET = REG_NOTIFY_CHANGE_LAST_SET;
+
+/// A manual-reset event a watch signals.
+class Event
+{
+public:
+    Event() noexcept :
+        m_hEvent(CreateEventW(nullptr, TRUE, FALSE, nullptr))
+    {
+    }
+
+    ~Event()
+    {
+        if (m_hEvent)
+            CloseHandle(m_hEvent);
+    }
+
+    Event(const Event&) = delete;
+    Event& operator=(const Event&) = delete;
+
+    [[nodiscard]] HANDLE Get() const noexcept
+    {
+        return m_hEvent;
+    }
+
+    /// A notify signals before it returns, so nothing needs to wait.
+    [[nodiscard]] bool IsSet() const noexcept
+    {
+        return WaitForSingleObject(m_hEvent, 0) == WAIT_OBJECT_0;
+    }
+
+    void Reset() const noexcept
+    {
+        ResetEvent(m_hEvent);
+    }
+
+private:
+    HANDLE m_hEvent;
+};
+
+/// A key of @ref ChangingProvider: subkeys and DWORD values the provider
+/// changes on its own.
+struct ChangingKey
+{
+    std::wstring name;
+    std::vector<std::unique_ptr<ChangingKey>> children;
+    std::vector<std::pair<std::wstring, DWORD>> values;
+};
+
+/// A read-only provider whose data changes outside VReg, which it then
+/// reports through @ref VRegNotifyHiveChange.
+class ChangingProvider
+{
+public:
+    ChangingProvider()
+    {
+        REQUIRE(VRegCreateCustomHive(&VTBL, this, m_hive.Receive()) == ERROR_SUCCESS);
+    }
+
+    ChangingProvider(const ChangingProvider&) = delete;
+    ChangingProvider& operator=(const ChangingProvider&) = delete;
+
+    [[nodiscard]] VRegHive* Hive() const noexcept
+    {
+        return m_hive;
+    }
+
+    /// Adds a subkey @p pszName below @p parent, as the provider's own change.
+    ChangingKey& AddKey(ChangingKey& parent, const wchar_t* const pszName)
+    {
+        parent.children.push_back(std::make_unique<ChangingKey>(ChangingKey{pszName, {}, {}}));
+        return *parent.children.back();
+    }
+
+    ChangingKey& Root() noexcept
+    {
+        return m_root;
+    }
+
+private:
+    static ChangingProvider& Of(VRegHive* const pHive) noexcept
+    {
+        return *static_cast<ChangingProvider*>(VRegGetHiveDelegate(pHive));
+    }
+
+    ChangingKey* KeyOf(VRegHiveKey* const pKey) noexcept
+    {
+        return VRegGetHiveKeyParent(pKey) ? static_cast<ChangingKey*>(VRegGetHiveKeyToken(pKey)) : &m_root;
+    }
+
+    static LSTATUS WINAPI OpenKey(
+        VRegHive* const pHive,
+        VRegHiveKey* const pParent,
+        const LPCWSTR pszSubKey,
+        void** const ppToken
+    )
+    {
+        *ppToken = nullptr;
+        for (const auto& pChild : Of(pHive).KeyOf(pParent)->children)
+        {
+            if (VRegCompareNames(pChild->name.c_str(), pszSubKey) == 0)
+            {
+                *ppToken = pChild.get();
+                return ERROR_SUCCESS;
+            }
+        }
+        return ERROR_FILE_NOT_FOUND;
+    }
+
+    static LSTATUS WINAPI QueryValue(
+        VRegHive* const pHive,
+        VRegHiveKey* const pKey,
+        const LPCWSTR pszName,
+        VRegHiveResult* const pResult
+    )
+    {
+        for (const auto& [name, dwValue] : Of(pHive).KeyOf(pKey)->values)
+        {
+            if (VRegCompareNames(name.c_str(), pszName) == 0)
+                return VRegHiveResultSetValue(pResult, REG_DWORD, reinterpret_cast<const BYTE*>(&dwValue), sizeof(dwValue));
+        }
+        return ERROR_FILE_NOT_FOUND;
+    }
+
+    static LSTATUS WINAPI EnumKey(
+        VRegHive* const pHive,
+        VRegHiveKey* const pKey,
+        const DWORD dwIndex,
+        VRegHiveResult* const pResult
+    )
+    {
+        const ChangingKey* const pChanging = Of(pHive).KeyOf(pKey);
+        if (dwIndex >= pChanging->children.size())
+            return ERROR_NO_MORE_ITEMS;
+        return VRegHiveResultSetName(pResult, pChanging->children[dwIndex]->name.c_str());
+    }
+
+    static LSTATUS WINAPI EnumValue(
+        VRegHive* const pHive,
+        VRegHiveKey* const pKey,
+        const DWORD dwIndex,
+        VRegHiveResult* const pResult
+    )
+    {
+        const ChangingKey* const pChanging = Of(pHive).KeyOf(pKey);
+        if (dwIndex >= pChanging->values.size())
+            return ERROR_NO_MORE_ITEMS;
+
+        const auto& [name, dwValue] = pChanging->values[dwIndex];
+        const LSTATUS status = VRegHiveResultSetName(pResult, name.c_str());
+        return status == ERROR_SUCCESS
+            ? VRegHiveResultSetValue(pResult, REG_DWORD, reinterpret_cast<const BYTE*>(&dwValue), sizeof(dwValue))
+            : status;
+    }
+
+    static constexpr VRegHiveVtbl VTBL{
+        .OpenKey = &OpenKey,
+        .QueryValue = &QueryValue,
+        .EnumKey = &EnumKey,
+        .EnumValue = &EnumValue,
+    };
+
+    ChangingKey m_root;
+    OwnedHive m_hive;
+};
+
+/// Registers an asynchronous watch on @p hKey.
+void Watch(VReg* const registry, const HKEY hKey, const BOOL bWatchSubtree, const DWORD dwFilter, const Event& event)
+{
+    REQUIRE(
+        VRegNotifyChangeKeyValue(
+            registry,
+            hKey,
+            bWatchSubtree,
+            dwFilter,
+            event.Get(),
+            TRUE
+        ) == ERROR_SUCCESS
+    );
+}
+
+HKEY MustOpenKey(VReg* const registry, const HKEY hParent, const wchar_t* const pszSubKey)
+{
+    HKEY hKey{};
+    REQUIRE(
+        VRegOpenKeyExW(
+            registry,
+            hParent,
+            pszSubKey,
+            0,
+            KEY_READ,
+            &hKey
+        ) == ERROR_SUCCESS
+    );
+    return hKey;
+}
+} // namespace
+
+TEST_CASE("A provider's own value change signals last-set watches on the key once")
+{
+    ChangingProvider provider;
+    ChangingKey& a = provider.AddKey(provider.Root(), L"A");
+    OwnedRegistry registry = MountAlone(provider.Hive());
+    const HKEY hA = MustOpenKey(registry, RootHandle(provider.Hive()), L"A");
+
+    Event lastSet;
+    Event name;
+    Watch(registry, hA, FALSE, LAST_SET, lastSet);
+    Watch(registry, hA, FALSE, NAME, name);
+
+    a.values.emplace_back(L"v", 1);
+    CHECK(VRegNotifyHiveChange(provider.Hive(), VReg_NodeOf(hA), LAST_SET) == ERROR_SUCCESS);
+    CHECK(lastSet.IsSet());
+    CHECK_FALSE(name.IsSet());
+    CHECK(QueryDword(registry, hA, L"v") == 1);
+
+    // A watch fires once.
+    lastSet.Reset();
+    CHECK(VRegNotifyHiveChange(provider.Hive(), VReg_NodeOf(hA), LAST_SET) == ERROR_SUCCESS);
+    CHECK_FALSE(lastSet.IsSet());
+}
+
+TEST_CASE("A provider's own new key signals name watches on its parent and subtree watches above")
+{
+    ChangingProvider provider;
+    ChangingKey& a = provider.AddKey(provider.Root(), L"A");
+    ChangingKey& b = provider.AddKey(a, L"B");
+    OwnedRegistry registry = MountAlone(provider.Hive());
+    const HKEY hRoot = RootHandle(provider.Hive());
+    const HKEY hB = MustOpenKey(registry, hRoot, L"A\\B");
+
+    Event parent;
+    Event subtree;
+    Event rootOnly;
+    Watch(registry, hB, FALSE, NAME, parent);
+    Watch(registry, hRoot, TRUE, NAME, subtree);
+    Watch(registry, hRoot, FALSE, NAME, rootOnly);
+
+    provider.AddKey(b, L"C");
+    CHECK(VRegNotifyHiveChange(provider.Hive(), VReg_NodeOf(hB), NAME) == ERROR_SUCCESS);
+    CHECK(parent.IsSet());
+    CHECK(subtree.IsSet());
+    CHECK_FALSE(rootOnly.IsSet());
+    MustOpenKey(registry, hB, L"C");
+}
+
+TEST_CASE("A frozen custom hive keeps its watches and still signals")
+{
+    ChangingProvider provider;
+    ChangingKey& a = provider.AddKey(provider.Root(), L"A");
+    OwnedRegistry registry = MountAlone(provider.Hive());
+    const HKEY hA = MustOpenKey(registry, RootHandle(provider.Hive()), L"A");
+
+    Event before;
+    Watch(registry, hA, FALSE, LAST_SET, before);
+    VRegFreezeHive(provider.Hive());
+    Event after;
+    Watch(registry, hA, FALSE, LAST_SET, after);
+
+    a.values.emplace_back(L"v", 1);
+    CHECK(VRegNotifyHiveChange(provider.Hive(), VReg_NodeOf(hA), LAST_SET) == ERROR_SUCCESS);
+    CHECK(before.IsSet());
+    CHECK(after.IsSet());
+}
+
+TEST_CASE("VRegNotifyHiveChange refuses a filter it never fires and a deleted key")
+{
+    CustomMount mount;
+    HKEY hKey{};
+    REQUIRE(
+        VRegCreateKeyExW(
+            mount.Registry(),
+            mount.Root(),
+            L"Key",
+            0,
+            nullptr,
+            0,
+            KEY_ALL_ACCESS,
+            nullptr,
+            &hKey,
+            nullptr
+        ) == ERROR_SUCCESS
+    );
+    VRegHiveKey* const pKey = VReg_NodeOf(hKey);
+
+    CHECK(VRegNotifyHiveChange(mount.Hive(), pKey, 0) == ERROR_INVALID_PARAMETER);
+    CHECK(VRegNotifyHiveChange(mount.Hive(), pKey, REG_NOTIFY_CHANGE_ATTRIBUTES) == ERROR_INVALID_PARAMETER);
+
+    REQUIRE(
+        VRegDeleteKeyW(
+            mount.Registry(),
+            mount.Root(),
+            L"Key"
+        ) == ERROR_SUCCESS
+    );
+    CHECK(VRegNotifyHiveChange(mount.Hive(), pKey, NAME) == ERROR_KEY_DELETED);
+}
+
+TEST_CASE("A synchronous watch on a custom hive returns when the provider notifies")
+{
+    ChangingProvider provider;
+    provider.AddKey(provider.Root(), L"A");
+    OwnedRegistry registry = MountAlone(provider.Hive());
+    const HKEY hA = MustOpenKey(registry, RootHandle(provider.Hive()), L"A");
+
+    LSTATUS status = ERROR_IO_PENDING;
+    Thread waiter(
+        [&]
+        {
+            status = VRegNotifyChangeKeyValue(
+                registry,
+                hA,
+                FALSE,
+                LAST_SET,
+                nullptr,
+                FALSE
+            );
+        }
+    );
+    CHECK_FALSE(waiter.Wait(200));
+
+    // The registration may not be in place yet; notify until the waiter returns.
+    for (int i = 0; i < 100 && !waiter.Wait(50); ++i)
+        REQUIRE(VRegNotifyHiveChange(provider.Hive(), VReg_NodeOf(hA), LAST_SET) == ERROR_SUCCESS);
+
+    REQUIRE(waiter.Wait(5000));
+    CHECK(status == ERROR_SUCCESS);
 }

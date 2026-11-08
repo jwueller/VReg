@@ -57,7 +57,7 @@ extern "C" {
 
 // Raised with every change to this file; the tweak is always 0.
 #define VREG_VERSION_MAJOR 0
-#define VREG_VERSION_MINOR 7
+#define VREG_VERSION_MINOR 8
 #define VREG_VERSION_PATCH 0
 #define VREG_VERSION_TWEAK 0
 
@@ -837,10 +837,12 @@ VREG_DECL void WINAPI VRegDestroyHive(
     _In_opt_ VRegHive* pHive
 );
 
-/// Makes the hive immutable from now on, so its readers take no lock; a hive
-/// @ref VRegCreateCustomHive made refuses writes from then on and keeps
-/// locking to add the records of keys it opens. Safe while it is mounted and
-/// in use; there is no way back.
+/// Makes the hive immutable from now on, so its readers take no lock and its
+/// pending watches are dropped without firing. A hive
+/// @ref VRegCreateCustomHive made only refuses writes from then on: it keeps
+/// locking to add the records of keys it opens, and keeps its watches, which
+/// its provider still fires (@ref VRegNotifyHiveChange). Safe while it is
+/// mounted and in use; there is no way back.
 VREG_DECL void WINAPI VRegFreezeHive(
     _In_ VRegHive* pHive
 );
@@ -1084,6 +1086,31 @@ VREG_DECL LSTATUS WINAPI VRegHiveResultSetInfo(
 VREG_DECL int WINAPI VRegCompareNames(
     _In_z_ LPCWSTR pszLeft,
     _In_z_ LPCWSTR pszRight
+);
+
+/**
+ * @brief Tells VReg that the provider's data changed on its own, so the
+ *  watches @p dwFilter selects fire as for a write through the hive.
+ *
+ *  @ref REG_NOTIFY_CHANGE_NAME is for a subkey of @p pKey added or deleted,
+ *  @ref REG_NOTIFY_CHANGE_LAST_SET for a value of @p pKey set or deleted. The
+ *  watches on @p pKey that the filter selects fire, and so do the subtree
+ *  watches on the keys above it; each watch fires once and is gone. A key the
+ *  provider deletes on its own is not marked deleted: the provider notifies
+ *  its parent, and the key's record answers whatever the provider answers
+ *  from then on.
+ *
+ *  Loads nothing and waits on nothing but the hive's own lock, so the
+ *  provider MAY call it from any thread after its change; it MUST NOT call it
+ *  from inside a slot, where VReg may hold that lock.
+ *
+ * @return @ref ERROR_SUCCESS; @ref ERROR_INVALID_PARAMETER when @p dwFilter
+ *  holds neither bit; @ref ERROR_KEY_DELETED for a key deleted through VReg.
+ */
+VREG_DECL LSTATUS WINAPI VRegNotifyHiveChange(
+    _In_ VRegHive* pHive,
+    _In_ VRegHiveKey* pKey,
+    _In_ DWORD dwFilter
 );
 
 // ==========================================================================
@@ -6653,7 +6680,7 @@ VREG_DECL void WINAPI VRegFreezeHive(_In_ VRegHive* const pHive)
     // that see the flag afterwards skip the lock and see all their writes.
     AcquireSRWLockExclusive(&pHive->lock);
     WriteRelease(&pHive->isFrozen, 1);
-    for (i = 0; i < pHive->nodes.count; ++i)
+    for (i = 0; pHive->dwWriteMode == VREG_INTERNAL_HIVE_COPY_UP && i < pHive->nodes.count; ++i)
         VReg_HiveDropWatches(VREG_INTERNAL_NODE_AT(&pHive->nodes, i));
 
     ReleaseSRWLockExclusive(&pHive->lock);
@@ -8408,7 +8435,8 @@ VREG_DECL LSTATUS VReg_HiveWatch(
     if (!DuplicateHandle(GetCurrentProcess(), hEvent, GetCurrentProcess(), &hOwn, 0, FALSE, DUPLICATE_SAME_ACCESS))
         return GetLastError();
 
-    isLocked = VReg_HiveLockWrite(pHive);
+    // A frozen built-in hive never changes again; a custom one still does.
+    isLocked = VReg_HiveLockRecords(pHive);
     if (pNode->isDeleted)
     {
         status = ERROR_KEY_DELETED;
@@ -8429,6 +8457,30 @@ VREG_DECL LSTATUS VReg_HiveWatch(
         VReg_HiveUnlockWrite(pHive);
     if (hOwn)
         CloseHandle(hOwn);
+    return status;
+}
+
+VREG_DECL LSTATUS WINAPI VRegNotifyHiveChange(
+    _In_ VRegHive* const pHive,
+    _In_ VRegHiveKey* const pKey,
+    _In_ const DWORD dwFilter
+)
+{
+    const DWORD dwFired = dwFilter & (REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_LAST_SET);
+    LSTATUS status = ERROR_SUCCESS;
+
+    if (!dwFired)
+        return ERROR_INVALID_PARAMETER;
+
+    // A frozen built-in hive has no watches left to fire.
+    if (!VReg_HiveLockRecords(pHive))
+        return pKey->isDeleted ? ERROR_KEY_DELETED : ERROR_SUCCESS;
+
+    if (pKey->isDeleted)
+        status = ERROR_KEY_DELETED;
+    else
+        VReg_HiveNotify(pKey, dwFired);
+    VReg_HiveUnlockWrite(pHive);
     return status;
 }
 
