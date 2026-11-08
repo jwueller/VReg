@@ -144,11 +144,11 @@ LSTATUS WINAPI GrowingGetValueW(
 
 OwnedRegistry GrowingRegistry()
 {
-    VRegNativeFunctions functions;
-    VRegResolveNativeFunctions(&functions);
-    functions.RegQueryValueExW = &GrowingQueryValueExW;
-    functions.RegGetValueW = &GrowingGetValueW;
-    return MakeNativeRegistry(&functions);
+    OwnedRegistry registry = MakeNativeRegistry();
+    VRegNativeFunctions* const pFunctions = VRegGetNativeFunctions(registry);
+    pFunctions->RegQueryValueExW = &GrowingQueryValueExW;
+    pFunctions->RegGetValueW = &GrowingGetValueW;
+    return registry;
 }
 } // namespace
 
@@ -688,10 +688,8 @@ LSTATUS WINAPI StubLoadMUIStringW(
 
 TEST_CASE("LoadMUIString grows its buffer to the size it is told")
 {
-    VRegNativeFunctions functions;
-    VRegResolveNativeFunctions(&functions);
-    functions.RegLoadMUIStringW = &StubLoadMUIStringW;
-    OwnedRegistry registry = MakeNativeRegistry(&functions);
+    OwnedRegistry registry = MakeNativeRegistry();
+    VRegGetNativeFunctions(registry)->RegLoadMUIStringW = &StubLoadMUIStringW;
 
     std::wstring text;
     CHECK(

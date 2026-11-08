@@ -1,5 +1,7 @@
 #include <vreg.h>
 
+#include "objects.h"
+
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
@@ -93,8 +95,8 @@ TEST_CASE("Forwarded exports are not resolved")
 
 TEST_CASE("Every native registry function resolves")
 {
-    VRegNativeFunctions functions;
-    VRegResolveNativeFunctions(&functions);
+    VRegTest::OwnedRegistry registry = VRegTest::MakeNativeRegistry();
+    const VRegNativeFunctions functions = *VRegGetNativeFunctions(registry);
     const auto pointers =
         std::bit_cast<std::array<void*, sizeof(functions) / sizeof(void*)>>(
             functions

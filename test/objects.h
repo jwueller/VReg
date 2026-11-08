@@ -179,23 +179,24 @@ inline OwnedRegistry MakeCustomRegistry(
     return registry;
 }
 
-/// The native registry over @p pFunctions, or the resolved table.
-inline OwnedRegistry MakeNativeRegistry(
-    const VRegNativeFunctions* const pFunctions = nullptr
-)
+inline OwnedRegistry MakeNativeRegistry()
 {
     OwnedRegistry registry;
-    REQUIRE(VRegCreateNative(pFunctions, registry.Receive()) == ERROR_SUCCESS);
+    REQUIRE(VRegCreateNative(registry.Receive()) == ERROR_SUCCESS);
     return registry;
 }
 
+/// A virtual registry over @p pBase; @p pfnNtQueryKey, when given, replaces
+/// the `ntdll` export it resolved.
 inline OwnedRegistry MakeVirtualRegistry(
     VReg* const pBase = nullptr,
-    const VRegNtQueryKeyFunction pfnNtQueryKey = nullptr
+    const VReg_NtQueryKeyFunction pfnNtQueryKey = nullptr
 )
 {
     OwnedRegistry registry;
-    REQUIRE(VRegCreateVirtual(pBase, pfnNtQueryKey, registry.Receive()) == ERROR_SUCCESS);
+    REQUIRE(VRegCreateVirtual(pBase, registry.Receive()) == ERROR_SUCCESS);
+    if (pfnNtQueryKey)
+        registry.Get()->implementation.virtualRegistry.pfnNtQueryKey = pfnNtQueryKey;
     return registry;
 }
 

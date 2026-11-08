@@ -111,9 +111,9 @@ else is the real registry.
 VReg* native;
 VReg* registry;
 VRegHive* overlay;
-VRegCreateNative(NULL, &native);
+VRegCreateNative(&native);
 VRegCreateLayeredHive(native, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", 0, &overlay);
-VRegCreateVirtual(native, NULL, &registry);
+VRegCreateVirtual(native, &registry);
 VRegMount(registry, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", overlay, 0);
 
 const DWORD dwOne = 1;
@@ -133,7 +133,7 @@ VRegHive* user;
 VReg* registry;
 VRegCreateHive(&machine);
 VRegCreateHive(&user);
-VRegCreateVirtual(NULL, NULL, &registry);   // no base: nothing else exists
+VRegCreateVirtual(NULL, &registry);   // no base: nothing else exists
 VRegMount(registry, HKEY_LOCAL_MACHINE, L"", machine, 0);
 VRegMount(registry, HKEY_CURRENT_USER, L"", user, 0);
 ```
@@ -145,8 +145,8 @@ VRegMount(registry, HKEY_CURRENT_USER, L"", user, 0);
 VReg* native;
 VReg* registry;
 VRegHive* hive;
-VRegCreateNative(NULL, &native);
-VRegCreateVirtual(native, NULL, &registry);
+VRegCreateNative(&native);
+VRegCreateVirtual(native, &registry);
 VRegCreateHive(&hive);
 VRegMount(registry, HKEY_LOCAL_MACHINE, L"Software\\Vendor\\Game", hive, 0);
 // Fill the hive through registry (or VRegApplyScript), then:

@@ -97,7 +97,7 @@ Implementations:
 
 - The native registry (`VRegCreateNative`): the flat wide functions call
   its `VRegNativeFunctions` table, one field per wide form, and every other
-  form is derived. Defaults resolve from the export table of
+  form is derived. The table resolves from the export table of
   `KernelBase.dll`, never via `GetProcAddress` (an apphelp shim stub would
   otherwise stand in for the entry point). The Detours adapter hands these
   fields to `DetourAttach`, so after the commit they hold the trampolines;
@@ -289,10 +289,10 @@ into a mount. The last case is resolved by the parent's native path:
   has no such component and is not reachable this way.
 - The path comes from `NtQueryKey(KeyNameInformation)` through a function
   pointer resolved from `ntdll`'s export table when the registry is built
-  (never `GetProcAddress`, and no module load in a call); the
-  `pfnNtQueryKey` argument of `VRegCreateVirtual` replaces it for
-  tests. A failing query sends the call to the
-  base. A virtual handle of another copy of the library is never queried.
+  (never `GetProcAddress`, and no module load in a call); the tests
+  replace it in the registry's private field. A failing query sends the
+  call to the base. A virtual handle of another copy of the library is
+  never queried.
 - Native root names: `HKEY_LOCAL_MACHINE` is `\REGISTRY\MACHINE`,
   `HKEY_USERS` is `\REGISTRY\USER`, `HKEY_CURRENT_USER` is
   `\REGISTRY\USER\<SID string of the process token>`, computed when the

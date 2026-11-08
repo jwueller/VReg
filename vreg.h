@@ -1104,28 +1104,21 @@ typedef struct
     );
 } VRegNativeFunctions;
 
-/// Fills @p pFunctions from the export tables of `KernelBase.dll` and, for
-/// the pre-`Ex` forms only it exports, `advapi32.dll`, never through
-/// @ref GetProcAddress: an apphelp shim can make that answer a stub instead of
-/// the entry point. Resolution never loads a module (VReg links advapi32, so
-/// both are loaded before it runs), which makes it safe under the loader
-/// lock. A function neither module exports stays null.
-VREG_DECL void WINAPI VRegResolveNativeFunctions(
-    _Out_ VRegNativeFunctions* pFunctions
-);
-
-/// The real registry, reached through @p pFunctions, or through
-/// @ref VRegResolveNativeFunctions when that is null. The table is copied; the
-/// live copy, which the hooks attach to, is @ref VRegGetNativeFunctions.
-/// Freed with @ref VRegDestroy.
+/// The real registry, reached through a table filled from the export tables
+/// of `KernelBase.dll` and, for the pre-`Ex` forms only it exports,
+/// `advapi32.dll`, never through @ref GetProcAddress: an apphelp shim can make
+/// that answer a stub instead of the entry point. Resolution never loads a
+/// module (VReg links advapi32, so both are loaded before it runs), which
+/// makes it safe under the loader lock. A function neither module exports
+/// stays null. Freed with @ref VRegDestroy.
 VREG_DECL LSTATUS WINAPI VRegCreateNative(
-    _In_opt_ const VRegNativeFunctions* pFunctions,
     _Outptr_ VReg** ppRegistry
 );
 
 /// The live table of a registry @ref VRegCreateNative made: once the
 /// hooks are committed it holds the trampolines, and the registry is the one
-/// below them.
+/// below them. An entry replaced before anything uses the registry is the
+/// one it calls.
 VREG_DECL _Ret_notnull_ VRegNativeFunctions* WINAPI VRegGetNativeFunctions(
     _In_ VReg* pRegistry
 );
@@ -1133,16 +1126,6 @@ VREG_DECL _Ret_notnull_ VRegNativeFunctions* WINAPI VRegGetNativeFunctions(
 // ==========================================================================
 // The virtual registry
 // ==========================================================================
-
-/// @ref NtQueryKey, the one `ntdll` function a virtual registry uses to find
-/// the native path of a real key.
-typedef LONG (NTAPI* VRegNtQueryKeyFunction)(
-    HANDLE hKey,
-    ULONG keyInformationClass,
-    PVOID pKeyInformation,
-    ULONG cbKeyInformation,
-    PULONG pcbResult
-);
 
 /**
  * @brief A namespace of hives mounted at registry paths over an optional base
@@ -1168,13 +1151,11 @@ typedef LONG (NTAPI* VRegNtQueryKeyFunction)(
  *  lock to read it.
  *
  *  @p pBase answers everything outside the mounts; null for a registry held
- *  entirely in memory. @p pfnNtQueryKey replaces the `ntdll` export for native
- *  path resolution (a test seam); resolution happens here, so no call ever
- *  loads a module. Freed with @ref VRegDestroy.
+ *  entirely in memory. The `ntdll` export for native path resolution is found
+ *  here, so no call ever loads a module. Freed with @ref VRegDestroy.
  */
 VREG_DECL LSTATUS WINAPI VRegCreateVirtual(
     _In_opt_ VReg* pBase,
-    _In_opt_ VRegNtQueryKeyFunction pfnNtQueryKey,
     _Outptr_ VReg** ppRegistry
 );
 
@@ -2393,6 +2374,16 @@ VREG_DECL LSTATUS VReg_HiveOpenLowerValueKey(
 #define VREG_INTERNAL_KIND_NATIVE 1
 #define VREG_INTERNAL_KIND_VIRTUAL 2
 
+/// @ref NtQueryKey, the one `ntdll` function a virtual registry uses to find
+/// the native path of a real key.
+typedef LONG (NTAPI* VReg_NtQueryKeyFunction)(
+    HANDLE hKey,
+    ULONG keyInformationClass,
+    PVOID pKeyInformation,
+    ULONG cbKeyInformation,
+    PULONG pcbResult
+);
+
 /// A registry: its kind and what the kind needs.
 struct VReg
 {
@@ -2421,7 +2412,7 @@ struct VReg
             /// Null for a registry held entirely in memory.
             VReg* pBase;
 
-            VRegNtQueryKeyFunction pfnNtQueryKey;
+            VReg_NtQueryKeyFunction pfnNtQueryKey;
             struct VReg_MountTable* volatile pMounts;
             SRWLOCK mountLock;
         } virtualRegistry;
@@ -8120,19 +8111,7 @@ VREG_DECL LSTATUS WINAPI VRegSetHiveMuiTextValue(
 // The native registry
 // ==========================================================================
 
-VREG_DECL void WINAPI VRegResolveNativeFunctions(_Out_ VRegNativeFunctions* const pFunctions)
-{
-    ZeroMemory(pFunctions, sizeof(*pFunctions));
-
-    // A resolved export is a plain code address, which only a data pointer
-    // cast can carry into the typed slot.
-#define VREG_RESOLVE(name) *(void**)&pFunctions->name = VReg_FindRegistryExport(#name);
-    VREG_INTERNAL_REGISTRY_VIRTUALS(VREG_RESOLVE)
-#undef VREG_RESOLVE
-}
-
 VREG_DECL LSTATUS WINAPI VRegCreateNative(
-    _In_opt_ const VRegNativeFunctions* const pFunctions,
     _Outptr_ VReg** const ppRegistry
 )
 {
@@ -8142,10 +8121,12 @@ VREG_DECL LSTATUS WINAPI VRegCreateNative(
         return ERROR_OUTOFMEMORY;
 
     pRegistry->dwKind = VREG_INTERNAL_KIND_NATIVE;
-    if (pFunctions)
-        pRegistry->implementation.native = *pFunctions;
-    else
-        VRegResolveNativeFunctions(&pRegistry->implementation.native);
+
+    // A resolved export is a plain code address, which only a data pointer
+    // cast can carry into the typed slot.
+#define VREG_RESOLVE(name) *(void**)&pRegistry->implementation.native.name = VReg_FindRegistryExport(#name);
+    VREG_INTERNAL_REGISTRY_VIRTUALS(VREG_RESOLVE)
+#undef VREG_RESOLVE
 
     *ppRegistry = pRegistry;
     return ERROR_SUCCESS;
@@ -11143,7 +11124,6 @@ VREG_DECL void WINAPI VReg_VirtualDestroy(_In_ VReg* const pRegistry)
 
 VREG_DECL LSTATUS WINAPI VRegCreateVirtual(
     _In_opt_ VReg* const pBase,
-    _In_opt_ const VRegNtQueryKeyFunction pfnNtQueryKey,
     _Outptr_ VReg** const ppRegistry
 )
 {
@@ -11154,11 +11134,9 @@ VREG_DECL LSTATUS WINAPI VRegCreateVirtual(
 
     pRegistry->dwKind = VREG_INTERNAL_KIND_VIRTUAL;
     pRegistry->implementation.virtualRegistry.pBase = pBase;
-    pRegistry->implementation.virtualRegistry.pfnNtQueryKey = pfnNtQueryKey;
     InitializeSRWLock(&pRegistry->implementation.virtualRegistry.mountLock);
-    if (!pRegistry->implementation.virtualRegistry.pfnNtQueryKey)
-        *(void**)&pRegistry->implementation.virtualRegistry.pfnNtQueryKey =
-            VReg_FindExport(GetModuleHandleW(L"ntdll.dll"), "NtQueryKey");
+    *(void**)&pRegistry->implementation.virtualRegistry.pfnNtQueryKey =
+        VReg_FindExport(GetModuleHandleW(L"ntdll.dll"), "NtQueryKey");
 
     *ppRegistry = pRegistry;
     return ERROR_SUCCESS;
