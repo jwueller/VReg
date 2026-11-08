@@ -58,7 +58,7 @@ extern "C" {
 // Raised with every change to this file; the tweak is always 0.
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 6
-#define VREG_VERSION_PATCH 0
+#define VREG_VERSION_PATCH 1
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -2001,13 +2001,20 @@ VREG_DECL BOOL VReg_HiveIsFrozen(
     _In_ VRegHive* pHive
 );
 
+/// A key another registry answers. The caller owns @ref hKey and closes it
+/// through @ref pRegistry.
+typedef struct
+{
+    VReg* pRegistry;
+    HKEY hKey;
+} VReg_Redirect;
+
 /// Where an open landed: a node of the hive, or (for a key a frozen layered
-/// hive leaves untouched) a handle its lower registry opened, which the
-/// caller now owns.
+/// hive leaves untouched) a redirect to the key its lower registry opened.
 typedef struct
 {
     VReg_Node* pNode;
-    HKEY hLower;
+    VReg_Redirect redirect;
 } VReg_OpenResult;
 
 /// What `RegQueryInfoKeyW` reports, as owned values. Lengths are in
@@ -2067,12 +2074,6 @@ typedef LSTATUS (*VReg_UpperVisitor)(
 );
 
 VREG_DECL _Ret_notnull_ VReg_Node* VReg_HiveRoot(
-    _In_ VRegHive* pHive
-);
-
-/// The registry below the hive, which answers the handles in
-/// @ref VReg_OpenResult::hLower; null for a hive with nothing below it.
-VREG_DECL _Ret_maybenull_ VReg* VReg_HiveLower(
     _In_ VRegHive* pHive
 );
 
@@ -6172,11 +6173,6 @@ VREG_DECL _Ret_notnull_ VReg_Node* VReg_HiveRoot(_In_ VRegHive* const pHive)
     return pHive->pRoot;
 }
 
-VREG_DECL _Ret_maybenull_ VReg* VReg_HiveLower(_In_ VRegHive* const pHive)
-{
-    return pHive->pLower;
-}
-
 VREG_DECL HKEY VReg_NodeHandle(_In_ const VReg_Node* const pNode)
 {
     return pNode->hKey;
@@ -6263,7 +6259,8 @@ VREG_DECL LSTATUS VReg_HiveOpenKey(
     LSTATUS status;
 
     pResult->pNode = NULL;
-    pResult->hLower = NULL;
+    pResult->redirect.pRegistry = NULL;
+    pResult->redirect.hKey = NULL;
 
     status = VReg_HiveWalkUpper(pHive, pParent, pPath, cPath, &pCurrent, &cMatched, &isVisible, &lowerPath);
     if (status != ERROR_SUCCESS)
@@ -6294,7 +6291,8 @@ VREG_DECL LSTATUS VReg_HiveOpenKey(
 
     if (VReg_HiveIsFrozen(pHive))
     {
-        pResult->hLower = hLower;
+        pResult->redirect.pRegistry = pHive->pLower;
+        pResult->redirect.hKey = hLower;
         hLower = NULL;
         goto done;
     }
@@ -6429,7 +6427,8 @@ VREG_DECL LSTATUS VReg_HiveCreateKey(
     LSTATUS status;
 
     pResult->pNode = NULL;
-    pResult->hLower = NULL;
+    pResult->redirect.pRegistry = NULL;
+    pResult->redirect.hKey = NULL;
     *pdwDisposition = REG_OPENED_EXISTING_KEY;
 
     if (VReg_HiveIsFrozen(pHive))
@@ -6653,7 +6652,7 @@ VREG_DECL LSTATUS VReg_HiveDeleteKey(
     // Frozen since the check above, so the open answered with a lower key.
     if (!opened.pNode)
     {
-        VReg_HiveCloseLower(pHive, opened.hLower);
+        VReg_HiveCloseLower(pHive, opened.redirect.hKey);
         return ERROR_ACCESS_DENIED;
     }
 
@@ -9612,6 +9611,57 @@ static LSTATUS VReg_Resolve(
 
 // --- The slots ---
 
+/// A call forwarded to a redirect: the flat function, on @p hKey of
+/// @p pRegistry, with the arguments in @p pContext.
+typedef LSTATUS (*VReg_RedirectedCall)(_In_ VReg* pRegistry, HKEY hKey, _In_opt_ void* pContext);
+
+/// Answers a call whose open landed on a redirect: @p pfnCall on the
+/// redirect's registry and key, or @ref ERROR_ACCESS_DENIED for a write when
+/// it is null (only a frozen hive redirects, and it refuses every write).
+/// Closes the key either way.
+static LSTATUS VReg_CallRedirect(
+    _In_ const VReg_Redirect* const pRedirect,
+    _In_opt_ const VReg_RedirectedCall pfnCall,
+    _In_opt_ void* const pContext
+)
+{
+    // A redirect always names the registry that answers its key.
+    _Analysis_assume_(pRedirect->pRegistry);
+    const LSTATUS status = pfnCall ? pfnCall(pRedirect->pRegistry, pRedirect->hKey, pContext) : ERROR_ACCESS_DENIED;
+    VRegCloseKey(
+        pRedirect->pRegistry,
+        pRedirect->hKey
+    );
+    return status;
+}
+
+/// The arguments of a @ref RegGetValueW forwarded to a redirect, which
+/// answers the value of the redirect's key itself.
+typedef struct
+{
+    LPCWSTR lpValue;
+    DWORD dwFlags;
+    LPDWORD pdwType;
+    PVOID pvData;
+    LPDWORD pcbData;
+} VReg_GetValueCall;
+
+static LSTATUS VReg_RedirectGetValue(_In_ VReg* const pRegistry, const HKEY hKey, _In_opt_ void* const pContext)
+{
+    const VReg_GetValueCall* const pCall = (const VReg_GetValueCall*)pContext;
+    _Analysis_assume_(pCall);
+    return VRegGetValueW(
+        pRegistry,
+        hKey,
+        NULL,
+        pCall->lpValue,
+        pCall->dwFlags,
+        pCall->pdwType,
+        pCall->pvData,
+        pCall->pcbData
+    );
+}
+
 VREG_DECL LSTATUS WINAPI VReg_VirtualRegOpenKeyExW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
@@ -9659,7 +9709,7 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegOpenKeyExW(
 
     status = VReg_HiveOpenKey(target.pHive, target.pNode, target.pRest, target.cRest, samDesired, &result);
     if (status == ERROR_SUCCESS)
-        *phkResult = result.hLower ? result.hLower : VReg_NodeHandle(result.pNode);
+        *phkResult = result.redirect.hKey ? result.redirect.hKey : VReg_NodeHandle(result.pNode);
 
 done:
     VReg_TargetFree(&target);
@@ -9750,7 +9800,7 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegCreateKeyExW(
         goto done;
     }
 
-    *phkResult = result.hLower ? result.hLower : VReg_NodeHandle(result.pNode);
+    *phkResult = result.redirect.hKey ? result.redirect.hKey : VReg_NodeHandle(result.pNode);
     if (lpdwDisposition)
         *lpdwDisposition = dwDisposition;
 
@@ -10024,17 +10074,10 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegDeleteTreeW(
     if (status != ERROR_SUCCESS)
         goto done;
 
-    // Only a frozen hive hands out lower keys, and it refuses every write.
-    if (result.hLower)
+    // Only a frozen hive redirects, and it refuses every write.
+    if (result.redirect.hKey)
     {
-        VReg* const pLower = VReg_HiveLower(target.pHive);
-        // A lower handle exists only where there is a lower registry.
-        _Analysis_assume_(pLower);
-        VRegCloseKey(
-            pLower,
-            result.hLower
-        );
-        status = ERROR_ACCESS_DENIED;
+        status = VReg_CallRedirect(&result.redirect, NULL, NULL);
         goto done;
     }
 
@@ -10775,25 +10818,15 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegGetValueW(
             goto done;
         }
 
-        if (result.hLower)
+        if (result.redirect.hKey)
         {
-            VReg* const pLower = VReg_HiveLower(target.pHive);
-            // A lower handle exists only where there is a lower registry.
-            _Analysis_assume_(pLower);
-            status = VRegGetValueW(
-                pLower,
-                result.hLower,
-                NULL,
-                lpValue,
-                dwFlags,
-                pdwType,
-                pvData,
-                pcbData
-            );
-            VRegCloseKey(
-                pLower,
-                result.hLower
-            );
+            VReg_GetValueCall call;
+            call.lpValue = lpValue;
+            call.dwFlags = dwFlags;
+            call.pdwType = pdwType;
+            call.pvData = pvData;
+            call.pcbData = pcbData;
+            status = VReg_CallRedirect(&result.redirect, &VReg_RedirectGetValue, &call);
             goto done;
         }
 
