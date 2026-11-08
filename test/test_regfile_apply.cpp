@@ -73,7 +73,7 @@ TEST_CASE("Apply creates keys and sets every value form")
         L"\"odd\"=hex(1):61\r\n"
     );
     SIZE_T failed = 99;
-    REQUIRE(VRegApplyScript(script, registry, &failed) == ERROR_SUCCESS);
+    REQUIRE(Apply(script, registry, &failed) == ERROR_SUCCESS);
     CHECK(failed == 99);
 
     const auto get = [&](
@@ -104,7 +104,7 @@ TEST_CASE("Apply overwrites values and keeps unrelated ones")
     MustSet(registry, L"T", L"change", REG_DWORD, DwordBytes(1));
 
     REQUIRE(
-        VRegApplyScript(
+        Apply(
             MustParse(HEADER + L"[HKCU\\T]\r\n\"change\"=\"now text\"\r\n"),
             registry,
             nullptr
@@ -129,7 +129,7 @@ TEST_CASE("Apply deletes values and keys")
     SECTION("values, including the default one")
     {
         REQUIRE(
-            VRegApplyScript(
+            Apply(
                 MustParse(HEADER + L"[HKCU\\T]\r\n\"a\"=-\r\n@=-\r\n"),
                 registry,
                 nullptr
@@ -179,7 +179,7 @@ TEST_CASE("Apply deletes values and keys")
     SECTION("a key with its whole subtree")
     {
         REQUIRE(
-            VRegApplyScript(
+            Apply(
                 MustParse(HEADER + L"[-HKCU\\Gone]\r\n"),
                 registry,
                 nullptr
@@ -192,7 +192,7 @@ TEST_CASE("Apply deletes values and keys")
     SECTION("what does not exist")
     {
         REQUIRE(
-            VRegApplyScript(
+            Apply(
                 MustParse(
                     HEADER
                     + L"[-HKCU\\Missing\\Deep]\r\n[-HKCU\\Gone\\Deep\\Deeper\\Nope]\r\n"
@@ -232,7 +232,7 @@ TEST_CASE("Delete then create replaces a key")
     MustSet(registry, L"T", L"y", REG_DWORD, DwordBytes(1));
 
     REQUIRE(
-        VRegApplyScript(
+        Apply(
             MustParse(HEADER + L"[-HKCU\\T]\r\n[HKCU\\T]\r\n\"z\"=dword:2\r\n"),
             registry,
             nullptr
@@ -301,7 +301,7 @@ TEST_CASE("Apply refuses an operation that would delete a root")
     AppHive hive;
     AppHiveRegistry registry(hive.Root());
     const OwnedScript setup = MustParse(HEADER + L"[HKCU\\Keep]\r\n");
-    REQUIRE(VRegApplyScript(setup, registry, nullptr) == ERROR_SUCCESS);
+    REQUIRE(Apply(setup, registry, nullptr) == ERROR_SUCCESS);
 
     const Spec deleteRoot{VREG_OPERATION_DELETE_KEY, L"", L"", 0, {}};
     const VRegOperation operation = deleteRoot.View();

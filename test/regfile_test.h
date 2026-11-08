@@ -95,6 +95,13 @@ inline std::span<const VRegOperation> Operations(const VRegScript* const pScript
     return {pOperations, cOperations};
 }
 
+/// Applies a script's operations through @p registry.
+inline LSTATUS Apply(const VRegScript* const pScript, VReg* const registry, SIZE_T* const pFailedIndex)
+{
+    const auto operations = Operations(pScript);
+    return VRegApplyOperations(operations.data(), operations.size(), registry, pFailedIndex);
+}
+
 inline std::vector<std::byte> DataOf(const VRegOperation& operation)
 {
     const auto* const pData = reinterpret_cast<const std::byte*>(operation.pData);
@@ -110,8 +117,10 @@ inline LSTATUS TryWriteBytes(
 {
     void* pBytes = nullptr;
     SIZE_T cbBytes = 0;
+    const auto operations = Operations(pScript);
     const LSTATUS status = VRegWriteScript(
-        pScript,
+        operations.data(),
+        operations.size(),
         format,
         &pBytes,
         &cbBytes

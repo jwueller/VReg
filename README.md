@@ -121,7 +121,8 @@ VRegSetKeyValueW(registry, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", L"Windo
 ```
 
 Writes stay in memory. `VRegDeltaScript` collects them as a `.reg` script
-that `VRegWriteScriptFile` saves and `VRegApplyScript` replays later. Every
+whose operations `VRegWriteScriptFile` saves and `VRegApplyOperations`
+replays later. Every
 status is the `LSTATUS` the native function answers; the creation functions
 answer `ERROR_OUTOFMEMORY` when memory ran out.
 
@@ -149,7 +150,7 @@ VRegCreateNative(&native);
 VRegCreateVirtual(native, &registry);
 VRegCreateHive(&hive);
 VRegMount(registry, HKEY_LOCAL_MACHINE, L"Software\\Vendor\\Game", hive, 0);
-// Fill the hive through registry (or VRegApplyScript), then:
+// Fill the hive through registry (or VRegApplyOperations), then:
 VRegFreezeHive(hive);
 VRegInstallHooks(registry, native);
 ```

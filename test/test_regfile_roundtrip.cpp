@@ -119,7 +119,7 @@ void RoundTrip(const std::vector<Entry>& entries, const VRegFormat format)
 
     AppHive target;
     AppHiveRegistry targetRegistry(target.Root());
-    REQUIRE(VRegApplyScript(script, targetRegistry, nullptr) == ERROR_SUCCESS);
+    REQUIRE(Apply(script, targetRegistry, nullptr) == ERROR_SUCCESS);
     CheckSame(targetRegistry, entries);
 
     const auto again = ExportSnapshot(
@@ -195,7 +195,7 @@ TEST_CASE("Applying an export over the same data changes nothing")
     );
     OwnedScript script;
     REQUIRE(Parse(file, script, nullptr) == ERROR_SUCCESS);
-    REQUIRE(VRegApplyScript(script, registry, nullptr) == ERROR_SUCCESS);
+    REQUIRE(Apply(script, registry, nullptr) == ERROR_SUCCESS);
 
     const auto again = ExportSnapshot(
         registry,

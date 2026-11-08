@@ -1303,14 +1303,6 @@ VREG_DECL LSTATUS WINAPI VRegApplyOperations(
     _On_failure_(_Out_opt_) SIZE_T* pFailedIndex
 );
 
-/// @ref VRegApplyOperations over a script's operations.
-_Success_(return == ERROR_SUCCESS)
-VREG_DECL LSTATUS WINAPI VRegApplyScript(
-    _In_ const VRegScript* pScript,
-    _In_ VReg* pRegistry,
-    _On_failure_(_Out_opt_) SIZE_T* pFailedIndex
-);
-
 /**
  * @brief A script that recreates the key @p pszPath below the predefined root
  *  @p hRoot and everything below it: each key, then its values, then its
@@ -1356,13 +1348,13 @@ VREG_DECL LSTATUS WINAPI VRegDeltaScript(
 );
 
 /**
- * @brief Lays @p pScript out as a regedit-style file in @p format, into bytes
- *  freed with @ref VRegFree.
+ * @brief Lays @p cOperations operations out as a regedit-style file in
+ *  @p format, into bytes freed with @ref VRegFree.
  *
  *  Each key operation is a `[key]` or `[-key]` line and each value operation
  *  a `"name"=...` line under it; a value whose key differs from the last key
- *  line gets a `[key]` line of its own first, so a script built by hand lays
- *  out as one parsed from a file would.
+ *  line gets a `[key]` line of its own first, so operations built by hand
+ *  without key operations lay out as a file that sets those values.
  *
  * @return @ref ERROR_NO_UNICODE_TRANSLATION when @p format cannot represent a
  *  name or string, @ref ERROR_INVALID_NAME for a name that holds a line break
@@ -1370,7 +1362,8 @@ VREG_DECL LSTATUS WINAPI VRegDeltaScript(
  *  file cannot name.
  */
 VREG_DECL LSTATUS WINAPI VRegWriteScript(
-    _In_ const VRegScript* pScript,
+    _In_reads_(cOperations) const VRegOperation* pOperations,
+    _In_ SIZE_T cOperations,
     _In_ VRegFormat format,
     _Outptr_result_bytebuffer_(*pcbBytes) void** ppBytes,
     _Out_ SIZE_T* pcbBytes
@@ -1385,7 +1378,8 @@ VREG_DECL void WINAPI VRegFree(
 /// @ref VRegWriteScript into the file @p pszPath. An existing file is replaced
 /// only once the layout has succeeded.
 VREG_DECL LSTATUS WINAPI VRegWriteScriptFile(
-    _In_ const VRegScript* pScript,
+    _In_reads_(cOperations) const VRegOperation* pOperations,
+    _In_ SIZE_T cOperations,
     _In_ VRegFormat format,
     _In_z_ LPCWSTR pszPath
 );
@@ -11383,17 +11377,6 @@ VREG_DECL LSTATUS WINAPI VRegApplyOperations(
     return ERROR_SUCCESS;
 }
 
-_Success_(return == ERROR_SUCCESS)
-VREG_DECL LSTATUS WINAPI VRegApplyScript(
-    _In_ const VRegScript* const pScript,
-    _In_ VReg* const pRegistry,
-    _On_failure_(_Out_opt_) SIZE_T* const pFailedIndex
-)
-{
-    const VRegOperation* const pOperations = (const VRegOperation*)pScript->operations.p;
-    return VRegApplyOperations(pOperations, pScript->operations.count, pRegistry, pFailedIndex);
-}
-
 // ==========================================================================
 // Snapshot and delta
 // ==========================================================================
@@ -13042,7 +13025,8 @@ static BOOL VReg_SameKey(_In_ const VRegOperation* const pLeft, _In_ const VRegO
 }
 
 VREG_DECL LSTATUS WINAPI VRegWriteScript(
-    _In_ const VRegScript* const pScript,
+    _In_reads_(cOperations) const VRegOperation* const pOperations,
+    _In_ const SIZE_T cOperations,
     _In_ const VRegFormat format,
     _Outptr_result_bytebuffer_(*pcbBytes) void** const ppBytes,
     _Out_ SIZE_T* const pcbBytes
@@ -13069,9 +13053,9 @@ VREG_DECL LSTATUS WINAPI VRegWriteScript(
         goto done;
     }
 
-    for (i = 0; i < pScript->operations.count; ++i)
+    for (i = 0; i < cOperations; ++i)
     {
-        const VRegOperation* const pOperation = &VREG_INTERNAL_AT(&pScript->operations, VRegOperation, i);
+        const VRegOperation* const pOperation = &pOperations[i];
         const BOOL isKey = pOperation->kind == VREG_OPERATION_CREATE_KEY || pOperation->kind ==
             VREG_OPERATION_DELETE_KEY;
         if (VReg_HasLineBreak(VReg_ViewOf(pOperation->pszPath)) || VReg_HasLineBreak(
@@ -13103,7 +13087,7 @@ VREG_DECL LSTATUS WINAPI VRegWriteScript(
         }
     }
 
-    if (pScript->operations.count != 0 && !VReg_OutAppend(&out, VREG_INTERNAL_NEWLINE))
+    if (cOperations != 0 && !VReg_OutAppend(&out, VREG_INTERNAL_NEWLINE))
     {
         status = ERROR_OUTOFMEMORY;
         goto done;
@@ -13126,14 +13110,15 @@ done:
 }
 
 VREG_DECL LSTATUS WINAPI VRegWriteScriptFile(
-    _In_ const VRegScript* const pScript,
+    _In_reads_(cOperations) const VRegOperation* const pOperations,
+    _In_ const SIZE_T cOperations,
     _In_ const VRegFormat format,
     _In_z_ const LPCWSTR pszPath
 )
 {
     void* pBytes = NULL;
     SIZE_T cbBytes = 0;
-    LSTATUS status = VRegWriteScript(pScript, format, &pBytes, &cbBytes);
+    LSTATUS status = VRegWriteScript(pOperations, cOperations, format, &pBytes, &cbBytes);
     if (status != ERROR_SUCCESS)
         return status;
 

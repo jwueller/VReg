@@ -406,16 +406,16 @@ which would re-enter the hooks and bypass test stubs.
 
 ### API
 
-In the ".reg scripts" section, everything is a `VRegScript`: an ordered list
-of `VRegOperation`s (create key, delete key, set value, delete value, each
-with its root, path, name, type and data), which parsing produces, applying
-performs, snapshot and delta produce, and one writer lays out. Parse and
-write are symmetric, and a caller can build operations by hand and apply
-them with `VRegApplyOperations`.
+In the ".reg scripts" section, a `VRegScript` holds an ordered list of
+`VRegOperation`s (create key, delete key, set value, delete value, each
+with its root, path, name, type and data). Parsing, snapshot and delta
+produce a script; applying and writing take an operation array
+(`VRegGetScriptOperations` reads a script's), so operations built by hand
+are applied and written like parsed ones. Parse and write are symmetric.
 
 - `VRegParseScript(file bytes)`: a syntax error reports line and column.
-- `VRegApplyScript(script, registry)`: reports the index of the failing
-  operation.
+- `VRegApplyOperations(operations, registry)`: reports the index of the
+  failing operation.
 - `VRegSnapshotScript(registry, root, path)`: the merged view, no deletion
   operations; for fixtures and inspection.
 - `VRegDeltaScript(hive, root, path)`: the hive's own layer, with
@@ -429,8 +429,8 @@ them with `VRegApplyOperations`.
   is omitted, so opening keys does not change the delta; one with upper
   values or value tombstones appears as `[K]` (it exists below, so creating
   it is harmless).
-- `VRegWriteScript(script, format)` lays a script out as a file; the file
-  helpers (`VRegParseScriptFile`, `VRegWriteScriptFile`) sit on top. Hooks
+- `VRegWriteScript(operations, format)` lays operations out as a file; the
+  file helpers (`VRegParseScriptFile`, `VRegWriteScriptFile`) sit on top. Hooks
   never perform file I/O.
 
 ### Import

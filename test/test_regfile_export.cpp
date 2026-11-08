@@ -464,7 +464,8 @@ TEST_CASE("A snapshot script written to a file has the same bytes and keeps a fi
     );
     REQUIRE(
         VRegWriteScriptFile(
-            snapshot,
+            Operations(snapshot).data(),
+            Operations(snapshot).size(),
             VREG_FORMAT_UNICODE,
             path.c_str()
         ) == ERROR_SUCCESS

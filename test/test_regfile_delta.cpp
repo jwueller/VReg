@@ -260,7 +260,7 @@ public:
         VRegParseError error{};
         REQUIRE(Parse(file, script, &error) == ERROR_SUCCESS);
         SIZE_T iFailed{};
-        REQUIRE(VRegApplyScript(script, m_freshRegistry, &iFailed) == ERROR_SUCCESS);
+        REQUIRE(Apply(script, m_freshRegistry, &iFailed) == ERROR_SUCCESS);
 
         const auto expected = ExportSnapshot(
             m_modifiedRegistry,
