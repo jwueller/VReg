@@ -20,10 +20,15 @@ It grew out of the virtual registry in [DirectRetrofit](https://retrofit.games).
   derived from the wide `Ex` forms. Each form has a function typedef
   (`VRegOpenKeyExWFunction`) that the flat function and the slot share.
 - **Hives mounted into a virtual namespace.** A virtual registry mounts
-  in-memory or overlay hives at registry paths and passes everything else to
-  a base registry (usually the real one). An overlay hive adds, overrides
+  in-memory, overlay or custom hives at registry paths and passes everything
+  else to a base registry (usually the real one). An overlay hive adds, overrides
   and deletes keys and values over the registry below it, while real values
   it does not override stay visible.
+- **Hives as a function table.** A hive can be supplied as a table of slots
+  (a `VRegHiveVtbl`, made into a hive with `VRegCreateCustomHive`) over an
+  object of your own, so a data structure of yours, or values computed on
+  each read, show as registry keys, while VReg keeps every Win32 rule:
+  handles, caller buffers, ANSI and wide, views and mounts.
 - **Pure in-memory mode.** With no base registry, nothing outside the
   mounted hives exists.
 - **`.reg` files.** Import and export (REGEDIT4 and version 5), including
@@ -122,9 +127,12 @@ VRegSetKeyValueW(registry, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", L"Windo
 
 Writes stay in memory. `VRegDeltaScript` collects them as a `.reg` script
 whose operations `VRegWriteScriptFile` saves and `VRegApplyOperations`
-replays later. Every
-status is the `LSTATUS` the native function answers; the creation functions
-answer `ERROR_OUTOFMEMORY` when memory ran out.
+replays later. Every status is the `LSTATUS` the native function answers;
+the creation functions answer `ERROR_OUTOFMEMORY` when memory ran out.
+
+The key is named twice, by the hive as its lower key and by the mount as
+its path: one hive can be mounted in several registries, so the lower key
+stays the hive's own.
 
 ### Held entirely in memory
 
@@ -138,6 +146,79 @@ VRegCreateVirtual(NULL, &registry);   // no base: nothing else exists
 VRegMount(registry, HKEY_LOCAL_MACHINE, L"", machine, 0);
 VRegMount(registry, HKEY_CURRENT_USER, L"", user, 0);
 ```
+
+### Supplying a hive
+
+A table of slots answers what a hive holds, on demand. This one is a single
+key with one value, computed on each read:
+
+```c
+static LSTATUS WINAPI OpenKey(VRegHive* hive, VRegHiveKey* parent, LPCWSTR name, void** token)
+{
+    *token = NULL;
+    return ERROR_FILE_NOT_FOUND;   // no subkeys
+}
+
+static LSTATUS SetTicks(VRegHiveResult* result)
+{
+    const DWORD ticks = GetTickCount();
+    return VRegHiveResultSetValue(result, REG_DWORD, (const BYTE*)&ticks, sizeof(ticks));
+}
+
+static LSTATUS WINAPI QueryValue(VRegHive* hive, VRegHiveKey* key, LPCWSTR name, VRegHiveResult* result)
+{
+    return VRegCompareNames(name, L"Ticks") == 0 ? SetTicks(result) : ERROR_FILE_NOT_FOUND;
+}
+
+static LSTATUS WINAPI EnumKey(VRegHive* hive, VRegHiveKey* key, DWORD index, VRegHiveResult* result)
+{
+    return ERROR_NO_MORE_ITEMS;
+}
+
+static LSTATUS WINAPI EnumValue(VRegHive* hive, VRegHiveKey* key, DWORD index, VRegHiveResult* result)
+{
+    if (index != 0)
+        return ERROR_NO_MORE_ITEMS;
+    const LSTATUS status = VRegHiveResultSetName(result, L"Ticks");
+    return status == ERROR_SUCCESS ? SetTicks(result) : status;
+}
+
+static const VRegHiveVtbl CLOCK = {.OpenKey = OpenKey, .QueryValue = QueryValue, .EnumKey = EnumKey, .EnumValue = EnumValue};
+
+VRegHive* clock;
+VReg* registry;
+VRegCreateCustomHive(&CLOCK, NULL, &clock);   // the delegate: VRegGetHiveDelegate
+VRegCreateVirtual(NULL, &registry);
+VRegMount(registry, HKEY_CURRENT_USER, L"Software\\Clock", clock, 0);
+```
+
+`OpenKey`, `QueryValue`, `EnumKey` and `EnumValue` are required. VReg opens
+and creates one name at a time and keeps a record of each key it reached,
+which a slot receives as its `VRegHiveKey`: the provider's own token for it
+(`VRegGetHiveKeyToken`, what `OpenKey` or `CreateKey` answered), its name
+and its parent. Results go through the `VRegHiveResultSet*` functions,
+which copy, so a computed value can live on the stack.
+
+- **Writes** go through to `CreateKey`, `DeleteKey`, `DeleteTree`,
+  `SetValue` and `DeleteValue`. One left null answers
+  `ERROR_ACCESS_DENIED`; without `CreateKey`, an existing key still opens,
+  as on a frozen hive. `DeleteTree` is never made from the other slots.
+- **Optional slots**: without `QueryInfo`, `RegQueryInfoKey` enumerates the
+  key's subkeys and values once; without `CheckKey`, `RegFlushKey`
+  succeeds; `Destroy` frees what the delegate owns when the hive goes.
+- **Threads**: slots MAY run on any thread, concurrently, and under another
+  module's loader lock, so they MUST NOT load a module, create a thread or
+  wait on a lock a loader-lock holder could own. VReg holds no lock of its
+  own across a slot call; the provider locks its own state.
+- **Names** arrive as the caller passed them and MUST compare as the
+  registry compares them: `VRegCompareNames`.
+- **Registry rules**: `DeleteKey` on a key with subkeys MUST answer
+  `ERROR_ACCESS_DENIED`, as native does. Enumeration order MUST stay stable
+  while nothing changes. Two reads of a value MAY differ; VReg's reads
+  retry when it grows. No slot sees the access a key was opened with.
+- **Changes the provider makes on its own** fire watches through
+  `VRegNotifyHiveChange`, called from the provider's own thread, never from
+  inside a slot.
 
 ### Hooked into the process
 
@@ -429,7 +510,11 @@ an in-memory hive; the scenarios skip exactly these calls for the virtual run
   checked. (A zero `samDesired` is refused on open, as native does.)
 - Handle identity: two opens of a node return the same handle, and an `Ex`
   open or create of an empty subkey returns the parent's own handle where
-  native returns a new one.
+  native returns a new one. A hive keeps a record of every key opened until
+  it is destroyed, so a provider over an unbounded key space grows by one
+  record per distinct key opened.
+- A provider that enumerates in another order than native (subkeys by
+  name, values in creation order) diverges in that order.
 - `REG_OPTION_BACKUP_RESTORE` opens succeed; native needs
   `SeBackupPrivilege` and answers `ERROR_ACCESS_DENIED` without it.
 - `REG_OPTION_CREATE_LINK` creates an ordinary key.

@@ -116,19 +116,24 @@ Implementations:
 ### `VRegHive`: storage
 
 A tree with one anonymous root, mounted at a path; several can be mounted at
-once, as with `RegLoadKey`. The public functions create, layer, freeze and
-destroy a `VRegHive`; the node-level interface the
-virtual registry uses (the private "Hive internals" section, `VReg_Hive*`) answers owned
-values, while buffer and ANSI/wide rules
-stay in the virtual registry. One struct covers every kind of hive, since
-they differ only in what lies below the node tree, reached through a
-`VRegHiveVtbl`: nothing (in memory), a registry subtree (layered) or the
-caller's table (custom). An in-memory hive is a layered one with nothing
-below it, and the flags that describe a node's relation to the lower layer
-stay clear in it.
+once, as with `RegLoadKey`. The virtual registry reaches a hive only through
+the node-level interface of the private "Hive internals" section
+(`VReg_Hive*`), which answers owned values, while buffer and ANSI/wide rules
+stay in the virtual registry.
 
-- `VRegCreateHive`: in memory, starts empty.
-- `VRegCreateLayeredHive(lower, lower root, lower path, view)`: reads its
+One struct covers every kind of hive. What varies is the lower behind the
+node tree, which the hive reaches only through a `VRegHiveVtbl` and its
+delegate, as `fopencookie` makes a `FILE` from functions and a cookie:
+
+- `VRegCreateHive`: nothing below; in memory, starts empty. The flags that
+  describe a node's relation to the lower layer stay clear in it.
+- `VRegCreateCustomHive(table, delegate)`: the caller's table, the second
+  extension point beside `VRegVtbl`: data, not interception. Its writes go
+  through to the slots.
+- `VRegCreateLayeredHive(lower, lower root, lower path, view)`: a registry
+  subtree, through an internal implementation of the table ("Hive lowers
+  over a registry" in `vreg.h`) whose delegate holds the lower registry,
+  root, path and view. It reads its
   own upper tree first and falls through to the lower key. The lower layer
   can be native or another virtual registry. A frozen layered hive answers
   an untouched key with a handle of its lower registry, and the virtual
@@ -146,6 +151,87 @@ stay clear in it.
     a subkey of its root.
   - An upper-only key ends its enumerations with `ERROR_NO_MORE_ITEMS`,
     never `ERROR_FILE_NOT_FOUND`.
+
+The nodes are the hive's records of its keys:
+
+- A custom hive's nodes hold no values: each is the record of a key the
+  provider answered, published as the opaque `VRegHiveKey`, keeping the
+  token its `OpenKey` or `CreateKey` returned. Slots read it through
+  `VRegGetHiveKeyToken`, `VRegGetHiveKeyName` and `VRegGetHiveKeyParent`,
+  allocation-free and valid for the hive's life. Agent's choice: name and
+  parent instead of a joined path, which would need storage the caller
+  frees or a buffer rule; a provider that wants the path walks up and joins
+  it.
+- Identity is the path, compared with `VReg_CompareNames` as for every
+  node, so a virtual handle maps to a record as to any node: one handle per
+  record, and a record whose key was deleted through VReg answers
+  `ERROR_KEY_DELETED` for good. A provider that answers the same token for
+  two paths gets two records; nothing compares tokens. Records live until
+  the hive is destroyed.
+- Records are added lazily under the hive's write lock, never while a slot
+  runs: look up, unlock, call the slot, lock again and insert, finding what
+  another thread inserted meanwhile. A custom hive opens and creates one
+  name per slot call, so every record holds the token of its own key; the
+  layered hive opens the whole rest of a path in one lower call.
+- Writes have a mode per hive, which its constructor sets: copy-up (in
+  memory and layered) keeps them in the hive's own layer; write-through
+  (custom) sends them to the slots and then updates the records: a created
+  key gets a record with its token, a deleted one is marked deleted, and
+  the watches fire as for any write. A null write slot answers
+  `ERROR_ACCESS_DENIED`; without `CreateKey` an existing key still opens,
+  as on a frozen hive. A null `QueryInfo` is derived by enumerating keys and
+  values once; a null `CheckKey` succeeds.
+- The access mask of an open and the frozen hand-out never reach a
+  provider. The layered hive opens its lower through a private variant of
+  `OpenKey` that takes the access and can hand the opened key out as a
+  redirect ("this key is answered by registry R at key K"); a frozen
+  layered hive answers an untouched key that way, and the virtual registry
+  forwards a call on a redirect through one helper that closes the key
+  after. The redirect stays private: its constraint, that later calls on
+  the handle go to the mounting registry's base, is a sharp edge to
+  publish.
+- Slots hand results over through the `VRegHiveResultSet*` sinks, which
+  copy into storage the hive points them at; the internal implementation
+  fills that storage directly.
+- VReg's invariants bind the provider's code too, and the public header
+  states them as requirements: slots run on any thread, concurrently and
+  under a foreign loader lock; VReg holds no lock of its own across a slot
+  call; names arrive unchanged and compare as `VRegCompareNames` does;
+  `DeleteKey` on a key with subkeys answers `ERROR_ACCESS_DENIED` without
+  VReg checking first; the access mask is never passed.
+- The upper-layer snapshot that `VRegDeltaScript` reads belongs to the
+  built-in tree.
+
+Agent's choices, open until the maintainer confirms them:
+
+- The public pair mirrors the registry's: `VRegCreateCustomHive(table,
+  delegate, &hive)` and `VRegGetHiveDelegate(hive)`, freed with
+  `VRegDestroyHive`, over a `VRegHiveVtbl`. Passed over: a separate opaque
+  type for custom hives, which would split every mount and script function
+  in two.
+- Slots take the hive, as `VRegVtbl` slots take the registry, and reach
+  their object through `VRegGetHiveDelegate`, so both tables read alike and
+  a slot holds what `VRegNotifyHiveChange` needs. Passed over: slots that
+  take the delegate, as `fopencookie`'s callbacks take the cookie.
+- `DeleteTree` is never derived from the other slots: a partial failure
+  would leave a half-deleted tree that native never shows. Passed over:
+  deleting subkeys one by one through `DeleteKey`.
+- Results go through copying sinks, so a computed value can live on the
+  provider's stack and nothing it hands over needs a lifetime rule. Passed
+  over: caller buffers with `ERROR_MORE_DATA`, which bring back the buffer
+  rules the table exists to hide, and returned pointers valid until the
+  next call, which every concurrent caller would have to reason about.
+- Freezing a custom hive refuses writes through VReg and changes nothing
+  else: its records are still discovered lazily, so opens keep taking the
+  lock, and it keeps its watches. Passed over: refusing the freeze, which
+  would need `VRegFreezeHive` to answer a status.
+- A custom hive's delta is empty, which is what the hive holds itself: its
+  records are all transparent, so the snapshot of the upper layer has
+  nothing to write. Passed over: refusing `VRegDeltaScript` on it.
+- The layered hive's lower reopens its key by path on every call and keeps
+  no handle per record (the comment at "Hive lowers over a registry" in
+  `vreg.h`). Passed over: one lower handle per record, faster but pinned for
+  the hive's life.
 
 ## Handles, freeze and locking
 

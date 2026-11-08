@@ -34,15 +34,15 @@ work is done; git keeps how it got there.
   from one may load a module, create a thread, or wait on a lock that a
   loader-lock holder could own. A load the hooked call itself makes
   natively is the caller's, not VReg's: `RegLoadMUIString` resolving an
-  indirect string. A hive's lock is never held across a call into the lower
-  registry.
-- **Lower-registry access goes only through the base `Registry`** (after
-  hooking: the trampolines). A direct `::Reg*` call inside the library
-  re-enters the hooks and bypasses test stubs.
-- **Frozen hives are immutable**; the readers of a built-in one (in memory
-  or layered) take no lock, while a custom hive keeps locking to add the
-  records of keys it opens. The mount table is replaced copy-on-write, and
-  old tables are never freed.
+  indirect string. A hive's lock is never held across a call into its
+  lower: the lower registry or a provider's slot.
+- **Lower-registry access goes only through the flat functions on the base
+  registry** (after hooking: the trampolines). A direct `::Reg*` call
+  inside the library re-enters the hooks and bypasses test stubs.
+- **Frozen built-in hives are immutable** (in memory or layered), and their
+  readers take no lock; a frozen custom hive only refuses writes, and keeps
+  locking to add the records of keys it opens. The mount table is replaced
+  copy-on-write, and old tables are never freed.
 - **Virtual handles are odd values at most `0x7FFFFFFF`.** Never hand one to
   a real registry API. The shared handle section's layout is an ABI between
   separately built copies, so it never changes.

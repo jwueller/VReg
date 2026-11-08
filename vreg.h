@@ -58,7 +58,7 @@ extern "C" {
 // Raised with every change to this file; the tweak is always 0.
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 8
-#define VREG_VERSION_PATCH 0
+#define VREG_VERSION_PATCH 1
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -785,7 +785,8 @@ VREG_DECL void WINAPI VRegDestroy(
 /**
  * @brief Storage for one subtree of a virtual namespace: a tree with one
  *  anonymous root, mounted at a path by a virtual registry, held in memory
- *  on its own or layered over a key of another registry.
+ *  on its own, layered over a key of another registry, or answered by the
+ *  slots of a @ref VRegHiveVtbl (@ref VRegCreateCustomHive).
  *
  *  On its own, the hive starts empty and holds everything written to it.
  *  Layered over a lower key, reads fall through to that key and writes stay
@@ -796,11 +797,12 @@ VREG_DECL void WINAPI VRegDestroy(
  *  lists the hive's own entries first, then the lower ones no entry shadows;
  *  counts cover both.
  *
- *  Each key has exactly one virtual handle, issued when the key is created.
- *  Readers take the hive's lock shared and writers exclusive, until
- *  @ref VRegFreezeHive; after that nothing writes and the readers of a hive
- *  VReg holds itself take no lock at all. The lower registry is never called with the lock held, so a lower
- *  call that loads a module or takes a long time cannot hold up the hive.
+ *  Each key has exactly one virtual handle, issued when VReg first creates
+ *  or opens it. Readers take the hive's lock shared and writers exclusive,
+ *  until @ref VRegFreezeHive; after that nothing writes and the readers of a
+ *  hive VReg holds itself take no lock at all. The lower (a registry or a
+ *  provider's slots) is never called with the lock held, so a lower call
+ *  that takes a long time cannot hold up the hive.
  *
  *  Frozen, a layered hive answers an open of a key it has nothing at or below
  *  with the lower registry's own handle. A virtual registry sends later calls
