@@ -86,11 +86,21 @@ recorded):
 ### Nodes and handles
 
 - A slot works on key records. Open and create take a parent record plus
-  the path components below it, as `VReg_HiveOpenKey` does today, and
-  answer whether the key exists plus an optional token that the record
-  keeps. Slots receive the record and read its token and its hive-relative
-  path through `VRegGetHiveKeyToken` and `VRegGetHiveKeyPath`, so a
-  provider that only knows paths stores nothing and interns nothing.
+  the path below it and answer whether the key exists plus an optional
+  token that the record keeps. Agent's choice: the public slots take that
+  path as one backslash-separated `LPCWSTR` below the parent, the shape
+  `RegOpenKeyExW` gives its subkey, so no public string-view type is
+  needed; the hive joins the components it resolved, and the internal
+  registry implementation joins them again onto the lower path. Passed
+  over: a public view type (pointer plus length), one more type for one
+  parameter.
+- Slots receive the record and read it through `VRegGetHiveKeyToken`,
+  `VRegGetHiveKeyName` and `VRegGetHiveKeyParent`, all allocation-free
+  and valid for the hive's life. Agent's choice: name and parent instead
+  of a joined path, which would need storage the caller frees or a buffer
+  rule; a provider that wants the path walks up and joins it. The access
+  mask and the hive's own request flags (such as whether a frozen open
+  wants a redirect) stay private and never reach a provider.
 - The record is the hive's node without values (`VReg_Node`, public as the
   opaque `VRegHiveKey`), so a virtual handle maps to it as it maps to any
   node (`VReg_NodeHandle`, `VReg_NodeOf`, `VReg_NodeHive`) and path
@@ -155,11 +165,13 @@ Optional, each with what VReg does when it is null:
 
 The private interface fills `VReg_WString` and `VReg_Buffer`, which a
 public slot cannot name. Agent's choice: a slot hands results to VReg
-through small sink functions that copy: value type and data, a name, a
-class, a last-write time. A computed value can live on the provider's
-stack and nothing it hands over needs a lifetime rule. The internal
-registry implementation fills the private types directly, so nothing is
-copied twice. Passed over: caller buffers with `ERROR_MORE_DATA`, which
+through small sink functions on an opaque `VRegHiveResult` that copy:
+value type and data, a name, a class, a last-write time, and the key-info
+counts. A computed value can live on the provider's stack and nothing it
+hands over needs a lifetime rule. The token of an open and the "created"
+answer of a create are plain out-parameters of those slots, not sinks.
+The internal registry implementation fills the private types directly,
+so nothing is copied twice. Passed over: caller buffers with `ERROR_MORE_DATA`, which
 brings back the buffer rules the table exists to hide, and returned
 pointers valid until the next call, which every concurrent caller would
 have to reason about.
