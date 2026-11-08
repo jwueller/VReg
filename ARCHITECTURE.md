@@ -162,7 +162,7 @@ relation to the lower layer stay clear in it.
 Virtual HKEYs are odd values counting down from `0x7FFFFFFF` on both x86 and
 x64. Real handles are even; predefined roots lie above the base
 (sign-extended to `0xFFFFFFFF8000000x` on x64). `VRegIsVirtualHKey` is "nonzero,
-odd, at most the base"; `VRegIsPredefinedHKey` is the range from
+odd, at most the base"; the private `VReg_IsPredefinedHKey` is the range from
 `HKEY_CLASSES_ROOT` to `HKEY_CURRENT_USER_LOCAL_SETTINGS`, the one test for a
 root everywhere in the library.
 

@@ -1461,7 +1461,7 @@ TEST_CASE("A frozen overlay refuses writes and hands out lower keys")
     const auto before = Snapshot(native, fx.LowerRoot());
 
     VRegFreezeHive(fx.Overlay());
-    REQUIRE(VRegIsHiveFrozen(fx.Overlay()));
+    REQUIRE(VReg_HiveIsFrozen(fx.Overlay()));
 
     SECTION("Writes answer ERROR_ACCESS_DENIED")
     {
@@ -1892,7 +1892,7 @@ TEST_CASE("An overlay frozen during a write answers as frozen and writes nothing
     // The writer has checked the overlay writable before its first lower call.
     fx.Lower().onCall = [&](const std::string&)
     {
-        if (!VRegIsHiveFrozen(fx.Overlay()))
+        if (!VReg_HiveIsFrozen(fx.Overlay()))
             VRegFreezeHive(fx.Overlay());
     };
 

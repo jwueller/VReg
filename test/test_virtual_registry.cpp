@@ -197,10 +197,10 @@ TEST_CASE("A frozen hive refuses writes and still answers reads")
 
     const HKEY hSub = CreateKey(registry, hRoot, L"Sub");
     REQUIRE(SetDword(registry, hSub, L"v", 7) == ERROR_SUCCESS);
-    REQUIRE_FALSE(VRegIsHiveFrozen(hive));
+    REQUIRE_FALSE(VReg_HiveIsFrozen(hive));
 
     VRegFreezeHive(hive);
-    CHECK(VRegIsHiveFrozen(hive));
+    CHECK(VReg_HiveIsFrozen(hive));
 
     LSTATUS status = ERROR_SUCCESS;
     CHECK(QueryDword(registry, hSub, L"v", status) == 7);
@@ -289,9 +289,9 @@ TEST_CASE("A hive created through the C functions takes MUI text by path")
     CHECK(VRegSetHiveMuiTextValue(pHive, nullptr, nullptr, L"Default") == ERROR_SUCCESS);
     CHECK(VRegSetHiveMuiTextValue(pHive, L"\\Bad", L"Name", L"Text") == ERROR_BAD_PATHNAME);
 
-    CHECK_FALSE(VRegIsHiveFrozen(pHive));
+    CHECK_FALSE(VReg_HiveIsFrozen(pHive));
     VRegFreezeHive(pHive);
-    CHECK(VRegIsHiveFrozen(pHive));
+    CHECK(VReg_HiveIsFrozen(pHive));
     CHECK(VRegSetHiveMuiTextValue(pHive, L"Sub", L"Name", L"Text") == ERROR_ACCESS_DENIED);
     CHECK(VRegSetHiveMuiTextValue(pHive, L"New", L"Name", L"Text") == ERROR_ACCESS_DENIED);
 

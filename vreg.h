@@ -89,26 +89,9 @@ extern "C" {
 // Handles
 // ==========================================================================
 
-/// The highest virtual handle value. Real key handles are kernel handle values
-/// (multiples of 4, at most tagged in bit 1 by advapi32), and predefined roots
-/// lie above this (sign-extended on x64), so an odd value at or below it is
-/// never a real key handle.
-///
-/// The range stays 31-bit on x64 too, so code that truncates an HKEY to a
-/// @ref DWORD keeps a working handle.
-#define VREG_INTERNAL_VIRTUAL_HKEY_BASE ((UINT_PTR)0x7FFFFFFF)
-
 /// Whether @p hKey is a virtual handle: nonzero, odd and at most
-/// @ref VREG_INTERNAL_VIRTUAL_HKEY_BASE.
+/// `0x7FFFFFFF`, a range no real key handle and no predefined root lies in.
 VREG_DECL BOOL WINAPI VRegIsVirtualHKey(
-    _In_opt_ HKEY hKey
-);
-
-/// Whether @p hKey is a predefined root, @ref HKEY_CLASSES_ROOT through
-/// @ref HKEY_CURRENT_USER_LOCAL_SETTINGS: `winreg.h` builds them from a
-/// negative @ref LONG, sign-extended on x64, where neither a kernel handle nor
-/// a virtual one ever lies.
-VREG_DECL BOOL WINAPI VRegIsPredefinedHKey(
     _In_opt_ HKEY hKey
 );
 
@@ -833,10 +816,6 @@ VREG_DECL void WINAPI VRegDestroy(
  */
 typedef struct VRegHive VRegHive;
 
-/// A key in a hive. Opaque outside the hive that owns it; never freed before
-/// the hive, so a pointer to one stays valid for the hive's life.
-typedef struct VReg_Node VReg_Node;
-
 /// A hive held entirely in memory; starts empty.
 VREG_DECL LSTATUS WINAPI VRegCreateHive(
     _Outptr_ VRegHive** ppHive
@@ -861,10 +840,6 @@ VREG_DECL void WINAPI VRegDestroyHive(
 /// Makes the hive immutable from now on, so its readers take no lock.
 /// Safe while it is mounted and in use; there is no way back.
 VREG_DECL void WINAPI VRegFreezeHive(
-    _In_ VRegHive* pHive
-);
-
-VREG_DECL BOOL WINAPI VRegIsHiveFrozen(
     _In_ VRegHive* pHive
 );
 
@@ -894,68 +869,6 @@ VREG_DECL LSTATUS WINAPI VRegSetHiveMuiTextValue(
 #if _WIN32_WINNT < 0x0600
 #error "VReg needs _WIN32_WINNT 0x0600 (Windows Vista) or later."
 #endif
-
-/// Applies `X` to the name of every wide `Ex` form and every function with
-/// one form only: the wide surface of @ref VRegVtbl, and the fields
-/// of @ref VRegNativeFunctions. It serves VReg's own sources and
-/// tests; it is not part of the API.
-#define VREG_INTERNAL_REGISTRY_VIRTUALS(X)                                     \
-    X(RegOpenKeyExW)                                                           \
-    X(RegCreateKeyExW)                                                         \
-    X(RegCloseKey)                                                             \
-    X(RegQueryValueExW)                                                        \
-    X(RegSetValueExW)                                                          \
-    X(RegDeleteValueW)                                                         \
-    X(RegDeleteKeyExW)                                                         \
-    X(RegDeleteTreeW)                                                          \
-    X(RegEnumKeyExW)                                                           \
-    X(RegEnumValueW)                                                           \
-    X(RegQueryInfoKeyW)                                                        \
-    X(RegLoadMUIStringW)                                                       \
-    X(RegGetValueW)                                                            \
-    X(RegNotifyChangeKeyValue)                                                 \
-    X(RegFlushKey)
-
-/// Applies `X` to the name of every other form in @ref VRegVtbl: the
-/// ANSI forms, the pre-`Ex` forms and the conveniences Win32 builds from the
-/// wide forms. The hooks emulate these too, but no registry
-/// calls them, so their trampolines stay with the hooks.
-#define VREG_INTERNAL_REGISTRY_FORMS(X)                                        \
-    X(RegOpenKeyExA)                                                           \
-    X(RegOpenKeyW)                                                             \
-    X(RegOpenKeyA)                                                             \
-    X(RegCreateKeyExA)                                                         \
-    X(RegCreateKeyW)                                                           \
-    X(RegCreateKeyA)                                                           \
-    X(RegQueryValueExA)                                                        \
-    X(RegQueryValueW)                                                          \
-    X(RegQueryValueA)                                                          \
-    X(RegSetValueExA)                                                          \
-    X(RegSetValueW)                                                            \
-    X(RegSetValueA)                                                            \
-    X(RegDeleteValueA)                                                         \
-    X(RegDeleteKeyExA)                                                         \
-    X(RegDeleteKeyW)                                                           \
-    X(RegDeleteKeyA)                                                           \
-    X(RegDeleteTreeA)                                                          \
-    X(RegEnumKeyExA)                                                           \
-    X(RegEnumKeyW)                                                             \
-    X(RegEnumKeyA)                                                             \
-    X(RegEnumValueA)                                                           \
-    X(RegQueryInfoKeyA)                                                        \
-    X(RegLoadMUIStringA)                                                       \
-    X(RegGetValueA)                                                            \
-    X(RegSetKeyValueW)                                                         \
-    X(RegSetKeyValueA)                                                         \
-    X(RegDeleteKeyValueW)                                                      \
-    X(RegDeleteKeyValueA)                                                      \
-    X(RegQueryMultipleValuesW)                                                 \
-    X(RegQueryMultipleValuesA)
-
-/// Both lists: every function the @ref VReg::Registry surface mirrors.
-#define VREG_INTERNAL_REGISTRY_FUNCTIONS(X)                                    \
-    VREG_INTERNAL_REGISTRY_VIRTUALS(X)                                         \
-    VREG_INTERNAL_REGISTRY_FORMS(X)
 
 /// The entry points the native registry calls and the hooks attach to: the
 /// wide `Ex` forms and the functions with one form only. The ANSI, pre-`Ex`
@@ -1781,6 +1694,10 @@ VREG_DECL void VReg_WideArgFree(
 // Hive nodes
 // ==========================================================================
 
+/// A key in a hive. Opaque outside the hive that owns it; never freed before
+/// the hive, so a pointer to one stays valid for the hive's life.
+typedef struct VReg_Node VReg_Node;
+
 typedef struct VReg_Value
 {
     VReg_WString name;
@@ -1975,6 +1892,23 @@ VREG_DECL BOOL VReg_IsStringType(DWORD dwType);
 // The handle space
 // ==========================================================================
 
+/// The highest virtual handle value. Real key handles are kernel handle values
+/// (multiples of 4, at most tagged in bit 1 by advapi32), and predefined roots
+/// lie above this (sign-extended on x64), so an odd value at or below it is
+/// never a real key handle.
+///
+/// The range stays 31-bit on x64 too, so code that truncates an HKEY to a
+/// @ref DWORD keeps a working handle.
+#define VREG_INTERNAL_VIRTUAL_HKEY_BASE ((UINT_PTR)0x7FFFFFFF)
+
+/// Whether @p hKey is a predefined root, @ref HKEY_CLASSES_ROOT through
+/// @ref HKEY_CURRENT_USER_LOCAL_SETTINGS: `winreg.h` builds them from a
+/// negative @ref LONG, sign-extended on x64, where neither a kernel handle nor
+/// a virtual one ever lies.
+VREG_DECL BOOL VReg_IsPredefinedHKey(
+    _In_opt_ HKEY hKey
+);
+
 /// One more than the highest index @ref VReg_VirtualHKeyFromIndex accepts.
 #define VREG_INTERNAL_VIRTUAL_HKEY_COUNT ((VREG_INTERNAL_VIRTUAL_HKEY_BASE >> 1) + 1)
 
@@ -2079,6 +2013,11 @@ VREG_DECL UINT_PTR VReg_IndexFromVirtualHKey(_In_opt_ HKEY hKey);
 // @ref ERROR_ACCESS_DENIED.
 //
 // A string or buffer a function fills is the caller's to free.
+
+/// Whether @ref VRegFreezeHive made the hive immutable.
+VREG_DECL BOOL VReg_HiveIsFrozen(
+    _In_ VRegHive* pHive
+);
 
 /// Where an open landed: a node of the hive, or (for a key a frozen layered
 /// hive leaves untouched) a handle its lower registry opened, which the
@@ -2356,6 +2295,67 @@ VREG_DECL LSTATUS VReg_HiveOpenLowerValueKey(
 // ==========================================================================
 // Registries
 // ==========================================================================
+
+/// Applies `X` to the name of every wide `Ex` form and every function with
+/// one form only: the wide surface of @ref VRegVtbl, and the fields
+/// of @ref VRegNativeFunctions.
+#define VREG_INTERNAL_REGISTRY_VIRTUALS(X)                                     \
+    X(RegOpenKeyExW)                                                           \
+    X(RegCreateKeyExW)                                                         \
+    X(RegCloseKey)                                                             \
+    X(RegQueryValueExW)                                                        \
+    X(RegSetValueExW)                                                          \
+    X(RegDeleteValueW)                                                         \
+    X(RegDeleteKeyExW)                                                         \
+    X(RegDeleteTreeW)                                                          \
+    X(RegEnumKeyExW)                                                           \
+    X(RegEnumValueW)                                                           \
+    X(RegQueryInfoKeyW)                                                        \
+    X(RegLoadMUIStringW)                                                       \
+    X(RegGetValueW)                                                            \
+    X(RegNotifyChangeKeyValue)                                                 \
+    X(RegFlushKey)
+
+/// Applies `X` to the name of every other form in @ref VRegVtbl: the
+/// ANSI forms, the pre-`Ex` forms and the conveniences Win32 builds from the
+/// wide forms. The hooks emulate these too, but no registry
+/// calls them, so their trampolines stay with the hooks.
+#define VREG_INTERNAL_REGISTRY_FORMS(X)                                        \
+    X(RegOpenKeyExA)                                                           \
+    X(RegOpenKeyW)                                                             \
+    X(RegOpenKeyA)                                                             \
+    X(RegCreateKeyExA)                                                         \
+    X(RegCreateKeyW)                                                           \
+    X(RegCreateKeyA)                                                           \
+    X(RegQueryValueExA)                                                        \
+    X(RegQueryValueW)                                                          \
+    X(RegQueryValueA)                                                          \
+    X(RegSetValueExA)                                                          \
+    X(RegSetValueW)                                                            \
+    X(RegSetValueA)                                                            \
+    X(RegDeleteValueA)                                                         \
+    X(RegDeleteKeyExA)                                                         \
+    X(RegDeleteKeyW)                                                           \
+    X(RegDeleteKeyA)                                                           \
+    X(RegDeleteTreeA)                                                          \
+    X(RegEnumKeyExA)                                                           \
+    X(RegEnumKeyW)                                                             \
+    X(RegEnumKeyA)                                                             \
+    X(RegEnumValueA)                                                           \
+    X(RegQueryInfoKeyA)                                                        \
+    X(RegLoadMUIStringA)                                                       \
+    X(RegGetValueA)                                                            \
+    X(RegSetKeyValueW)                                                         \
+    X(RegSetKeyValueA)                                                         \
+    X(RegDeleteKeyValueW)                                                      \
+    X(RegDeleteKeyValueA)                                                      \
+    X(RegQueryMultipleValuesW)                                                 \
+    X(RegQueryMultipleValuesA)
+
+/// Both lists: every function the @ref VReg::Registry surface mirrors.
+#define VREG_INTERNAL_REGISTRY_FUNCTIONS(X)                                    \
+    VREG_INTERNAL_REGISTRY_VIRTUALS(X)                                         \
+    VREG_INTERNAL_REGISTRY_FORMS(X)
 
 /// The kinds of @ref VReg: one @ref VRegCreateCustom made over a table, and
 /// the two VReg implements itself.
@@ -4544,7 +4544,7 @@ VREG_DECL LSTATUS WINAPI VRegCreateKeyA(
         return ERROR_INVALID_PARAMETER;
     if (!lpSubKey || !*lpSubKey)
     {
-        if (!VRegIsPredefinedHKey(hKey))
+        if (!VReg_IsPredefinedHKey(hKey))
             return ERROR_BADKEY;
         *phkResult = hKey;
         return ERROR_SUCCESS;
@@ -4582,7 +4582,7 @@ VREG_DECL LSTATUS WINAPI VRegCreateKeyW(
         return ERROR_INVALID_PARAMETER;
     if (!lpSubKey || !*lpSubKey)
     {
-        if (!VRegIsPredefinedHKey(hKey))
+        if (!VReg_IsPredefinedHKey(hKey))
             return ERROR_BADKEY;
         *phkResult = hKey;
         return ERROR_SUCCESS;
@@ -5423,7 +5423,7 @@ VREG_DECL BOOL WINAPI VRegIsVirtualHKey(_In_opt_ const HKEY hKey)
         && (value & 1) != 0;
 }
 
-VREG_DECL BOOL WINAPI VRegIsPredefinedHKey(_In_opt_ const HKEY hKey)
+VREG_DECL BOOL VReg_IsPredefinedHKey(_In_opt_ const HKEY hKey)
 {
     const UINT_PTR value = (UINT_PTR)hKey;
     return value >= (UINT_PTR)HKEY_CLASSES_ROOT
@@ -5740,7 +5740,7 @@ static BOOL VReg_StatusExists(const LSTATUS status)
 
 // --- Locking ---
 
-static BOOL VReg_HiveIsFrozen(_In_ VRegHive* const pHive)
+VREG_DECL BOOL VReg_HiveIsFrozen(_In_ VRegHive* const pHive)
 {
     return ReadAcquire(&pHive->isFrozen) != 0;
 }
@@ -6221,11 +6221,6 @@ VREG_DECL void WINAPI VRegFreezeHive(_In_ VRegHive* const pHive)
         VReg_HiveDropWatches(VREG_INTERNAL_NODE_AT(&pHive->nodes, i));
 
     ReleaseSRWLockExclusive(&pHive->lock);
-}
-
-VREG_DECL BOOL WINAPI VRegIsHiveFrozen(_In_ VRegHive* const pHive)
-{
-    return VReg_HiveIsFrozen(pHive);
 }
 
 VREG_DECL _Ret_notnull_ VReg_Node* VReg_HiveRoot(_In_ VRegHive* const pHive)
@@ -9782,7 +9777,7 @@ static LSTATUS VReg_Resolve(
         return ERROR_SUCCESS;
     }
 
-    if (VRegIsPredefinedHKey(hKey))
+    if (VReg_IsPredefinedHKey(hKey))
     {
         const REGSAM samCall = VReg_CallView(samDesired);
         const VReg_MountTable* const pTable = VReg_MountsOf(pThis);
@@ -10002,7 +9997,7 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegCloseKey(
     _In_ const HKEY hKey
 )
 {
-    if (VReg_NodeOf(hKey) || VRegIsPredefinedHKey(hKey))
+    if (VReg_NodeOf(hKey) || VReg_IsPredefinedHKey(hKey))
         return ERROR_SUCCESS;
     if (VReg_HandleSpaceOwns(VReg_ProcessHandleSpace(), hKey) || !pRegistry->implementation.virtualRegistry.pBase)
         return ERROR_INVALID_HANDLE;
@@ -11144,7 +11139,7 @@ VREG_DECL LSTATUS WINAPI VRegMount(
     SIZE_T i;
     LSTATUS status;
 
-    if (pRegistry->dwKind != VREG_INTERNAL_KIND_VIRTUAL || !VRegIsPredefinedHKey(hRoot))
+    if (pRegistry->dwKind != VREG_INTERNAL_KIND_VIRTUAL || !VReg_IsPredefinedHKey(hRoot))
         return ERROR_INVALID_HANDLE;
     if (samView != 0 && samView != KEY_WOW64_64KEY && samView != KEY_WOW64_32KEY)
         return ERROR_INVALID_PARAMETER;

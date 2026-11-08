@@ -85,20 +85,20 @@ TEST_CASE("Real and predefined handles are never virtual")
 
 TEST_CASE("Predefined roots are the range from HKCR to HKCU local settings")
 {
-    CHECK(VRegIsPredefinedHKey(HKEY_CLASSES_ROOT));
-    CHECK(VRegIsPredefinedHKey(HKEY_CURRENT_USER));
-    CHECK(VRegIsPredefinedHKey(HKEY_LOCAL_MACHINE));
-    CHECK(VRegIsPredefinedHKey(HKEY_USERS));
-    CHECK(VRegIsPredefinedHKey(HKEY_PERFORMANCE_DATA));
-    CHECK(VRegIsPredefinedHKey(HKEY_CURRENT_CONFIG));
-    CHECK(VRegIsPredefinedHKey(HKEY_DYN_DATA));
-    CHECK(VRegIsPredefinedHKey(HKEY_CURRENT_USER_LOCAL_SETTINGS));
+    CHECK(VReg_IsPredefinedHKey(HKEY_CLASSES_ROOT));
+    CHECK(VReg_IsPredefinedHKey(HKEY_CURRENT_USER));
+    CHECK(VReg_IsPredefinedHKey(HKEY_LOCAL_MACHINE));
+    CHECK(VReg_IsPredefinedHKey(HKEY_USERS));
+    CHECK(VReg_IsPredefinedHKey(HKEY_PERFORMANCE_DATA));
+    CHECK(VReg_IsPredefinedHKey(HKEY_CURRENT_CONFIG));
+    CHECK(VReg_IsPredefinedHKey(HKEY_DYN_DATA));
+    CHECK(VReg_IsPredefinedHKey(HKEY_CURRENT_USER_LOCAL_SETTINGS));
 
-    CHECK_FALSE(VRegIsPredefinedHKey(nullptr));
-    CHECK_FALSE(VRegIsPredefinedHKey(std::bit_cast<HKEY>(std::uintptr_t{0x158})));
-    CHECK_FALSE(VRegIsPredefinedHKey(VReg_VirtualHKeyFromIndex(0)));
+    CHECK_FALSE(VReg_IsPredefinedHKey(nullptr));
+    CHECK_FALSE(VReg_IsPredefinedHKey(std::bit_cast<HKEY>(std::uintptr_t{0x158})));
+    CHECK_FALSE(VReg_IsPredefinedHKey(VReg_VirtualHKeyFromIndex(0)));
     CHECK_FALSE(
-        VRegIsPredefinedHKey(
+        VReg_IsPredefinedHKey(
             std::bit_cast<HKEY>(std::bit_cast<std::uintptr_t>(HKEY_CURRENT_USER_LOCAL_SETTINGS) + 1)
         )
     );
