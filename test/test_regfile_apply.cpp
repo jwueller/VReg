@@ -206,8 +206,8 @@ TEST_CASE("Apply deletes values and keys")
 
     SECTION("a value of a key or value that does not exist")
     {
-        const Spec missingKey{VREG_OPERATION_DELETE_VALUE, L"Missing", L"v"};
-        const Spec missingValue{VREG_OPERATION_DELETE_VALUE, L"T", L"never"};
+        const Spec missingKey{VREG_OPERATION_DELETE_VALUE, L"Missing", L"v", 0, {}};
+        const Spec missingValue{VREG_OPERATION_DELETE_VALUE, L"T", L"never", 0, {}};
         const std::vector<VRegOperation> operations{
             missingKey.View(),
             missingValue.View(),
@@ -303,7 +303,7 @@ TEST_CASE("Apply refuses an operation that would delete a root")
     const OwnedScript setup = MustParse(HEADER + L"[HKCU\\Keep]\r\n");
     REQUIRE(VRegApplyScript(setup, registry, nullptr) == ERROR_SUCCESS);
 
-    const Spec deleteRoot{VREG_OPERATION_DELETE_KEY};
+    const Spec deleteRoot{VREG_OPERATION_DELETE_KEY, L"", L"", 0, {}};
     const VRegOperation operation = deleteRoot.View();
 
     SIZE_T failed = 99;

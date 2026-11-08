@@ -1,6 +1,14 @@
 find_package(Catch2 3 CONFIG REQUIRED)
 include(Catch)
 
+# A VRegVtbl slot left null is derived by design, not a missing initializer.
+# Linked after VReg_BuildSettings, so the flag follows its /W4.
+add_library(VReg_TestSettings INTERFACE)
+
+target_compile_options(VReg_TestSettings INTERFACE
+    $<$<COMPILE_LANG_AND_ID:CXX,Clang>:-Wno-missing-designated-field-initializers>
+)
+
 set(VREG_TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/app_hive_registry.h
     ${CMAKE_CURRENT_SOURCE_DIR}/intercept_registry.h
@@ -42,6 +50,7 @@ add_executable(VReg_Tests
 target_link_libraries(VReg_Tests PRIVATE
     VReg::VReg
     VReg_BuildSettings
+    VReg_TestSettings
     Catch2::Catch2WithMain
     Shlwapi
 )

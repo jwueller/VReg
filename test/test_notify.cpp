@@ -141,12 +141,12 @@ public:
         );
     }
 
-    [[nodiscard]] VReg* const Virtual() noexcept
+    [[nodiscard]] VReg* Virtual() noexcept
     {
         return m_registry;
     }
 
-    [[nodiscard]] VRegHive* const Memory() noexcept
+    [[nodiscard]] VRegHive* Memory() noexcept
     {
         return m_hive;
     }

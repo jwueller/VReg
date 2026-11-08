@@ -60,7 +60,7 @@ tagged release, and that `versions/` is up to date with the port.
 1. Make sure it names the version to release (raise the minor or major
    version if the changes call for it), commit, and push.
 2. Wait for CI to pass on that commit, the Wine jobs included: local test
-   runs cover neither Wine nor clang-cl. Tag only a commit CI passed on.
+   runs do not cover Wine. Tag only a commit CI passed on.
 3. Tag it `vX.Y.Z` and push the tag. Once CI passes on the tag, it
    publishes the GitHub release, its notes the commit subjects since the
    previous tag, with the tag's `vreg.h` attached.

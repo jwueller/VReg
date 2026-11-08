@@ -70,7 +70,7 @@ public:
     Fixture& operator=(const Fixture&) = delete;
 
     /// Direct access to the lower key, bypassing the overlay.
-    [[nodiscard]] VReg* const Native() noexcept
+    [[nodiscard]] VReg* Native() noexcept
     {
         return m_native;
     }
@@ -85,12 +85,12 @@ public:
         return m_hLower;
     }
 
-    [[nodiscard]] VRegHive* const Overlay() noexcept
+    [[nodiscard]] VRegHive* Overlay() noexcept
     {
         return m_overlay;
     }
 
-    [[nodiscard]] VReg* const Registry() noexcept
+    [[nodiscard]] VReg* Registry() noexcept
     {
         return m_registry;
     }

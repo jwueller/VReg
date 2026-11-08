@@ -18,6 +18,7 @@ foreach(_module A B)
         VReg::VReg
         VReg::Detours
         VReg_BuildSettings
+        VReg_TestSettings
     )
 
     set_target_properties(VReg_HookModule${_module} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${_dir})
@@ -36,6 +37,7 @@ target_link_libraries(VReg_HookTests PRIVATE
     VReg::VReg
     VReg::Detours
     VReg_BuildSettings
+    VReg_TestSettings
     Catch2::Catch2WithMain
     ktmw32
 )
