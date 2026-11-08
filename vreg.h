@@ -61,11 +61,12 @@ extern "C" {
 #define VREG_VERSION_PATCH 1
 #define VREG_VERSION_TWEAK 0
 
-#define VREG_VERSION MAKEDLLVERULL(                                            \
-    VREG_VERSION_MAJOR,                                                        \
-    VREG_VERSION_MINOR,                                                        \
-    VREG_VERSION_PATCH,                                                        \
-    VREG_VERSION_TWEAK                                                         \
+// Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
+#define VREG_VERSION (                                                         \
+    ((ULONGLONG)VREG_VERSION_MAJOR << 48)                                      \
+    | ((ULONGLONG)VREG_VERSION_MINOR << 32)                                    \
+    | ((ULONGLONG)VREG_VERSION_PATCH << 16)                                    \
+    | (ULONGLONG)VREG_VERSION_TWEAK                                            \
 )
 
 // ==========================================================================
