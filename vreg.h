@@ -12430,7 +12430,9 @@ VREG_DECL LSTATUS WINAPI VReg_Mount(
 
 static LSTATUS VRegScript_InternalIgnoreNotFound(const LSTATUS status)
 {
-    return status == ERROR_FILE_NOT_FOUND || status == ERROR_PATH_NOT_FOUND ? ERROR_SUCCESS : status;
+    return status == ERROR_FILE_NOT_FOUND || status == ERROR_PATH_NOT_FOUND
+        ? ERROR_SUCCESS
+        : status;
 }
 
 static LSTATUS VRegScript_InternalPerformSetValue(
