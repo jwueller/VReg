@@ -58,7 +58,7 @@ extern "C" {
 // Raised with every change to this file; the tweak is always 0.
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 10
-#define VREG_VERSION_PATCH 0
+#define VREG_VERSION_PATCH 1
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -1921,7 +1921,7 @@ VREG_DECL LSTATUS VRegInternal_AnsiFromWide(
 );
 
 /// A string argument that may be null: the wide copy of an ANSI argument.
-typedef struct VRegInternalWideArg
+typedef struct
 {
     BOOL isNull;
     VRegInternalWString text;
@@ -1955,7 +1955,7 @@ VREG_DECL void VRegInternal_WideArgFree(
 /// the hive, so a pointer to one stays valid for the hive's life.
 typedef struct VRegInternalNode VRegInternalNode;
 
-typedef struct VRegInternalValue
+typedef struct
 {
     VRegInternalWString name;
     DWORD dwType;
@@ -1967,7 +1967,7 @@ typedef struct VRegInternalValue
 } VRegInternalValue;
 
 /// A pending change notification: fires once, then is gone.
-typedef struct VRegInternalChangeWatch
+typedef struct
 {
     /// Our own duplicate of the caller's event; closed when the watch fires or
     /// the hive goes.
@@ -2734,7 +2734,7 @@ struct VRegScript
 
 /// A predefined root a `.reg` file can name: exports write its long name,
 /// imports accept either.
-typedef struct VRegInternalRootKey
+typedef struct
 {
     const wchar_t* pszLong;
     const wchar_t* pszShort;
@@ -5689,7 +5689,7 @@ VREG_DECL BOOL VRegInternal_IsPredefinedHKey(_In_opt_ const HKEY hKey)
 // The handle space
 // ==========================================================================
 
-typedef struct VRegInternalHandleBlock
+typedef struct
 {
     void* volatile targets[VREG_INTERNAL_HANDLE_BLOCK_SIZE];
 } VRegInternalHandleBlock;
@@ -12349,7 +12349,7 @@ VREG_DECL LSTATUS WINAPI VReg_ApplyOperations(
 
 /// A value read from a key, held until the key's values are all known and can
 /// be appended in name order.
-typedef struct VRegInternalValueEntry
+typedef struct
 {
     VRegInternalWString name;
     DWORD dwType;
@@ -12618,7 +12618,7 @@ done:
 
 /// The state of the walk over a hive's upper layer: the key whose values are
 /// being collected, and the values so far.
-typedef struct VRegInternalDeltaWalk
+typedef struct
 {
     VRegScript* pScript;
     HKEY hRoot;
@@ -12736,21 +12736,21 @@ VREG_DECL LSTATUS WINAPI VRegScript_Delta(
 
 /// Where a logical line's text came from: the physical line and column its
 /// characters from @ref start on were read at.
-typedef struct VRegInternalLineSegment
+typedef struct
 {
     SIZE_T start;
     SIZE_T line;
     SIZE_T column;
 } VRegInternalLineSegment;
 
-typedef enum VRegInternalKeyState
+typedef enum
 {
     VREG_INTERNAL_KEY_NONE,
     VREG_INTERNAL_KEY_OPEN,
     VREG_INTERNAL_KEY_DELETED,
 } VRegInternalKeyState;
 
-typedef struct VRegInternalParser
+typedef struct
 {
     VRegScript* pScript;
 
@@ -15006,7 +15006,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegQueryMultipleValuesW(
     X(RegQueryReflectionKey) \
     X(RegOverridePredefKey)
 
-typedef enum VRegInternalRefusedIndex
+typedef enum
 {
 #define VREG_INDEX(name) VREG_INTERNAL_REFUSED_##name,
     VREG_INTERNAL_REFUSED_HOOKS(VREG_INDEX)
@@ -15021,7 +15021,7 @@ static void* g_refusedTargets[VREG_INTERNAL_REFUSED_COUNT];
 // their resolved entry points. The registry below the hooks never calls
 // them (an ANSI or pre-Ex call reaches it as the wide Ex form), so their
 // trampolines live here and serve VRegHooks_Neutralize alone.
-typedef enum VRegInternalFormIndex
+typedef enum
 {
 #define VREG_INDEX(name) VREG_INTERNAL_FORM_##name,
     VREG_INTERNAL_REGISTRY_FORMS(VREG_INDEX)
@@ -15967,7 +15967,7 @@ static void* VRegInternal_WriteThunk(const SIZE_T index, _In_ void* const pTarge
 static void** g_ppTargets[VREG_INTERNAL_THUNK_CAPACITY];
 static volatile LONG g_cHooks;
 
-typedef struct VRegInternalHook
+typedef struct
 {
     void** ppTarget;
     void* pBody;

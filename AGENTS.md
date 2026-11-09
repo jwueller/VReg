@@ -70,7 +70,9 @@ naming, because the library sits beside the API it reimplements.
   declared with `VREG_DECL`. Private functions, static ones included,
   are `VRegInternal_Name` with a name unique across `vreg.h`, since its
   implementation is one translation unit. Types carry no underscore:
-  public ones are `VRegName`, private ones `VRegInternalName`.
+  public ones are `VRegName`, private ones `VRegInternalName`. A struct or
+  enum has a tag only where C needs one, for an opaque or forward-declared
+  type (`typedef struct VRegHive VRegHive;`); any other is anonymous.
 - Hungarian prefixes like the Win32 API beside them: parameters and locals
   (`pszPath`, `cbData`, `hKey`), struct members in Win32's shape without
   `m_` (`pShared`, `cbData`), globals `g_`.
