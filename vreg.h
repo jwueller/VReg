@@ -59,7 +59,7 @@ extern "C" {
 // Raised with every change to this file. Tweak is unused (always 0).
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 16
-#define VREG_VERSION_PATCH 2
+#define VREG_VERSION_PATCH 3
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -14512,7 +14512,7 @@ static VReg* VRegHooks_InternalRegistry(void)
 
 // --- The hooks the registry answers: the same call, made on the registry ---
 
-static LSTATUS APIENTRY VRegHooks_InternalRegOpenKeyExW(
+static LSTATUS WINAPI VRegHooks_InternalRegOpenKeyExW(
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
     _In_ const DWORD ulOptions,
@@ -14530,7 +14530,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegOpenKeyExW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegCreateKeyExW(
+static LSTATUS WINAPI VRegHooks_InternalRegCreateKeyExW(
     _In_ const HKEY hKey,
     _In_ const LPCWSTR lpSubKey,
     _Reserved_ const DWORD Reserved,
@@ -14556,7 +14556,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegCreateKeyExW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegCloseKey(
+static LSTATUS WINAPI VRegHooks_InternalRegCloseKey(
     _In_ const HKEY hKey
 )
 {
@@ -14566,7 +14566,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegCloseKey(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegQueryValueExW(
+static LSTATUS WINAPI VRegHooks_InternalRegQueryValueExW(
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpValueName,
     _Reserved_ const LPDWORD lpReserved,
@@ -14586,7 +14586,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegQueryValueExW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegSetValueExW(
+static LSTATUS WINAPI VRegHooks_InternalRegSetValueExW(
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpValueName,
     _Reserved_ const DWORD Reserved,
@@ -14606,7 +14606,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegSetValueExW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegDeleteValueW(
+static LSTATUS WINAPI VRegHooks_InternalRegDeleteValueW(
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpValueName
 )
@@ -14618,7 +14618,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegDeleteValueW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegDeleteKeyExW(
+static LSTATUS WINAPI VRegHooks_InternalRegDeleteKeyExW(
     _In_ const HKEY hKey,
     _In_ const LPCWSTR lpSubKey,
     _In_ const REGSAM samDesired,
@@ -14634,7 +14634,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegDeleteKeyExW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegDeleteTreeW(
+static LSTATUS WINAPI VRegHooks_InternalRegDeleteTreeW(
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey
 )
@@ -14646,7 +14646,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegDeleteTreeW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegEnumKeyExW(
+static LSTATUS WINAPI VRegHooks_InternalRegEnumKeyExW(
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
     _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) const LPWSTR lpName,
@@ -14670,7 +14670,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegEnumKeyExW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegEnumValueW(
+static LSTATUS WINAPI VRegHooks_InternalRegEnumValueW(
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
     _Out_writes_to_opt_(*lpcchValueName, *lpcchValueName + 1) const LPWSTR lpValueName,
@@ -14694,7 +14694,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegEnumValueW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegQueryInfoKeyW(
+static LSTATUS WINAPI VRegHooks_InternalRegQueryInfoKeyW(
     _In_ const HKEY hKey,
     _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) const LPWSTR lpClass,
     _Inout_opt_ const LPDWORD lpcchClass,
@@ -14726,7 +14726,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegQueryInfoKeyW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegLoadMUIStringW(
+static LSTATUS WINAPI VRegHooks_InternalRegLoadMUIStringW(
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR pszValue,
     _Out_writes_bytes_opt_(cbOutBuf) const LPWSTR pszOutBuf,
@@ -14751,7 +14751,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegLoadMUIStringW(
 // The SDK's _Post_z_ on pvData holds on every return; the analyzer does not
 // carry it through the flat function.
 #pragma warning(suppress: 6054)
-static LSTATUS APIENTRY VRegHooks_InternalRegGetValueW(
+static LSTATUS WINAPI VRegHooks_InternalRegGetValueW(
     _In_ const HKEY hkey,
     _In_opt_ const LPCWSTR lpSubKey,
     _In_opt_ const LPCWSTR lpValue,
@@ -14788,7 +14788,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegGetValueW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegNotifyChangeKeyValue(
+static LSTATUS WINAPI VRegHooks_InternalRegNotifyChangeKeyValue(
     _In_ const HKEY hKey,
     _In_ const BOOL bWatchSubtree,
     _In_ const DWORD dwNotifyFilter,
@@ -14806,7 +14806,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegNotifyChangeKeyValue(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegFlushKey(
+static LSTATUS WINAPI VRegHooks_InternalRegFlushKey(
     _In_ const HKEY hKey
 )
 {
@@ -14816,7 +14816,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegFlushKey(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegOpenKeyExA(
+static LSTATUS WINAPI VRegHooks_InternalRegOpenKeyExA(
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
     _In_ const DWORD ulOptions,
@@ -14834,7 +14834,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegOpenKeyExA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegCreateKeyExA(
+static LSTATUS WINAPI VRegHooks_InternalRegCreateKeyExA(
     _In_ const HKEY hKey,
     _In_ const LPCSTR lpSubKey,
     _Reserved_ const DWORD Reserved,
@@ -14860,7 +14860,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegCreateKeyExA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegQueryValueExA(
+static LSTATUS WINAPI VRegHooks_InternalRegQueryValueExA(
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpValueName,
     _Reserved_ const LPDWORD lpReserved,
@@ -14880,7 +14880,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegQueryValueExA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegSetValueExA(
+static LSTATUS WINAPI VRegHooks_InternalRegSetValueExA(
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpValueName,
     _Reserved_ const DWORD Reserved,
@@ -14900,7 +14900,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegSetValueExA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegDeleteValueA(
+static LSTATUS WINAPI VRegHooks_InternalRegDeleteValueA(
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpValueName
 )
@@ -14912,7 +14912,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegDeleteValueA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegDeleteKeyExA(
+static LSTATUS WINAPI VRegHooks_InternalRegDeleteKeyExA(
     _In_ const HKEY hKey,
     _In_ const LPCSTR lpSubKey,
     _In_ const REGSAM samDesired,
@@ -14928,7 +14928,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegDeleteKeyExA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegDeleteTreeA(
+static LSTATUS WINAPI VRegHooks_InternalRegDeleteTreeA(
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey
 )
@@ -14940,7 +14940,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegDeleteTreeA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegEnumKeyExA(
+static LSTATUS WINAPI VRegHooks_InternalRegEnumKeyExA(
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
     _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) const LPSTR lpName,
@@ -14964,7 +14964,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegEnumKeyExA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegEnumValueA(
+static LSTATUS WINAPI VRegHooks_InternalRegEnumValueA(
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
     _Out_writes_to_opt_(*lpcchValueName, *lpcchValueName + 1) const LPSTR lpValueName,
@@ -14988,7 +14988,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegEnumValueA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegQueryInfoKeyA(
+static LSTATUS WINAPI VRegHooks_InternalRegQueryInfoKeyA(
     _In_ const HKEY hKey,
     _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) const LPSTR lpClass,
     _Inout_opt_ const LPDWORD lpcchClass,
@@ -15020,7 +15020,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegQueryInfoKeyA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegLoadMUIStringA(
+static LSTATUS WINAPI VRegHooks_InternalRegLoadMUIStringA(
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR pszValue,
     _Out_writes_bytes_opt_(cbOutBuf) const LPSTR pszOutBuf,
@@ -15045,7 +15045,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegLoadMUIStringA(
 // The SDK's _Post_z_ on pvData holds on every return; the analyzer does not
 // carry it through the flat function.
 #pragma warning(suppress: 6054)
-static LSTATUS APIENTRY VRegHooks_InternalRegGetValueA(
+static LSTATUS WINAPI VRegHooks_InternalRegGetValueA(
     _In_ const HKEY hkey,
     _In_opt_ const LPCSTR lpSubKey,
     _In_opt_ const LPCSTR lpValue,
@@ -15082,7 +15082,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegGetValueA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegOpenKeyA(
+static LSTATUS WINAPI VRegHooks_InternalRegOpenKeyA(
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
     _Out_ const PHKEY phkResult
@@ -15096,7 +15096,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegOpenKeyA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegOpenKeyW(
+static LSTATUS WINAPI VRegHooks_InternalRegOpenKeyW(
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
     _Out_ const PHKEY phkResult
@@ -15110,7 +15110,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegOpenKeyW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegCreateKeyA(
+static LSTATUS WINAPI VRegHooks_InternalRegCreateKeyA(
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
     _Out_ const PHKEY phkResult
@@ -15124,7 +15124,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegCreateKeyA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegCreateKeyW(
+static LSTATUS WINAPI VRegHooks_InternalRegCreateKeyW(
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
     _Out_ const PHKEY phkResult
@@ -15138,7 +15138,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegCreateKeyW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegQueryValueA(
+static LSTATUS WINAPI VRegHooks_InternalRegQueryValueA(
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
     _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) const LPSTR lpData,
@@ -15154,7 +15154,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegQueryValueA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegQueryValueW(
+static LSTATUS WINAPI VRegHooks_InternalRegQueryValueW(
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
     _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) const LPWSTR lpData,
@@ -15170,7 +15170,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegQueryValueW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegSetValueA(
+static LSTATUS WINAPI VRegHooks_InternalRegSetValueA(
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
     _In_ const DWORD dwType,
@@ -15188,7 +15188,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegSetValueA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegSetValueW(
+static LSTATUS WINAPI VRegHooks_InternalRegSetValueW(
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
     _In_ const DWORD dwType,
@@ -15206,7 +15206,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegSetValueW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegDeleteKeyA(
+static LSTATUS WINAPI VRegHooks_InternalRegDeleteKeyA(
     _In_ const HKEY hKey,
     _In_ const LPCSTR lpSubKey
 )
@@ -15218,7 +15218,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegDeleteKeyA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegDeleteKeyW(
+static LSTATUS WINAPI VRegHooks_InternalRegDeleteKeyW(
     _In_ const HKEY hKey,
     _In_ const LPCWSTR lpSubKey
 )
@@ -15230,7 +15230,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegDeleteKeyW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegEnumKeyA(
+static LSTATUS WINAPI VRegHooks_InternalRegEnumKeyA(
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
     _Out_writes_opt_(cchName) const LPSTR lpName,
@@ -15246,7 +15246,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegEnumKeyA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegEnumKeyW(
+static LSTATUS WINAPI VRegHooks_InternalRegEnumKeyW(
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
     _Out_writes_opt_(cchName) const LPWSTR lpName,
@@ -15262,7 +15262,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegEnumKeyW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegSetKeyValueA(
+static LSTATUS WINAPI VRegHooks_InternalRegSetKeyValueA(
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
     _In_opt_ const LPCSTR lpValueName,
@@ -15282,7 +15282,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegSetKeyValueA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegSetKeyValueW(
+static LSTATUS WINAPI VRegHooks_InternalRegSetKeyValueW(
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
     _In_opt_ const LPCWSTR lpValueName,
@@ -15302,7 +15302,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegSetKeyValueW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegDeleteKeyValueA(
+static LSTATUS WINAPI VRegHooks_InternalRegDeleteKeyValueA(
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
     _In_opt_ const LPCSTR lpValueName
@@ -15316,7 +15316,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegDeleteKeyValueA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegDeleteKeyValueW(
+static LSTATUS WINAPI VRegHooks_InternalRegDeleteKeyValueW(
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
     _In_opt_ const LPCWSTR lpValueName
@@ -15330,7 +15330,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegDeleteKeyValueW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegQueryMultipleValuesA(
+static LSTATUS WINAPI VRegHooks_InternalRegQueryMultipleValuesA(
     _In_ const HKEY hKey,
     _Out_writes_(num_vals) const PVALENTA val_list,
     _In_ const DWORD num_vals,
@@ -15348,7 +15348,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegQueryMultipleValuesA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRegQueryMultipleValuesW(
+static LSTATUS WINAPI VRegHooks_InternalRegQueryMultipleValuesW(
     _In_ const HKEY hKey,
     _Out_writes_(num_vals) const PVALENTW val_list,
     _In_ const DWORD num_vals,
@@ -15425,112 +15425,112 @@ typedef enum
 
 static void* g_VRegHooks_FormTargets[VREG_INTERNAL_FORM_COUNT];
 
-typedef LSTATUS APIENTRY VRegInternalRegSaveKeyAFunction(
+typedef LSTATUS WINAPI VRegInternalRegSaveKeyAFunction(
     _In_ HKEY hKey,
     _In_ LPCSTR lpFile,
     _In_opt_ CONST LPSECURITY_ATTRIBUTES lpSecurityAttributes
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegSaveKeyWFunction(
+typedef LSTATUS WINAPI VRegInternalRegSaveKeyWFunction(
     _In_ HKEY hKey,
     _In_ LPCWSTR lpFile,
     _In_opt_ CONST LPSECURITY_ATTRIBUTES lpSecurityAttributes
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegSaveKeyExAFunction(
+typedef LSTATUS WINAPI VRegInternalRegSaveKeyExAFunction(
     _In_ HKEY hKey,
     _In_ LPCSTR lpFile,
     _In_opt_ CONST LPSECURITY_ATTRIBUTES lpSecurityAttributes,
     _In_ DWORD Flags
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegSaveKeyExWFunction(
+typedef LSTATUS WINAPI VRegInternalRegSaveKeyExWFunction(
     _In_ HKEY hKey,
     _In_ LPCWSTR lpFile,
     _In_opt_ CONST LPSECURITY_ATTRIBUTES lpSecurityAttributes,
     _In_ DWORD Flags
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegRestoreKeyAFunction(
+typedef LSTATUS WINAPI VRegInternalRegRestoreKeyAFunction(
     _In_ HKEY hKey,
     _In_ LPCSTR lpFile,
     _In_ DWORD dwFlags
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegRestoreKeyWFunction(
+typedef LSTATUS WINAPI VRegInternalRegRestoreKeyWFunction(
     _In_ HKEY hKey,
     _In_ LPCWSTR lpFile,
     _In_ DWORD dwFlags
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegLoadKeyAFunction(
+typedef LSTATUS WINAPI VRegInternalRegLoadKeyAFunction(
     _In_ HKEY hKey,
     _In_opt_ LPCSTR lpSubKey,
     _In_ LPCSTR lpFile
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegLoadKeyWFunction(
+typedef LSTATUS WINAPI VRegInternalRegLoadKeyWFunction(
     _In_ HKEY hKey,
     _In_opt_ LPCWSTR lpSubKey,
     _In_ LPCWSTR lpFile
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegUnLoadKeyAFunction(
+typedef LSTATUS WINAPI VRegInternalRegUnLoadKeyAFunction(
     _In_ HKEY hKey,
     _In_opt_ LPCSTR lpSubKey
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegUnLoadKeyWFunction(
+typedef LSTATUS WINAPI VRegInternalRegUnLoadKeyWFunction(
     _In_ HKEY hKey,
     _In_opt_ LPCWSTR lpSubKey
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegReplaceKeyAFunction(
+typedef LSTATUS WINAPI VRegInternalRegReplaceKeyAFunction(
     _In_ HKEY hKey,
     _In_opt_ LPCSTR lpSubKey,
     _In_ LPCSTR lpNewFile,
     _In_ LPCSTR lpOldFile
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegReplaceKeyWFunction(
+typedef LSTATUS WINAPI VRegInternalRegReplaceKeyWFunction(
     _In_ HKEY hKey,
     _In_opt_ LPCWSTR lpSubKey,
     _In_ LPCWSTR lpNewFile,
     _In_ LPCWSTR lpOldFile
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegGetKeySecurityFunction(
+typedef LSTATUS WINAPI VRegInternalRegGetKeySecurityFunction(
     _In_ HKEY hKey,
     _In_ SECURITY_INFORMATION SecurityInformation,
     _Out_writes_bytes_opt_(*lpcbSecurityDescriptor) PSECURITY_DESCRIPTOR pSecurityDescriptor,
     _Inout_ LPDWORD lpcbSecurityDescriptor
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegSetKeySecurityFunction(
+typedef LSTATUS WINAPI VRegInternalRegSetKeySecurityFunction(
     _In_ HKEY hKey,
     _In_ SECURITY_INFORMATION SecurityInformation,
     _In_ PSECURITY_DESCRIPTOR pSecurityDescriptor
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegRenameKeyFunction(
+typedef LSTATUS WINAPI VRegInternalRegRenameKeyFunction(
     _In_ HKEY hKey,
     _In_opt_ LPCWSTR lpSubKeyName,
     _In_ LPCWSTR lpNewKeyName
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegCopyTreeAFunction(
+typedef LSTATUS WINAPI VRegInternalRegCopyTreeAFunction(
     _In_ HKEY hKeySrc,
     _In_opt_ LPCSTR lpSubKey,
     _In_ HKEY hKeyDest
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegCopyTreeWFunction(
+typedef LSTATUS WINAPI VRegInternalRegCopyTreeWFunction(
     _In_ HKEY hKeySrc,
     _In_opt_ LPCWSTR lpSubKey,
     _In_ HKEY hKeyDest
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegCreateKeyTransactedAFunction(
+typedef LSTATUS WINAPI VRegInternalRegCreateKeyTransactedAFunction(
     _In_ HKEY hKey,
     _In_ LPCSTR lpSubKey,
     _Reserved_ DWORD Reserved,
@@ -15544,7 +15544,7 @@ typedef LSTATUS APIENTRY VRegInternalRegCreateKeyTransactedAFunction(
     _Reserved_ PVOID pExtendedParemeter
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegCreateKeyTransactedWFunction(
+typedef LSTATUS WINAPI VRegInternalRegCreateKeyTransactedWFunction(
     _In_ HKEY hKey,
     _In_ LPCWSTR lpSubKey,
     _Reserved_ DWORD Reserved,
@@ -15558,7 +15558,7 @@ typedef LSTATUS APIENTRY VRegInternalRegCreateKeyTransactedWFunction(
     _Reserved_ PVOID pExtendedParemeter
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegOpenKeyTransactedAFunction(
+typedef LSTATUS WINAPI VRegInternalRegOpenKeyTransactedAFunction(
     _In_ HKEY hKey,
     _In_opt_ LPCSTR lpSubKey,
     _In_opt_ DWORD ulOptions,
@@ -15568,7 +15568,7 @@ typedef LSTATUS APIENTRY VRegInternalRegOpenKeyTransactedAFunction(
     _Reserved_ PVOID pExtendedParemeter
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegOpenKeyTransactedWFunction(
+typedef LSTATUS WINAPI VRegInternalRegOpenKeyTransactedWFunction(
     _In_ HKEY hKey,
     _In_opt_ LPCWSTR lpSubKey,
     _In_opt_ DWORD ulOptions,
@@ -15578,7 +15578,7 @@ typedef LSTATUS APIENTRY VRegInternalRegOpenKeyTransactedWFunction(
     _Reserved_ PVOID pExtendedParemeter
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegDeleteKeyTransactedAFunction(
+typedef LSTATUS WINAPI VRegInternalRegDeleteKeyTransactedAFunction(
     _In_ HKEY hKey,
     _In_ LPCSTR lpSubKey,
     _In_ REGSAM samDesired,
@@ -15587,7 +15587,7 @@ typedef LSTATUS APIENTRY VRegInternalRegDeleteKeyTransactedAFunction(
     _Reserved_ PVOID pExtendedParameter
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegDeleteKeyTransactedWFunction(
+typedef LSTATUS WINAPI VRegInternalRegDeleteKeyTransactedWFunction(
     _In_ HKEY hKey,
     _In_ LPCWSTR lpSubKey,
     _In_ REGSAM samDesired,
@@ -15596,20 +15596,20 @@ typedef LSTATUS APIENTRY VRegInternalRegDeleteKeyTransactedWFunction(
     _Reserved_ PVOID pExtendedParameter
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegDisableReflectionKeyFunction(
+typedef LSTATUS WINAPI VRegInternalRegDisableReflectionKeyFunction(
     _In_ HKEY hBase
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegEnableReflectionKeyFunction(
+typedef LSTATUS WINAPI VRegInternalRegEnableReflectionKeyFunction(
     _In_ HKEY hBase
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegQueryReflectionKeyFunction(
+typedef LSTATUS WINAPI VRegInternalRegQueryReflectionKeyFunction(
     _In_ HKEY hBase,
     _Out_ BOOL* bIsReflectionDisabled
 );
 
-typedef LSTATUS APIENTRY VRegInternalRegOverridePredefKeyFunction(
+typedef LSTATUS WINAPI VRegInternalRegOverridePredefKeyFunction(
     _In_ HKEY hKey,
     _In_opt_ HKEY hNewHKey
 );
@@ -15721,7 +15721,7 @@ static LSTATUS VRegHooks_InternalRefuseMountPathA(
     return status;
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegSaveKeyA(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegSaveKeyA(
     _In_ const HKEY hKey,
     _In_ const LPCSTR lpFile,
     _In_opt_ CONST LPSECURITY_ATTRIBUTES lpSecurityAttributes
@@ -15739,7 +15739,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegSaveKeyA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegSaveKeyW(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegSaveKeyW(
     _In_ const HKEY hKey,
     _In_ const LPCWSTR lpFile,
     _In_opt_ CONST LPSECURITY_ATTRIBUTES lpSecurityAttributes
@@ -15757,7 +15757,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegSaveKeyW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegSaveKeyExA(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegSaveKeyExA(
     _In_ const HKEY hKey,
     _In_ const LPCSTR lpFile,
     _In_opt_ CONST LPSECURITY_ATTRIBUTES lpSecurityAttributes,
@@ -15777,7 +15777,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegSaveKeyExA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegSaveKeyExW(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegSaveKeyExW(
     _In_ const HKEY hKey,
     _In_ const LPCWSTR lpFile,
     _In_opt_ CONST LPSECURITY_ATTRIBUTES lpSecurityAttributes,
@@ -15797,7 +15797,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegSaveKeyExW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegRestoreKeyA(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegRestoreKeyA(
     _In_ const HKEY hKey,
     _In_ const LPCSTR lpFile,
     _In_ const DWORD dwFlags
@@ -15815,7 +15815,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegRestoreKeyA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegRestoreKeyW(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegRestoreKeyW(
     _In_ const HKEY hKey,
     _In_ const LPCWSTR lpFile,
     _In_ const DWORD dwFlags
@@ -15833,7 +15833,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegRestoreKeyW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegLoadKeyA(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegLoadKeyA(
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
     _In_ const LPCSTR lpFile
@@ -15851,7 +15851,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegLoadKeyA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegLoadKeyW(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegLoadKeyW(
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
     _In_ const LPCWSTR lpFile
@@ -15869,7 +15869,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegLoadKeyW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegUnLoadKeyA(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegUnLoadKeyA(
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey
 )
@@ -15885,7 +15885,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegUnLoadKeyA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegUnLoadKeyW(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegUnLoadKeyW(
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey
 )
@@ -15901,7 +15901,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegUnLoadKeyW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegReplaceKeyA(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegReplaceKeyA(
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
     _In_ const LPCSTR lpNewFile,
@@ -15921,7 +15921,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegReplaceKeyA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegReplaceKeyW(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegReplaceKeyW(
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
     _In_ const LPCWSTR lpNewFile,
@@ -15941,7 +15941,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegReplaceKeyW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegGetKeySecurity(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegGetKeySecurity(
     _In_ const HKEY hKey,
     _In_ const SECURITY_INFORMATION SecurityInformation,
     _Out_writes_bytes_opt_(*lpcbSecurityDescriptor) const PSECURITY_DESCRIPTOR pSecurityDescriptor,
@@ -15961,7 +15961,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegGetKeySecurity(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegSetKeySecurity(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegSetKeySecurity(
     _In_ const HKEY hKey,
     _In_ const SECURITY_INFORMATION SecurityInformation,
     _In_ const PSECURITY_DESCRIPTOR pSecurityDescriptor
@@ -15979,7 +15979,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegSetKeySecurity(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegRenameKey(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegRenameKey(
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKeyName,
     _In_ const LPCWSTR lpNewKeyName
@@ -15997,7 +15997,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegRenameKey(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegCopyTreeA(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegCopyTreeA(
     _In_ const HKEY hKeySrc,
     _In_opt_ const LPCSTR lpSubKey,
     _In_ const HKEY hKeyDest
@@ -16015,7 +16015,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegCopyTreeA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegCopyTreeW(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegCopyTreeW(
     _In_ const HKEY hKeySrc,
     _In_opt_ const LPCWSTR lpSubKey,
     _In_ const HKEY hKeyDest
@@ -16033,7 +16033,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegCopyTreeW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegCreateKeyTransactedA(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegCreateKeyTransactedA(
     _In_ const HKEY hKey,
     _In_ const LPCSTR lpSubKey,
     _Reserved_ const DWORD Reserved,
@@ -16072,7 +16072,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegCreateKeyTransactedA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegCreateKeyTransactedW(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegCreateKeyTransactedW(
     _In_ const HKEY hKey,
     _In_ const LPCWSTR lpSubKey,
     _Reserved_ const DWORD Reserved,
@@ -16111,7 +16111,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegCreateKeyTransactedW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegOpenKeyTransactedA(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegOpenKeyTransactedA(
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
     _In_ const DWORD ulOptions,
@@ -16142,7 +16142,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegOpenKeyTransactedA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegOpenKeyTransactedW(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegOpenKeyTransactedW(
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
     _In_ const DWORD ulOptions,
@@ -16175,7 +16175,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegOpenKeyTransactedW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegDeleteKeyTransactedA(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegDeleteKeyTransactedA(
     _In_ const HKEY hKey,
     _In_ const LPCSTR lpSubKey,
     _In_ const REGSAM samDesired,
@@ -16204,7 +16204,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegDeleteKeyTransactedA(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegDeleteKeyTransactedW(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegDeleteKeyTransactedW(
     _In_ const HKEY hKey,
     _In_ const LPCWSTR lpSubKey,
     _In_ const REGSAM samDesired,
@@ -16233,7 +16233,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegDeleteKeyTransactedW(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegDisableReflectionKey(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegDisableReflectionKey(
     _In_ const HKEY hBase
 )
 {
@@ -16247,7 +16247,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegDisableReflectionKey(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegEnableReflectionKey(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegEnableReflectionKey(
     _In_ const HKEY hBase
 )
 {
@@ -16261,7 +16261,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegEnableReflectionKey(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegQueryReflectionKey(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegQueryReflectionKey(
     _In_ const HKEY hBase,
     _Out_ BOOL* const bIsReflectionDisabled
 )
@@ -16277,7 +16277,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegQueryReflectionKey(
     );
 }
 
-static LSTATUS APIENTRY VRegHooks_InternalRefuseRegOverridePredefKey(
+static LSTATUS WINAPI VRegHooks_InternalRefuseRegOverridePredefKey(
     _In_ const HKEY hKey,
     _In_opt_ const HKEY hNewHKey
 )
