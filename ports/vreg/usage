@@ -1,9 +1,9 @@
 vreg provides CMake targets:
 
-  find_package(VReg CONFIG REQUIRED COMPONENTS Core RegFile)
-  target_link_libraries(main PRIVATE VReg::Core VReg::RegFile)
+  find_package(VReg CONFIG REQUIRED)
+  target_link_libraries(main PRIVATE VReg::VReg)
 
 With the detours feature:
 
-  find_package(VReg CONFIG REQUIRED COMPONENTS Core Detours)
+  find_package(VReg CONFIG REQUIRED COMPONENTS Detours)
   target_link_libraries(main PRIVATE VReg::Detours)
