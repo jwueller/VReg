@@ -496,6 +496,11 @@ is reachable through `RegOpenUserClassesRoot`.
   [Refused on virtual handles](#refused-on-virtual-handles));
   `RegRenameKey` and `RegCopyTree` are the ones a hive could answer most
   readily.
+- Binary hive files (`regf`, what `reg save` writes and `RegLoadAppKey`
+  reads): loading a hive from one, saving a hive to one, and with that
+  answers for the hive-file functions the hooks refuse. `.reg` scripts are
+  the import and export for now; `docs/plans/hive-files.md` sketches the
+  door.
 - A diagnostic sink: an optional function pointer, off by default and bound
   by the detour-body rules, reporting what VReg decides. Call tracing needs
   no sink: a registry table installed in front of the virtual registry
