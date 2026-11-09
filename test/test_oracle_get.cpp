@@ -82,6 +82,10 @@ std::vector<StoredValue> GetValues()
     values.push_back({L"DwordShort",         REG_DWORD,     {0x78, 0x56}});
     values.push_back({L"Qword",              REG_QWORD,     {1, 2, 3, 4, 5, 6, 7, 8}});
     values.push_back({L"Binary",             REG_BINARY,    {1, 2, 3, 4, 5}});
+    values.push_back({L"BinaryShort",        REG_BINARY,    {1, 2, 3}});
+    values.push_back({L"BinaryDword",        REG_BINARY,    {1, 2, 3, 4}});
+    values.push_back({L"BinaryQword",        REG_BINARY,    {1, 2, 3, 4, 5, 6, 7, 8}});
+    values.push_back({L"BinaryLong",         REG_BINARY,    {1, 2, 3, 4, 5, 6, 7, 8, 9}});
     values.push_back({L"BinaryEmpty",        REG_BINARY,    {}});
     values.push_back({L"Multi",              REG_MULTI_SZ,  BytesOf(L"a\0bc\0", 6)});
     values.push_back({L"MultiNoTerminator",  REG_MULTI_SZ,  BytesOf(L"a\0bc", 5)});

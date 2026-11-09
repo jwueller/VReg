@@ -58,7 +58,7 @@ extern "C" {
 // Raised with every change to this file; the tweak is always 0.
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 8
-#define VREG_VERSION_PATCH 1
+#define VREG_VERSION_PATCH 2
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -11931,14 +11931,16 @@ VREG_DECL LSTATUS WINAPI VReg_VirtualRegGetValueW(
             *pcbData = isFit ? cbReported : VReg_MaxDword(cbReported, cbReserved);
     }
 
-    // Binary data passes as a DWORD only when it is empty or has that size.
-    // Agent's choice: native was measured with sizes 0 and 5 only; rejecting
-    // every other size is a guess for 1 to 3 and 6 or more.
+    // Binary data passes as a DWORD or QWORD when it is no longer than one;
+    // shorter data passes too, as a short REG_DWORD does. Only the exact
+    // pairs check the size: with any further type admitted, native checks
+    // nothing.
     isSizeMismatch =
         dwType == REG_BINARY
-        && (dwFlags & RRF_RT_ANY) == RRF_RT_DWORD
-        && stages[0].cb != 0
-        && stages[0].cb != sizeof(DWORD);
+        && (
+            ((dwFlags & RRF_RT_ANY) == RRF_RT_DWORD && stages[0].cb > sizeof(DWORD))
+            || ((dwFlags & RRF_RT_ANY) == RRF_RT_QWORD && stages[0].cb > sizeof(ULONGLONG))
+        );
 
     if (!isAllowed)
         status = ERROR_UNSUPPORTED_TYPE;
