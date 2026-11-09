@@ -41,14 +41,17 @@
 /// SOFTWARE.
 /// @endverbatim
 
-#ifndef VREG_H_INCLUDED
-#define VREG_H_INCLUDED
-
 #include <Windows.h>
 
+// One linkage block holds every declaration part, outside their guards, so
+// it balances on each inclusion whatever the guards skip; the implementation
+// stays outside and takes the linkage of its declarations.
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#ifndef VREG_H_INCLUDED
+#define VREG_H_INCLUDED
 
 // ==========================================================================
 // Version
@@ -57,7 +60,7 @@ extern "C" {
 // Raised with every change to this file; the tweak is always 0.
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 15
-#define VREG_VERSION_PATCH 1
+#define VREG_VERSION_PATCH 2
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -1564,19 +1567,11 @@ VREG_DECL LSTATUS WINAPI VRegScript_WriteFile(
     _In_ LPCWSTR pszPath
 );
 
-#ifdef __cplusplus
-} // extern "C"
-#endif
-
 #endif // VREG_H_INCLUDED
 
 #ifdef VREG_WITH_DETOURS
 #ifndef VREG_DETOURS_H_INCLUDED
 #define VREG_DETOURS_H_INCLUDED
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 // ==========================================================================
 // Hooks
@@ -1629,10 +1624,6 @@ VREG_DECL LONG WINAPI VRegHooks_Install(
 /// Makes every hook of this copy pass calls straight through, for good.
 VREG_DECL void WINAPI VRegHooks_Neutralize(void);
 
-#ifdef __cplusplus
-} // extern "C"
-#endif
-
 #endif // VREG_DETOURS_H_INCLUDED
 #endif // VREG_WITH_DETOURS
 
@@ -1661,10 +1652,6 @@ VREG_DECL void WINAPI VRegHooks_Neutralize(void);
 #ifdef VREG_INTERNAL
 #ifndef VREG_INTERNAL_INCLUDED
 #define VREG_INTERNAL_INCLUDED
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 // ==========================================================================
 // Allocation
@@ -2844,12 +2831,12 @@ VREG_DECL LSTATUS VReg_InternalWriteWholeFile(
     SIZE_T cbFile
 );
 
+#endif // VREG_INTERNAL_INCLUDED
+#endif // VREG_INTERNAL
+
 #ifdef __cplusplus
 } // extern "C"
 #endif
-
-#endif // VREG_INTERNAL_INCLUDED
-#endif // VREG_INTERNAL
 
 #ifdef VREG_IMPLEMENTATION
 #ifndef VREG_IMPLEMENTATION_INCLUDED

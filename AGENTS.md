@@ -92,8 +92,7 @@ the API it sits beside.
 - The library is `vreg.h` alone, included as `<vreg.h>`. A declaration or
   definition goes in the part its visibility gives it (public, the hooks'
   declarations, private, implementation, the hooks' implementation), inside
-  the titled section of its area; each declaration part is wrapped once in
-  `extern "C"` under `__cplusplus`.
+  the titled section of its area.
 - `vreg.h` has explicit guards, one per part, since it is entered again
   with `VREG_IMPLEMENTATION` after an earlier include. Other headers (the
   tests') use `#pragma once`: every compiler that builds VReg supports it,
