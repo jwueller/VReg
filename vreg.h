@@ -2,6 +2,8 @@
 /// @brief A virtual Windows registry for C, as an overlay over the real one, or
 ///  held entirely in memory.
 /// @author Johannes Wüller
+/// @version @see VREG_VERSION_MAJOR, VREG_VERSION_MINOR, VREG_VERSION_PATCH,
+///  VREG_VERSION_TWEAK
 ///
 /// @details Include it from any C or C++ file. In exactly one C file per
 ///  module, define @ref VREG_IMPLEMENTATION before including it to compile the
@@ -41,26 +43,23 @@
 /// SOFTWARE.
 /// @endverbatim
 
+#ifndef VREG_H_INCLUDED
+#define VREG_H_INCLUDED
+
 #include <Windows.h>
 
-// One linkage block holds every declaration part, outside their guards, so
-// it balances on each inclusion whatever the guards skip; the implementation
-// stays outside and takes the linkage of its declarations.
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#ifndef VREG_H_INCLUDED
-#define VREG_H_INCLUDED
 
 // ==========================================================================
 // Version
 // ==========================================================================
 
-// Raised with every change to this file; the tweak is always 0.
+// Raised with every change to this file. Tweak is unused (always 0).
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 15
-#define VREG_VERSION_PATCH 2
+#define VREG_VERSION_PATCH 3
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -1567,11 +1566,7 @@ VREG_DECL LSTATUS WINAPI VRegScript_WriteFile(
     _In_ LPCWSTR pszPath
 );
 
-#endif // VREG_H_INCLUDED
-
 #ifdef VREG_WITH_DETOURS
-#ifndef VREG_DETOURS_H_INCLUDED
-#define VREG_DETOURS_H_INCLUDED
 
 // ==========================================================================
 // Hooks
@@ -1624,8 +1619,13 @@ VREG_DECL LONG WINAPI VRegHooks_Install(
 /// Makes every hook of this copy pass calls straight through, for good.
 VREG_DECL void WINAPI VRegHooks_Neutralize(void);
 
-#endif // VREG_DETOURS_H_INCLUDED
 #endif // VREG_WITH_DETOURS
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#endif // VREG_H_INCLUDED
 
 /// The private declarations come with the implementation. @ref VREG_INTERNAL
 /// shows them alone, for code built beside the library that reaches into it:
@@ -1652,6 +1652,10 @@ VREG_DECL void WINAPI VRegHooks_Neutralize(void);
 #ifdef VREG_INTERNAL
 #ifndef VREG_INTERNAL_INCLUDED
 #define VREG_INTERNAL_INCLUDED
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // ==========================================================================
 // Allocation
@@ -2831,12 +2835,12 @@ VREG_DECL LSTATUS VReg_InternalWriteWholeFile(
     SIZE_T cbFile
 );
 
-#endif // VREG_INTERNAL_INCLUDED
-#endif // VREG_INTERNAL
-
 #ifdef __cplusplus
 } // extern "C"
 #endif
+
+#endif // VREG_INTERNAL_INCLUDED
+#endif // VREG_INTERNAL
 
 #ifdef VREG_IMPLEMENTATION
 #ifndef VREG_IMPLEMENTATION_INCLUDED
