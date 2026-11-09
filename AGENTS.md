@@ -53,8 +53,8 @@ work is done; git keeps how it got there.
 
 ## Code conventions
 
-Agent's choice: beyond the names of functions and types, these follow Win32
-naming, because the library sits beside the API it reimplements.
+These follow Win32 naming, so the library reads as a natural extension of
+the API it sits beside.
 
 - C99 as MSVC 2013 and later compile it (declarations anywhere, `//`
   comments, designated initializers; no variable-length arrays, no `_Bool`

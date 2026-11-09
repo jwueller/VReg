@@ -189,7 +189,7 @@ jobs:
             exit 1
           fi
 
-  # Agent's choice: the notes list the commit subjects since the previous
+  # The notes list the commit subjects since the previous
   # release tag. VReg merges no pull requests, so --generate-notes would list
   # nothing, and hand-written notes would be one more step at tagging time.
   # An @word in a subject (Doxygen's @ref) goes in a code span, or GitHub

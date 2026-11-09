@@ -37,7 +37,7 @@ function(vreg_add_library name)
         $<BUILD_INTERFACE:VReg_BuildSettings>
     )
 
-    # Agent's choice: the library only. The tests pass unchecked handles
+    # The library only. The tests pass unchecked handles
     # (GetModuleHandleW, CreateEventW) straight on, where a failure fails
     # the test anyway, and would need a check per call to pass.
     if(VREG_ANALYZE)

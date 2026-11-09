@@ -58,7 +58,7 @@ extern "C" {
 // Raised with every change to this file; the tweak is always 0.
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 10
-#define VREG_VERSION_PATCH 2
+#define VREG_VERSION_PATCH 3
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -3926,9 +3926,9 @@ VREG_DECL LSTATUS WINAPI VReg_SetValueExA(
         goto done;
 
     // Native reads the byte after unterminated data and keeps it as the
-    // terminator when it is zero, which it nearly always is. Agent's choice:
-    // always terminate, so no byte past cbData is ever read; reading it, as
-    // native does, can fault at the end of a page.
+    // terminator when it is zero, which it nearly always is. VReg always
+    // terminates, so no byte past cbData is ever read; reading it, as native
+    // does, can fault at the end of a page.
     if (text.cch > 0 && text.psz[text.cch - 1] != L'\0')
     {
         if (!VRegInternal_WStringAppendChar(&text, L'\0'))
@@ -8615,12 +8615,11 @@ VREG_DECL LSTATUS WINAPI VRegHive_NotifyChange(
 // ==========================================================================
 
 // The lower of a layered hive: a key of another registry, reached through
-// the slots of @ref VRegHiveVtbl like any lower. Agent's choice: every call
-// opens the lower key by its path again (the lower key's path, then the
-// record's path in the hive) and closes it after, as the hive did before it
-// had a table, so a record holds no handle. Keeping one lower handle per
-// record would save the opens and was passed over for the handles it would
-// pin for the hive's life.
+// the slots of @ref VRegHiveVtbl like any lower. Every call opens the lower
+// key by its path again (the lower key's path, then the record's path in
+// the hive) and closes it after, as the hive did before it had a table, so
+// a record holds no handle: one lower handle per record would save the
+// opens but stay pinned for the hive's life.
 
 typedef struct
 {

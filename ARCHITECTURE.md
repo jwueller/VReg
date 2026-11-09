@@ -203,14 +203,24 @@ The nodes are the hive's records of its keys:
 - Slots take the hive, as `VRegVtbl` slots take the registry, and reach
   their object through `VRegHive_GetContext`, so both tables read alike and
   a slot holds what `VRegHive_NotifyChange` needs.
+- The public pair mirrors the registry's: `VRegHive_CreateCustom(table,
+  context, &hive)` and `VRegHive_GetContext(hive)`, freed with
+  `VRegHive_Destroy`, over a `VRegHiveVtbl`. A custom hive is a `VRegHive`
+  like any other: a separate opaque type would split every mount and
+  script function in two.
+- Freezing a custom hive refuses writes through VReg and changes nothing
+  else: its records are still discovered lazily, so opens keep taking the
+  lock, and it keeps its watches.
+- A custom hive's delta is empty, which is what the hive holds itself: its
+  records are all transparent, so the snapshot of the upper layer has
+  nothing to write.
+- The layered hive's lower reopens its key by path on every call and keeps
+  no handle per record (the comment at "Hive lowers over a registry" in
+  `vreg.h`): the reopen is transparent to the caller, and a handle per
+  record would stay pinned for the hive's life.
 
 Agent's choices, open until the maintainer confirms them:
 
-- The public pair mirrors the registry's: `VRegHive_CreateCustom(table,
-  context, &hive)` and `VRegHive_GetContext(hive)`, freed with
-  `VRegHive_Destroy`, over a `VRegHiveVtbl`. Passed over: a separate opaque
-  type for custom hives, which would split every mount and script function
-  in two.
 - `DeleteTree` is never derived from the other slots: a partial failure
   would leave a half-deleted tree that native never shows. Passed over:
   deleting subkeys one by one through `DeleteKey`.
@@ -219,17 +229,6 @@ Agent's choices, open until the maintainer confirms them:
   over: caller buffers with `ERROR_MORE_DATA`, which bring back the buffer
   rules the table exists to hide, and returned pointers valid until the
   next call, which every concurrent caller would have to reason about.
-- Freezing a custom hive refuses writes through VReg and changes nothing
-  else: its records are still discovered lazily, so opens keep taking the
-  lock, and it keeps its watches. Passed over: refusing the freeze, which
-  would need `VRegHive_Freeze` to answer a status.
-- A custom hive's delta is empty, which is what the hive holds itself: its
-  records are all transparent, so the snapshot of the upper layer has
-  nothing to write. Passed over: refusing `VRegScript_Delta` on it.
-- The layered hive's lower reopens its key by path on every call and keeps
-  no handle per record (the comment at "Hive lowers over a registry" in
-  `vreg.h`). Passed over: one lower handle per record, faster but pinned for
-  the hive's life.
 
 ## Handles, freeze and locking
 
@@ -242,9 +241,8 @@ odd, at most the base"; the private `VRegInternal_IsPredefinedHKey` is the range
 `HKEY_CLASSES_ROOT` to `HKEY_CURRENT_USER_LOCAL_SETTINGS`, the one test for a
 root everywhere in the library.
 
-Agent's choice: the range stays 31-bit on x64 so code that truncates an
-HKEY to a `DWORD` survives; about 1G handles is far beyond any hive. The
-full 63-bit range was passed over.
+The range stays 31-bit on x64 so code that truncates an HKEY to a `DWORD`
+survives; about 1G handles is far beyond any hive.
 
 Measured on Windows 11 26200, x86 and x64 (a probe opening keys through
 plain, WOW64, HKCR, HKCU, HKU, HKCC, `RegOpenCurrentUser`,
@@ -267,10 +265,10 @@ Opening a key returns its node's handle; `RegCloseKey` on a virtual handle
 is a no-op. A deleted node keeps its slot and calls on it answer
 `ERROR_KEY_DELETED`.
 
-Agent's choice: this keeps reads lock-free and handles stable, at the cost
-of never reclaiming deleted nodes and of two opens returning the same value.
-Per-open refcounted handles (closer to Win32 identity, a lock on every open
-and close) were passed over.
+This keeps reads lock-free and handles stable, at the cost of never
+reclaiming deleted nodes and of two opens returning the same value.
+Per-open refcounted handles would be closer to Win32 identity but need a
+lock on every open and close.
 
 ### Shared handle namespace across static copies
 
@@ -295,9 +293,9 @@ from one namespace:
   treats it exactly like a real handle and passes it to its base registry
   (in a hooked process, the trampoline: the next hooker, another copy or the
   real function), so it reaches the copy that issued it.
-- Agent's choice: a section over a named mutex, since the counter needs
-  shared storage either way and the section needs no lock; blocks of 4096
-  over per-handle increments, for one cross-copy operation per block.
+- A section rather than a named mutex, since the counter needs shared
+  storage either way and the section needs no lock; blocks of 4096 rather
+  than per-handle increments, for one cross-copy operation per block.
 - A same-session process could pre-create the section; it can already open
   this process and do worse, so no defense is added.
 
@@ -389,9 +387,8 @@ into a mount. The last case is resolved by the parent's native path:
   and is reached only through that root.
 - `WOW6432Node` components are skipped, whole and ordinal
   case-insensitively, while the path is matched against the mount point.
-  Agent's choice: below the mount point the name is an ordinary key, since a
-  hive's own tree is not a registry view; stripping the whole path was passed
-  over. The longest matching mount wins.
+  Below the mount point the name is an ordinary key, since a hive's own tree
+  is not a registry view. The longest matching mount wins.
 - Each mount has a view, in the `REGSAM` vocabulary `VRegHive_CreateLayered`
   uses for its lower view too: `KEY_WOW64_64KEY`,
   `KEY_WOW64_32KEY`, or 0 (the default) for both. A call is of the view its
@@ -556,8 +553,8 @@ are applied and written like parsed ones. Parse and write are symmetric.
   UTF-8 form intact, non-BMP characters included: `regedit /s` with or
   without BOM, `reg import` only without one (with a BOM it answers "not a
   registry file").
-- Keys and values sorted ordinal case-insensitive. Agent's choice: stable
-  fixture diffs over mirroring regedit's enumeration order.
+- Keys and values sorted ordinal case-insensitive: stable fixture diffs
+  matter more than mirroring regedit's enumeration order.
 - `reg export`'s layout, byte for byte apart from the order: CRLF, hex data
   broken after the first comma past column 76 with a `\` continuation and
   a two-space indent, a blank line between keys.
@@ -614,9 +611,10 @@ Catch2.
   ARM64 runner.
 - Wine on Ubuntu: the Windows-built x86 and x64 test binaries, all tests
   except those on a private app hive (the native oracle and every test
-  against the real registry), which skip themselves there. Agent's choice: native
-  Windows behavior is the spec and Wine may deviate on edge-case statuses; a
-  per-platform expectation list was passed over because it would make our
+  against the real registry), which skip themselves there. Native Windows
+  behavior is the spec, since it defines the API; where Wine deviates, that
+  is a Wine bug, worked around in VReg only when the workaround costs
+  nothing on Windows. A per-platform expectation list would make our
   behavior follow whichever Wine version CI installed.
 - Proton and true remote `RegConnectRegistry` stay manual checks; the
   original implementation already runs under Wine and Proton.
@@ -638,9 +636,9 @@ Catch2.
     callbacks).
   - The version: `VREG_VERSION_MAJOR`, `_MINOR`, `_PATCH` and `_TWEAK` are
     written in the header, and CMake reads its project version from them.
-    Agent's choice: the header owns the version, so a copied file says
-    which it is; keeping it in `vcpkg.json` with a checked copy in the
-    header was passed over as two places to bump.
+    The header owns the version, as it owns everything else, so a copied
+    file says which it is; a copy in `vcpkg.json` would be a second place
+    to bump.
   - It carries the full license text, since it is copied on its own, and a
     UTF-8 BOM, since that text is not ASCII and MSVC otherwise reads it in
     the consumer's code page.
