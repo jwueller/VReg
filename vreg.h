@@ -1,6 +1,7 @@
 ﻿/// @file vreg.h
 /// @brief A virtual Windows registry for C, as an overlay over the real one, or
 ///  held entirely in memory.
+/// @author Johannes Wüller
 ///
 /// @details Include it from any C or C++ file. In exactly one C file per
 ///  module, define @ref VREG_IMPLEMENTATION before including it to compile the
@@ -17,10 +18,8 @@
 ///  hooks' implementation. Names starting `VRegInternal` or `VREG_INTERNAL_`
 ///  are private.
 ///
-/// @copyright
+/// @copyright MIT License.
 /// @verbatim
-/// MIT License
-///
 /// Copyright (c) 2026 Johannes Wüller
 ///
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -57,8 +56,8 @@ extern "C" {
 
 // Raised with every change to this file; the tweak is always 0.
 #define VREG_VERSION_MAJOR 0
-#define VREG_VERSION_MINOR 10
-#define VREG_VERSION_PATCH 4
+#define VREG_VERSION_MINOR 11
+#define VREG_VERSION_PATCH 0
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -1585,19 +1584,21 @@ extern "C" {
 // Each hook is a small thunk outside the module image that jumps through a
 // slot. The hooks are never detached: @ref VRegHooks_Neutralize points every
 // slot at the trampoline, so the layer passes everything straight through
-// while other hookers' chains stay intact in any order. It runs by itself
-// when the module is unloaded.
+// while other hookers' chains stay intact in any order.
 //
 // Hook bodies may run under a foreign loader lock; nothing they reach loads
 // a module, creates a thread or waits on a lock a loader-lock holder could
 // own. The one load is the call's own: `RegLoadMUIStringW` resolving an
 // indirect string loads its module, as it does natively.
 //
-// @note A thread still inside a hook body when its module unmaps crashes:
-// the module MUST NOT unload while registry calls are in flight. A module
-// that cannot rule that out MAY pin itself (@ref GetModuleHandleExW with
-// @ref GET_MODULE_HANDLE_EX_FLAG_PIN), which keeps it loaded until the
-// process exits.
+// @note A hook body can run on any thread at any time, so no module whose
+// code a hook can reach is ever safe to unload: the one holding this copy,
+// and any module the registry handed to @ref VRegHooks_Install or a hive
+// provider lives in. The consumer MUST pin each of them
+// (@ref GetModuleHandleExW with @ref GET_MODULE_HANDLE_EX_FLAG_PIN). VReg
+// pins nothing, since it cannot know those modules and a pin is
+// irreversible; nothing runs at unload either, since neutralizing the
+// slots then would protect only callers who arrive after it.
 
 /// Calls @ref DetourAttach for every hook in a Detours transaction of its
 /// own, enrolling only the calling thread. Every hook calls through
@@ -1605,8 +1606,9 @@ extern "C" {
 /// call, say). @p pNative is the registry below the hooks, the one
 /// @p pRegistry reaches for whatever it does not answer: it MUST be one
 /// @ref VReg_CreateNative made, and the commit turns its function table into
-/// the trampolines. Both MUST outlive the process. Answers the first Detours
-/// error, or @ref ERROR_ALREADY_INITIALIZED when this copy installed before.
+/// the trampolines. Both MUST outlive the process, as MUST every module a
+/// hook can reach (see the note above). Answers the first Detours error, or
+/// @ref ERROR_ALREADY_INITIALIZED when this copy installed before.
 VREG_DECL LONG WINAPI VRegHooks_Install(
     _In_ VReg* pRegistry,
     _In_ VReg* pNative
@@ -14312,8 +14314,6 @@ VREG_DECL LSTATUS WINAPI VRegScript_WriteFile(
 
 #include <detours/detours.h>
 
-#include <stdlib.h>
-
 // Detours takes hook bodies and trampolines as data pointers, and the thunks
 // are bytes; the conversions below are what its API is made of.
 #pragma warning(disable: 4054 4055 4152)
@@ -16181,13 +16181,6 @@ typedef struct
     void* pBody;
 } VRegInternalHook;
 
-/// @ref VRegHooks_Neutralize in the calling convention @ref atexit takes, which
-/// on x86 is not `WINAPI`.
-static void __cdecl VRegInternal_NeutralizeHooksAtExit(void)
-{
-    VRegHooks_Neutralize();
-}
-
 VREG_DECL LONG WINAPI VRegHooks_Install(
     _In_ VReg* const pRegistry,
     _In_ VReg* const pNative
@@ -16285,12 +16278,6 @@ VREG_DECL LONG WINAPI VRegHooks_Install(
             goto done;
         }
     }
-
-    // Agent's choice: the hooks neutralize themselves when the module that
-    // holds their bodies unloads (or the process exits) through the CRT's exit
-    // table, which runs for a DLL at its detach. A TLS callback would avoid
-    // the CRT but is MSVC-specific and far less plain.
-    atexit(VRegInternal_NeutralizeHooksAtExit);
 
 done:
     if (error != NO_ERROR)

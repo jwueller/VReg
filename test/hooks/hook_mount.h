@@ -50,6 +50,17 @@ inline LONG InstallMount(
     if (error != ERROR_SUCCESS)
         return error;
 
+    // Every module a hook can reach is pinned, as the README requires; here
+    // the hooks, the registry and the hive all live in this one.
+    HMODULE hModule{};
+    const BOOL isPinned = ::GetModuleHandleExW(
+        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_PIN,
+        reinterpret_cast<LPCWSTR>(&InstallMount),
+        &hModule
+    );
+    if (!isPinned)
+        return static_cast<LONG>(::GetLastError());
+
     if (!ppIntercept)
         return VRegHooks_Install(pRegistry, pNative);
 

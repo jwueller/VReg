@@ -246,12 +246,12 @@ write into it.
   registry for calls made on it directly.
 - **From `DllMain`:** build, fill, freeze and mount before installing, so the
   first hooked call already finds the hive.
-- **Unloading** neutralizes the hooks (they pass everything through from
-  then on); the module MUST NOT unload while another thread may be inside
-  a registry call. A module that cannot rule that out MAY pin itself after
-  installing (`GetModuleHandleExW` with `GET_MODULE_HANDLE_EX_FLAG_PIN`):
-  it then stays loaded until the process exits, and no call can find its
-  code unmapped.
+- **Unloading** is never safe: a hook can run on any thread at any time,
+  and so can the registry you handed to `VRegHooks_Install` and your hive
+  providers. Pin every module that code lives in, right after installing
+  (`GetModuleHandleExW` with `GET_MODULE_HANDLE_EX_FLAG_PIN`); each then
+  stays loaded until the process exits. VReg pins nothing itself, since it
+  cannot know those modules and a pin cannot be undone.
 - **Several modules** MAY each link VReg and install their own hooks; their
   handles never collide, and each answers only its own mounts.
 - **Tracing:** `VRegHooks_Install` takes any `VReg`, so a table

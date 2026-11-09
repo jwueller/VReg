@@ -450,9 +450,15 @@ of each group.
   the hooks: its function table holds the targets handed to Detours, so
   after the commit it holds the trampolines. A second call answers
   `ERROR_ALREADY_INITIALIZED`.
+- Install pins nothing, and nothing runs at unload. A body can run on any
+  thread at any time, so no consumer can know the hooks are idle, and an
+  unload crashes the next caller; neutralizing the slots at unload would
+  protect only callers who arrive after it. The consumer pins every module
+  a hook can reach, which VReg cannot know: the registry handed to Install
+  and the hive providers may live in modules of their own, and a pin is
+  irreversible.
 - `VRegHooks_Neutralize()` makes every hook of the copy pass straight
-  through; it also runs by itself when the module unloads, registered with
-  `atexit` at install.
+  through; the module stays loaded, so the pass-through is safe.
 - A consumer installing from `DllMain` builds, freezes and mounts its hives
   before the commit, so the first hooked call already finds them.
 
@@ -464,18 +470,16 @@ of each group.
   mounted by two copies the one on top wins (documented, not detected).
 - The library never calls `DetourDetach`. Each hook's detour is a thunk
   allocated outside the module image (`VirtualAlloc`), `jmp [slot]`, with
-  `slot` pointing at the detour body. On unload or on a `Neutralize` call the
-  library writes `slot = trampoline` atomically, so the layer becomes a
+  `slot` pointing at the detour body. On a `Neutralize` call the library
+  writes `slot = trampoline` atomically, so the layer becomes a
   pass-through and other hookers' chains stay intact in any order. Thunks,
   slots and trampolines are leaked on purpose.
-- Precondition, documented: a thread already inside a detour body when the
-  module unmaps still crashes; the consumer must not unload while registry
-  calls are in flight, or pins its module. Switching the slot cannot help:
-  the thread returns into the unmapped body. Draining calls in flight
-  cannot either: detach runs under the loader lock, which a call inside a
-  native open may be waiting for, and the count's decrement would run in
-  the image itself. Agent's choice: pinning stays the consumer's, since it
-  ends unloading for good; `Install` pinning by default was passed over.
+- The consumer keeps every module a hook can reach mapped, by pinning.
+  Nothing short of that would do: a thread already inside a detour body when the module
+  unmaps returns into unmapped code, switching the slot cannot reach it,
+  and draining calls in flight is impossible, since detach runs under the
+  loader lock, which a call inside a native open may be waiting for, and
+  the count's decrement would run in the image itself.
 - README recommendation, not a requirement: install before other registry
   hookers where possible.
 
@@ -596,8 +600,8 @@ Catch2.
   on HKCU.
 - **Hooks**: a separate test process (every architecture) installs the hooks and
   calls the real `Reg*` APIs; it loads two DLLs that each link the library
-  statically, covering the shared handle namespace, chaining and
-  neutralize-on-unload.
+  statically, covering the shared handle namespace, chaining and a
+  consumer's pin outliving `FreeLibrary`.
 - **Handle probe**: the parity measurement above as a permanent test.
 - **Single header** (`test/headers`): the implementation compiled
   warning-free as C, and the declarations as C++, after a plain

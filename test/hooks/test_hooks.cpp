@@ -167,16 +167,16 @@ struct Module
 
 /// Loads VReg_HookModule<tag>.dll and has it install hooks over a mount of its
 /// own.
+std::filesystem::path ModulePath(const wchar_t* const pszTag)
+{
+    return ExeDirectory() / std::format(L"VReg_HookModule{}.dll", pszTag);
+}
+
 Module LoadModule(const wchar_t* const pszTag)
 {
     Module module;
     module.name = MountName(pszTag);
-
-    const auto path = ExeDirectory() / std::format(
-        L"VReg_HookModule{}.dll",
-        pszTag
-    );
-    module.hModule = ::LoadLibraryW(path.c_str());
+    module.hModule = ::LoadLibraryW(ModulePath(pszTag).c_str());
     REQUIRE(module.hModule != nullptr);
 
     using InstallFunction = LONG(__cdecl*)(const wchar_t*);
@@ -1242,38 +1242,19 @@ TEST_CASE("Neutralize removes the mount and leaves real keys working")
     CHECK(!RealKeyExists(name));
 }
 
-TEST_CASE("Two modules, the lower one unloaded first")
+TEST_CASE("A module that installed hooks stays loaded past FreeLibrary")
 {
     const auto lower = LoadModule(L"A");
     const auto upper = LoadModule(L"B");
     CheckBothMounts(lower, upper, L"A", L"B");
 
+    // Each module pinned itself at install, as the README requires, so
+    // FreeLibrary drops this reference and nothing else: no hook body can
+    // be unmapped under a caller, and the mounts keep answering.
     REQUIRE(::FreeLibrary(lower.hModule));
-    CHECK(ReadMountModule(upper.name) == L"B");
-    CHECK(ReadMountModule(lower.name) == std::nullopt);
-    CheckRealKeysWork();
-
     REQUIRE(::FreeLibrary(upper.hModule));
-    CHECK(ReadMountModule(upper.name) == std::nullopt);
+    CHECK(::GetModuleHandleW(ModulePath(L"A").c_str()) == lower.hModule);
+    CHECK(::GetModuleHandleW(ModulePath(L"B").c_str()) == upper.hModule);
+    CheckBothMounts(lower, upper, L"A", L"B");
     CheckRealKeysWork();
-    CHECK(!RealKeyExists(lower.name));
-    CHECK(!RealKeyExists(upper.name));
-}
-
-TEST_CASE("Two modules, the upper one unloaded first")
-{
-    const auto lower = LoadModule(L"B");
-    const auto upper = LoadModule(L"A");
-    CheckBothMounts(lower, upper, L"B", L"A");
-
-    REQUIRE(::FreeLibrary(upper.hModule));
-    CHECK(ReadMountModule(lower.name) == L"B");
-    CHECK(ReadMountModule(upper.name) == std::nullopt);
-    CheckRealKeysWork();
-
-    REQUIRE(::FreeLibrary(lower.hModule));
-    CHECK(ReadMountModule(lower.name) == std::nullopt);
-    CheckRealKeysWork();
-    CHECK(!RealKeyExists(lower.name));
-    CHECK(!RealKeyExists(upper.name));
 }
