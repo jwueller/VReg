@@ -15,13 +15,10 @@ It grew out of the virtual registry in [DirectRetrofit](https://retrofit.games).
   `UNICODE` macros select among them as among the functions.
 - **Hives mounted into a virtual namespace.** A virtual registry mounts
   hives at registry paths and passes everything else to a base registry
-  (usually the real one). An overlay hive adds, overrides and deletes keys
-  and values over the registry below it, while real values it does not
-  override stay visible.
+  (usually the real one).
 - **Your own data as a hive.** A table of slots over an object of yours
   shows a data structure, or values computed on each read, as registry
-  keys, while VReg keeps every Win32 rule: handles, caller buffers, ANSI and
-  wide, views and mounts.
+  keys.
 - **Pure in-memory mode.** With no base registry, nothing outside the
   mounted hives exists.
 - **`.reg` files.** Import and export (REGEDIT4 and version 5), including
@@ -241,10 +238,8 @@ write into it.
   registry for calls made on it directly.
 - **From `DllMain`:** build, fill, freeze and mount before installing, so the
   first hooked call already finds the hive.
-- **Unloading** is never safe: a hook can run on any thread at any time,
-  and so can the registry you handed to `VRegHooks_Install` and your hive
-  providers. Pin every module that code lives in, right after installing
-  (`GetModuleHandleExW` with `GET_MODULE_HANDLE_EX_FLAG_PIN`).
+- **Unloading** is never safe: pin every module a hook can reach, right
+  after installing, as the doc comment on `VRegHooks_Install` says.
 - **Several modules** MAY each link VReg and install their own hooks; their
   handles never collide, and each answers only its own mounts.
 - **Tracing:** `VRegHooks_Install` takes any `VReg`, so a table
@@ -254,10 +249,10 @@ write into it.
   hive value as native does.
 
 Code that runs inside a hook (a registry table of your own used as a base,
-for instance) may run under another module's loader lock: it MUST NOT load a
-module, create a thread, or wait on a lock a loader-lock holder could own,
-and it MUST reach the real registry only through the native registry below
-the hooks, never the `Reg*` functions themselves.
+for instance) may run under another module's loader lock, so the rule in the
+doc comment on `VReg` binds it, and it MUST reach the real registry only
+through the native registry below the hooks, never the `Reg*` functions
+themselves.
 
 Calls straight to `ntdll` (`NtOpenKey` and friends) bypass the hooks; see
 [Scope](#scope) and

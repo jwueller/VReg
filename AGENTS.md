@@ -3,9 +3,8 @@
 Guidance for coding agents. **Read [README.md](./README.md) and
 [CONTRIBUTING.md](./CONTRIBUTING.md) first**: the README owns what VReg is
 and how to use it, its scope and its known divergences; CONTRIBUTING owns
-how to build, test, package and release it; the comment that opens each
-implementation section of `vreg.h` owns how that section is built and why.
-A fact has one home: a doc comment states the contract of its declaration,
+how to build, test, package and release it, and where things are in
+`vreg.h`. A fact has one home: a doc comment states the contract of its declaration,
 a section comment the mechanism, and the README points at them instead of
 restating. Anything a human needs belongs there, not here. A
 plan for unfinished work goes in `docs/plans/` and is deleted once the
@@ -33,12 +32,10 @@ work is done; git keeps how it got there.
 
 ## Invariants that are easy to break
 
-- **Detour bodies can run under a foreign loader lock.** Nothing reachable
-  from one may load a module, create a thread, or wait on a lock that a
-  loader-lock holder could own. A load the hooked call itself makes
-  natively is the caller's, not VReg's: `RegLoadMUIString` resolving an
-  indirect string. A hive's lock is never held across a call into its
-  lower: the lower registry or a provider's slot.
+- **Detour bodies can run under a foreign loader lock.** The `@note` on
+  `VReg` in `vreg.h` states the rule; the hooks section comment names the
+  one load it allows, and the hives' locking comment why their lock is
+  never held across a call into the lower.
 - **Lower-registry access goes only through the flat functions on the base
   registry** (after hooking: the trampolines). A direct `::Reg*` call
   inside the library re-enters the hooks and bypasses test stubs.
@@ -49,8 +46,8 @@ work is done; git keeps how it got there.
 - **Virtual handles are odd values at most `0x7FFFFFFF`.** Never hand one to
   a real registry API. The shared handle section's layout is an ABI between
   separately built copies, so it never changes.
-- **Hooks are never detached**; they are neutralized through their slot.
-  Nothing calls `DetourDetach`.
+- **Hooks are never detached**; nothing calls `DetourDetach`. The hooks
+  section comment of `vreg.h` says how they are neutralized instead.
 - **No `std::mutex` in the library.** It locks with `SRWLOCK`; Wine's
   `msvcp140.dll` aborts on the current `std::mutex`.
 
@@ -99,9 +96,8 @@ the API it sits beside.
   never carries meaning in a path. For the same reason, a Windows SDK header
   is included as the SDK spells its file (`Windows.h`, `Shlwapi.h`).
 - The library is `vreg.h` alone, included as `<vreg.h>`. A declaration or
-  definition goes in the part its visibility gives it (public, the hooks'
-  declarations, private, implementation, the hooks' implementation), inside
-  the titled section of its area.
+  definition goes in the part its visibility gives it (CONTRIBUTING's "Where
+  things are" lists the parts), inside the titled section of its area.
 - `vreg.h` has explicit guards, one per part, since it is entered again
   with `VREG_IMPLEMENTATION` after an earlier include. Other headers (the
   tests') use `#pragma once`: every compiler that builds VReg supports it,
