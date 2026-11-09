@@ -3,8 +3,11 @@
 Guidance for coding agents. **Read [README.md](./README.md) and
 [CONTRIBUTING.md](./CONTRIBUTING.md) first**: the README owns what VReg is
 and how to use it, its scope and its known divergences; CONTRIBUTING owns
-how to build, test and release it; [ARCHITECTURE.md](./ARCHITECTURE.md)
-owns how it is built. Anything a human needs belongs there, not here. A
+how to build, test, package and release it; the comment that opens each
+implementation section of `vreg.h` owns how that section is built and why.
+A fact has one home: a doc comment states the contract of its declaration,
+a section comment the mechanism, and the README points at them instead of
+restating. Anything a human needs belongs there, not here. A
 plan for unfinished work goes in `docs/plans/` and is deleted once the
 work is done; git keeps how it got there.
 
@@ -134,6 +137,9 @@ the API it sits beside.
   one operand per line one level deeper with `||` leading, and `)` back at
   the parameter's indent.
 - Conversions that return their result are named `YFromX`.
+- A public object made by a `Create` function is ended by `Destroy`, and so
+  is the slot that runs then; memory and a struct's contents are `Free`d
+  (`VReg_Free`, `VRegInternalWString_Free`).
 - Parameter names are never omitted or commented out; an unused one is
   `(void)name;` in the body.
 - Signatures of the Win32-shaped functions and every call to a `Reg*`

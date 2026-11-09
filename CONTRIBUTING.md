@@ -1,11 +1,16 @@
 # Contributing to VReg
 
-## Architecture
+## Where things are
 
-[ARCHITECTURE.md](./ARCHITECTURE.md) owns how VReg is built: its
-components, handles and locking, the Detours adapter, the `.reg` format and
-the test suite. What is missing and where VReg knowingly differs from
-native Windows are in the [README](./README.md).
+The whole library is [vreg.h](./vreg.h): public declarations, the hooks'
+declarations, private declarations, the implementation and the hooks'
+implementation, each split into titled sections. The comment that opens an
+implementation section owns the design of what it holds: the mechanism and
+why it was chosen over the alternatives. The CMake targets compile the file
+from the one-line sources under `src/`; the private declarations show under
+`VREG_INTERNAL` for the tests and for the hooks built apart. What is missing
+and where VReg knowingly differs from native Windows are in the
+[README](./README.md).
 
 ## Building and testing
 
@@ -27,10 +32,43 @@ The MSVC x64 job also builds the library with code analysis (`/analyze`),
 whose findings fail the build like any warning. Configure with
 `-DVREG_ANALYZE=ON` to run it locally.
 
-Native Windows behavior is the spec: a scenario that can run against the real
-registry (a private app hive) runs against it too, and the virtual answer must
-match it. CI also runs the tests under Wine, where those scenarios skip
-themselves.
+## Tests
+
+Catch2, under `test/`. Native Windows behavior is the spec: the oracle runs
+each scenario against the real `Reg*` API on a private app hive
+(`RegLoadAppKey` on a temp file: real, no admin, no machine state) and
+against a virtual registry over an in-memory hive, and statuses, sizes and
+bytes must match; a scenario skips what virtual keys cannot match for both
+runs. The concurrency tests require only plausible statuses, no hang and a
+final state that agrees with itself. The hooks are tested by a process per
+architecture that installs them and calls the real API through two DLLs
+that each link the library, which covers the shared handle namespace,
+chaining and a pin outliving `FreeLibrary`. `test/headers` compiles the
+implementation as C and the declarations as C++ after a plain
+`#include <Windows.h>`, under every combination of `WIN32_LEAN_AND_MEAN`,
+`UNICODE` and `NOMINMAX`, and for Vista and Windows 7 as `_WIN32_WINNT`.
+
+CI builds {x86, x64, ARM64} x {MSVC, clang-cl} and runs every test on
+Windows, and the x86 and x64 binaries under Wine on Ubuntu, where the
+scenarios on a private app hive skip themselves. Where Wine deviates, that
+is a Wine bug, worked around only when the workaround costs nothing on
+Windows: a per-platform expectation list would make VReg's behavior follow
+whichever Wine version CI installed. Proton and true remote
+`RegConnectRegistry` are manual checks.
+
+## Packaging
+
+Static libraries only: each module links its own copy and the copies meet
+in the shared handle namespace, so a DLL would buy nothing, and two modules
+shipping different builds of it would collide on its name. One target for
+the core rather than one per area: nothing uses `.reg` support without the
+core, and a static library costs a consumer only the objects it links.
+`vreg.h` is the same code the libraries compile, one hand-maintained file
+rather than sources merged into a generated header, so what a consumer
+copies is what contributors edit; it carries the license text and a UTF-8
+BOM, since it is copied on its own and MSVC would otherwise read that text
+in the consumer's code page. Tests build only when VReg is the top-level
+project, and Detours is found as the vcpkg port lays it out.
 
 ## The vcpkg port
 

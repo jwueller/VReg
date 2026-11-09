@@ -11,24 +11,17 @@ It grew out of the virtual registry in [DirectRetrofit](https://retrofit.games).
 
 - **The Win32 `Reg*` function family as an interface.** A `VReg` is an
   opaque registry handle; the flat `VReg_*` functions take it first and
-  mirror every member of the family, names and signatures alike (ANSI and
-  wide, `Ex` and pre-`Ex`), and the `UNICODE` macros select among them as
-  among the functions. Native, virtual and custom registries are
-  interchangeable behind it, and `VReg_CreateCustom` makes one from a
-  function table of your own (a `VRegVtbl` with a slot per form) and an
-  object its slots reach through `VReg_GetContext`; a slot left null is
-  derived from the wide `Ex` forms. Each form has a function typedef
-  (`VRegOpenKeyExWFunction`) that the flat function and the slot share.
+  mirror every member of the family, names and signatures alike, and the
+  `UNICODE` macros select among them as among the functions.
 - **Hives mounted into a virtual namespace.** A virtual registry mounts
-  in-memory, overlay or custom hives at registry paths and passes everything
-  else to a base registry (usually the real one). An overlay hive adds, overrides
-  and deletes keys and values over the registry below it, while real values
-  it does not override stay visible.
-- **Hives as a function table.** A hive can be supplied as a table of slots
-  (a `VRegHiveVtbl`, made into a hive with `VRegHive_CreateCustom`) over an
-  object of your own, so a data structure of yours, or values computed on
-  each read, show as registry keys, while VReg keeps every Win32 rule:
-  handles, caller buffers, ANSI and wide, views and mounts.
+  hives at registry paths and passes everything else to a base registry
+  (usually the real one). An overlay hive adds, overrides and deletes keys
+  and values over the registry below it, while real values it does not
+  override stay visible.
+- **Your own data as a hive.** A table of slots over an object of yours
+  shows a data structure, or values computed on each read, as registry
+  keys, while VReg keeps every Win32 rule: handles, caller buffers, ANSI and
+  wide, views and mounts.
 - **Pure in-memory mode.** With no base registry, nothing outside the
   mounted hives exists.
 - **`.reg` files.** Import and export (REGEDIT4 and version 5), including
@@ -215,35 +208,12 @@ VReg_Mount(registry, HKEY_CURRENT_USER, L"Software\\Clock", clock, 0);
 
 `OpenKey`, `QueryValue`, `EnumKey` and `EnumValue` are required. VReg opens
 and creates one name at a time and keeps a record of each key it reached,
-which a slot receives as its `VRegHiveKey`: the provider's own token for it
-(`VRegHiveKey_GetToken`, what `OpenKey` or `CreateKey` answered), its name
-and its parent; `VRegHiveKey_EqualsPath` compares it with a path without
-joining anything. Results go through the `VRegHiveResult_Set*` functions,
-which copy, so a computed value can live on the stack.
-
-- **Writes** go through to `CreateKey`, `DeleteKey`, `DeleteTree`,
-  `SetValue` and `DeleteValue`. One left null answers
-  `ERROR_ACCESS_DENIED`; without `CreateKey`, an existing key still opens,
-  as on a frozen hive. Without `DeleteTree`, VReg deletes the tree through
-  the other slots the way native `RegDeleteTree` does: subkey by subkey
-  in enumeration order, each subtree first, then the values, stopping at
-  the first failure, so a later call continues from what is left.
-- **Optional slots**: without `QueryInfo`, `RegQueryInfoKey` enumerates the
-  key's subkeys and values once; without `CheckKey`, `RegFlushKey`
-  succeeds; `Destroy` frees what the context owns when the hive goes.
-- **Threads**: slots MAY run on any thread, concurrently, and under another
-  module's loader lock, so they MUST NOT load a module, create a thread or
-  wait on a lock a loader-lock holder could own. VReg holds no lock of its
-  own across a slot call; the provider locks its own state.
-- **Names** arrive as the caller passed them and MUST compare as the
-  registry compares them: `VReg_CompareNames`.
-- **Registry rules**: `DeleteKey` on a key with subkeys MUST answer
-  `ERROR_ACCESS_DENIED`, as native does. Enumeration order MUST stay stable
-  while nothing changes. Two reads of a value MAY differ; VReg's reads
-  retry when it grows. No slot sees the access a key was opened with.
-- **Changes the provider makes on its own** fire watches through
-  `VRegHive_NotifyChange`, called from the provider's own thread, never from
-  inside a slot.
+which a slot receives as its `VRegHiveKey`. Results go through the
+`VRegHiveResult_Set*` functions, which copy, so a computed value can live on
+the stack. What a null slot answers, how `DeleteTree` and `QueryInfo` are
+derived, and the rules on threads, names and deletion are the doc comment
+on `VRegHiveVtbl` in `vreg.h`. A change the provider makes on its own fires
+watches through `VRegHive_NotifyChange`.
 
 ### Hooked into the process
 
@@ -274,9 +244,7 @@ write into it.
 - **Unloading** is never safe: a hook can run on any thread at any time,
   and so can the registry you handed to `VRegHooks_Install` and your hive
   providers. Pin every module that code lives in, right after installing
-  (`GetModuleHandleExW` with `GET_MODULE_HANDLE_EX_FLAG_PIN`); each then
-  stays loaded until the process exits. VReg pins nothing itself, since it
-  cannot know those modules and a pin cannot be undone.
+  (`GetModuleHandleExW` with `GET_MODULE_HANDLE_EX_FLAG_PIN`).
 - **Several modules** MAY each link VReg and install their own hooks; their
   handles never collide, and each answers only its own mounts.
 - **Tracing:** `VRegHooks_Install` takes any `VReg`, so a table

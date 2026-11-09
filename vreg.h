@@ -59,7 +59,7 @@ extern "C" {
 // Raised with every change to this file. Tweak is unused (always 0).
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 15
-#define VREG_VERSION_PATCH 11
+#define VREG_VERSION_PATCH 12
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -817,9 +817,7 @@ VREG_DECL void WINAPI VReg_Destroy(
  * @note A hive MUST outlive every registry it is mounted in. Destroying it
  *  turns its handles into invalid ones.
  *
- * @note Once hooked, every call on a hive may run under a foreign loader
- *  lock: nothing here loads a module, creates a thread or waits on a lock a
- *  loader-lock holder could own.
+ * @note The loader-lock rule of @ref VReg binds every call on a hive.
  */
 typedef struct VRegHive VRegHive;
 
@@ -995,10 +993,10 @@ typedef void WINAPI VRegHiveDestroyFunction(
  *
  *  A slot receives names as the caller passed them and MUST compare them as
  *  the registry does (@ref VReg_CompareNames). Slots MAY run on any thread,
- *  concurrently, and under a foreign loader lock: they MUST NOT load a
- *  module, create a thread or wait on a lock a loader-lock holder could own.
- *  VReg holds no lock of its own across a slot call; the provider locks its
- *  own state. A slot never sees the access a key was opened with.
+ *  concurrently, and under a foreign loader lock, so the rule of @ref VReg
+ *  binds them. VReg holds no lock of its own across a slot call; the
+ *  provider locks its own state. A slot never sees the access a key was
+ *  opened with.
  */
 typedef struct
 {
@@ -1291,13 +1289,10 @@ typedef struct
     );
 } VRegNativeFunctions;
 
-/// The real registry, reached through a table filled from the export tables
-/// of `KernelBase.dll` and, for the pre-`Ex` forms only it exports,
-/// `advapi32.dll`, never through @ref GetProcAddress: an apphelp shim can make
-/// that answer a stub instead of the entry point. Resolution never loads a
-/// module (VReg links advapi32, so both are loaded before it runs), which
-/// makes it safe under the loader lock. A function neither module exports
-/// stays null. Freed with @ref VReg_Destroy.
+/// The real registry, through a table resolved from the export tables of
+/// `KernelBase.dll` and `advapi32.dll` without loading a module, so it can be
+/// made under the loader lock. A function neither module exports stays null.
+/// Freed with @ref VReg_Destroy.
 VREG_DECL LSTATUS WINAPI VReg_CreateNative(
     _Outptr_ VReg** ppRegistry
 );
@@ -1333,14 +1328,9 @@ VREG_DECL _Ret_notnull_ VRegNativeFunctions* WINAPI VReg_GetNativeFunctions(
  *  The virtual registry owns the caller-buffer rules (sizes in characters or
  *  bytes, terminators, @ref ERROR_MORE_DATA) for every hive.
  *
- *  Mounting publishes a new mount table with one atomic store, and old tables
- *  are kept until the registry is destroyed, so calls in flight never take a
- *  lock to read it.
- *
  *  @p pBase answers everything outside the mounts; null for a registry held
- *  entirely in memory. The `ntdll` export for native path resolution is found
- *  here, so resolving a path never loads a module. Freed with
- *  @ref VReg_Destroy.
+ *  entirely in memory. Creating, mounting and resolving a path load no
+ *  module. Freed with @ref VReg_Destroy.
  */
 VREG_DECL LSTATUS WINAPI VReg_CreateVirtual(
     _In_opt_ VReg* pBase,
@@ -1355,7 +1345,8 @@ VREG_DECL LSTATUS WINAPI VReg_CreateVirtual(
 /// and @ref ERROR_ALREADY_EXISTS for a path already mounted. @p samView limits
 /// the calls the mount answers to those of one registry view:
 /// @ref KEY_WOW64_64KEY or @ref KEY_WOW64_32KEY, or 0 for both; anything else
-/// answers @ref ERROR_INVALID_PARAMETER.
+/// answers @ref ERROR_INVALID_PARAMETER. Safe while calls are in flight,
+/// hooked ones included.
 VREG_DECL LSTATUS WINAPI VReg_Mount(
     _In_ VReg* pRegistry,
     _In_ HKEY hRoot,
@@ -1439,7 +1430,12 @@ typedef struct
  * @brief Parses a whole file into a new script.
  *
  *  The encoding is taken from a BOM (UTF-16LE, UTF-8); without one, a
- *  `REGEDIT4` header means @ref CP_ACP and anything else UTF-8. The script is
+ *  `REGEDIT4` header means @ref CP_ACP and anything else UTF-8. `[path]`
+ *  creates a key and `[-path]` deletes it with its subtree, the root by full
+ *  name or as `HKLM`, `HKCU`, `HKCR`, `HKU` or `HKCC`; `"name"=` and `@=` set
+ *  a value as a string with `\\` and `\"` escapes, `dword:`, `hex:` or
+ *  `hex(n):` for any type, and `=-` deletes it; trailing-backslash
+ *  continuations, `;` comments and blank lines are accepted. The script is
  *  only created when the whole file parses, and is freed with
  *  @ref VRegScript_Destroy.
  *
@@ -1594,10 +1590,9 @@ VREG_DECL LSTATUS WINAPI VRegScript_WriteFile(
 // slot at the trampoline, so the layer passes everything straight through
 // while other hookers' chains stay intact in any order.
 //
-// Hook bodies may run under a foreign loader lock; nothing they reach loads
-// a module, creates a thread or waits on a lock a loader-lock holder could
-// own. The one load is the call's own: `RegLoadMUIStringW` resolving an
-// indirect string loads its module, as it does natively.
+// Hook bodies run under the loader-lock rule of @ref VReg. The one load is
+// the call's own: `RegLoadMUIStringW` resolving an indirect string loads its
+// module, as it does natively.
 //
 // @note A hook body can run on any thread at any time, so no module whose
 // code a hook can reach is ever safe to unload: the one holding this copy,
@@ -5763,6 +5758,20 @@ done:
 // Handles
 // ==========================================================================
 
+// Measured on Windows 11 26200, x86 and x64 (a probe opening keys through
+// plain, WOW64, HKCR, HKCU, HKU, HKCC, `RegOpenCurrentUser`,
+// `RegOpenUserClassesRoot`, `RegConnectRegistry`, transacted and app-hive
+// routes, plus 2000 repeated opens; `test/test_handle_probe.cpp` keeps it as
+// a test, run under Wine in CI): bit 0 was never set on a real handle. Bit 1
+// is advapi32's tag for merged `HKEY_CLASSES_ROOT` handles, and the kernel
+// ignores both low bits, so @ref NtQueryKey resolves tagged handles. An odd
+// handle passed to the real API (a virtual handle leaked past a neutralized
+// hook) answers @ref ERROR_INVALID_HANDLE from every function, `RegCloseKey`
+// included, also under the strict-handle-check mitigation: kernelbase
+// rejects it before the kernel, so it never aliases the real handle it would
+// name with bit 0 dropped. Not covered: true remote `RegConnectRegistry`
+// (connecting to the own machine name may short-circuit to local).
+
 VREG_DECL BOOL WINAPI VReg_IsVirtualHKey(_In_opt_ const HKEY hKey)
 {
     const UINT_PTR value = (UINT_PTR)hKey;
@@ -5781,6 +5790,21 @@ VREG_DECL BOOL VReg_InternalIsPredefinedHKey(_In_opt_ const HKEY hKey)
 // ==========================================================================
 // The handle space
 // ==========================================================================
+
+// The section is `Local\VReg-handles-<pid>`, pagefile-backed:
+// @ref CreateFileMappingW is an atomic open-or-create that needs no loader
+// lock, its pages come zero-filled, and the first copy claims `magic` with
+// one compare-exchange, so nothing is published after the claim; a copy that
+// finds another nonzero magic treats the namespace as unusable. A section
+// rather than a named mutex, since the counter needs shared storage either
+// way and the section needs no lock; blocks of
+// @ref VREG_INTERNAL_HANDLE_BLOCK_SIZE rather than per-handle increments, for
+// one cross-copy operation per block. A handle from another copy's block is
+// foreign: every entry point treats it like a real handle and passes it to
+// its base registry (in a hooked process, the trampoline: the next hooker,
+// another copy or the real function), so it reaches the copy that issued it.
+// A same-session process could pre-create the section; it can already open
+// this process and do worse, so nothing defends against it.
 
 typedef struct
 {
@@ -6069,6 +6093,65 @@ VREG_DECL UINT_PTR VReg_InternalIndexFromVirtualHKey(_In_opt_ const HKEY hKey)
 // Hives
 // ==========================================================================
 
+// One struct covers every kind: what varies is the lower behind the node
+// tree, reached only through a @ref VRegHiveVtbl and its context (as
+// `fopencookie` makes a `FILE` from functions and a cookie): nothing below
+// for an in-memory hive, a registry subtree for an overlay ("Hive lowers
+// over a registry"), the provider's slots for a custom hive.
+//
+// The nodes are the hive's records of its keys. Identity is the path,
+// compared with @ref VRegInternalWStringView_CompareNames, so a virtual
+// handle maps to a record as to any node: one handle per record, issued
+// when the key is first opened or created. `RegCloseKey` on it is a no-op,
+// a deleted node keeps its slot and answers @ref ERROR_KEY_DELETED, and
+// nodes are freed only with the hive. That keeps reads lock-free and
+// handles stable, at the cost of never reclaiming deleted nodes and of two
+// opens answering the same value; per-open refcounted handles would be
+// closer to Win32 identity but need a lock on every open and close.
+//
+// Records are added lazily under the write lock, never while a slot runs:
+// look up, unlock, call the slot, lock again and insert, finding what
+// another thread inserted meanwhile. A custom hive opens and creates one
+// name per slot call, so every record holds the token of its own key; the
+// overlay hive opens the whole rest of a path in one lower call. A provider
+// that answers the same token for two paths gets two records; nothing
+// compares tokens.
+//
+// Writes follow the kind: in-memory and overlay hives keep them in their
+// own layer (copy-up), where tombstones and opaque keys hide lower entries;
+// a custom hive sends them to the slots (write-through) and then updates
+// the records: a created key gets its token, a deleted one is marked
+// deleted, the watches fire. Enumeration and `RegQueryInfoKeyW` merge both
+// layers, stepping over shadowed names and shifting lower indices by the
+// upper count; a failed lower query never becomes a smaller successful
+// view, and the class of a key the upper layer did not create comes from
+// the lower key, also after the key was written to.
+//
+// The access mask of an open and the frozen hand-out never reach a
+// provider. The overlay hive opens its lower through
+// @ref VRegHive::pfnOpenLower, which takes the access and can hand the
+// opened key out as a redirect ("this key is answered by registry R at key
+// K"): a frozen overlay hive answers an untouched key that way, and the
+// virtual registry forwards a call on a redirect through one helper that
+// closes the key after. The redirect stays private: its constraint, that
+// later calls on the handle go to the mounting registry's base, is a sharp
+// edge to publish.
+//
+// Slots hand results over through copying sinks (@ref VRegHiveResult), so a
+// computed value can live on the provider's stack and nothing it hands over
+// needs a lifetime rule, at the cost of one copy per read. Caller buffers
+// with @ref ERROR_MORE_DATA would bring back the rules the table exists to
+// hide, and pointers valid until the next call would need every concurrent
+// caller to reason about that call. A null `DeleteTree` is derived in the
+// order native `RegDeleteTreeW` was measured to use (Windows 11 26300):
+// subkeys in enumeration order, each subtree before its key, then the
+// values; it stops at the first failure, as native makes no all-or-nothing
+// promise. The names are read before the deletes, so a provider whose
+// deletes do not shrink its enumeration cannot loop it.
+//
+// A custom hive's delta is empty: its records are all transparent, so the
+// snapshot of the upper layer has nothing to write.
+
 /// The kinds of @ref VRegHive. An in-memory or overlay hive keeps writes in
 /// its own layer over the lower (copy-up); a custom hive writes through to
 /// the provider's slots.
@@ -6125,6 +6208,18 @@ static BOOL VReg_InternalStatusExists(const LSTATUS status)
 }
 
 // --- Locking ---
+
+// A writable hive takes its lock shared for readers and exclusive for
+// writers, over in-memory node work only: it is never held across a call
+// into the lower (some native opens load DLLs), and merged enumeration
+// snapshots the upper names under the lock, releases it, then walks the
+// lower layer. No holder can wait on the loader lock, so taking it inside a
+// detour body under a foreign loader lock is safe. Every open inside a
+// writable mount answers a virtual handle, creating a transparent node
+// lazily: a real handle handed out earlier would miss a later copy-up.
+// Frozen, a built-in hive is read without the lock, and an open of a
+// lower-only key answers the lower handle itself, at no cost on keys the
+// mount does not touch.
 
 VREG_DECL BOOL VRegHive_InternalIsFrozen(_In_ VRegHive* const pHive)
 {
@@ -6193,6 +6288,16 @@ static BOOL VRegHive_InternalLockRecords(_In_ VRegHive* const pHive)
 }
 
 // --- Nodes, values and watches ---
+
+// A watch's event is signaled with @ref SetEvent while the write lock is
+// held: neither it nor @ref CloseHandle can wait on the loader lock or on a
+// lock a hive caller could hold, and deferring them would need an
+// allocation after the write was made. A synchronous
+// `RegNotifyChangeKeyValue` waits on a private event, as native does, so a
+// watcher thread written for the native registry keeps working; answering
+// at once would spin such a loop, and @ref ERROR_NOT_SUPPORTED would end it.
+// A watch that never fires keeps its duplicate handle until the hive is
+// destroyed or frozen.
 
 static void VRegInternalValue_Free(_Inout_ VRegInternalValue* const pValue)
 {
@@ -8822,7 +8927,8 @@ VREG_DECL LSTATUS WINAPI VRegHive_NotifyChange(
 // key by its path again (the lower key's path, then the record's path in
 // the hive) and closes it after, as the hive did before it had a table, so
 // a record holds no handle: one lower handle per record would save the
-// opens but stay pinned for the hive's life.
+// opens but stay pinned for the hive's life. The lower registry may itself
+// be virtual.
 
 typedef struct
 {
@@ -9205,6 +9311,19 @@ VREG_DECL LSTATUS WINAPI VRegHive_CreateOverlay(
 // The native registry
 // ==========================================================================
 
+// The table resolves from the export table of `KernelBase.dll`, which holds
+// the bodies: advapi32's `Ex` exports only forward to them, and callers that
+// import the API set (`api-ms-win-core-registry-l1-1-0`, as system DLLs and
+// `onecore.lib` builds do) reach KernelBase without passing through
+// advapi32, so only a hook on the body sees every caller. That KernelBase
+// hosts the API set is not documented; `test/test_native_registry.cpp`
+// checks the forwarding against the running system. `advapi32.dll` alone
+// exports the pre-`Ex` forms, so resolution falls back to it. Never
+// @ref GetProcAddress: an apphelp shim can make it answer a stub instead of
+// the entry point. Once the hooks are committed the table holds the
+// trampolines, so the registry is the one below them; the trampolines of
+// the ANSI and pre-`Ex` hooks, which no registry calls, stay with the hooks.
+
 VREG_DECL LSTATUS WINAPI VReg_CreateNative(
     _Outptr_ VReg** const ppRegistry
 )
@@ -9544,6 +9663,19 @@ VREG_DECL LSTATUS VRegInternalWStringView_SplitPath(
 // ==========================================================================
 // The flat functions
 // ==========================================================================
+
+// A flat wide function calls the native registry's table directly, since
+// that table has no slot for the object, and otherwise the slot of the
+// registry's table: a custom registry's own, or @ref g_VRegVtbl_Virtual. Every
+// other flat function is in "Derived forms". The slots take the registry,
+// not the context (`fopencookie`'s callbacks take the cookie), so that they
+// share the flat functions' typedefs; taking the context would need a
+// second typedef per form. @ref VReg_CreateCustom names its kind as
+// @ref VReg_CreateNative and @ref VReg_CreateVirtual do: a bare `VReg_Create`
+// would read like a truncated `VReg_RegCreateKey`. The table holds the
+// `Reg*` family and nothing else; the reads that size and fill an owned
+// buffer themselves ("Owned reads") carry no `Reg` prefix, which would
+// collide with `winreg.h` macros such as `RegQueryValue`.
 
 VREG_DECL LSTATUS WINAPI VReg_RegOpenKeyExW(
     _In_ VReg* const pRegistry,
@@ -10120,6 +10252,12 @@ VREG_DECL BOOL VReg_InternalIsStringType(const DWORD dwType)
 
 #include <sddl.h>
 
+// The registry owns the caller-buffer rules (sizes in characters or bytes,
+// terminators, @ref ERROR_MORE_DATA) and the ANSI and wide forms once, for
+// every hive, which answers owned values through the node-level interface of
+// "Hive internals". `<sddl.h>` is for the SID string of the process token,
+// which names the native path of @ref HKEY_CURRENT_USER.
+
 typedef struct
 {
     HKEY hRoot;
@@ -10468,6 +10606,26 @@ static LSTATUS VReg_InternalPublishMount(
 }
 
 // --- Resolution ---
+
+// A call on a real parent handle is resolved by native path as
+// @ref VReg_CreateVirtual documents, behind a gate: only a call whose subkey
+// path has a component equal to the last component of some mount point is
+// looked at, so real keys the mounts do not touch cost no syscall, and a
+// mount at a root itself is not reachable this way. The path comes from
+// @ref NtQueryKey (`KeyNameInformation`) through the registry's own pointer,
+// which the tests replace; a failing query sends the call to the base, and
+// a virtual handle of another copy is never queried. Native root names are
+// `\REGISTRY\MACHINE`, `\REGISTRY\USER` and `\REGISTRY\USER\<SID>`,
+// computed when the mount is added. `WOW6432Node` components are skipped
+// while the path is matched against the mount point and are ordinary keys
+// below it, since a hive's own tree is not a registry view; the longest
+// matching mount wins. A call is of the view its `samDesired` names
+// (`RRF_SUBKEY_WOW64*KEY` for `RegGetValueW`), else of the process bitness,
+// and a native path that contained `WOW6432Node` is always the 32-bit view.
+// Known gap: a real handle opened before the hooks committed that points at
+// or inside a mount keeps reaching the lower registry for calls made on it
+// directly; closing it would cost an @ref NtQueryKey on every call on a
+// real handle.
 
 static void VRegInternalTarget_Free(_Inout_ VRegInternalTarget* const pTarget)
 {
@@ -12298,6 +12456,14 @@ VREG_DECL LSTATUS WINAPI VReg_Mount(
 // Applying scripts
 // ==========================================================================
 
+// The whole file parses before anything is applied, so a syntax error
+// writes nothing; apply stops at the first failing operation and reports
+// which, and earlier ones stay applied. Agent's choice: no rollback, since
+// native registries have none without KTM, and a dry-run validation pass
+// was passed over because it cannot catch access-denied. Through an
+// overlay, deletions become tombstones and `[-K]` then `[K]` an opaque key;
+// through any other registry they are real deletes.
+
 static LSTATUS VReg_InternalNotFoundIsFine(const LSTATUS status)
 {
     return status == ERROR_FILE_NOT_FOUND || status == ERROR_PATH_NOT_FOUND ? ERROR_SUCCESS : status;
@@ -12490,6 +12656,15 @@ VREG_DECL LSTATUS WINAPI VReg_ApplyOperations(
 // ==========================================================================
 // Snapshot and delta
 // ==========================================================================
+
+// Keys and values are written sorted ordinal case-insensitive: stable
+// fixture diffs matter more than mirroring regedit's enumeration order. The
+// delta walks @ref VRegHive_InternalSnapshotUpper, so opening keys does not
+// change it; a key with upper values or value tombstones appears as `[K]`,
+// which is harmless, since it exists below. Agent's choice: a tombstone
+// without a lower counterpart is kept, not pruned, since the lower registry
+// can gain that key later (another machine, an install) and the delta must
+// still hide it.
 
 /// A value read from a key, held until the key's values are all known and can
 /// be appended in name order.
@@ -13940,6 +14115,16 @@ VREG_DECL LSTATUS VReg_InternalWriteWholeFile(
 // Writing scripts
 // ==========================================================================
 
+// Byte-exact round trip: a value takes its friendly form only when that
+// reproduces its bytes on re-import, otherwise `hex(n):` (a `REG_SZ` without
+// terminator, with an embedded NUL or newline, or an odd byte count). The
+// layout is `reg export`'s byte for byte apart from the order: CRLF, hex
+// data broken with a `\` continuation and a two-space indent, a blank line
+// between keys. Windows imports the UTF-8 form intact, non-BMP characters
+// included: `regedit /s` with or without a BOM, `reg import` only without
+// one (with a BOM it answers "not a registry file"), which is why
+// @ref VREG_FORMAT_UTF8 writes none.
+
 // Windows `reg export` breaks after the first comma past this column and
 // indents continuation lines by two spaces. Wine regedit breaks at the column
 // itself, which differs when a line ends exactly there.
@@ -14305,6 +14490,26 @@ VREG_DECL LSTATUS WINAPI VRegScript_WriteFile(
 // Detours takes hook bodies and trampolines as data pointers, and the thunks
 // are bytes; the conversions below are what its API is made of.
 #pragma warning(disable: 4054 4055 4152)
+
+// Every `Reg*` export that accepts a key handle is hooked; the README's
+// "Supported functions" lists each group. The functions refused on virtual
+// handles stay out of @ref VRegVtbl: as slots they would either be required,
+// so every wrapper forwards calls nothing answers, or carry a default that
+// breaks passthrough behind a wrapper that leaves them null; one joins the
+// table once a hive can answer it. `RegLoadMUIStringA` answers
+// @ref ERROR_CALL_NOT_IMPLEMENTED natively on every input and is hooked only
+// so a virtual handle gets that same answer.
+//
+// Each copy's base registry is whatever its trampoline reaches: another
+// hooker, another copy, or the real function. A copy answers what it owns
+// (its mounts, its handles) and passes everything else down; on a path
+// mounted by two copies the one on top wins, undetected. Nothing runs at
+// unload because nothing short of the consumer's pin would do: a thread
+// already inside a detour body when the module unmaps returns into unmapped
+// code, switching the slot cannot reach it, and draining calls in flight is
+// impossible, since detach runs under the loader lock, which a call inside a
+// native open may be waiting for, and the count's decrement would run in the
+// image itself.
 
 /// The registry every hook calls through.
 static VReg* volatile g_VRegHooks_pRegistry;
