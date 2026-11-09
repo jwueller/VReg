@@ -59,7 +59,7 @@ extern "C" {
 // Raised with every change to this file. Tweak is unused (always 0).
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 15
-#define VREG_VERSION_PATCH 7
+#define VREG_VERSION_PATCH 8
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -1745,12 +1745,6 @@ VREG_DECL DWORD VReg_InternalMaxDword(DWORD a, DWORD b);
 
 typedef struct
 {
-    SIZE_T cb;
-    _Field_size_opt_(cb) BYTE* pb;
-} VRegInternalBufferView;
-
-typedef struct
-{
     SIZE_T cbCapacity;
     _Field_range_(0, cbCapacity) SIZE_T cb;
     _Field_size_opt_(cbCapacity) BYTE* pb;
@@ -2440,10 +2434,6 @@ VREG_DECL HKEY VRegInternalNode_Handle(
 /// other handle.
 VREG_DECL _Ret_maybenull_ VRegInternalNode* VRegInternalNode_Of(
     _In_opt_ HKEY hKey
-);
-
-VREG_DECL _Ret_notnull_ VRegHive* VRegInternalNode_Hive(
-    _In_ const VRegInternalNode* pNode
 );
 
 /// Opens the key @p cPath components below @p pParent. On a writable
@@ -6870,13 +6860,6 @@ VREG_DECL _Ret_maybenull_ VRegInternalNode* VRegInternalNode_Of(
     return (VRegInternalNode*)VRegInternalHandleSpace_Find(VReg_InternalProcessHandleSpace(), hKey);
 }
 
-VREG_DECL _Ret_notnull_ VRegHive* VRegInternalNode_Hive(
-    _In_ const VRegInternalNode* const pNode
-)
-{
-    return pNode->pHive;
-}
-
 // --- Keys ---
 
 /// Follows @p pPath through the upper layer from @p pParent as far as it
@@ -10865,7 +10848,7 @@ static LSTATUS VReg_InternalResolve(
     pNode = VRegInternalNode_Of(hKey);
     if (pNode)
     {
-        const VRegInternalMountPoint* const pMount = VReg_InternalMountOf(pThis, VRegInternalNode_Hive(pNode));
+        const VRegInternalMountPoint* const pMount = VReg_InternalMountOf(pThis, pNode->pHive);
         if (pMount)
         {
             if (isSplit)
