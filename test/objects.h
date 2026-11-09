@@ -224,7 +224,7 @@ inline OwnedHive MakeOverlayHive(
 /// The virtual handle of a hive's root.
 inline HKEY RootHandle(VRegHive* const pHive) noexcept
 {
-    return VRegInternalNode_Handle(VRegHive_InternalRoot(pHive));
+    return VRegInternalNode_GetHandle(VRegHive_InternalGetRoot(pHive));
 }
 
 /// A registry a scenario runs against, with what the scenario has to know

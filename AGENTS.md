@@ -138,7 +138,10 @@ the API it sits beside.
   the IDE formatter lays out a call: `_When_(` at the parameter's indent,
   one operand per line one level deeper with `||` leading, and `)` back at
   the parameter's indent.
-- Conversions that return their result are named `YFromX`.
+- An accessor is `Get` and what it answers (`VReg_GetContext`,
+  `VRegInternalWString_GetText`), a lookup by key is `Find`
+  (`VReg_InternalFindMount`, `VReg_InternalFindExport`), and a conversion
+  that returns its result is `YFromX` (`VReg_InternalViewFromText`).
 - A public object made by a `Create` function is ended by `Destroy`, and so
   is the slot that runs then; memory and a struct's contents are `Free`d
   (`VReg_Free`, `VRegInternalWString_Free`).

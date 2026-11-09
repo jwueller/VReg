@@ -698,11 +698,11 @@ TEST_CASE("A handle released with its hive is invalid")
         );
         hRoot = RootHandle(hive);
         hChild = CreateKey(mounted, hRoot, L"Child");
-        CHECK(VRegInternalNode_Of(hChild) != nullptr);
+        CHECK(VReg_InternalFindNode(hChild) != nullptr);
     }
 
-    CHECK(VRegInternalNode_Of(hRoot) == nullptr);
-    CHECK(VRegInternalNode_Of(hChild) == nullptr);
+    CHECK(VReg_InternalFindNode(hRoot) == nullptr);
+    CHECK(VReg_InternalFindNode(hChild) == nullptr);
 
     LSTATUS status = ERROR_SUCCESS;
     QueryDword(registry, hRoot, L"v", status);

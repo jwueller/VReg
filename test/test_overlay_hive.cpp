@@ -1730,7 +1730,7 @@ TEST_CASE("The hive lock is never held across a call into the lower registry")
 
     const HKEY hProbe = Create(reg, fx.Root(), L"Probe");
     REQUIRE(SetDword(reg, hProbe, L"seed", 0) == ERROR_SUCCESS);
-    auto* const pProbe = VRegInternalNode_Of(hProbe);
+    auto* const pProbe = VReg_InternalFindNode(hProbe);
     REQUIRE(pProbe != nullptr);
 
     int cCalls = 0;
@@ -1905,7 +1905,7 @@ TEST_CASE("An overlay frozen during a write answers as frozen and writes nothing
     {
         HKEY hKey{};
         CHECK(Open(reg, fx.Root(), L"L\\Sub", hKey) == ERROR_SUCCESS);
-        CHECK(VRegInternalNode_Of(hKey) == nullptr);
+        CHECK(VReg_InternalFindNode(hKey) == nullptr);
         VReg_RegCloseKey(
             reg,
             hKey
@@ -1931,7 +1931,7 @@ TEST_CASE("An overlay frozen during a write answers as frozen and writes nothing
             ) == ERROR_SUCCESS
         );
         CHECK(dwDisposition == REG_OPENED_EXISTING_KEY);
-        CHECK(VRegInternalNode_Of(hKey) == nullptr);
+        CHECK(VReg_InternalFindNode(hKey) == nullptr);
         VReg_RegCloseKey(
             reg,
             hKey
