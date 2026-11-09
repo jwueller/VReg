@@ -59,7 +59,7 @@ extern "C" {
 // Raised with every change to this file. Tweak is unused (always 0).
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 15
-#define VREG_VERSION_PATCH 10
+#define VREG_VERSION_PATCH 11
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -3467,7 +3467,7 @@ VREG_DECL BOOL VRegInternalArray_ContainsWStringSorted(
 /// before VReg runs and resolution finds it without loading anything. The
 /// address is taken in a function body: an initializer would need the import
 /// thunk's address, which C does not guarantee to be constant.
-static void* volatile g_pfnImportAdvapi32;
+static void* volatile g_VReg_pfnImportAdvapi32;
 
 /// Ordinal comparison of two export names: negative, zero or positive.
 static int VReg_InternalCompareExportNames(
@@ -3548,7 +3548,7 @@ VREG_DECL _Ret_maybenull_ void* VReg_InternalFindRegistryExport(
 )
 {
     void* const pFunction = VReg_InternalFindExport(GetModuleHandleW(L"KernelBase.dll"), pszName);
-    g_pfnImportAdvapi32 = (void*)&RegOpenKeyW;
+    g_VReg_pfnImportAdvapi32 = (void*)&RegOpenKeyW;
     if (pFunction)
         return pFunction;
 
@@ -3567,11 +3567,11 @@ VREG_DECL _Ret_maybenull_ void* VReg_InternalFindRegistryExport(
 // for the same input: status, out-sizes and bytes.
 
 /// The table a native registry derives every form from.
-static const VRegVtbl g_emptyVtbl = {0};
+static const VRegVtbl g_VRegVtbl_Empty = {0};
 
 /// The table of a virtual registry: its wide forms, from which every other
 /// form is derived.
-static const VRegVtbl g_virtualVtbl = {
+static const VRegVtbl g_VRegVtbl_Virtual = {
     &VReg_InternalVirtualDestroy,
     &VReg_InternalVirtualRegOpenKeyExW,
     &VReg_InternalVirtualRegCreateKeyExW,
@@ -3603,10 +3603,10 @@ static _Ret_notnull_ const VRegVtbl* VReg_InternalVtblOf(
         return pRegistry->implementation.custom.lpVtbl;
 
     case VREG_INTERNAL_KIND_VIRTUAL:
-        return &g_virtualVtbl;
+        return &g_VRegVtbl_Virtual;
 
     default:
-        return &g_emptyVtbl;
+        return &g_VRegVtbl_Empty;
     }
 }
 
@@ -5792,8 +5792,8 @@ struct VRegInternalHandleDirectory
     VRegInternalHandleBlock* volatile blocks[VREG_INTERNAL_HANDLE_DIRECTORY_SIZE];
 };
 
-static VRegInternalHandleSpace g_processSpace;
-static INIT_ONCE g_processSpaceOnce = INIT_ONCE_STATIC_INIT;
+static VRegInternalHandleSpace g_VRegInternalHandleSpace_Process;
+static INIT_ONCE g_VRegInternalHandleSpace_ProcessOnce = INIT_ONCE_STATIC_INIT;
 
 VREG_DECL void VRegInternalHandleSpace_Init(
     _Out_ VRegInternalHandleSpace* const pSpace,
@@ -5895,7 +5895,7 @@ static BOOL CALLBACK VReg_InternalInitProcessHandleSpace(
 
     CopyMemory(wszName, wszPrefix, cchPrefix * sizeof(wchar_t));
     VReg_InternalWriteDecimal(wszName + cchPrefix, sizeof(wszName) / sizeof(wszName[0]) - cchPrefix, GetCurrentProcessId());
-    VRegInternalHandleSpace_Init(&g_processSpace, wszName);
+    VRegInternalHandleSpace_Init(&g_VRegInternalHandleSpace_Process, wszName);
     return TRUE;
 }
 
@@ -5903,8 +5903,8 @@ VREG_DECL _Ret_notnull_ VRegInternalHandleSpace* VReg_InternalProcessHandleSpace
 {
     // Handles issued from it outlive every teardown, so the instance is never
     // destroyed.
-    InitOnceExecuteOnce(&g_processSpaceOnce, VReg_InternalInitProcessHandleSpace, NULL, NULL);
-    return &g_processSpace;
+    InitOnceExecuteOnce(&g_VRegInternalHandleSpace_ProcessOnce, VReg_InternalInitProcessHandleSpace, NULL, NULL);
+    return &g_VRegInternalHandleSpace_Process;
 }
 
 VREG_DECL BOOL VRegInternalHandleSpace_IsUsable(
@@ -9150,7 +9150,7 @@ static void WINAPI VRegInternalRegistryLower_Destroy(_In_ VRegHive* const pHive)
 
 // Copy-up never writes through to the lower, and nothing asks the lower to
 // check a key, so those slots stay null.
-static const VRegHiveVtbl g_registryLowerVtbl = {
+static const VRegHiveVtbl g_VRegHiveVtbl_RegistryLower = {
     &VRegInternalRegistryLower_OpenKey,
     NULL,
     NULL,
@@ -9189,7 +9189,7 @@ VREG_DECL LSTATUS WINAPI VRegHive_CreateOverlay(
         return ERROR_OUTOFMEMORY;
     }
 
-    status = VRegHive_InternalCreate(&g_registryLowerVtbl, pContext, VREG_INTERNAL_HIVE_OVERLAY, ppHive);
+    status = VRegHive_InternalCreate(&g_VRegHiveVtbl_RegistryLower, pContext, VREG_INTERNAL_HIVE_OVERLAY, ppHive);
     if (status != ERROR_SUCCESS)
     {
         VRegInternalWString_Free(&pContext->path);
@@ -14307,11 +14307,11 @@ VREG_DECL LSTATUS WINAPI VRegScript_WriteFile(
 #pragma warning(disable: 4054 4055 4152)
 
 /// The registry every hook calls through.
-static VReg* volatile g_pRegistry;
+static VReg* volatile g_VRegHooks_pRegistry;
 
 static VReg* VRegHooks_InternalRegistry(void)
 {
-    return (VReg*)ReadPointerAcquire((PVOID volatile*)&g_pRegistry);
+    return (VReg*)ReadPointerAcquire((PVOID volatile*)&g_VRegHooks_pRegistry);
 }
 
 // --- The hooks the registry answers: the same call, made on the registry ---
@@ -15212,7 +15212,7 @@ typedef enum
     VREG_INTERNAL_REFUSED_COUNT
 } VRegInternalRefusedIndex;
 
-static void* g_refusedTargets[VREG_INTERNAL_REFUSED_COUNT];
+static void* g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_COUNT];
 
 // The forms the registry answers besides its wide surface, by index into
 // their resolved entry points. The registry below the hooks never calls
@@ -15227,7 +15227,7 @@ typedef enum
     VREG_INTERNAL_FORM_COUNT
 } VRegInternalFormIndex;
 
-static void* g_formTargets[VREG_INTERNAL_FORM_COUNT];
+static void* g_VRegHooks_FormTargets[VREG_INTERNAL_FORM_COUNT];
 
 typedef LSTATUS APIENTRY VRegInternalRegSaveKeyAFunction(
     _In_ HKEY hKey,
@@ -15532,7 +15532,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegSaveKeyA(
 )
 {
     VRegInternalRegSaveKeyAFunction* const pfnNext =
-        (VRegInternalRegSaveKeyAFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegSaveKeyA];
+        (VRegInternalRegSaveKeyAFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegSaveKeyA];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15550,7 +15550,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegSaveKeyW(
 )
 {
     VRegInternalRegSaveKeyWFunction* const pfnNext =
-        (VRegInternalRegSaveKeyWFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegSaveKeyW];
+        (VRegInternalRegSaveKeyWFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegSaveKeyW];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15569,7 +15569,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegSaveKeyExA(
 )
 {
     VRegInternalRegSaveKeyExAFunction* const pfnNext =
-        (VRegInternalRegSaveKeyExAFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegSaveKeyExA];
+        (VRegInternalRegSaveKeyExAFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegSaveKeyExA];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15589,7 +15589,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegSaveKeyExW(
 )
 {
     VRegInternalRegSaveKeyExWFunction* const pfnNext =
-        (VRegInternalRegSaveKeyExWFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegSaveKeyExW];
+        (VRegInternalRegSaveKeyExWFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegSaveKeyExW];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15608,7 +15608,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegRestoreKeyA(
 )
 {
     VRegInternalRegRestoreKeyAFunction* const pfnNext =
-        (VRegInternalRegRestoreKeyAFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegRestoreKeyA];
+        (VRegInternalRegRestoreKeyAFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegRestoreKeyA];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15626,7 +15626,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegRestoreKeyW(
 )
 {
     VRegInternalRegRestoreKeyWFunction* const pfnNext =
-        (VRegInternalRegRestoreKeyWFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegRestoreKeyW];
+        (VRegInternalRegRestoreKeyWFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegRestoreKeyW];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15644,7 +15644,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegLoadKeyA(
 )
 {
     VRegInternalRegLoadKeyAFunction* const pfnNext =
-        (VRegInternalRegLoadKeyAFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegLoadKeyA];
+        (VRegInternalRegLoadKeyAFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegLoadKeyA];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15662,7 +15662,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegLoadKeyW(
 )
 {
     VRegInternalRegLoadKeyWFunction* const pfnNext =
-        (VRegInternalRegLoadKeyWFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegLoadKeyW];
+        (VRegInternalRegLoadKeyWFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegLoadKeyW];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15679,7 +15679,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegUnLoadKeyA(
 )
 {
     VRegInternalRegUnLoadKeyAFunction* const pfnNext =
-        (VRegInternalRegUnLoadKeyAFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegUnLoadKeyA];
+        (VRegInternalRegUnLoadKeyAFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegUnLoadKeyA];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15695,7 +15695,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegUnLoadKeyW(
 )
 {
     VRegInternalRegUnLoadKeyWFunction* const pfnNext =
-        (VRegInternalRegUnLoadKeyWFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegUnLoadKeyW];
+        (VRegInternalRegUnLoadKeyWFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegUnLoadKeyW];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15713,7 +15713,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegReplaceKeyA(
 )
 {
     VRegInternalRegReplaceKeyAFunction* const pfnNext =
-        (VRegInternalRegReplaceKeyAFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegReplaceKeyA];
+        (VRegInternalRegReplaceKeyAFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegReplaceKeyA];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15733,7 +15733,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegReplaceKeyW(
 )
 {
     VRegInternalRegReplaceKeyWFunction* const pfnNext =
-        (VRegInternalRegReplaceKeyWFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegReplaceKeyW];
+        (VRegInternalRegReplaceKeyWFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegReplaceKeyW];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15753,7 +15753,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegGetKeySecurity(
 )
 {
     VRegInternalRegGetKeySecurityFunction* const pfnNext =
-        (VRegInternalRegGetKeySecurityFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegGetKeySecurity];
+        (VRegInternalRegGetKeySecurityFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegGetKeySecurity];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15772,7 +15772,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegSetKeySecurity(
 )
 {
     VRegInternalRegSetKeySecurityFunction* const pfnNext =
-        (VRegInternalRegSetKeySecurityFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegSetKeySecurity];
+        (VRegInternalRegSetKeySecurityFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegSetKeySecurity];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15790,7 +15790,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegRenameKey(
 )
 {
     VRegInternalRegRenameKeyFunction* const pfnNext =
-        (VRegInternalRegRenameKeyFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegRenameKey];
+        (VRegInternalRegRenameKeyFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegRenameKey];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15808,7 +15808,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegCopyTreeA(
 )
 {
     VRegInternalRegCopyTreeAFunction* const pfnNext =
-        (VRegInternalRegCopyTreeAFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegCopyTreeA];
+        (VRegInternalRegCopyTreeAFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegCopyTreeA];
     if (VReg_InternalIsOwned(hKeySrc) || VReg_InternalIsOwned(hKeyDest))
         return ERROR_NOT_SUPPORTED;
 
@@ -15826,7 +15826,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegCopyTreeW(
 )
 {
     VRegInternalRegCopyTreeWFunction* const pfnNext =
-        (VRegInternalRegCopyTreeWFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegCopyTreeW];
+        (VRegInternalRegCopyTreeWFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegCopyTreeW];
     if (VReg_InternalIsOwned(hKeySrc) || VReg_InternalIsOwned(hKeyDest))
         return ERROR_NOT_SUPPORTED;
 
@@ -15852,7 +15852,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegCreateKeyTransactedA(
 )
 {
     VRegInternalRegCreateKeyTransactedAFunction* const pfnNext =
-        (VRegInternalRegCreateKeyTransactedAFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegCreateKeyTransactedA];
+        (VRegInternalRegCreateKeyTransactedAFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegCreateKeyTransactedA];
     LSTATUS status;
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
@@ -15891,7 +15891,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegCreateKeyTransactedW(
 )
 {
     VRegInternalRegCreateKeyTransactedWFunction* const pfnNext =
-        (VRegInternalRegCreateKeyTransactedWFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegCreateKeyTransactedW];
+        (VRegInternalRegCreateKeyTransactedWFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegCreateKeyTransactedW];
     LSTATUS status;
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
@@ -15926,7 +15926,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegOpenKeyTransactedA(
 )
 {
     VRegInternalRegOpenKeyTransactedAFunction* const pfnNext =
-        (VRegInternalRegOpenKeyTransactedAFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegOpenKeyTransactedA];
+        (VRegInternalRegOpenKeyTransactedAFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegOpenKeyTransactedA];
     LSTATUS status;
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
@@ -15957,7 +15957,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegOpenKeyTransactedW(
 )
 {
     VRegInternalRegOpenKeyTransactedWFunction* const pfnNext =
-        (VRegInternalRegOpenKeyTransactedWFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegOpenKeyTransactedW];
+        (VRegInternalRegOpenKeyTransactedWFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegOpenKeyTransactedW];
     LSTATUS status;
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
@@ -15989,7 +15989,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegDeleteKeyTransactedA(
 )
 {
     VRegInternalRegDeleteKeyTransactedAFunction* const pfnNext =
-        (VRegInternalRegDeleteKeyTransactedAFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegDeleteKeyTransactedA];
+        (VRegInternalRegDeleteKeyTransactedAFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegDeleteKeyTransactedA];
     LSTATUS status;
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
@@ -16018,7 +16018,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegDeleteKeyTransactedW(
 )
 {
     VRegInternalRegDeleteKeyTransactedWFunction* const pfnNext =
-        (VRegInternalRegDeleteKeyTransactedWFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegDeleteKeyTransactedW];
+        (VRegInternalRegDeleteKeyTransactedWFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegDeleteKeyTransactedW];
     LSTATUS status;
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
@@ -16042,7 +16042,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegDisableReflectionKey(
 )
 {
     VRegInternalRegDisableReflectionKeyFunction* const pfnNext =
-        (VRegInternalRegDisableReflectionKeyFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegDisableReflectionKey];
+        (VRegInternalRegDisableReflectionKeyFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegDisableReflectionKey];
     if (VReg_InternalIsOwned(hBase))
         return ERROR_NOT_SUPPORTED;
 
@@ -16056,7 +16056,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegEnableReflectionKey(
 )
 {
     VRegInternalRegEnableReflectionKeyFunction* const pfnNext =
-        (VRegInternalRegEnableReflectionKeyFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegEnableReflectionKey];
+        (VRegInternalRegEnableReflectionKeyFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegEnableReflectionKey];
     if (VReg_InternalIsOwned(hBase))
         return ERROR_NOT_SUPPORTED;
 
@@ -16071,7 +16071,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegQueryReflectionKey(
 )
 {
     VRegInternalRegQueryReflectionKeyFunction* const pfnNext =
-        (VRegInternalRegQueryReflectionKeyFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegQueryReflectionKey];
+        (VRegInternalRegQueryReflectionKeyFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegQueryReflectionKey];
     if (VReg_InternalIsOwned(hBase))
         return ERROR_NOT_SUPPORTED;
 
@@ -16087,7 +16087,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegOverridePredefKey(
 )
 {
     VRegInternalRegOverridePredefKeyFunction* const pfnNext =
-        (VRegInternalRegOverridePredefKeyFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegOverridePredefKey];
+        (VRegInternalRegOverridePredefKeyFunction*)g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_RegOverridePredefKey];
     if (VReg_InternalIsOwned(hKey) || VReg_InternalIsOwned(hNewHKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -16112,11 +16112,11 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegOverridePredefKey(
 #define VREG_INTERNAL_THUNK_PAGE_SIZE ((SIZE_T)4096)
 #define VREG_INTERNAL_THUNK_CAPACITY (VREG_INTERNAL_THUNK_PAGE_SIZE / VREG_INTERNAL_THUNK_CODE_SIZE)
 
-static BYTE* g_pbThunks;
+static BYTE* g_VRegHooks_pbThunks;
 
 static void** VReg_InternalThunkSlot(const SIZE_T index)
 {
-    return (void**)(g_pbThunks + VREG_INTERNAL_THUNK_PAGE_SIZE) + index;
+    return (void**)(g_VRegHooks_pbThunks + VREG_INTERNAL_THUNK_PAGE_SIZE) + index;
 }
 
 /// Writes thunk @p index, initially jumping to @p pTarget, and answers its
@@ -16126,7 +16126,7 @@ static void* VReg_InternalWriteThunk(
     _In_ void* const pTarget
 )
 {
-    BYTE* const pbCode = g_pbThunks + index * VREG_INTERNAL_THUNK_CODE_SIZE;
+    BYTE* const pbCode = g_VRegHooks_pbThunks + index * VREG_INTERNAL_THUNK_CODE_SIZE;
     void** const ppSlot = VReg_InternalThunkSlot(index);
     *ppSlot = pTarget;
 
@@ -16164,8 +16164,8 @@ static void* VReg_InternalWriteThunk(
 
 /// Where Detours keeps each hooked entry point and, once committed, its
 /// trampoline.
-static void** g_ppTargets[VREG_INTERNAL_THUNK_CAPACITY];
-static volatile LONG g_cHooks;
+static void** g_VRegHooks_ppTargets[VREG_INTERNAL_THUNK_CAPACITY];
+static volatile LONG g_VRegHooks_cHooks;
 
 typedef struct
 {
@@ -16199,7 +16199,7 @@ VREG_DECL LONG WINAPI VRegHooks_Install(
         goto done;
     }
 
-    WritePointerRelease((PVOID volatile*)&g_pRegistry, pRegistry);
+    WritePointerRelease((PVOID volatile*)&g_VRegHooks_pRegistry, pRegistry);
     functions = VReg_GetNativeFunctions(pNative);
 
 #define VREG_EMULATED(name) \
@@ -16211,10 +16211,10 @@ VREG_DECL LONG WINAPI VRegHooks_Install(
 
     // A form this system does not export has nothing to hook.
 #define VREG_FORM(name) \
-    g_formTargets[VREG_INTERNAL_FORM_##name] = VReg_InternalFindRegistryExport(#name); \
-    if (g_formTargets[VREG_INTERNAL_FORM_##name]) \
+    g_VRegHooks_FormTargets[VREG_INTERNAL_FORM_##name] = VReg_InternalFindRegistryExport(#name); \
+    if (g_VRegHooks_FormTargets[VREG_INTERNAL_FORM_##name]) \
     { \
-        hooks[cHooks].ppTarget = &g_formTargets[VREG_INTERNAL_FORM_##name]; \
+        hooks[cHooks].ppTarget = &g_VRegHooks_FormTargets[VREG_INTERNAL_FORM_##name]; \
         hooks[cHooks].pBody = (void*)&VRegHooks_Internal##name; \
         ++cHooks; \
     }
@@ -16223,19 +16223,19 @@ VREG_DECL LONG WINAPI VRegHooks_Install(
 
     // A refused function this system does not export has nothing to hook.
 #define VREG_REFUSED(name) \
-    g_refusedTargets[VREG_INTERNAL_REFUSED_##name] = VReg_InternalFindRegistryExport(#name); \
-    if (g_refusedTargets[VREG_INTERNAL_REFUSED_##name]) \
+    g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_##name] = VReg_InternalFindRegistryExport(#name); \
+    if (g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_##name]) \
     { \
-        hooks[cHooks].ppTarget = &g_refusedTargets[VREG_INTERNAL_REFUSED_##name]; \
+        hooks[cHooks].ppTarget = &g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_##name]; \
         hooks[cHooks].pBody = (void*)&VRegHooks_InternalRefuse##name; \
         ++cHooks; \
     }
     VREG_INTERNAL_REFUSED_HOOKS(VREG_REFUSED)
 #undef VREG_REFUSED
 
-    g_pbThunks =
+    g_VRegHooks_pbThunks =
         (BYTE*)VirtualAlloc(NULL, 2 * VREG_INTERNAL_THUNK_PAGE_SIZE, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-    if (!g_pbThunks)
+    if (!g_VRegHooks_pbThunks)
     {
         InterlockedExchange(&s_isAttached, 0);
         error = ERROR_NOT_ENOUGH_MEMORY;
@@ -16244,20 +16244,20 @@ VREG_DECL LONG WINAPI VRegHooks_Install(
 
     for (i = 0; i < cHooks; ++i)
     {
-        g_ppTargets[i] = hooks[i].ppTarget;
+        g_VRegHooks_ppTargets[i] = hooks[i].ppTarget;
         thunks[i] = VReg_InternalWriteThunk(i, hooks[i].pBody);
     }
 
     // The code page becomes executable and read-only.
-    if (!VirtualProtect(g_pbThunks, VREG_INTERNAL_THUNK_PAGE_SIZE, PAGE_EXECUTE_READ, &dwOld))
+    if (!VirtualProtect(g_VRegHooks_pbThunks, VREG_INTERNAL_THUNK_PAGE_SIZE, PAGE_EXECUTE_READ, &dwOld))
     {
         InterlockedExchange(&s_isAttached, 0);
         error = (LONG)GetLastError();
         goto done;
     }
-    FlushInstructionCache(GetCurrentProcess(), g_pbThunks, VREG_INTERNAL_THUNK_PAGE_SIZE);
+    FlushInstructionCache(GetCurrentProcess(), g_VRegHooks_pbThunks, VREG_INTERNAL_THUNK_PAGE_SIZE);
 
-    WriteRelease(&g_cHooks, (LONG)cHooks);
+    WriteRelease(&g_VRegHooks_cHooks, (LONG)cHooks);
     for (i = 0; i < cHooks; ++i)
     {
         // The transaction is aborted on failure, so nothing is hooked and a
@@ -16265,7 +16265,7 @@ VREG_DECL LONG WINAPI VRegHooks_Install(
         error = DetourAttach(hooks[i].ppTarget, thunks[i]);
         if (error != NO_ERROR)
         {
-            WriteRelease(&g_cHooks, 0);
+            WriteRelease(&g_VRegHooks_cHooks, 0);
             InterlockedExchange(&s_isAttached, 0);
             goto done;
         }
@@ -16285,10 +16285,10 @@ VREG_DECL void WINAPI VRegHooks_Neutralize(void)
 {
     // Whatever the target field holds is what lies below this layer: the
     // trampoline once committed, the function itself before.
-    const LONG cHooks = ReadAcquire(&g_cHooks);
+    const LONG cHooks = ReadAcquire(&g_VRegHooks_cHooks);
     LONG i;
     for (i = 0; i < cHooks; ++i)
-        InterlockedExchangePointer(VReg_InternalThunkSlot((SIZE_T)i), *g_ppTargets[i]);
+        InterlockedExchangePointer(VReg_InternalThunkSlot((SIZE_T)i), *g_VRegHooks_ppTargets[i]);
 }
 
 #undef VREG_INTERNAL_REFUSED_HOOKS

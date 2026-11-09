@@ -84,7 +84,13 @@ the API it sits beside.
   it qualifies (`const LPCWSTR psz`, never `LPCWSTR const psz`).
 - Hungarian prefixes like the Win32 API beside them: parameters and locals
   (`pszPath`, `cbData`, `hKey`), struct members in Win32's shape without
-  `m_` (`pShared`, `cbData`), globals `g_`.
+  `m_` (`pShared`, `cbData`), globals `g_`. A global is named like a
+  function of its object: `g_`, the type it is an instance of
+  (`g_VRegVtbl_Empty`, `g_VRegHiveVtbl_RegistryLower`) or the public object
+  it belongs to (`g_VRegHooks_pRegistry`, `g_VReg_pfnImportAdvapi32`), an
+  underscore and the Hungarian name. The implementation compiles inside a
+  consumer's own file, where a plain `g_pRegistry` could collide with the
+  consumer's.
 - File names are lowercase `snake_case`: a mis-cased include works on a
   case-insensitive filesystem and breaks on a case-sensitive one, so case
   never carries meaning in a path. For the same reason, a Windows SDK header
