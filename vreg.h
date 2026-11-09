@@ -59,7 +59,7 @@ extern "C" {
 // Raised with every change to this file. Tweak is unused (always 0).
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 15
-#define VREG_VERSION_PATCH 9
+#define VREG_VERSION_PATCH 10
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -3567,11 +3567,11 @@ VREG_DECL _Ret_maybenull_ void* VReg_InternalFindRegistryExport(
 // for the same input: status, out-sizes and bytes.
 
 /// The table a native registry derives every form from.
-static const VRegVtbl g_noSlots = {0};
+static const VRegVtbl g_emptyVtbl = {0};
 
 /// The table of a virtual registry: its wide forms, from which every other
 /// form is derived.
-static const VRegVtbl g_virtualSlots = {
+static const VRegVtbl g_virtualVtbl = {
     &VReg_InternalVirtualDestroy,
     &VReg_InternalVirtualRegOpenKeyExW,
     &VReg_InternalVirtualRegCreateKeyExW,
@@ -3593,7 +3593,7 @@ static const VRegVtbl g_virtualSlots = {
 /// The slots a flat function calls when they are filled: a custom registry's
 /// own, the virtual registry's wide forms, and none for the native registry,
 /// whose table the flat wide functions call directly.
-static _Ret_notnull_ const VRegVtbl* VReg_InternalSlotsOf(
+static _Ret_notnull_ const VRegVtbl* VReg_InternalVtblOf(
     _In_ const VReg* const pRegistry
 )
 {
@@ -3603,10 +3603,10 @@ static _Ret_notnull_ const VRegVtbl* VReg_InternalSlotsOf(
         return pRegistry->implementation.custom.lpVtbl;
 
     case VREG_INTERNAL_KIND_VIRTUAL:
-        return &g_virtualSlots;
+        return &g_virtualVtbl;
 
     default:
-        return &g_noSlots;
+        return &g_emptyVtbl;
     }
 }
 
@@ -3691,8 +3691,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegOpenKeyExA(
     _Out_ const PHKEY phkResult
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegOpenKeyExA)
-        return VReg_InternalSlotsOf(pRegistry)->RegOpenKeyExA(
+    if (VReg_InternalVtblOf(pRegistry)->RegOpenKeyExA)
+        return VReg_InternalVtblOf(pRegistry)->RegOpenKeyExA(
             pRegistry,
             hKey,
             lpSubKey,
@@ -3741,8 +3741,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegCreateKeyExA(
     _Out_opt_ const LPDWORD lpdwDisposition
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegCreateKeyExA)
-        return VReg_InternalSlotsOf(pRegistry)->RegCreateKeyExA(
+    if (VReg_InternalVtblOf(pRegistry)->RegCreateKeyExA)
+        return VReg_InternalVtblOf(pRegistry)->RegCreateKeyExA(
             pRegistry,
             hKey,
             lpSubKey,
@@ -3803,8 +3803,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryValueExA(
     _When_(lpData == NULL, _Out_opt_) _When_(lpData != NULL, _Inout_opt_) const LPDWORD lpcbData
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegQueryValueExA)
-        return VReg_InternalSlotsOf(pRegistry)->RegQueryValueExA(
+    if (VReg_InternalVtblOf(pRegistry)->RegQueryValueExA)
+        return VReg_InternalVtblOf(pRegistry)->RegQueryValueExA(
             pRegistry,
             hKey,
             lpValueName,
@@ -3941,8 +3941,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegSetValueExA(
     _In_ const DWORD cbData
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegSetValueExA)
-        return VReg_InternalSlotsOf(pRegistry)->RegSetValueExA(
+    if (VReg_InternalVtblOf(pRegistry)->RegSetValueExA)
+        return VReg_InternalVtblOf(pRegistry)->RegSetValueExA(
             pRegistry,
             hKey,
             lpValueName,
@@ -4011,8 +4011,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegDeleteValueA(
     _In_opt_ const LPCSTR lpValueName
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegDeleteValueA)
-        return VReg_InternalSlotsOf(pRegistry)->RegDeleteValueA(
+    if (VReg_InternalVtblOf(pRegistry)->RegDeleteValueA)
+        return VReg_InternalVtblOf(pRegistry)->RegDeleteValueA(
             pRegistry,
             hKey,
             lpValueName
@@ -4042,8 +4042,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegDeleteKeyExA(
     _Reserved_ const DWORD Reserved
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegDeleteKeyExA)
-        return VReg_InternalSlotsOf(pRegistry)->RegDeleteKeyExA(
+    if (VReg_InternalVtblOf(pRegistry)->RegDeleteKeyExA)
+        return VReg_InternalVtblOf(pRegistry)->RegDeleteKeyExA(
             pRegistry,
             hKey,
             lpSubKey,
@@ -4078,8 +4078,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegDeleteTreeA(
     _In_opt_ const LPCSTR lpSubKey
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegDeleteTreeA)
-        return VReg_InternalSlotsOf(pRegistry)->RegDeleteTreeA(
+    if (VReg_InternalVtblOf(pRegistry)->RegDeleteTreeA)
+        return VReg_InternalVtblOf(pRegistry)->RegDeleteTreeA(
             pRegistry,
             hKey,
             lpSubKey
@@ -4113,8 +4113,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegEnumKeyExA(
     _Out_opt_ const PFILETIME lpftLastWriteTime
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegEnumKeyExA)
-        return VReg_InternalSlotsOf(pRegistry)->RegEnumKeyExA(
+    if (VReg_InternalVtblOf(pRegistry)->RegEnumKeyExA)
+        return VReg_InternalVtblOf(pRegistry)->RegEnumKeyExA(
             pRegistry,
             hKey,
             dwIndex,
@@ -4236,8 +4236,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegEnumValueA(
     _Inout_opt_ const LPDWORD lpcbData
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegEnumValueA)
-        return VReg_InternalSlotsOf(pRegistry)->RegEnumValueA(
+    if (VReg_InternalVtblOf(pRegistry)->RegEnumValueA)
+        return VReg_InternalVtblOf(pRegistry)->RegEnumValueA(
             pRegistry,
             hKey,
             dwIndex,
@@ -4369,8 +4369,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryInfoKeyA(
     _Out_opt_ const PFILETIME lpftLastWriteTime
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegQueryInfoKeyA)
-        return VReg_InternalSlotsOf(pRegistry)->RegQueryInfoKeyA(
+    if (VReg_InternalVtblOf(pRegistry)->RegQueryInfoKeyA)
+        return VReg_InternalVtblOf(pRegistry)->RegQueryInfoKeyA(
             pRegistry,
             hKey,
             lpClass,
@@ -4472,8 +4472,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegLoadMUIStringA(
     _In_opt_ const LPCSTR pszDirectory
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegLoadMUIStringA)
-        return VReg_InternalSlotsOf(pRegistry)->RegLoadMUIStringA(
+    if (VReg_InternalVtblOf(pRegistry)->RegLoadMUIStringA)
+        return VReg_InternalVtblOf(pRegistry)->RegLoadMUIStringA(
             pRegistry,
             hKey,
             pszValue,
@@ -4523,8 +4523,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegGetValueA(
     _Inout_opt_ const LPDWORD pcbData
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegGetValueA)
-        return VReg_InternalSlotsOf(pRegistry)->RegGetValueA(
+    if (VReg_InternalVtblOf(pRegistry)->RegGetValueA)
+        return VReg_InternalVtblOf(pRegistry)->RegGetValueA(
             pRegistry,
             hkey,
             lpSubKey,
@@ -4816,8 +4816,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegOpenKeyA(
     _Out_ const PHKEY phkResult
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegOpenKeyA)
-        return VReg_InternalSlotsOf(pRegistry)->RegOpenKeyA(
+    if (VReg_InternalVtblOf(pRegistry)->RegOpenKeyA)
+        return VReg_InternalVtblOf(pRegistry)->RegOpenKeyA(
             pRegistry,
             hKey,
             lpSubKey,
@@ -4848,8 +4848,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegOpenKeyW(
     _Out_ const PHKEY phkResult
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegOpenKeyW)
-        return VReg_InternalSlotsOf(pRegistry)->RegOpenKeyW(
+    if (VReg_InternalVtblOf(pRegistry)->RegOpenKeyW)
+        return VReg_InternalVtblOf(pRegistry)->RegOpenKeyW(
             pRegistry,
             hKey,
             lpSubKey,
@@ -4880,8 +4880,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegCreateKeyA(
     _Out_ const PHKEY phkResult
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegCreateKeyA)
-        return VReg_InternalSlotsOf(pRegistry)->RegCreateKeyA(
+    if (VReg_InternalVtblOf(pRegistry)->RegCreateKeyA)
+        return VReg_InternalVtblOf(pRegistry)->RegCreateKeyA(
             pRegistry,
             hKey,
             lpSubKey,
@@ -4918,8 +4918,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegCreateKeyW(
     _Out_ const PHKEY phkResult
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegCreateKeyW)
-        return VReg_InternalSlotsOf(pRegistry)->RegCreateKeyW(
+    if (VReg_InternalVtblOf(pRegistry)->RegCreateKeyW)
+        return VReg_InternalVtblOf(pRegistry)->RegCreateKeyW(
             pRegistry,
             hKey,
             lpSubKey,
@@ -4957,8 +4957,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryValueA(
     _Inout_opt_ const PLONG lpcbData
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegQueryValueA)
-        return VReg_InternalSlotsOf(pRegistry)->RegQueryValueA(
+    if (VReg_InternalVtblOf(pRegistry)->RegQueryValueA)
+        return VReg_InternalVtblOf(pRegistry)->RegQueryValueA(
             pRegistry,
             hKey,
             lpSubKey,
@@ -5019,8 +5019,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryValueW(
     _Inout_opt_ const PLONG lpcbData
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegQueryValueW)
-        return VReg_InternalSlotsOf(pRegistry)->RegQueryValueW(
+    if (VReg_InternalVtblOf(pRegistry)->RegQueryValueW)
+        return VReg_InternalVtblOf(pRegistry)->RegQueryValueW(
             pRegistry,
             hKey,
             lpSubKey,
@@ -5082,8 +5082,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegSetValueA(
     _In_ const DWORD cbData
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegSetValueA)
-        return VReg_InternalSlotsOf(pRegistry)->RegSetValueA(
+    if (VReg_InternalVtblOf(pRegistry)->RegSetValueA)
+        return VReg_InternalVtblOf(pRegistry)->RegSetValueA(
             pRegistry,
             hKey,
             lpSubKey,
@@ -5140,8 +5140,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegSetValueW(
     _In_ const DWORD cbData
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegSetValueW)
-        return VReg_InternalSlotsOf(pRegistry)->RegSetValueW(
+    if (VReg_InternalVtblOf(pRegistry)->RegSetValueW)
+        return VReg_InternalVtblOf(pRegistry)->RegSetValueW(
             pRegistry,
             hKey,
             lpSubKey,
@@ -5195,8 +5195,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegDeleteKeyA(
     _In_ const LPCSTR lpSubKey
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegDeleteKeyA)
-        return VReg_InternalSlotsOf(pRegistry)->RegDeleteKeyA(
+    if (VReg_InternalVtblOf(pRegistry)->RegDeleteKeyA)
+        return VReg_InternalVtblOf(pRegistry)->RegDeleteKeyA(
             pRegistry,
             hKey,
             lpSubKey
@@ -5217,8 +5217,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegDeleteKeyW(
     _In_ const LPCWSTR lpSubKey
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegDeleteKeyW)
-        return VReg_InternalSlotsOf(pRegistry)->RegDeleteKeyW(
+    if (VReg_InternalVtblOf(pRegistry)->RegDeleteKeyW)
+        return VReg_InternalVtblOf(pRegistry)->RegDeleteKeyW(
             pRegistry,
             hKey,
             lpSubKey
@@ -5241,8 +5241,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegEnumKeyA(
     _In_ const DWORD cchName
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegEnumKeyA)
-        return VReg_InternalSlotsOf(pRegistry)->RegEnumKeyA(
+    if (VReg_InternalVtblOf(pRegistry)->RegEnumKeyA)
+        return VReg_InternalVtblOf(pRegistry)->RegEnumKeyA(
             pRegistry,
             hKey,
             dwIndex,
@@ -5272,8 +5272,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegEnumKeyW(
     _In_ const DWORD cchName
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegEnumKeyW)
-        return VReg_InternalSlotsOf(pRegistry)->RegEnumKeyW(
+    if (VReg_InternalVtblOf(pRegistry)->RegEnumKeyW)
+        return VReg_InternalVtblOf(pRegistry)->RegEnumKeyW(
             pRegistry,
             hKey,
             dwIndex,
@@ -5309,8 +5309,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegSetKeyValueA(
     _In_ const DWORD cbData
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegSetKeyValueA)
-        return VReg_InternalSlotsOf(pRegistry)->RegSetKeyValueA(
+    if (VReg_InternalVtblOf(pRegistry)->RegSetKeyValueA)
+        return VReg_InternalVtblOf(pRegistry)->RegSetKeyValueA(
             pRegistry,
             hKey,
             lpSubKey,
@@ -5369,8 +5369,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegSetKeyValueW(
     _In_ const DWORD cbData
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegSetKeyValueW)
-        return VReg_InternalSlotsOf(pRegistry)->RegSetKeyValueW(
+    if (VReg_InternalVtblOf(pRegistry)->RegSetKeyValueW)
+        return VReg_InternalVtblOf(pRegistry)->RegSetKeyValueW(
             pRegistry,
             hKey,
             lpSubKey,
@@ -5426,8 +5426,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegDeleteKeyValueA(
     _In_opt_ const LPCSTR lpValueName
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegDeleteKeyValueA)
-        return VReg_InternalSlotsOf(pRegistry)->RegDeleteKeyValueA(
+    if (VReg_InternalVtblOf(pRegistry)->RegDeleteKeyValueA)
+        return VReg_InternalVtblOf(pRegistry)->RegDeleteKeyValueA(
             pRegistry,
             hKey,
             lpSubKey,
@@ -5472,8 +5472,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegDeleteKeyValueW(
     _In_opt_ const LPCWSTR lpValueName
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegDeleteKeyValueW)
-        return VReg_InternalSlotsOf(pRegistry)->RegDeleteKeyValueW(
+    if (VReg_InternalVtblOf(pRegistry)->RegDeleteKeyValueW)
+        return VReg_InternalVtblOf(pRegistry)->RegDeleteKeyValueW(
             pRegistry,
             hKey,
             lpSubKey,
@@ -5525,8 +5525,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryMultipleValuesA(
     _Inout_opt_ const LPDWORD ldwTotsize
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegQueryMultipleValuesA)
-        return VReg_InternalSlotsOf(pRegistry)->RegQueryMultipleValuesA(
+    if (VReg_InternalVtblOf(pRegistry)->RegQueryMultipleValuesA)
+        return VReg_InternalVtblOf(pRegistry)->RegQueryMultipleValuesA(
             pRegistry,
             hKey,
             val_list,
@@ -5651,8 +5651,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryMultipleValuesW(
     _Inout_opt_ const LPDWORD ldwTotsize
 )
 {
-    if (VReg_InternalSlotsOf(pRegistry)->RegQueryMultipleValuesW)
-        return VReg_InternalSlotsOf(pRegistry)->RegQueryMultipleValuesW(
+    if (VReg_InternalVtblOf(pRegistry)->RegQueryMultipleValuesW)
+        return VReg_InternalVtblOf(pRegistry)->RegQueryMultipleValuesW(
             pRegistry,
             hKey,
             val_list,
@@ -9563,10 +9563,10 @@ VREG_DECL LSTATUS WINAPI VReg_RegOpenKeyExW(
             phkResult
         );
 
-    if (!VReg_InternalSlotsOf(pRegistry)->RegOpenKeyExW)
+    if (!VReg_InternalVtblOf(pRegistry)->RegOpenKeyExW)
         return ERROR_CALL_NOT_IMPLEMENTED;
 
-    return VReg_InternalSlotsOf(pRegistry)->RegOpenKeyExW(
+    return VReg_InternalVtblOf(pRegistry)->RegOpenKeyExW(
         pRegistry,
         hKey,
         lpSubKey,
@@ -9602,10 +9602,10 @@ VREG_DECL LSTATUS WINAPI VReg_RegCreateKeyExW(
             lpdwDisposition
         );
 
-    if (!VReg_InternalSlotsOf(pRegistry)->RegCreateKeyExW)
+    if (!VReg_InternalVtblOf(pRegistry)->RegCreateKeyExW)
         return ERROR_CALL_NOT_IMPLEMENTED;
 
-    return VReg_InternalSlotsOf(pRegistry)->RegCreateKeyExW(
+    return VReg_InternalVtblOf(pRegistry)->RegCreateKeyExW(
         pRegistry,
         hKey,
         lpSubKey,
@@ -9629,10 +9629,10 @@ VREG_DECL LSTATUS WINAPI VReg_RegCloseKey(
             hKey
         );
 
-    if (!VReg_InternalSlotsOf(pRegistry)->RegCloseKey)
+    if (!VReg_InternalVtblOf(pRegistry)->RegCloseKey)
         return ERROR_CALL_NOT_IMPLEMENTED;
 
-    return VReg_InternalSlotsOf(pRegistry)->RegCloseKey(
+    return VReg_InternalVtblOf(pRegistry)->RegCloseKey(
         pRegistry,
         hKey
     );
@@ -9658,10 +9658,10 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryValueExW(
             lpcbData
         );
 
-    if (!VReg_InternalSlotsOf(pRegistry)->RegQueryValueExW)
+    if (!VReg_InternalVtblOf(pRegistry)->RegQueryValueExW)
         return ERROR_CALL_NOT_IMPLEMENTED;
 
-    return VReg_InternalSlotsOf(pRegistry)->RegQueryValueExW(
+    return VReg_InternalVtblOf(pRegistry)->RegQueryValueExW(
         pRegistry,
         hKey,
         lpValueName,
@@ -9692,10 +9692,10 @@ VREG_DECL LSTATUS WINAPI VReg_RegSetValueExW(
             cbData
         );
 
-    if (!VReg_InternalSlotsOf(pRegistry)->RegSetValueExW)
+    if (!VReg_InternalVtblOf(pRegistry)->RegSetValueExW)
         return ERROR_CALL_NOT_IMPLEMENTED;
 
-    return VReg_InternalSlotsOf(pRegistry)->RegSetValueExW(
+    return VReg_InternalVtblOf(pRegistry)->RegSetValueExW(
         pRegistry,
         hKey,
         lpValueName,
@@ -9718,10 +9718,10 @@ VREG_DECL LSTATUS WINAPI VReg_RegDeleteValueW(
             lpValueName
         );
 
-    if (!VReg_InternalSlotsOf(pRegistry)->RegDeleteValueW)
+    if (!VReg_InternalVtblOf(pRegistry)->RegDeleteValueW)
         return ERROR_CALL_NOT_IMPLEMENTED;
 
-    return VReg_InternalSlotsOf(pRegistry)->RegDeleteValueW(
+    return VReg_InternalVtblOf(pRegistry)->RegDeleteValueW(
         pRegistry,
         hKey,
         lpValueName
@@ -9744,10 +9744,10 @@ VREG_DECL LSTATUS WINAPI VReg_RegDeleteKeyExW(
             Reserved
         );
 
-    if (!VReg_InternalSlotsOf(pRegistry)->RegDeleteKeyExW)
+    if (!VReg_InternalVtblOf(pRegistry)->RegDeleteKeyExW)
         return ERROR_CALL_NOT_IMPLEMENTED;
 
-    return VReg_InternalSlotsOf(pRegistry)->RegDeleteKeyExW(
+    return VReg_InternalVtblOf(pRegistry)->RegDeleteKeyExW(
         pRegistry,
         hKey,
         lpSubKey,
@@ -9768,10 +9768,10 @@ VREG_DECL LSTATUS WINAPI VReg_RegDeleteTreeW(
             lpSubKey
         );
 
-    if (!VReg_InternalSlotsOf(pRegistry)->RegDeleteTreeW)
+    if (!VReg_InternalVtblOf(pRegistry)->RegDeleteTreeW)
         return ERROR_CALL_NOT_IMPLEMENTED;
 
-    return VReg_InternalSlotsOf(pRegistry)->RegDeleteTreeW(
+    return VReg_InternalVtblOf(pRegistry)->RegDeleteTreeW(
         pRegistry,
         hKey,
         lpSubKey
@@ -9802,10 +9802,10 @@ VREG_DECL LSTATUS WINAPI VReg_RegEnumKeyExW(
             lpftLastWriteTime
         );
 
-    if (!VReg_InternalSlotsOf(pRegistry)->RegEnumKeyExW)
+    if (!VReg_InternalVtblOf(pRegistry)->RegEnumKeyExW)
         return ERROR_CALL_NOT_IMPLEMENTED;
 
-    return VReg_InternalSlotsOf(pRegistry)->RegEnumKeyExW(
+    return VReg_InternalVtblOf(pRegistry)->RegEnumKeyExW(
         pRegistry,
         hKey,
         dwIndex,
@@ -9842,10 +9842,10 @@ VREG_DECL LSTATUS WINAPI VReg_RegEnumValueW(
             lpcbData
         );
 
-    if (!VReg_InternalSlotsOf(pRegistry)->RegEnumValueW)
+    if (!VReg_InternalVtblOf(pRegistry)->RegEnumValueW)
         return ERROR_CALL_NOT_IMPLEMENTED;
 
-    return VReg_InternalSlotsOf(pRegistry)->RegEnumValueW(
+    return VReg_InternalVtblOf(pRegistry)->RegEnumValueW(
         pRegistry,
         hKey,
         dwIndex,
@@ -9890,10 +9890,10 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryInfoKeyW(
             lpftLastWriteTime
         );
 
-    if (!VReg_InternalSlotsOf(pRegistry)->RegQueryInfoKeyW)
+    if (!VReg_InternalVtblOf(pRegistry)->RegQueryInfoKeyW)
         return ERROR_CALL_NOT_IMPLEMENTED;
 
-    return VReg_InternalSlotsOf(pRegistry)->RegQueryInfoKeyW(
+    return VReg_InternalVtblOf(pRegistry)->RegQueryInfoKeyW(
         pRegistry,
         hKey,
         lpClass,
@@ -9932,10 +9932,10 @@ VREG_DECL LSTATUS WINAPI VReg_RegLoadMUIStringW(
             pszDirectory
         );
 
-    if (!VReg_InternalSlotsOf(pRegistry)->RegLoadMUIStringW)
+    if (!VReg_InternalVtblOf(pRegistry)->RegLoadMUIStringW)
         return ERROR_CALL_NOT_IMPLEMENTED;
 
-    return VReg_InternalSlotsOf(pRegistry)->RegLoadMUIStringW(
+    return VReg_InternalVtblOf(pRegistry)->RegLoadMUIStringW(
         pRegistry,
         hKey,
         pszValue,
@@ -9987,10 +9987,10 @@ VREG_DECL LSTATUS WINAPI VReg_RegGetValueW(
             pcbData
         );
 
-    if (!VReg_InternalSlotsOf(pRegistry)->RegGetValueW)
+    if (!VReg_InternalVtblOf(pRegistry)->RegGetValueW)
         return ERROR_CALL_NOT_IMPLEMENTED;
 
-    return VReg_InternalSlotsOf(pRegistry)->RegGetValueW(
+    return VReg_InternalVtblOf(pRegistry)->RegGetValueW(
         pRegistry,
         hkey,
         lpSubKey,
@@ -10020,10 +10020,10 @@ VREG_DECL LSTATUS WINAPI VReg_RegNotifyChangeKeyValue(
             fAsynchronous
         );
 
-    if (!VReg_InternalSlotsOf(pRegistry)->RegNotifyChangeKeyValue)
+    if (!VReg_InternalVtblOf(pRegistry)->RegNotifyChangeKeyValue)
         return ERROR_CALL_NOT_IMPLEMENTED;
 
-    return VReg_InternalSlotsOf(pRegistry)->RegNotifyChangeKeyValue(
+    return VReg_InternalVtblOf(pRegistry)->RegNotifyChangeKeyValue(
         pRegistry,
         hKey,
         bWatchSubtree,
@@ -10043,10 +10043,10 @@ VREG_DECL LSTATUS WINAPI VReg_RegFlushKey(
             hKey
         );
 
-    if (!VReg_InternalSlotsOf(pRegistry)->RegFlushKey)
+    if (!VReg_InternalVtblOf(pRegistry)->RegFlushKey)
         return ERROR_CALL_NOT_IMPLEMENTED;
 
-    return VReg_InternalSlotsOf(pRegistry)->RegFlushKey(
+    return VReg_InternalVtblOf(pRegistry)->RegFlushKey(
         pRegistry,
         hKey
     );
@@ -10059,8 +10059,8 @@ VREG_DECL void WINAPI VReg_Destroy(
     if (!pRegistry)
         return;
 
-    if (VReg_InternalSlotsOf(pRegistry)->Destroy)
-        VReg_InternalSlotsOf(pRegistry)->Destroy(pRegistry);
+    if (VReg_InternalVtblOf(pRegistry)->Destroy)
+        VReg_InternalVtblOf(pRegistry)->Destroy(pRegistry);
     VReg_InternalFree(pRegistry);
 }
 
