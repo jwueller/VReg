@@ -12615,10 +12615,10 @@ VREG_DECL LSTATUS WINAPI VReg_ApplyOperations(
 // fixture diffs matter more than mirroring regedit's enumeration order. The
 // delta walks @ref VRegHive_InternalSnapshotUpper, so opening keys does not
 // change it; a key with upper values or value tombstones appears as `[K]`,
-// which is harmless, since it exists below. Agent's choice: a tombstone
-// without a lower counterpart is kept, not pruned, since the lower registry
-// can gain that key later (another machine, an install) and the delta must
-// still hide it.
+// which is harmless, since it exists below. A tombstone without a lower
+// counterpart is kept, not pruned: the delta is the overlay, and the lower
+// registry can gain that key later (another machine, an install), so the
+// delta must still hide it.
 
 /// A value read from a key, held until the key's values are all known and can
 /// be appended in name order.
@@ -15584,9 +15584,6 @@ static LSTATUS VRegHooks_InternalRefuseOpenTransactedW(
 /// Defines the typedef and the hook of a function refused on virtual handles.
 /// `refusal` yields an @ref LSTATUS: @ref ERROR_SUCCESS passes the call on to
 /// the entry point resolved for it.
-///
-/// Agent's choice: one macro with each parameter and argument listed once,
-/// over a typedef and a body per hook, which repeated every list.
 #define VREG_INTERNAL_REFUSED_HOOK(name, params, refusal, ...)                 \
     typedef LSTATUS WINAPI VRegInternal##name##Function params;                \
                                                                                \
