@@ -73,9 +73,14 @@ the API it sits beside.
   verb when the object is public (`VRegHive_InternalCreate`,
   `VReg_InternalAlloc`). Its name is unique across `vreg.h`, since the
   implementation is one translation unit. Types carry no underscore:
-  public ones are `VRegName`, private ones `VRegInternalName`. A struct or
-  enum has a tag only where C needs one, for an opaque or forward-declared
-  type (`typedef struct VRegHive VRegHive;`); any other is anonymous.
+  public ones are `VRegName`, private ones `VRegInternalName`. A private
+  type that one public object's code alone uses carries that object's name
+  before `Internal` (`VRegScriptInternalParser`, `VRegHiveInternalNode`),
+  and so do its functions; one shared across objects, or owned by the
+  registry itself, stays `VRegInternalName` (`VRegInternalWString`,
+  `VRegInternalMountPoint`). A struct or enum has a tag only where C needs
+  one, for an opaque or forward-declared type
+  (`typedef struct VRegHive VRegHive;`); any other is anonymous.
 - Win32's typedefs wherever they say more than the C type: `LPCWSTR` and
   `LPCSTR` for a terminated string, `LPCWCH` and `LPCCH` for counted
   characters, `LPWSTR` for a buffer that becomes one. No `_z_` beside them:
@@ -134,10 +139,12 @@ the API it sits beside.
   the IDE formatter lays out a call: `_When_(` at the parameter's indent,
   one operand per line one level deeper with `||` leading, and `)` back at
   the parameter's indent.
-- An accessor is `Get` and what it answers (`VReg_GetContext`,
-  `VRegInternalWString_GetText`), a lookup by key is `Find`
-  (`VReg_InternalFindMount`, `VReg_InternalFindExport`), and a conversion
-  that returns its result is `YFromX` (`VReg_InternalViewFromText`).
+- Every function name has a verb. An accessor is `Get` and what it answers
+  (`VReg_GetContext`, `VRegInternalWString_GetText`), a lookup by key is
+  `Find` (`VReg_InternalFindMount`, `VReg_InternalFindExport`), a
+  conversion that returns its result is `YFromX`
+  (`VReg_InternalViewFromText`), and any other computation names what it
+  does (`VReg_InternalGrow`, `VReg_InternalAlignToDword`), never its result.
 - A public object made by a `Create` function is ended by `Destroy`, and so
   is the slot that runs then; memory and a struct's contents are `Free`d
   (`VReg_Free`, `VRegInternalWString_Free`).

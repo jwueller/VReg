@@ -136,7 +136,7 @@ const DWORD dwOne = 1;
 VReg_RegSetKeyValueW(registry, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", L"Windowed", REG_DWORD, &dwOne, sizeof(dwOne));
 ```
 
-Writes stay in memory. `VRegScript_Delta` collects them as a `.reg` script
+Writes stay in memory. `VRegScript_CreateDelta` collects them as a `.reg` script
 whose operations `VRegScript_WriteFile` saves and `VReg_ApplyOperations`
 replays later. Every status is the `LSTATUS` the native function answers;
 the creation functions answer `ERROR_OUTOFMEMORY` when memory ran out.

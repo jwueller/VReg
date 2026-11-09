@@ -27,7 +27,7 @@ which no snapshot format can carry.
 
 Agent's choice, open until the maintainer confirms it: hive files are a hive
 concern, not a script one. A script is a sequence of operations, deletions
-included, which `VRegScript_Delta` needs; a hive file is a snapshot of a
+included, which `VRegScript_CreateDelta` needs; a hive file is a snapshot of a
 subtree, which is what a hive is. So:
 
 - `VRegHive_CreateFromFile(path, &hive)`: an in-memory hive loaded from a
@@ -54,7 +54,7 @@ list of operations.
   and the matching implementation section after the `.reg` one; the reader
   and writer are private `VRegInternalHiveFile_*` functions over a
   `VRegInternalHiveFile` cursor, as the `.reg` parser is over
-  `VRegInternalParser`.
+  `VRegScriptInternalParser`.
 - README: the two functions beside the `.reg` ones, and the hive-file
   functions move out of "Refused on virtual handles".
 - Tests: native Windows is the oracle without privileges. A file VReg

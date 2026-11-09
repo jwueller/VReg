@@ -190,19 +190,19 @@ TEST_CASE("Allocation fails once the namespace is exhausted")
 
 TEST_CASE("The process space is usable and issues virtual handles")
 {
-    auto* const pSpace = VReg_InternalProcessHandleSpace();
+    auto* const pSpace = VReg_InternalGetProcessHandleSpace();
     REQUIRE(VRegInternalHandleSpace_IsUsable(pSpace));
     const auto hKey = VRegInternalHandleSpace_Allocate(pSpace, pSpace);
     CHECK(VReg_IsVirtualHKey(hKey));
     CHECK(VRegInternalHandleSpace_Owns(pSpace, hKey));
-    CHECK(pSpace == VReg_InternalProcessHandleSpace());
+    CHECK(pSpace == VReg_InternalGetProcessHandleSpace());
 }
 
 TEST_CASE("The process space is the section every copy of VReg shares")
 {
     const auto wsName = L"Local\\VReg-handles-" + std::to_wstring(GetCurrentProcessId());
     auto* const pShared = MapRaw(wsName);
-    auto* const pSpace = VReg_InternalProcessHandleSpace();
+    auto* const pSpace = VReg_InternalGetProcessHandleSpace();
     REQUIRE(VRegInternalHandleSpace_IsUsable(pSpace));
     CHECK(pShared->magic == VREG_INTERNAL_HANDLE_SPACE_MAGIC);
 

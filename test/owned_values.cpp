@@ -44,7 +44,7 @@ try
         );
         if (status == ERROR_MORE_DATA)
         {
-            cbData = VReg_InternalGrown(cbData, cbRead);
+            cbData = VReg_InternalGrow(cbData, cbRead);
             continue;
         }
         if (status == ERROR_SUCCESS)
@@ -103,7 +103,7 @@ try
         );
         if (status == ERROR_MORE_DATA)
         {
-            cbData = VReg_InternalGrown(cbData, cbRead);
+            cbData = VReg_InternalGrow(cbData, cbRead);
             continue;
         }
         if (status == ERROR_SUCCESS)
@@ -184,7 +184,7 @@ try
         );
         if (status == ERROR_MORE_DATA && cchName < VREG_INTERNAL_MAX_CLASS_CHARS)
         {
-            cchName = (std::min)(VReg_InternalGrown(cchName, cchRead), VREG_INTERNAL_MAX_CLASS_CHARS);
+            cchName = (std::min)(VReg_InternalGrow(cchName, cchRead), VREG_INTERNAL_MAX_CLASS_CHARS);
             continue;
         }
         if (status == ERROR_SUCCESS)
@@ -232,11 +232,11 @@ try
         if (status == ERROR_MORE_DATA)
         {
             cchName = (std::min)(
-                VReg_InternalGrown(cchName, cchRead + 1),
+                VReg_InternalGrow(cchName, cchRead + 1),
                 VREG_INTERNAL_MAX_VALUE_NAME_CHARS
             );
             if (pData)
-                cbData = VReg_InternalGrown(cbData, cbRead);
+                cbData = VReg_InternalGrow(cbData, cbRead);
             if (pData && isSized)
                 pData->resize(cbData);
             continue;
@@ -291,7 +291,7 @@ try
         );
         if (status == ERROR_MORE_DATA)
         {
-            cbBuffer = VReg_InternalGrown(cbBuffer, cbData);
+            cbBuffer = VReg_InternalGrow(cbBuffer, cbData);
             continue;
         }
         if (status == ERROR_SUCCESS)

@@ -455,7 +455,7 @@ TEST_CASE("A snapshot script written to a file has the same bytes and keeps a fi
 
     OwnedScript snapshot;
     REQUIRE(
-        VRegScript_Snapshot(
+        VRegScript_CreateSnapshot(
             registry,
             HKEY_CURRENT_USER,
             L"E",
@@ -483,7 +483,7 @@ TEST_CASE("A snapshot script written to a file has the same bytes and keeps a fi
 
     OwnedScript missing;
     CHECK(
-        VRegScript_Snapshot(
+        VRegScript_CreateSnapshot(
             registry,
             HKEY_CURRENT_USER,
             L"Missing",

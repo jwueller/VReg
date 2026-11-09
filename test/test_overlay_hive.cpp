@@ -1687,7 +1687,7 @@ namespace
 {
 /// Whether the hive's lock is free, found by writing to an unrelated key
 /// from another thread and waiting for it with a timeout.
-bool IsLockFree(VRegHive* const overlay, VRegInternalNode* const pProbe)
+bool IsLockFree(VRegHive* const overlay, VRegHiveInternalNode* const pProbe)
 {
     const Thread writer(
         [&]
@@ -1730,7 +1730,7 @@ TEST_CASE("The hive lock is never held across a call into the lower registry")
 
     const HKEY hProbe = Create(reg, fx.Root(), L"Probe");
     REQUIRE(SetDword(reg, hProbe, L"seed", 0) == ERROR_SUCCESS);
-    auto* const pProbe = VReg_InternalFindNode(hProbe);
+    auto* const pProbe = VRegHive_InternalFindNode(hProbe);
     REQUIRE(pProbe != nullptr);
 
     int cCalls = 0;
@@ -1905,7 +1905,7 @@ TEST_CASE("An overlay frozen during a write answers as frozen and writes nothing
     {
         HKEY hKey{};
         CHECK(Open(reg, fx.Root(), L"L\\Sub", hKey) == ERROR_SUCCESS);
-        CHECK(VReg_InternalFindNode(hKey) == nullptr);
+        CHECK(VRegHive_InternalFindNode(hKey) == nullptr);
         VReg_RegCloseKey(
             reg,
             hKey
@@ -1931,7 +1931,7 @@ TEST_CASE("An overlay frozen during a write answers as frozen and writes nothing
             ) == ERROR_SUCCESS
         );
         CHECK(dwDisposition == REG_OPENED_EXISTING_KEY);
-        CHECK(VReg_InternalFindNode(hKey) == nullptr);
+        CHECK(VRegHive_InternalFindNode(hKey) == nullptr);
         VReg_RegCloseKey(
             reg,
             hKey

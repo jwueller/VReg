@@ -161,7 +161,7 @@ inline LSTATUS TryExportSnapshot(
 )
 {
     OwnedScript script;
-    const LSTATUS status = VRegScript_Snapshot(
+    const LSTATUS status = VRegScript_CreateSnapshot(
         registry,
         hRoot,
         pszPath,
@@ -195,7 +195,7 @@ inline LSTATUS TryExportDelta(
 )
 {
     OwnedScript script;
-    const LSTATUS status = VRegScript_Delta(
+    const LSTATUS status = VRegScript_CreateDelta(
         hive,
         hRoot,
         pszPath,

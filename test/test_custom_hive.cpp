@@ -935,7 +935,7 @@ TEST_CASE("A custom hive's delta is empty: it holds nothing itself")
     );
 
     OwnedScript script;
-    REQUIRE(VRegScript_Delta(mount.Hive(), HKEY_CURRENT_USER, L"VRegOracle", script.Receive()) == ERROR_SUCCESS);
+    REQUIRE(VRegScript_CreateDelta(mount.Hive(), HKEY_CURRENT_USER, L"VRegOracle", script.Receive()) == ERROR_SUCCESS);
     SIZE_T cOperations = 99;
     VRegScript_GetOperations(script, &cOperations);
     CHECK(cOperations == 0);
@@ -1174,14 +1174,14 @@ TEST_CASE("A provider's own value change signals last-set watches on the key onc
     Watch(registry, hA, FALSE, NAME, name);
 
     a.values.emplace_back(L"v", 1);
-    CHECK(VRegHive_NotifyChange(provider.Hive(), VReg_InternalFindNode(hA), LAST_SET) == ERROR_SUCCESS);
+    CHECK(VRegHive_NotifyChange(provider.Hive(), VRegHive_InternalFindNode(hA), LAST_SET) == ERROR_SUCCESS);
     CHECK(lastSet.IsSet());
     CHECK_FALSE(name.IsSet());
     CHECK(QueryDword(registry, hA, L"v") == 1);
 
     // A watch fires once.
     lastSet.Reset();
-    CHECK(VRegHive_NotifyChange(provider.Hive(), VReg_InternalFindNode(hA), LAST_SET) == ERROR_SUCCESS);
+    CHECK(VRegHive_NotifyChange(provider.Hive(), VRegHive_InternalFindNode(hA), LAST_SET) == ERROR_SUCCESS);
     CHECK_FALSE(lastSet.IsSet());
 }
 
@@ -1202,7 +1202,7 @@ TEST_CASE("A provider's own new key signals name watches on its parent and subtr
     Watch(registry, hRoot, FALSE, NAME, rootOnly);
 
     provider.AddKey(b, L"C");
-    CHECK(VRegHive_NotifyChange(provider.Hive(), VReg_InternalFindNode(hB), NAME) == ERROR_SUCCESS);
+    CHECK(VRegHive_NotifyChange(provider.Hive(), VRegHive_InternalFindNode(hB), NAME) == ERROR_SUCCESS);
     CHECK(parent.IsSet());
     CHECK(subtree.IsSet());
     CHECK_FALSE(rootOnly.IsSet());
@@ -1223,7 +1223,7 @@ TEST_CASE("A frozen custom hive keeps its watches and still signals")
     Watch(registry, hA, FALSE, LAST_SET, after);
 
     a.values.emplace_back(L"v", 1);
-    CHECK(VRegHive_NotifyChange(provider.Hive(), VReg_InternalFindNode(hA), LAST_SET) == ERROR_SUCCESS);
+    CHECK(VRegHive_NotifyChange(provider.Hive(), VRegHive_InternalFindNode(hA), LAST_SET) == ERROR_SUCCESS);
     CHECK(before.IsSet());
     CHECK(after.IsSet());
 }
@@ -1246,7 +1246,7 @@ TEST_CASE("VRegHive_NotifyChange refuses a filter it never fires and a deleted k
             nullptr
         ) == ERROR_SUCCESS
     );
-    VRegHiveKey* const pKey = VReg_InternalFindNode(hKey);
+    VRegHiveKey* const pKey = VRegHive_InternalFindNode(hKey);
 
     CHECK(VRegHive_NotifyChange(mount.Hive(), pKey, 0) == ERROR_INVALID_PARAMETER);
     CHECK(VRegHive_NotifyChange(mount.Hive(), pKey, REG_NOTIFY_CHANGE_ATTRIBUTES) == ERROR_INVALID_PARAMETER);
@@ -1286,7 +1286,7 @@ TEST_CASE("A synchronous watch on a custom hive returns when the provider notifi
 
     // The registration may not be in place yet; notify until the waiter returns.
     for (int i = 0; i < 100 && !waiter.Wait(50); ++i)
-        REQUIRE(VRegHive_NotifyChange(provider.Hive(), VReg_InternalFindNode(hA), LAST_SET) == ERROR_SUCCESS);
+        REQUIRE(VRegHive_NotifyChange(provider.Hive(), VRegHive_InternalFindNode(hA), LAST_SET) == ERROR_SUCCESS);
 
     REQUIRE(waiter.Wait(5000));
     CHECK(status == ERROR_SUCCESS);
