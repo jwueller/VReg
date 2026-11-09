@@ -51,10 +51,10 @@ Every function is declared `VREG_DECL`, which `VREG_STATIC` turns into `static`.
   one over a `VRegVtbl` and a context, the implementation's own object,
   which its slots reach through `VRegGetContext`. A wrapper's context
   keeps the registry it wraps. The shape is `fopencookie`'s: a handle made
-  from a function table and a context pointer. Agent's choice: the slots
-  take the registry rather than the context (as `fopencookie`'s callbacks
-  do) so that they share the flat functions' typedefs; taking the context
-  would need a second typedef per form. Agent's choice: the name
+  from a function table and a context pointer. The slots take the
+  registry rather than the context (as `fopencookie`'s callbacks do) so
+  that they share the flat functions' typedefs; taking the context would
+  need a second typedef per form. Agent's choice: the name
   `VRegCreateCustom`, over a bare `VRegCreate` that reads like
   `VRegCreateKey`.
 - Each form of the family has one function typedef
@@ -200,6 +200,9 @@ The nodes are the hive's records of its keys:
   VReg checking first; the access mask is never passed.
 - The upper-layer snapshot that `VRegDeltaScript` reads belongs to the
   built-in tree.
+- Slots take the hive, as `VRegVtbl` slots take the registry, and reach
+  their object through `VRegGetHiveContext`, so both tables read alike and
+  a slot holds what `VRegNotifyHiveChange` needs.
 
 Agent's choices, open until the maintainer confirms them:
 
@@ -208,10 +211,6 @@ Agent's choices, open until the maintainer confirms them:
   `VRegDestroyHive`, over a `VRegHiveVtbl`. Passed over: a separate opaque
   type for custom hives, which would split every mount and script function
   in two.
-- Slots take the hive, as `VRegVtbl` slots take the registry, and reach
-  their object through `VRegGetHiveContext`, so both tables read alike and
-  a slot holds what `VRegNotifyHiveChange` needs. Passed over: slots that
-  take the context, as `fopencookie`'s callbacks take the cookie.
 - `DeleteTree` is never derived from the other slots: a partial failure
   would leave a half-deleted tree that native never shows. Passed over:
   deleting subkeys one by one through `DeleteKey`.
