@@ -196,7 +196,7 @@ inline OwnedRegistry MakeVirtualRegistry(
     OwnedRegistry registry;
     REQUIRE(VReg_CreateVirtual(pBase, registry.Receive()) == ERROR_SUCCESS);
     if (pfnNtQueryKey)
-        registry.Get()->implementation.virtualRegistry.pfnNtQueryKey = pfnNtQueryKey;
+        registry.Get()->implementation.virtual_.pfnNtQueryKey = pfnNtQueryKey;
     return registry;
 }
 

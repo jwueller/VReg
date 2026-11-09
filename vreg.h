@@ -59,7 +59,7 @@ extern "C" {
 // Raised with every change to this file. Tweak is unused (always 0).
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 15
-#define VREG_VERSION_PATCH 5
+#define VREG_VERSION_PATCH 6
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -2704,7 +2704,7 @@ struct VReg
             VRegInternalNtQueryKeyFunction pfnNtQueryKey;
             struct VRegInternalMountTable* volatile pMounts;
             SRWLOCK mountLock;
-        } virtualRegistry;
+        } virtual_;
     } implementation;
 };
 
@@ -10584,7 +10584,7 @@ static _Ret_maybenull_ const VRegInternalMountTable* VReg_InternalMountsOf(
     _In_ const VReg* const pThis
 )
 {
-    return (const VRegInternalMountTable*)ReadPointerAcquire((PVOID volatile*)&pThis->implementation.virtualRegistry.pMounts);
+    return (const VRegInternalMountTable*)ReadPointerAcquire((PVOID volatile*)&pThis->implementation.virtual_.pMounts);
 }
 
 /// A mount of @p pHive here; null when it is not mounted.
@@ -10646,7 +10646,7 @@ static LSTATUS VReg_InternalPublishMount(
     _In_ const VRegInternalMountPoint* const pMount
 )
 {
-    VRegInternalMountTable* const pOld = pThis->implementation.virtualRegistry.pMounts;
+    VRegInternalMountTable* const pOld = pThis->implementation.virtual_.pMounts;
     VRegInternalMountTable* const pNew = (VRegInternalMountTable*)VReg_InternalAllocZeroed(sizeof(VRegInternalMountTable));
     SIZE_T i;
     if (!pNew)
@@ -10677,7 +10677,7 @@ static LSTATUS VReg_InternalPublishMount(
     }
 
     pNew->pPrevious = pOld;
-    WritePointerRelease((PVOID volatile*)&pThis->implementation.virtualRegistry.pMounts, pNew);
+    WritePointerRelease((PVOID volatile*)&pThis->implementation.virtual_.pMounts, pNew);
     return ERROR_SUCCESS;
 }
 
@@ -10727,7 +10727,7 @@ static LSTATUS VReg_InternalResolveNative(
                 == 0;
         }
     }
-    if (!isGated || !pThis->implementation.virtualRegistry.pfnNtQueryKey || VReg_IsVirtualHKey(hKey))
+    if (!isGated || !pThis->implementation.virtual_.pfnNtQueryKey || VReg_IsVirtualHKey(hKey))
         return ERROR_SUCCESS;
 
     // The name is a KEY_NAME_INFORMATION: a byte count, then the characters.
@@ -10737,7 +10737,7 @@ static LSTATUS VReg_InternalResolveNative(
     for (;;)
     {
         ULONG cbResult = 0;
-        const LONG ntStatus = pThis->implementation.virtualRegistry.pfnNtQueryKey(
+        const LONG ntStatus = pThis->implementation.virtual_.pfnNtQueryKey(
             hKey,
             VREG_INTERNAL_KEY_NAME_INFORMATION_CLASS,
             buffer.pb,
@@ -10929,7 +10929,7 @@ static LSTATUS VReg_InternalResolve(
             return ERROR_SUCCESS;
         }
 
-        if (pThis->implementation.virtualRegistry.pBase)
+        if (pThis->implementation.virtual_.pBase)
             pTarget->isBase = TRUE;
         else
             pTarget->status = isSplit ? ERROR_FILE_NOT_FOUND : splitStatus;
@@ -10937,7 +10937,7 @@ static LSTATUS VReg_InternalResolve(
         return ERROR_SUCCESS;
     }
 
-    if (!pThis->implementation.virtualRegistry.pBase)
+    if (!pThis->implementation.virtual_.pBase)
     {
         pTarget->status = ERROR_INVALID_HANDLE;
         return ERROR_SUCCESS;
@@ -11027,7 +11027,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegOpenKeyExW(
     if (target.isBase)
     {
         status = VReg_RegOpenKeyExW(
-            pRegistry->implementation.virtualRegistry.pBase,
+            pRegistry->implementation.virtual_.pBase,
             hKey,
             lpSubKey,
             ulOptions,
@@ -11086,7 +11086,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegCreateKeyExW(
     if (target.isBase)
     {
         status = VReg_RegCreateKeyExW(
-            pRegistry->implementation.virtualRegistry.pBase,
+            pRegistry->implementation.virtual_.pBase,
             hKey,
             lpSubKey,
             Reserved,
@@ -11164,11 +11164,11 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegCloseKey(
 {
     if (VRegInternalNode_Of(hKey) || VReg_InternalIsPredefinedHKey(hKey))
         return ERROR_SUCCESS;
-    if (VRegInternalHandleSpace_Owns(VReg_InternalProcessHandleSpace(), hKey) || !pRegistry->implementation.virtualRegistry.pBase)
+    if (VRegInternalHandleSpace_Owns(VReg_InternalProcessHandleSpace(), hKey) || !pRegistry->implementation.virtual_.pBase)
         return ERROR_INVALID_HANDLE;
 
     return VReg_RegCloseKey(
-        pRegistry->implementation.virtualRegistry.pBase,
+        pRegistry->implementation.virtual_.pBase,
         hKey
     );
 }
@@ -11194,7 +11194,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegQueryValueExW(
     if (target.isBase)
     {
         status = VReg_RegQueryValueExW(
-            pRegistry->implementation.virtualRegistry.pBase,
+            pRegistry->implementation.virtual_.pBase,
             hKey,
             lpValueName,
             lpReserved,
@@ -11275,7 +11275,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegSetValueExW(
     if (target.isBase)
     {
         status = VReg_RegSetValueExW(
-            pRegistry->implementation.virtualRegistry.pBase,
+            pRegistry->implementation.virtual_.pBase,
             hKey,
             lpValueName,
             Reserved,
@@ -11329,7 +11329,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegDeleteValueW(
     if (target.isBase)
     {
         status = VReg_RegDeleteValueW(
-            pRegistry->implementation.virtualRegistry.pBase,
+            pRegistry->implementation.virtual_.pBase,
             hKey,
             lpValueName
         );
@@ -11364,7 +11364,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegDeleteKeyExW(
     if (target.isBase)
     {
         status = VReg_RegDeleteKeyExW(
-            pRegistry->implementation.virtualRegistry.pBase,
+            pRegistry->implementation.virtual_.pBase,
             hKey,
             lpSubKey,
             samDesired,
@@ -11405,7 +11405,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegDeleteTreeW(
     if (target.isBase)
     {
         status = VReg_RegDeleteTreeW(
-            pRegistry->implementation.virtualRegistry.pBase,
+            pRegistry->implementation.virtual_.pBase,
             hKey,
             lpSubKey
         );
@@ -11466,7 +11466,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegEnumKeyExW(
     if (target.isBase)
     {
         status = VReg_RegEnumKeyExW(
-            pRegistry->implementation.virtualRegistry.pBase,
+            pRegistry->implementation.virtual_.pBase,
             hKey,
             dwIndex,
             lpName,
@@ -11553,7 +11553,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegEnumValueW(
     if (target.isBase)
     {
         status = VReg_RegEnumValueW(
-            pRegistry->implementation.virtualRegistry.pBase,
+            pRegistry->implementation.virtual_.pBase,
             hKey,
             dwIndex,
             lpValueName,
@@ -11659,7 +11659,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegQueryInfoKeyW(
     if (target.isBase)
     {
         status = VReg_RegQueryInfoKeyW(
-            pRegistry->implementation.virtualRegistry.pBase,
+            pRegistry->implementation.virtual_.pBase,
             hKey,
             lpClass,
             lpcchClass,
@@ -11947,7 +11947,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegLoadMUIStringW(
     if (target.isBase)
     {
         status = VReg_RegLoadMUIStringW(
-            pRegistry->implementation.virtualRegistry.pBase,
+            pRegistry->implementation.virtual_.pBase,
             hKey,
             pszValue,
             pszOutBuf,
@@ -12135,7 +12135,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegGetValueW(
     if (target.isBase)
     {
         status = VReg_RegGetValueW(
-            pRegistry->implementation.virtualRegistry.pBase,
+            pRegistry->implementation.virtual_.pBase,
             hkey,
             lpSubKey,
             lpValue,
@@ -12322,7 +12322,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegNotifyChangeKeyValue(
     if (target.isBase)
     {
         status = VReg_RegNotifyChangeKeyValue(
-            pRegistry->implementation.virtualRegistry.pBase,
+            pRegistry->implementation.virtual_.pBase,
             hKey,
             bWatchSubtree,
             dwNotifyFilter,
@@ -12385,7 +12385,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegFlushKey(
     if (target.isBase)
     {
         status = VReg_RegFlushKey(
-            pRegistry->implementation.virtualRegistry.pBase,
+            pRegistry->implementation.virtual_.pBase,
             hKey
         );
         goto done;
@@ -12408,7 +12408,7 @@ done:
 
 VREG_DECL void WINAPI VReg_InternalVirtualDestroy(_In_ VReg* const pRegistry)
 {
-    VRegInternalMountTable* pTable = pRegistry->implementation.virtualRegistry.pMounts;
+    VRegInternalMountTable* pTable = pRegistry->implementation.virtual_.pMounts;
     BOOL isNewest = TRUE;
     while (pTable)
     {
@@ -12440,9 +12440,9 @@ VREG_DECL LSTATUS WINAPI VReg_CreateVirtual(
         return ERROR_OUTOFMEMORY;
 
     pRegistry->kind = VREG_INTERNAL_KIND_VIRTUAL;
-    pRegistry->implementation.virtualRegistry.pBase = pBase;
-    InitializeSRWLock(&pRegistry->implementation.virtualRegistry.mountLock);
-    *(void**)&pRegistry->implementation.virtualRegistry.pfnNtQueryKey =
+    pRegistry->implementation.virtual_.pBase = pBase;
+    InitializeSRWLock(&pRegistry->implementation.virtual_.mountLock);
+    *(void**)&pRegistry->implementation.virtual_.pfnNtQueryKey =
         VReg_InternalFindExport(GetModuleHandleW(L"ntdll.dll"), "NtQueryKey");
 
     *ppRegistry = pRegistry;
@@ -12496,9 +12496,9 @@ VREG_DECL LSTATUS WINAPI VReg_Mount(
 
     if (status == ERROR_SUCCESS)
     {
-        AcquireSRWLockExclusive(&pRegistry->implementation.virtualRegistry.mountLock);
+        AcquireSRWLockExclusive(&pRegistry->implementation.virtual_.mountLock);
         status = VReg_InternalPublishMount(pRegistry, &mount);
-        ReleaseSRWLockExclusive(&pRegistry->implementation.virtualRegistry.mountLock);
+        ReleaseSRWLockExclusive(&pRegistry->implementation.virtual_.mountLock);
     }
 
     if (status != ERROR_SUCCESS)
