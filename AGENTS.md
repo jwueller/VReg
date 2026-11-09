@@ -125,8 +125,8 @@ naming, because the library sits beside the API it reimplements.
 - Signatures of the Win32-shaped functions and every call to a `Reg*`
   function (Win32 or a `VReg_*` flat function) put one parameter or argument
   per line, with blank lines between multi-line declarations. Any other call
-  or signature does the same once it would run its line past the
-  `max_line_length` of `.editorconfig`.
+  or signature does the same once it would run its line past column 80, the
+  first ruler in `.editorconfig`.
 - A braced list that spans lines opens with `{` alone, puts each item on a
   line of its own one level deeper with a trailing comma, and closes with
   `}` at the opening indent; never `{a,` continued as `b}`.
