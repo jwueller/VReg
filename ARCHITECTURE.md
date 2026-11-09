@@ -348,12 +348,12 @@ key's node, kept in the hive's tree (so every hive kind has it).
   write through the hive would, under the same lock; it must not be called
   from inside a slot. A key the provider deletes on its own is reported to
   its parent and is not marked deleted.
-- Agent's choice: a synchronous call (`fAsynchronous` false) waits for the
-  change on a private event, like the native call, so a watcher thread written
-  for the native registry keeps working; it never returns on a key nothing
-  writes to, as natively. Passed over: answering at once, which would spin
-  such a loop, and `ERROR_NOT_SUPPORTED`, which would end it. The wait is on
-  an event that only a writer sets, never on a lock.
+- A synchronous call (`fAsynchronous` false) waits for the change on a
+  private event, like the native call, so a watcher thread written for the
+  native registry keeps working; it never returns on a key nothing writes
+  to, as natively. Answering at once would spin such a loop, and
+  `ERROR_NOT_SUPPORTED` would end it. The wait is on an event that only a
+  writer sets, never on a lock.
 - A registration that never fires keeps its duplicate handle until the hive
   is destroyed or frozen; registering again on the same key and event without
   waiting adds another.
