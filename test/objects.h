@@ -190,7 +190,7 @@ inline OwnedRegistry MakeNativeRegistry()
 /// the `ntdll` export it resolved.
 inline OwnedRegistry MakeVirtualRegistry(
     VReg* const pBase = nullptr,
-    const VRegInternalNtQueryKeyFunction pfnNtQueryKey = nullptr
+    VRegInternalNtQueryKeyFunction* const pfnNtQueryKey = nullptr
 )
 {
     OwnedRegistry registry;

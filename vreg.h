@@ -59,7 +59,7 @@ extern "C" {
 // Raised with every change to this file. Tweak is unused (always 0).
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 15
-#define VREG_VERSION_PATCH 6
+#define VREG_VERSION_PATCH 7
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -2422,7 +2422,7 @@ typedef struct
 /// Called once per record under the hive's read lock, so it MUST NOT call
 /// back into the hive; a status other than @ref ERROR_SUCCESS stops the
 /// snapshot and is answered.
-typedef LSTATUS (*VRegInternalUpperVisitor)(
+typedef LSTATUS VRegInternalUpperVisitFunction(
     _In_opt_ void* pContext,
     _In_ const VRegInternalUpperRecord* pRecord
 );
@@ -2587,7 +2587,7 @@ VREG_DECL LSTATUS VRegHive_InternalWatch(
  */
 VREG_DECL LSTATUS VRegHive_InternalSnapshotUpper(
     _In_ VRegHive* pHive,
-    _In_ VRegInternalUpperVisitor pfnVisit,
+    _In_ VRegInternalUpperVisitFunction* pfnVisit,
     _In_opt_ void* pContext
 );
 
@@ -2667,7 +2667,7 @@ typedef enum
 
 /// @ref NtQueryKey, the one `ntdll` function a virtual registry uses to find
 /// the native path of a real key.
-typedef LONG (NTAPI* VRegInternalNtQueryKeyFunction)(
+typedef LONG NTAPI VRegInternalNtQueryKeyFunction(
     HANDLE hKey,
     ULONG keyInformationClass,
     PVOID pKeyInformation,
@@ -2701,7 +2701,7 @@ struct VReg
             /// Null for a registry held entirely in memory.
             VReg* pBase;
 
-            VRegInternalNtQueryKeyFunction pfnNtQueryKey;
+            VRegInternalNtQueryKeyFunction* pfnNtQueryKey;
             struct VRegInternalMountTable* volatile pMounts;
             SRWLOCK mountLock;
         } virtual_;
@@ -8634,7 +8634,7 @@ static LSTATUS VRegHive_InternalListUpper(
     _In_ VRegHive* const pHive,
     _In_ const VRegInternalNode* const pNode,
     _Inout_ VRegInternalWString* const pPath,
-    _In_ const VRegInternalUpperVisitor pfnVisit,
+    _In_ VRegInternalUpperVisitFunction* const pfnVisit,
     _In_opt_ void* const pContext
 )
 {
@@ -8704,7 +8704,7 @@ static LSTATUS VRegHive_InternalListUpper(
 
 VREG_DECL LSTATUS VRegHive_InternalSnapshotUpper(
     _In_ VRegHive* const pHive,
-    _In_ const VRegInternalUpperVisitor pfnVisit,
+    _In_ VRegInternalUpperVisitFunction* const pfnVisit,
     _In_opt_ void* const pContext
 )
 {
@@ -10960,7 +10960,11 @@ static LSTATUS VReg_InternalResolve(
 
 /// A call forwarded to a redirect: the flat function, on @p hKey of
 /// @p pRegistry, with the arguments in @p pContext.
-typedef LSTATUS (*VRegInternalRedirectedCall)(_In_ VReg* pRegistry, HKEY hKey, _In_opt_ void* pContext);
+typedef LSTATUS VRegInternalRedirectedCallFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_opt_ void* pContext
+);
 
 /// Answers a call whose open landed on a redirect: @p pfnCall on the
 /// redirect's registry and key, or @ref ERROR_ACCESS_DENIED for a write when
@@ -10968,7 +10972,7 @@ typedef LSTATUS (*VRegInternalRedirectedCall)(_In_ VReg* pRegistry, HKEY hKey, _
 /// Closes the key either way.
 static LSTATUS VRegInternalRedirect_Call(
     _In_ const VRegInternalRedirect* const pRedirect,
-    _In_opt_ const VRegInternalRedirectedCall pfnCall,
+    _In_opt_ VRegInternalRedirectedCallFunction* const pfnCall,
     _In_opt_ void* const pContext
 )
 {
@@ -15441,193 +15445,193 @@ typedef enum
 
 static void* g_formTargets[VREG_INTERNAL_FORM_COUNT];
 
-typedef LSTATUS (APIENTRY* VRegInternalRegSaveKeyAFunction)(
-    HKEY,
-    LPCSTR,
-    CONST LPSECURITY_ATTRIBUTES
+typedef LSTATUS APIENTRY VRegInternalRegSaveKeyAFunction(
+    _In_ HKEY hKey,
+    _In_ LPCSTR lpFile,
+    _In_opt_ CONST LPSECURITY_ATTRIBUTES lpSecurityAttributes
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegSaveKeyWFunction)(
-    HKEY,
-    LPCWSTR,
-    CONST LPSECURITY_ATTRIBUTES
+typedef LSTATUS APIENTRY VRegInternalRegSaveKeyWFunction(
+    _In_ HKEY hKey,
+    _In_ LPCWSTR lpFile,
+    _In_opt_ CONST LPSECURITY_ATTRIBUTES lpSecurityAttributes
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegSaveKeyExAFunction)(
-    HKEY,
-    LPCSTR,
-    CONST LPSECURITY_ATTRIBUTES,
-    DWORD
+typedef LSTATUS APIENTRY VRegInternalRegSaveKeyExAFunction(
+    _In_ HKEY hKey,
+    _In_ LPCSTR lpFile,
+    _In_opt_ CONST LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+    _In_ DWORD Flags
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegSaveKeyExWFunction)(
-    HKEY,
-    LPCWSTR,
-    CONST LPSECURITY_ATTRIBUTES,
-    DWORD
+typedef LSTATUS APIENTRY VRegInternalRegSaveKeyExWFunction(
+    _In_ HKEY hKey,
+    _In_ LPCWSTR lpFile,
+    _In_opt_ CONST LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+    _In_ DWORD Flags
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegRestoreKeyAFunction)(
-    HKEY,
-    LPCSTR,
-    DWORD
+typedef LSTATUS APIENTRY VRegInternalRegRestoreKeyAFunction(
+    _In_ HKEY hKey,
+    _In_ LPCSTR lpFile,
+    _In_ DWORD dwFlags
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegRestoreKeyWFunction)(
-    HKEY,
-    LPCWSTR,
-    DWORD
+typedef LSTATUS APIENTRY VRegInternalRegRestoreKeyWFunction(
+    _In_ HKEY hKey,
+    _In_ LPCWSTR lpFile,
+    _In_ DWORD dwFlags
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegLoadKeyAFunction)(
-    HKEY,
-    LPCSTR,
-    LPCSTR
+typedef LSTATUS APIENTRY VRegInternalRegLoadKeyAFunction(
+    _In_ HKEY hKey,
+    _In_opt_ LPCSTR lpSubKey,
+    _In_ LPCSTR lpFile
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegLoadKeyWFunction)(
-    HKEY,
-    LPCWSTR,
-    LPCWSTR
+typedef LSTATUS APIENTRY VRegInternalRegLoadKeyWFunction(
+    _In_ HKEY hKey,
+    _In_opt_ LPCWSTR lpSubKey,
+    _In_ LPCWSTR lpFile
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegUnLoadKeyAFunction)(
-    HKEY,
-    LPCSTR
+typedef LSTATUS APIENTRY VRegInternalRegUnLoadKeyAFunction(
+    _In_ HKEY hKey,
+    _In_opt_ LPCSTR lpSubKey
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegUnLoadKeyWFunction)(
-    HKEY,
-    LPCWSTR
+typedef LSTATUS APIENTRY VRegInternalRegUnLoadKeyWFunction(
+    _In_ HKEY hKey,
+    _In_opt_ LPCWSTR lpSubKey
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegReplaceKeyAFunction)(
-    HKEY,
-    LPCSTR,
-    LPCSTR,
-    LPCSTR
+typedef LSTATUS APIENTRY VRegInternalRegReplaceKeyAFunction(
+    _In_ HKEY hKey,
+    _In_opt_ LPCSTR lpSubKey,
+    _In_ LPCSTR lpNewFile,
+    _In_ LPCSTR lpOldFile
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegReplaceKeyWFunction)(
-    HKEY,
-    LPCWSTR,
-    LPCWSTR,
-    LPCWSTR
+typedef LSTATUS APIENTRY VRegInternalRegReplaceKeyWFunction(
+    _In_ HKEY hKey,
+    _In_opt_ LPCWSTR lpSubKey,
+    _In_ LPCWSTR lpNewFile,
+    _In_ LPCWSTR lpOldFile
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegGetKeySecurityFunction)(
-    HKEY,
-    SECURITY_INFORMATION,
-    PSECURITY_DESCRIPTOR,
-    LPDWORD
+typedef LSTATUS APIENTRY VRegInternalRegGetKeySecurityFunction(
+    _In_ HKEY hKey,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Out_writes_bytes_opt_(*lpcbSecurityDescriptor) PSECURITY_DESCRIPTOR pSecurityDescriptor,
+    _Inout_ LPDWORD lpcbSecurityDescriptor
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegSetKeySecurityFunction)(
-    HKEY,
-    SECURITY_INFORMATION,
-    PSECURITY_DESCRIPTOR
+typedef LSTATUS APIENTRY VRegInternalRegSetKeySecurityFunction(
+    _In_ HKEY hKey,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR pSecurityDescriptor
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegRenameKeyFunction)(
-    HKEY,
-    LPCWSTR,
-    LPCWSTR
+typedef LSTATUS APIENTRY VRegInternalRegRenameKeyFunction(
+    _In_ HKEY hKey,
+    _In_opt_ LPCWSTR lpSubKeyName,
+    _In_ LPCWSTR lpNewKeyName
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegCopyTreeAFunction)(
-    HKEY,
-    LPCSTR,
-    HKEY
+typedef LSTATUS APIENTRY VRegInternalRegCopyTreeAFunction(
+    _In_ HKEY hKeySrc,
+    _In_opt_ LPCSTR lpSubKey,
+    _In_ HKEY hKeyDest
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegCopyTreeWFunction)(
-    HKEY,
-    LPCWSTR,
-    HKEY
+typedef LSTATUS APIENTRY VRegInternalRegCopyTreeWFunction(
+    _In_ HKEY hKeySrc,
+    _In_opt_ LPCWSTR lpSubKey,
+    _In_ HKEY hKeyDest
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegCreateKeyTransactedAFunction)(
-    HKEY,
-    LPCSTR,
-    DWORD,
-    LPSTR,
-    DWORD,
-    REGSAM,
-    CONST LPSECURITY_ATTRIBUTES,
-    PHKEY,
-    LPDWORD,
-    HANDLE,
-    PVOID
+typedef LSTATUS APIENTRY VRegInternalRegCreateKeyTransactedAFunction(
+    _In_ HKEY hKey,
+    _In_ LPCSTR lpSubKey,
+    _Reserved_ DWORD Reserved,
+    _In_opt_ LPSTR lpClass,
+    _In_ DWORD dwOptions,
+    _In_ REGSAM samDesired,
+    _In_opt_ CONST LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+    _Out_ PHKEY phkResult,
+    _Out_opt_ LPDWORD lpdwDisposition,
+    _In_ HANDLE hTransaction,
+    _Reserved_ PVOID pExtendedParemeter
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegCreateKeyTransactedWFunction)(
-    HKEY,
-    LPCWSTR,
-    DWORD,
-    LPWSTR,
-    DWORD,
-    REGSAM,
-    CONST LPSECURITY_ATTRIBUTES,
-    PHKEY,
-    LPDWORD,
-    HANDLE,
-    PVOID
+typedef LSTATUS APIENTRY VRegInternalRegCreateKeyTransactedWFunction(
+    _In_ HKEY hKey,
+    _In_ LPCWSTR lpSubKey,
+    _Reserved_ DWORD Reserved,
+    _In_opt_ LPWSTR lpClass,
+    _In_ DWORD dwOptions,
+    _In_ REGSAM samDesired,
+    _In_opt_ CONST LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+    _Out_ PHKEY phkResult,
+    _Out_opt_ LPDWORD lpdwDisposition,
+    _In_ HANDLE hTransaction,
+    _Reserved_ PVOID pExtendedParemeter
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegOpenKeyTransactedAFunction)(
-    HKEY,
-    LPCSTR,
-    DWORD,
-    REGSAM,
-    PHKEY,
-    HANDLE,
-    PVOID
+typedef LSTATUS APIENTRY VRegInternalRegOpenKeyTransactedAFunction(
+    _In_ HKEY hKey,
+    _In_opt_ LPCSTR lpSubKey,
+    _In_opt_ DWORD ulOptions,
+    _In_ REGSAM samDesired,
+    _Out_ PHKEY phkResult,
+    _In_ HANDLE hTransaction,
+    _Reserved_ PVOID pExtendedParemeter
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegOpenKeyTransactedWFunction)(
-    HKEY,
-    LPCWSTR,
-    DWORD,
-    REGSAM,
-    PHKEY,
-    HANDLE,
-    PVOID
+typedef LSTATUS APIENTRY VRegInternalRegOpenKeyTransactedWFunction(
+    _In_ HKEY hKey,
+    _In_opt_ LPCWSTR lpSubKey,
+    _In_opt_ DWORD ulOptions,
+    _In_ REGSAM samDesired,
+    _Out_ PHKEY phkResult,
+    _In_ HANDLE hTransaction,
+    _Reserved_ PVOID pExtendedParemeter
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegDeleteKeyTransactedAFunction)(
-    HKEY,
-    LPCSTR,
-    REGSAM,
-    DWORD,
-    HANDLE,
-    PVOID
+typedef LSTATUS APIENTRY VRegInternalRegDeleteKeyTransactedAFunction(
+    _In_ HKEY hKey,
+    _In_ LPCSTR lpSubKey,
+    _In_ REGSAM samDesired,
+    _Reserved_ DWORD Reserved,
+    _In_ HANDLE hTransaction,
+    _Reserved_ PVOID pExtendedParameter
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegDeleteKeyTransactedWFunction)(
-    HKEY,
-    LPCWSTR,
-    REGSAM,
-    DWORD,
-    HANDLE,
-    PVOID
+typedef LSTATUS APIENTRY VRegInternalRegDeleteKeyTransactedWFunction(
+    _In_ HKEY hKey,
+    _In_ LPCWSTR lpSubKey,
+    _In_ REGSAM samDesired,
+    _Reserved_ DWORD Reserved,
+    _In_ HANDLE hTransaction,
+    _Reserved_ PVOID pExtendedParameter
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegDisableReflectionKeyFunction)(
-    HKEY
+typedef LSTATUS APIENTRY VRegInternalRegDisableReflectionKeyFunction(
+    _In_ HKEY hBase
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegEnableReflectionKeyFunction)(
-    HKEY
+typedef LSTATUS APIENTRY VRegInternalRegEnableReflectionKeyFunction(
+    _In_ HKEY hBase
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegQueryReflectionKeyFunction)(
-    HKEY,
-    BOOL*
+typedef LSTATUS APIENTRY VRegInternalRegQueryReflectionKeyFunction(
+    _In_ HKEY hBase,
+    _Out_ BOOL* bIsReflectionDisabled
 );
 
-typedef LSTATUS (APIENTRY* VRegInternalRegOverridePredefKeyFunction)(
-    HKEY,
-    HKEY
+typedef LSTATUS APIENTRY VRegInternalRegOverridePredefKeyFunction(
+    _In_ HKEY hKey,
+    _In_opt_ HKEY hNewHKey
 );
 
 static BOOL VReg_InternalIsOwned(_In_opt_ const HKEY hKey)
@@ -15743,8 +15747,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegSaveKeyA(
     _In_opt_ CONST LPSECURITY_ATTRIBUTES lpSecurityAttributes
 )
 {
-    const VRegInternalRegSaveKeyAFunction pfnNext =
-        (VRegInternalRegSaveKeyAFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegSaveKeyA];
+    VRegInternalRegSaveKeyAFunction* const pfnNext =
+        (VRegInternalRegSaveKeyAFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegSaveKeyA];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15761,8 +15765,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegSaveKeyW(
     _In_opt_ CONST LPSECURITY_ATTRIBUTES lpSecurityAttributes
 )
 {
-    const VRegInternalRegSaveKeyWFunction pfnNext =
-        (VRegInternalRegSaveKeyWFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegSaveKeyW];
+    VRegInternalRegSaveKeyWFunction* const pfnNext =
+        (VRegInternalRegSaveKeyWFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegSaveKeyW];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15780,8 +15784,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegSaveKeyExA(
     _In_ const DWORD Flags
 )
 {
-    const VRegInternalRegSaveKeyExAFunction pfnNext =
-        (VRegInternalRegSaveKeyExAFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegSaveKeyExA];
+    VRegInternalRegSaveKeyExAFunction* const pfnNext =
+        (VRegInternalRegSaveKeyExAFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegSaveKeyExA];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15800,8 +15804,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegSaveKeyExW(
     _In_ const DWORD Flags
 )
 {
-    const VRegInternalRegSaveKeyExWFunction pfnNext =
-        (VRegInternalRegSaveKeyExWFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegSaveKeyExW];
+    VRegInternalRegSaveKeyExWFunction* const pfnNext =
+        (VRegInternalRegSaveKeyExWFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegSaveKeyExW];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15819,8 +15823,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegRestoreKeyA(
     _In_ const DWORD dwFlags
 )
 {
-    const VRegInternalRegRestoreKeyAFunction pfnNext =
-        (VRegInternalRegRestoreKeyAFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegRestoreKeyA];
+    VRegInternalRegRestoreKeyAFunction* const pfnNext =
+        (VRegInternalRegRestoreKeyAFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegRestoreKeyA];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15837,8 +15841,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegRestoreKeyW(
     _In_ const DWORD dwFlags
 )
 {
-    const VRegInternalRegRestoreKeyWFunction pfnNext =
-        (VRegInternalRegRestoreKeyWFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegRestoreKeyW];
+    VRegInternalRegRestoreKeyWFunction* const pfnNext =
+        (VRegInternalRegRestoreKeyWFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegRestoreKeyW];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15855,8 +15859,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegLoadKeyA(
     _In_ const LPCSTR lpFile
 )
 {
-    const VRegInternalRegLoadKeyAFunction pfnNext =
-        (VRegInternalRegLoadKeyAFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegLoadKeyA];
+    VRegInternalRegLoadKeyAFunction* const pfnNext =
+        (VRegInternalRegLoadKeyAFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegLoadKeyA];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15873,8 +15877,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegLoadKeyW(
     _In_ const LPCWSTR lpFile
 )
 {
-    const VRegInternalRegLoadKeyWFunction pfnNext =
-        (VRegInternalRegLoadKeyWFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegLoadKeyW];
+    VRegInternalRegLoadKeyWFunction* const pfnNext =
+        (VRegInternalRegLoadKeyWFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegLoadKeyW];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15890,8 +15894,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegUnLoadKeyA(
     _In_opt_ const LPCSTR lpSubKey
 )
 {
-    const VRegInternalRegUnLoadKeyAFunction pfnNext =
-        (VRegInternalRegUnLoadKeyAFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegUnLoadKeyA];
+    VRegInternalRegUnLoadKeyAFunction* const pfnNext =
+        (VRegInternalRegUnLoadKeyAFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegUnLoadKeyA];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15906,8 +15910,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegUnLoadKeyW(
     _In_opt_ const LPCWSTR lpSubKey
 )
 {
-    const VRegInternalRegUnLoadKeyWFunction pfnNext =
-        (VRegInternalRegUnLoadKeyWFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegUnLoadKeyW];
+    VRegInternalRegUnLoadKeyWFunction* const pfnNext =
+        (VRegInternalRegUnLoadKeyWFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegUnLoadKeyW];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15924,8 +15928,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegReplaceKeyA(
     _In_ const LPCSTR lpOldFile
 )
 {
-    const VRegInternalRegReplaceKeyAFunction pfnNext =
-        (VRegInternalRegReplaceKeyAFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegReplaceKeyA];
+    VRegInternalRegReplaceKeyAFunction* const pfnNext =
+        (VRegInternalRegReplaceKeyAFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegReplaceKeyA];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15944,8 +15948,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegReplaceKeyW(
     _In_ const LPCWSTR lpOldFile
 )
 {
-    const VRegInternalRegReplaceKeyWFunction pfnNext =
-        (VRegInternalRegReplaceKeyWFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegReplaceKeyW];
+    VRegInternalRegReplaceKeyWFunction* const pfnNext =
+        (VRegInternalRegReplaceKeyWFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegReplaceKeyW];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15964,8 +15968,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegGetKeySecurity(
     _Inout_ const LPDWORD lpcbSecurityDescriptor
 )
 {
-    const VRegInternalRegGetKeySecurityFunction pfnNext =
-        (VRegInternalRegGetKeySecurityFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegGetKeySecurity];
+    VRegInternalRegGetKeySecurityFunction* const pfnNext =
+        (VRegInternalRegGetKeySecurityFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegGetKeySecurity];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -15983,8 +15987,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegSetKeySecurity(
     _In_ const PSECURITY_DESCRIPTOR pSecurityDescriptor
 )
 {
-    const VRegInternalRegSetKeySecurityFunction pfnNext =
-        (VRegInternalRegSetKeySecurityFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegSetKeySecurity];
+    VRegInternalRegSetKeySecurityFunction* const pfnNext =
+        (VRegInternalRegSetKeySecurityFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegSetKeySecurity];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -16001,8 +16005,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegRenameKey(
     _In_ const LPCWSTR lpNewKeyName
 )
 {
-    const VRegInternalRegRenameKeyFunction pfnNext =
-        (VRegInternalRegRenameKeyFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegRenameKey];
+    VRegInternalRegRenameKeyFunction* const pfnNext =
+        (VRegInternalRegRenameKeyFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegRenameKey];
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
 
@@ -16019,8 +16023,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegCopyTreeA(
     _In_ const HKEY hKeyDest
 )
 {
-    const VRegInternalRegCopyTreeAFunction pfnNext =
-        (VRegInternalRegCopyTreeAFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegCopyTreeA];
+    VRegInternalRegCopyTreeAFunction* const pfnNext =
+        (VRegInternalRegCopyTreeAFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegCopyTreeA];
     if (VReg_InternalIsOwned(hKeySrc) || VReg_InternalIsOwned(hKeyDest))
         return ERROR_NOT_SUPPORTED;
 
@@ -16037,8 +16041,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegCopyTreeW(
     _In_ const HKEY hKeyDest
 )
 {
-    const VRegInternalRegCopyTreeWFunction pfnNext =
-        (VRegInternalRegCopyTreeWFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegCopyTreeW];
+    VRegInternalRegCopyTreeWFunction* const pfnNext =
+        (VRegInternalRegCopyTreeWFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegCopyTreeW];
     if (VReg_InternalIsOwned(hKeySrc) || VReg_InternalIsOwned(hKeyDest))
         return ERROR_NOT_SUPPORTED;
 
@@ -16063,8 +16067,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegCreateKeyTransactedA(
     _Reserved_ const PVOID pExtendedParemeter
 )
 {
-    const VRegInternalRegCreateKeyTransactedAFunction pfnNext =
-        (VRegInternalRegCreateKeyTransactedAFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegCreateKeyTransactedA];
+    VRegInternalRegCreateKeyTransactedAFunction* const pfnNext =
+        (VRegInternalRegCreateKeyTransactedAFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegCreateKeyTransactedA];
     LSTATUS status;
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
@@ -16102,8 +16106,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegCreateKeyTransactedW(
     _Reserved_ const PVOID pExtendedParemeter
 )
 {
-    const VRegInternalRegCreateKeyTransactedWFunction pfnNext =
-        (VRegInternalRegCreateKeyTransactedWFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegCreateKeyTransactedW];
+    VRegInternalRegCreateKeyTransactedWFunction* const pfnNext =
+        (VRegInternalRegCreateKeyTransactedWFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegCreateKeyTransactedW];
     LSTATUS status;
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
@@ -16137,8 +16141,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegOpenKeyTransactedA(
     _Reserved_ const PVOID pExtendedParemeter
 )
 {
-    const VRegInternalRegOpenKeyTransactedAFunction pfnNext =
-        (VRegInternalRegOpenKeyTransactedAFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegOpenKeyTransactedA];
+    VRegInternalRegOpenKeyTransactedAFunction* const pfnNext =
+        (VRegInternalRegOpenKeyTransactedAFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegOpenKeyTransactedA];
     LSTATUS status;
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
@@ -16168,8 +16172,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegOpenKeyTransactedW(
     _Reserved_ const PVOID pExtendedParemeter
 )
 {
-    const VRegInternalRegOpenKeyTransactedWFunction pfnNext =
-        (VRegInternalRegOpenKeyTransactedWFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegOpenKeyTransactedW];
+    VRegInternalRegOpenKeyTransactedWFunction* const pfnNext =
+        (VRegInternalRegOpenKeyTransactedWFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegOpenKeyTransactedW];
     LSTATUS status;
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
@@ -16200,8 +16204,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegDeleteKeyTransactedA(
     _Reserved_ const PVOID pExtendedParameter
 )
 {
-    const VRegInternalRegDeleteKeyTransactedAFunction pfnNext =
-        (VRegInternalRegDeleteKeyTransactedAFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegDeleteKeyTransactedA];
+    VRegInternalRegDeleteKeyTransactedAFunction* const pfnNext =
+        (VRegInternalRegDeleteKeyTransactedAFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegDeleteKeyTransactedA];
     LSTATUS status;
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
@@ -16229,8 +16233,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegDeleteKeyTransactedW(
     _Reserved_ const PVOID pExtendedParameter
 )
 {
-    const VRegInternalRegDeleteKeyTransactedWFunction pfnNext =
-        (VRegInternalRegDeleteKeyTransactedWFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegDeleteKeyTransactedW];
+    VRegInternalRegDeleteKeyTransactedWFunction* const pfnNext =
+        (VRegInternalRegDeleteKeyTransactedWFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegDeleteKeyTransactedW];
     LSTATUS status;
     if (VReg_InternalIsOwned(hKey))
         return ERROR_NOT_SUPPORTED;
@@ -16253,8 +16257,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegDisableReflectionKey(
     _In_ const HKEY hBase
 )
 {
-    const VRegInternalRegDisableReflectionKeyFunction pfnNext =
-        (VRegInternalRegDisableReflectionKeyFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegDisableReflectionKey];
+    VRegInternalRegDisableReflectionKeyFunction* const pfnNext =
+        (VRegInternalRegDisableReflectionKeyFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegDisableReflectionKey];
     if (VReg_InternalIsOwned(hBase))
         return ERROR_NOT_SUPPORTED;
 
@@ -16267,8 +16271,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegEnableReflectionKey(
     _In_ const HKEY hBase
 )
 {
-    const VRegInternalRegEnableReflectionKeyFunction pfnNext =
-        (VRegInternalRegEnableReflectionKeyFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegEnableReflectionKey];
+    VRegInternalRegEnableReflectionKeyFunction* const pfnNext =
+        (VRegInternalRegEnableReflectionKeyFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegEnableReflectionKey];
     if (VReg_InternalIsOwned(hBase))
         return ERROR_NOT_SUPPORTED;
 
@@ -16282,8 +16286,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegQueryReflectionKey(
     _Out_ BOOL* const bIsReflectionDisabled
 )
 {
-    const VRegInternalRegQueryReflectionKeyFunction pfnNext =
-        (VRegInternalRegQueryReflectionKeyFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegQueryReflectionKey];
+    VRegInternalRegQueryReflectionKeyFunction* const pfnNext =
+        (VRegInternalRegQueryReflectionKeyFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegQueryReflectionKey];
     if (VReg_InternalIsOwned(hBase))
         return ERROR_NOT_SUPPORTED;
 
@@ -16298,8 +16302,8 @@ static LSTATUS APIENTRY VRegHooks_InternalRefuseRegOverridePredefKey(
     _In_opt_ const HKEY hNewHKey
 )
 {
-    const VRegInternalRegOverridePredefKeyFunction pfnNext =
-        (VRegInternalRegOverridePredefKeyFunction)g_refusedTargets[VREG_INTERNAL_REFUSED_RegOverridePredefKey];
+    VRegInternalRegOverridePredefKeyFunction* const pfnNext =
+        (VRegInternalRegOverridePredefKeyFunction*)g_refusedTargets[VREG_INTERNAL_REFUSED_RegOverridePredefKey];
     if (VReg_InternalIsOwned(hKey) || VReg_InternalIsOwned(hNewHKey))
         return ERROR_NOT_SUPPORTED;
 
