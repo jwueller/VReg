@@ -58,8 +58,8 @@ extern "C" {
 
 // Raised with every change to this file. Tweak is unused (always 0).
 #define VREG_VERSION_MAJOR 0
-#define VREG_VERSION_MINOR 15
-#define VREG_VERSION_PATCH 12
+#define VREG_VERSION_MINOR 16
+#define VREG_VERSION_PATCH 0
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -118,6 +118,32 @@ typedef struct VReg VReg;
 
 typedef struct VRegVtbl VRegVtbl;
 
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopenkeya
+typedef LSTATUS WINAPI VRegOpenKeyAFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_opt_ LPCSTR lpSubKey,
+    _Out_ PHKEY phkResult
+);
+
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopenkeyw
+typedef LSTATUS WINAPI VRegOpenKeyWFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_opt_ LPCWSTR lpSubKey,
+    _Out_ PHKEY phkResult
+);
+
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopenkeyexa
+typedef LSTATUS WINAPI VRegOpenKeyExAFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_opt_ LPCSTR lpSubKey,
+    _In_ DWORD ulOptions,
+    _In_ REGSAM samDesired,
+    _Out_ PHKEY phkResult
+);
+
 /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopenkeyexw
 typedef LSTATUS WINAPI VRegOpenKeyExWFunction(
     _In_ VReg* pRegistry,
@@ -126,6 +152,36 @@ typedef LSTATUS WINAPI VRegOpenKeyExWFunction(
     _In_ DWORD ulOptions,
     _In_ REGSAM samDesired,
     _Out_ PHKEY phkResult
+);
+
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcreatekeya
+typedef LSTATUS WINAPI VRegCreateKeyAFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_opt_ LPCSTR lpSubKey,
+    _Out_ PHKEY phkResult
+);
+
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcreatekeyw
+typedef LSTATUS WINAPI VRegCreateKeyWFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_opt_ LPCWSTR lpSubKey,
+    _Out_ PHKEY phkResult
+);
+
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcreatekeyexa
+typedef LSTATUS WINAPI VRegCreateKeyExAFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_ LPCSTR lpSubKey,
+    _Reserved_ DWORD Reserved,
+    _In_opt_ LPSTR lpClass,
+    _In_ DWORD dwOptions,
+    _In_ REGSAM samDesired,
+    _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+    _Out_ PHKEY phkResult,
+    _Out_opt_ LPDWORD lpdwDisposition
 );
 
 /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcreatekeyexw
@@ -148,171 +204,22 @@ typedef LSTATUS WINAPI VRegCloseKeyFunction(
     _In_ HKEY hKey
 );
 
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryvalueexw
-typedef LSTATUS WINAPI VRegQueryValueExWFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_opt_ LPCWSTR lpValueName,
-    _Reserved_ LPDWORD lpReserved,
-    _Out_opt_ LPDWORD lpType,
-    _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPBYTE lpData,
-    _When_(lpData == NULL, _Out_opt_) _When_(lpData != NULL, _Inout_opt_) LPDWORD lpcbData
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetvalueexw
-typedef LSTATUS WINAPI VRegSetValueExWFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_opt_ LPCWSTR lpValueName,
-    _Reserved_ DWORD Reserved,
-    _In_ DWORD dwType,
-    _In_reads_bytes_opt_(cbData) const BYTE* lpData,
-    _In_ DWORD cbData
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletevaluew
-typedef LSTATUS WINAPI VRegDeleteValueWFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_opt_ LPCWSTR lpValueName
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeyexw
-typedef LSTATUS WINAPI VRegDeleteKeyExWFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_ LPCWSTR lpSubKey,
-    _In_ REGSAM samDesired,
-    _Reserved_ DWORD Reserved
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletetreew
-typedef LSTATUS WINAPI VRegDeleteTreeWFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_opt_ LPCWSTR lpSubKey
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumkeyexw
-typedef LSTATUS WINAPI VRegEnumKeyExWFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_ DWORD dwIndex,
-    _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) LPWSTR lpName,
-    _Inout_ LPDWORD lpcchName,
-    _Reserved_ LPDWORD lpReserved,
-    _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) LPWSTR lpClass,
-    _Inout_opt_ LPDWORD lpcchClass,
-    _Out_opt_ PFILETIME lpftLastWriteTime
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumvaluew
-typedef LSTATUS WINAPI VRegEnumValueWFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_ DWORD dwIndex,
-    _Out_writes_to_opt_(*lpcchValueName, *lpcchValueName + 1) LPWSTR lpValueName,
-    _Inout_ LPDWORD lpcchValueName,
-    _Reserved_ LPDWORD lpReserved,
-    _Out_opt_ LPDWORD lpType,
-    _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPBYTE lpData,
-    _Inout_opt_ LPDWORD lpcbData
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryinfokeyw
-typedef LSTATUS WINAPI VRegQueryInfoKeyWFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) LPWSTR lpClass,
-    _Inout_opt_ LPDWORD lpcchClass,
-    _Reserved_ LPDWORD lpReserved,
-    _Out_opt_ LPDWORD lpcSubKeys,
-    _Out_opt_ LPDWORD lpcbMaxSubKeyLen,
-    _Out_opt_ LPDWORD lpcbMaxClassLen,
-    _Out_opt_ LPDWORD lpcValues,
-    _Out_opt_ LPDWORD lpcbMaxValueNameLen,
-    _Out_opt_ LPDWORD lpcbMaxValueLen,
-    _Out_opt_ LPDWORD lpcbSecurityDescriptor,
-    _Out_opt_ PFILETIME lpftLastWriteTime
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regloadmuistringw
-typedef LSTATUS WINAPI VRegLoadMUIStringWFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_opt_ LPCWSTR pszValue,
-    _Out_writes_bytes_opt_(cbOutBuf) LPWSTR pszOutBuf,
-    _In_ DWORD cbOutBuf,
-    _Out_opt_ LPDWORD pcbData,
-    _In_ DWORD Flags,
-    _In_opt_ LPCWSTR pszDirectory
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-reggetvaluew
-typedef LSTATUS WINAPI VRegGetValueWFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hkey,
-    _In_opt_ LPCWSTR lpSubKey,
-    _In_opt_ LPCWSTR lpValue,
-    _In_ DWORD dwFlags,
-    _Out_opt_ LPDWORD pdwType,
-
-    _When_(
-        (dwFlags & 0x7F) == RRF_RT_REG_SZ
-        || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
-        || (dwFlags & 0x7F) == (RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ)
-        || *pdwType == REG_SZ
-        || *pdwType == REG_EXPAND_SZ,
-        _Post_z_
-    )
-    _When_(
-        (dwFlags & 0x7F) == RRF_RT_REG_MULTI_SZ
-        || *pdwType == REG_MULTI_SZ,
-        _Post_ _NullNull_terminated_
-    )
-    _Out_writes_bytes_to_opt_(*pcbData, *pcbData) PVOID pvData,
-
-    _Inout_opt_ LPDWORD pcbData
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regnotifychangekeyvalue
-typedef LSTATUS WINAPI VRegNotifyChangeKeyValueFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_ BOOL bWatchSubtree,
-    _In_ DWORD dwNotifyFilter,
-    _In_opt_ HANDLE hEvent,
-    _In_ BOOL fAsynchronous
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regflushkey
-typedef LSTATUS WINAPI VRegFlushKeyFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopenkeyexa
-typedef LSTATUS WINAPI VRegOpenKeyExAFunction(
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryvaluea
+typedef LSTATUS WINAPI VRegQueryValueAFunction(
     _In_ VReg* pRegistry,
     _In_ HKEY hKey,
     _In_opt_ LPCSTR lpSubKey,
-    _In_ DWORD ulOptions,
-    _In_ REGSAM samDesired,
-    _Out_ PHKEY phkResult
+    _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPSTR lpData,
+    _Inout_opt_ PLONG lpcbData
 );
 
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcreatekeyexa
-typedef LSTATUS WINAPI VRegCreateKeyExAFunction(
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryvaluew
+typedef LSTATUS WINAPI VRegQueryValueWFunction(
     _In_ VReg* pRegistry,
     _In_ HKEY hKey,
-    _In_ LPCSTR lpSubKey,
-    _Reserved_ DWORD Reserved,
-    _In_opt_ LPSTR lpClass,
-    _In_ DWORD dwOptions,
-    _In_ REGSAM samDesired,
-    _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes,
-    _Out_ PHKEY phkResult,
-    _Out_opt_ LPDWORD lpdwDisposition
+    _In_opt_ LPCWSTR lpSubKey,
+    _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPWSTR lpData,
+    _Inout_opt_ PLONG lpcbData
 );
 
 /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryvalueexa
@@ -326,93 +233,15 @@ typedef LSTATUS WINAPI VRegQueryValueExAFunction(
     _When_(lpData == NULL, _Out_opt_) _When_(lpData != NULL, _Inout_opt_) LPDWORD lpcbData
 );
 
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetvalueexa
-typedef LSTATUS WINAPI VRegSetValueExAFunction(
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryvalueexw
+typedef LSTATUS WINAPI VRegQueryValueExWFunction(
     _In_ VReg* pRegistry,
     _In_ HKEY hKey,
-    _In_opt_ LPCSTR lpValueName,
-    _Reserved_ DWORD Reserved,
-    _In_ DWORD dwType,
-    _In_reads_bytes_opt_(cbData) const BYTE* lpData,
-    _In_ DWORD cbData
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletevaluea
-typedef LSTATUS WINAPI VRegDeleteValueAFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_opt_ LPCSTR lpValueName
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeyexa
-typedef LSTATUS WINAPI VRegDeleteKeyExAFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_ LPCSTR lpSubKey,
-    _In_ REGSAM samDesired,
-    _Reserved_ DWORD Reserved
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletetreea
-typedef LSTATUS WINAPI VRegDeleteTreeAFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_opt_ LPCSTR lpSubKey
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumkeyexa
-typedef LSTATUS WINAPI VRegEnumKeyExAFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_ DWORD dwIndex,
-    _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) LPSTR lpName,
-    _Inout_ LPDWORD lpcchName,
-    _Reserved_ LPDWORD lpReserved,
-    _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) LPSTR lpClass,
-    _Inout_opt_ LPDWORD lpcchClass,
-    _Out_opt_ PFILETIME lpftLastWriteTime
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumvaluea
-typedef LSTATUS WINAPI VRegEnumValueAFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_ DWORD dwIndex,
-    _Out_writes_to_opt_(*lpcchValueName, *lpcchValueName + 1) LPSTR lpValueName,
-    _Inout_ LPDWORD lpcchValueName,
+    _In_opt_ LPCWSTR lpValueName,
     _Reserved_ LPDWORD lpReserved,
     _Out_opt_ LPDWORD lpType,
     _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPBYTE lpData,
-    _Inout_opt_ LPDWORD lpcbData
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryinfokeya
-typedef LSTATUS WINAPI VRegQueryInfoKeyAFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) LPSTR lpClass,
-    _Inout_opt_ LPDWORD lpcchClass,
-    _Reserved_ LPDWORD lpReserved,
-    _Out_opt_ LPDWORD lpcSubKeys,
-    _Out_opt_ LPDWORD lpcbMaxSubKeyLen,
-    _Out_opt_ LPDWORD lpcbMaxClassLen,
-    _Out_opt_ LPDWORD lpcValues,
-    _Out_opt_ LPDWORD lpcbMaxValueNameLen,
-    _Out_opt_ LPDWORD lpcbMaxValueLen,
-    _Out_opt_ LPDWORD lpcbSecurityDescriptor,
-    _Out_opt_ PFILETIME lpftLastWriteTime
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regloadmuistringa
-typedef LSTATUS WINAPI VRegLoadMUIStringAFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_opt_ LPCSTR pszValue,
-    _Out_writes_bytes_opt_(cbOutBuf) LPSTR pszOutBuf,
-    _In_ DWORD cbOutBuf,
-    _Out_opt_ LPDWORD pcbData,
-    _In_ DWORD Flags,
-    _In_opt_ LPCSTR pszDirectory
+    _When_(lpData == NULL, _Out_opt_) _When_(lpData != NULL, _Inout_opt_) LPDWORD lpcbData
 );
 
 /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-reggetvaluea
@@ -442,54 +271,51 @@ typedef LSTATUS WINAPI VRegGetValueAFunction(
     _Inout_opt_ LPDWORD pcbData
 );
 
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopenkeya
-typedef LSTATUS WINAPI VRegOpenKeyAFunction(
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-reggetvaluew
+typedef LSTATUS WINAPI VRegGetValueWFunction(
     _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_opt_ LPCSTR lpSubKey,
-    _Out_ PHKEY phkResult
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regopenkeyw
-typedef LSTATUS WINAPI VRegOpenKeyWFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
+    _In_ HKEY hkey,
     _In_opt_ LPCWSTR lpSubKey,
-    _Out_ PHKEY phkResult
+    _In_opt_ LPCWSTR lpValue,
+    _In_ DWORD dwFlags,
+    _Out_opt_ LPDWORD pdwType,
+
+    _When_(
+        (dwFlags & 0x7F) == RRF_RT_REG_SZ
+        || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
+        || (dwFlags & 0x7F) == (RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ)
+        || *pdwType == REG_SZ
+        || *pdwType == REG_EXPAND_SZ,
+        _Post_z_
+    )
+    _When_(
+        (dwFlags & 0x7F) == RRF_RT_REG_MULTI_SZ
+        || *pdwType == REG_MULTI_SZ,
+        _Post_ _NullNull_terminated_
+    )
+    _Out_writes_bytes_to_opt_(*pcbData, *pcbData) PVOID pvData,
+
+    _Inout_opt_ LPDWORD pcbData
 );
 
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcreatekeya
-typedef LSTATUS WINAPI VRegCreateKeyAFunction(
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regquerymultiplevaluesa
+typedef LSTATUS WINAPI VRegQueryMultipleValuesAFunction(
     _In_ VReg* pRegistry,
     _In_ HKEY hKey,
-    _In_opt_ LPCSTR lpSubKey,
-    _Out_ PHKEY phkResult
+    _Out_writes_(num_vals) PVALENTA val_list,
+    _In_ DWORD num_vals,
+    _Out_writes_bytes_to_opt_(*ldwTotsize, *ldwTotsize) __out_data_source(REGISTRY) LPSTR lpValueBuf,
+    _Inout_opt_ LPDWORD ldwTotsize
 );
 
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regcreatekeyw
-typedef LSTATUS WINAPI VRegCreateKeyWFunction(
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regquerymultiplevaluesw
+typedef LSTATUS WINAPI VRegQueryMultipleValuesWFunction(
     _In_ VReg* pRegistry,
     _In_ HKEY hKey,
-    _In_opt_ LPCWSTR lpSubKey,
-    _Out_ PHKEY phkResult
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryvaluea
-typedef LSTATUS WINAPI VRegQueryValueAFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_opt_ LPCSTR lpSubKey,
-    _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPSTR lpData,
-    _Inout_opt_ PLONG lpcbData
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryvaluew
-typedef LSTATUS WINAPI VRegQueryValueWFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_opt_ LPCWSTR lpSubKey,
-    _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPWSTR lpData,
-    _Inout_opt_ PLONG lpcbData
+    _Out_writes_(num_vals) PVALENTW val_list,
+    _In_ DWORD num_vals,
+    _Out_writes_bytes_to_opt_(*ldwTotsize, *ldwTotsize) __out_data_source(REGISTRY) LPWSTR lpValueBuf,
+    _Inout_opt_ LPDWORD ldwTotsize
 );
 
 /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetvaluea
@@ -512,36 +338,26 @@ typedef LSTATUS WINAPI VRegSetValueWFunction(
     _In_ DWORD cbData
 );
 
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeya
-typedef LSTATUS WINAPI VRegDeleteKeyAFunction(
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetvalueexa
+typedef LSTATUS WINAPI VRegSetValueExAFunction(
     _In_ VReg* pRegistry,
     _In_ HKEY hKey,
-    _In_ LPCSTR lpSubKey
+    _In_opt_ LPCSTR lpValueName,
+    _Reserved_ DWORD Reserved,
+    _In_ DWORD dwType,
+    _In_reads_bytes_opt_(cbData) const BYTE* lpData,
+    _In_ DWORD cbData
 );
 
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeyw
-typedef LSTATUS WINAPI VRegDeleteKeyWFunction(
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetvalueexw
+typedef LSTATUS WINAPI VRegSetValueExWFunction(
     _In_ VReg* pRegistry,
     _In_ HKEY hKey,
-    _In_ LPCWSTR lpSubKey
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumkeya
-typedef LSTATUS WINAPI VRegEnumKeyAFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_ DWORD dwIndex,
-    _Out_writes_opt_(cchName) LPSTR lpName,
-    _In_ DWORD cchName
-);
-
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumkeyw
-typedef LSTATUS WINAPI VRegEnumKeyWFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_ DWORD dwIndex,
-    _Out_writes_opt_(cchName) LPWSTR lpName,
-    _In_ DWORD cchName
+    _In_opt_ LPCWSTR lpValueName,
+    _Reserved_ DWORD Reserved,
+    _In_ DWORD dwType,
+    _In_reads_bytes_opt_(cbData) const BYTE* lpData,
+    _In_ DWORD cbData
 );
 
 /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regsetkeyvaluea
@@ -566,6 +382,20 @@ typedef LSTATUS WINAPI VRegSetKeyValueWFunction(
     _In_ DWORD cbData
 );
 
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletevaluea
+typedef LSTATUS WINAPI VRegDeleteValueAFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_opt_ LPCSTR lpValueName
+);
+
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletevaluew
+typedef LSTATUS WINAPI VRegDeleteValueWFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_opt_ LPCWSTR lpValueName
+);
+
 /// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeyvaluea
 typedef LSTATUS WINAPI VRegDeleteKeyValueAFunction(
     _In_ VReg* pRegistry,
@@ -582,24 +412,194 @@ typedef LSTATUS WINAPI VRegDeleteKeyValueWFunction(
     _In_opt_ LPCWSTR lpValueName
 );
 
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regquerymultiplevaluesa
-typedef LSTATUS WINAPI VRegQueryMultipleValuesAFunction(
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regloadmuistringa
+typedef LSTATUS WINAPI VRegLoadMUIStringAFunction(
     _In_ VReg* pRegistry,
     _In_ HKEY hKey,
-    _Out_writes_(num_vals) PVALENTA val_list,
-    _In_ DWORD num_vals,
-    _Out_writes_bytes_to_opt_(*ldwTotsize, *ldwTotsize) __out_data_source(REGISTRY) LPSTR lpValueBuf,
-    _Inout_opt_ LPDWORD ldwTotsize
+    _In_opt_ LPCSTR pszValue,
+    _Out_writes_bytes_opt_(cbOutBuf) LPSTR pszOutBuf,
+    _In_ DWORD cbOutBuf,
+    _Out_opt_ LPDWORD pcbData,
+    _In_ DWORD Flags,
+    _In_opt_ LPCSTR pszDirectory
 );
 
-/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regquerymultiplevaluesw
-typedef LSTATUS WINAPI VRegQueryMultipleValuesWFunction(
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regloadmuistringw
+typedef LSTATUS WINAPI VRegLoadMUIStringWFunction(
     _In_ VReg* pRegistry,
     _In_ HKEY hKey,
-    _Out_writes_(num_vals) PVALENTW val_list,
-    _In_ DWORD num_vals,
-    _Out_writes_bytes_to_opt_(*ldwTotsize, *ldwTotsize) __out_data_source(REGISTRY) LPWSTR lpValueBuf,
-    _Inout_opt_ LPDWORD ldwTotsize
+    _In_opt_ LPCWSTR pszValue,
+    _Out_writes_bytes_opt_(cbOutBuf) LPWSTR pszOutBuf,
+    _In_ DWORD cbOutBuf,
+    _Out_opt_ LPDWORD pcbData,
+    _In_ DWORD Flags,
+    _In_opt_ LPCWSTR pszDirectory
+);
+
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeya
+typedef LSTATUS WINAPI VRegDeleteKeyAFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_ LPCSTR lpSubKey
+);
+
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeyw
+typedef LSTATUS WINAPI VRegDeleteKeyWFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_ LPCWSTR lpSubKey
+);
+
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeyexa
+typedef LSTATUS WINAPI VRegDeleteKeyExAFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_ LPCSTR lpSubKey,
+    _In_ REGSAM samDesired,
+    _Reserved_ DWORD Reserved
+);
+
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletekeyexw
+typedef LSTATUS WINAPI VRegDeleteKeyExWFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_ LPCWSTR lpSubKey,
+    _In_ REGSAM samDesired,
+    _Reserved_ DWORD Reserved
+);
+
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletetreea
+typedef LSTATUS WINAPI VRegDeleteTreeAFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_opt_ LPCSTR lpSubKey
+);
+
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regdeletetreew
+typedef LSTATUS WINAPI VRegDeleteTreeWFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_opt_ LPCWSTR lpSubKey
+);
+
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regflushkey
+typedef LSTATUS WINAPI VRegFlushKeyFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey
+);
+
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumkeya
+typedef LSTATUS WINAPI VRegEnumKeyAFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_ DWORD dwIndex,
+    _Out_writes_opt_(cchName) LPSTR lpName,
+    _In_ DWORD cchName
+);
+
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumkeyw
+typedef LSTATUS WINAPI VRegEnumKeyWFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_ DWORD dwIndex,
+    _Out_writes_opt_(cchName) LPWSTR lpName,
+    _In_ DWORD cchName
+);
+
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumkeyexa
+typedef LSTATUS WINAPI VRegEnumKeyExAFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_ DWORD dwIndex,
+    _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) LPSTR lpName,
+    _Inout_ LPDWORD lpcchName,
+    _Reserved_ LPDWORD lpReserved,
+    _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) LPSTR lpClass,
+    _Inout_opt_ LPDWORD lpcchClass,
+    _Out_opt_ PFILETIME lpftLastWriteTime
+);
+
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumkeyexw
+typedef LSTATUS WINAPI VRegEnumKeyExWFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_ DWORD dwIndex,
+    _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) LPWSTR lpName,
+    _Inout_ LPDWORD lpcchName,
+    _Reserved_ LPDWORD lpReserved,
+    _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) LPWSTR lpClass,
+    _Inout_opt_ LPDWORD lpcchClass,
+    _Out_opt_ PFILETIME lpftLastWriteTime
+);
+
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumvaluea
+typedef LSTATUS WINAPI VRegEnumValueAFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_ DWORD dwIndex,
+    _Out_writes_to_opt_(*lpcchValueName, *lpcchValueName + 1) LPSTR lpValueName,
+    _Inout_ LPDWORD lpcchValueName,
+    _Reserved_ LPDWORD lpReserved,
+    _Out_opt_ LPDWORD lpType,
+    _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPBYTE lpData,
+    _Inout_opt_ LPDWORD lpcbData
+);
+
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regenumvaluew
+typedef LSTATUS WINAPI VRegEnumValueWFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_ DWORD dwIndex,
+    _Out_writes_to_opt_(*lpcchValueName, *lpcchValueName + 1) LPWSTR lpValueName,
+    _Inout_ LPDWORD lpcchValueName,
+    _Reserved_ LPDWORD lpReserved,
+    _Out_opt_ LPDWORD lpType,
+    _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPBYTE lpData,
+    _Inout_opt_ LPDWORD lpcbData
+);
+
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryinfokeya
+typedef LSTATUS WINAPI VRegQueryInfoKeyAFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) LPSTR lpClass,
+    _Inout_opt_ LPDWORD lpcchClass,
+    _Reserved_ LPDWORD lpReserved,
+    _Out_opt_ LPDWORD lpcSubKeys,
+    _Out_opt_ LPDWORD lpcbMaxSubKeyLen,
+    _Out_opt_ LPDWORD lpcbMaxClassLen,
+    _Out_opt_ LPDWORD lpcValues,
+    _Out_opt_ LPDWORD lpcbMaxValueNameLen,
+    _Out_opt_ LPDWORD lpcbMaxValueLen,
+    _Out_opt_ LPDWORD lpcbSecurityDescriptor,
+    _Out_opt_ PFILETIME lpftLastWriteTime
+);
+
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regqueryinfokeyw
+typedef LSTATUS WINAPI VRegQueryInfoKeyWFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) LPWSTR lpClass,
+    _Inout_opt_ LPDWORD lpcchClass,
+    _Reserved_ LPDWORD lpReserved,
+    _Out_opt_ LPDWORD lpcSubKeys,
+    _Out_opt_ LPDWORD lpcbMaxSubKeyLen,
+    _Out_opt_ LPDWORD lpcbMaxClassLen,
+    _Out_opt_ LPDWORD lpcValues,
+    _Out_opt_ LPDWORD lpcbMaxValueNameLen,
+    _Out_opt_ LPDWORD lpcbMaxValueLen,
+    _Out_opt_ LPDWORD lpcbSecurityDescriptor,
+    _Out_opt_ PFILETIME lpftLastWriteTime
+);
+
+/// @see https://learn.microsoft.com/windows/win32/api/winreg/nf-winreg-regnotifychangekeyvalue
+typedef LSTATUS WINAPI VRegNotifyChangeKeyValueFunction(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_ BOOL bWatchSubtree,
+    _In_ DWORD dwNotifyFilter,
+    _In_opt_ HANDLE hEvent,
+    _In_ BOOL fAsynchronous
 );
 
 /**
@@ -621,145 +621,145 @@ struct VRegVtbl
         _In_ VReg* pThis
     );
 
-    VRegOpenKeyExWFunction* RegOpenKeyExW;
-    VRegCreateKeyExWFunction* RegCreateKeyExW;
-    VRegCloseKeyFunction* RegCloseKey;
-    VRegQueryValueExWFunction* RegQueryValueExW;
-    VRegSetValueExWFunction* RegSetValueExW;
-    VRegDeleteValueWFunction* RegDeleteValueW;
-    VRegDeleteKeyExWFunction* RegDeleteKeyExW;
-    VRegDeleteTreeWFunction* RegDeleteTreeW;
-    VRegEnumKeyExWFunction* RegEnumKeyExW;
-    VRegEnumValueWFunction* RegEnumValueW;
-    VRegQueryInfoKeyWFunction* RegQueryInfoKeyW;
-    VRegLoadMUIStringWFunction* RegLoadMUIStringW;
-    VRegGetValueWFunction* RegGetValueW;
-    VRegNotifyChangeKeyValueFunction* RegNotifyChangeKeyValue;
-    VRegFlushKeyFunction* RegFlushKey;
-    VRegOpenKeyExAFunction* RegOpenKeyExA;
-    VRegCreateKeyExAFunction* RegCreateKeyExA;
-    VRegQueryValueExAFunction* RegQueryValueExA;
-    VRegSetValueExAFunction* RegSetValueExA;
-    VRegDeleteValueAFunction* RegDeleteValueA;
-    VRegDeleteKeyExAFunction* RegDeleteKeyExA;
-    VRegDeleteTreeAFunction* RegDeleteTreeA;
-    VRegEnumKeyExAFunction* RegEnumKeyExA;
-    VRegEnumValueAFunction* RegEnumValueA;
-    VRegQueryInfoKeyAFunction* RegQueryInfoKeyA;
-    VRegLoadMUIStringAFunction* RegLoadMUIStringA;
-    VRegGetValueAFunction* RegGetValueA;
     VRegOpenKeyAFunction* RegOpenKeyA;
     VRegOpenKeyWFunction* RegOpenKeyW;
+    VRegOpenKeyExAFunction* RegOpenKeyExA;
+    VRegOpenKeyExWFunction* RegOpenKeyExW;
     VRegCreateKeyAFunction* RegCreateKeyA;
     VRegCreateKeyWFunction* RegCreateKeyW;
+    VRegCreateKeyExAFunction* RegCreateKeyExA;
+    VRegCreateKeyExWFunction* RegCreateKeyExW;
+    VRegCloseKeyFunction* RegCloseKey;
     VRegQueryValueAFunction* RegQueryValueA;
     VRegQueryValueWFunction* RegQueryValueW;
-    VRegSetValueAFunction* RegSetValueA;
-    VRegSetValueWFunction* RegSetValueW;
-    VRegDeleteKeyAFunction* RegDeleteKeyA;
-    VRegDeleteKeyWFunction* RegDeleteKeyW;
-    VRegEnumKeyAFunction* RegEnumKeyA;
-    VRegEnumKeyWFunction* RegEnumKeyW;
-    VRegSetKeyValueAFunction* RegSetKeyValueA;
-    VRegSetKeyValueWFunction* RegSetKeyValueW;
-    VRegDeleteKeyValueAFunction* RegDeleteKeyValueA;
-    VRegDeleteKeyValueWFunction* RegDeleteKeyValueW;
+    VRegQueryValueExAFunction* RegQueryValueExA;
+    VRegQueryValueExWFunction* RegQueryValueExW;
+    VRegGetValueAFunction* RegGetValueA;
+    VRegGetValueWFunction* RegGetValueW;
     VRegQueryMultipleValuesAFunction* RegQueryMultipleValuesA;
     VRegQueryMultipleValuesWFunction* RegQueryMultipleValuesW;
+    VRegSetValueAFunction* RegSetValueA;
+    VRegSetValueWFunction* RegSetValueW;
+    VRegSetValueExAFunction* RegSetValueExA;
+    VRegSetValueExWFunction* RegSetValueExW;
+    VRegSetKeyValueAFunction* RegSetKeyValueA;
+    VRegSetKeyValueWFunction* RegSetKeyValueW;
+    VRegDeleteValueAFunction* RegDeleteValueA;
+    VRegDeleteValueWFunction* RegDeleteValueW;
+    VRegDeleteKeyValueAFunction* RegDeleteKeyValueA;
+    VRegDeleteKeyValueWFunction* RegDeleteKeyValueW;
+    VRegLoadMUIStringAFunction* RegLoadMUIStringA;
+    VRegLoadMUIStringWFunction* RegLoadMUIStringW;
+    VRegDeleteKeyAFunction* RegDeleteKeyA;
+    VRegDeleteKeyWFunction* RegDeleteKeyW;
+    VRegDeleteKeyExAFunction* RegDeleteKeyExA;
+    VRegDeleteKeyExWFunction* RegDeleteKeyExW;
+    VRegDeleteTreeAFunction* RegDeleteTreeA;
+    VRegDeleteTreeWFunction* RegDeleteTreeW;
+    VRegFlushKeyFunction* RegFlushKey;
+    VRegEnumKeyAFunction* RegEnumKeyA;
+    VRegEnumKeyWFunction* RegEnumKeyW;
+    VRegEnumKeyExAFunction* RegEnumKeyExA;
+    VRegEnumKeyExWFunction* RegEnumKeyExW;
+    VRegEnumValueAFunction* RegEnumValueA;
+    VRegEnumValueWFunction* RegEnumValueW;
+    VRegQueryInfoKeyAFunction* RegQueryInfoKeyA;
+    VRegQueryInfoKeyWFunction* RegQueryInfoKeyW;
+    VRegNotifyChangeKeyValueFunction* RegNotifyChangeKeyValue;
 };
 
-VREG_DECL VRegOpenKeyExWFunction VReg_RegOpenKeyExW;
-VREG_DECL VRegCreateKeyExWFunction VReg_RegCreateKeyExW;
-VREG_DECL VRegCloseKeyFunction VReg_RegCloseKey;
-VREG_DECL VRegQueryValueExWFunction VReg_RegQueryValueExW;
-VREG_DECL VRegSetValueExWFunction VReg_RegSetValueExW;
-VREG_DECL VRegDeleteValueWFunction VReg_RegDeleteValueW;
-VREG_DECL VRegDeleteKeyExWFunction VReg_RegDeleteKeyExW;
-VREG_DECL VRegDeleteTreeWFunction VReg_RegDeleteTreeW;
-VREG_DECL VRegEnumKeyExWFunction VReg_RegEnumKeyExW;
-VREG_DECL VRegEnumValueWFunction VReg_RegEnumValueW;
-VREG_DECL VRegQueryInfoKeyWFunction VReg_RegQueryInfoKeyW;
-VREG_DECL VRegLoadMUIStringWFunction VReg_RegLoadMUIStringW;
-VREG_DECL VRegGetValueWFunction VReg_RegGetValueW;
-VREG_DECL VRegNotifyChangeKeyValueFunction VReg_RegNotifyChangeKeyValue;
-VREG_DECL VRegFlushKeyFunction VReg_RegFlushKey;
-VREG_DECL VRegOpenKeyExAFunction VReg_RegOpenKeyExA;
-VREG_DECL VRegCreateKeyExAFunction VReg_RegCreateKeyExA;
-VREG_DECL VRegQueryValueExAFunction VReg_RegQueryValueExA;
-VREG_DECL VRegSetValueExAFunction VReg_RegSetValueExA;
-VREG_DECL VRegDeleteValueAFunction VReg_RegDeleteValueA;
-VREG_DECL VRegDeleteKeyExAFunction VReg_RegDeleteKeyExA;
-VREG_DECL VRegDeleteTreeAFunction VReg_RegDeleteTreeA;
-VREG_DECL VRegEnumKeyExAFunction VReg_RegEnumKeyExA;
-VREG_DECL VRegEnumValueAFunction VReg_RegEnumValueA;
-VREG_DECL VRegQueryInfoKeyAFunction VReg_RegQueryInfoKeyA;
-VREG_DECL VRegLoadMUIStringAFunction VReg_RegLoadMUIStringA;
-VREG_DECL VRegGetValueAFunction VReg_RegGetValueA;
 VREG_DECL VRegOpenKeyAFunction VReg_RegOpenKeyA;
 VREG_DECL VRegOpenKeyWFunction VReg_RegOpenKeyW;
+VREG_DECL VRegOpenKeyExAFunction VReg_RegOpenKeyExA;
+VREG_DECL VRegOpenKeyExWFunction VReg_RegOpenKeyExW;
 VREG_DECL VRegCreateKeyAFunction VReg_RegCreateKeyA;
 VREG_DECL VRegCreateKeyWFunction VReg_RegCreateKeyW;
+VREG_DECL VRegCreateKeyExAFunction VReg_RegCreateKeyExA;
+VREG_DECL VRegCreateKeyExWFunction VReg_RegCreateKeyExW;
+VREG_DECL VRegCloseKeyFunction VReg_RegCloseKey;
 VREG_DECL VRegQueryValueAFunction VReg_RegQueryValueA;
 VREG_DECL VRegQueryValueWFunction VReg_RegQueryValueW;
-VREG_DECL VRegSetValueAFunction VReg_RegSetValueA;
-VREG_DECL VRegSetValueWFunction VReg_RegSetValueW;
-VREG_DECL VRegDeleteKeyAFunction VReg_RegDeleteKeyA;
-VREG_DECL VRegDeleteKeyWFunction VReg_RegDeleteKeyW;
-VREG_DECL VRegEnumKeyAFunction VReg_RegEnumKeyA;
-VREG_DECL VRegEnumKeyWFunction VReg_RegEnumKeyW;
-VREG_DECL VRegSetKeyValueAFunction VReg_RegSetKeyValueA;
-VREG_DECL VRegSetKeyValueWFunction VReg_RegSetKeyValueW;
-VREG_DECL VRegDeleteKeyValueAFunction VReg_RegDeleteKeyValueA;
-VREG_DECL VRegDeleteKeyValueWFunction VReg_RegDeleteKeyValueW;
+VREG_DECL VRegQueryValueExAFunction VReg_RegQueryValueExA;
+VREG_DECL VRegQueryValueExWFunction VReg_RegQueryValueExW;
+VREG_DECL VRegGetValueAFunction VReg_RegGetValueA;
+VREG_DECL VRegGetValueWFunction VReg_RegGetValueW;
 VREG_DECL VRegQueryMultipleValuesAFunction VReg_RegQueryMultipleValuesA;
 VREG_DECL VRegQueryMultipleValuesWFunction VReg_RegQueryMultipleValuesW;
+VREG_DECL VRegSetValueAFunction VReg_RegSetValueA;
+VREG_DECL VRegSetValueWFunction VReg_RegSetValueW;
+VREG_DECL VRegSetValueExAFunction VReg_RegSetValueExA;
+VREG_DECL VRegSetValueExWFunction VReg_RegSetValueExW;
+VREG_DECL VRegSetKeyValueAFunction VReg_RegSetKeyValueA;
+VREG_DECL VRegSetKeyValueWFunction VReg_RegSetKeyValueW;
+VREG_DECL VRegDeleteValueAFunction VReg_RegDeleteValueA;
+VREG_DECL VRegDeleteValueWFunction VReg_RegDeleteValueW;
+VREG_DECL VRegDeleteKeyValueAFunction VReg_RegDeleteKeyValueA;
+VREG_DECL VRegDeleteKeyValueWFunction VReg_RegDeleteKeyValueW;
+VREG_DECL VRegLoadMUIStringAFunction VReg_RegLoadMUIStringA;
+VREG_DECL VRegLoadMUIStringWFunction VReg_RegLoadMUIStringW;
+VREG_DECL VRegDeleteKeyAFunction VReg_RegDeleteKeyA;
+VREG_DECL VRegDeleteKeyWFunction VReg_RegDeleteKeyW;
+VREG_DECL VRegDeleteKeyExAFunction VReg_RegDeleteKeyExA;
+VREG_DECL VRegDeleteKeyExWFunction VReg_RegDeleteKeyExW;
+VREG_DECL VRegDeleteTreeAFunction VReg_RegDeleteTreeA;
+VREG_DECL VRegDeleteTreeWFunction VReg_RegDeleteTreeW;
+VREG_DECL VRegFlushKeyFunction VReg_RegFlushKey;
+VREG_DECL VRegEnumKeyAFunction VReg_RegEnumKeyA;
+VREG_DECL VRegEnumKeyWFunction VReg_RegEnumKeyW;
+VREG_DECL VRegEnumKeyExAFunction VReg_RegEnumKeyExA;
+VREG_DECL VRegEnumKeyExWFunction VReg_RegEnumKeyExW;
+VREG_DECL VRegEnumValueAFunction VReg_RegEnumValueA;
+VREG_DECL VRegEnumValueWFunction VReg_RegEnumValueW;
+VREG_DECL VRegQueryInfoKeyAFunction VReg_RegQueryInfoKeyA;
+VREG_DECL VRegQueryInfoKeyWFunction VReg_RegQueryInfoKeyW;
+VREG_DECL VRegNotifyChangeKeyValueFunction VReg_RegNotifyChangeKeyValue;
 
 /// The neutral names select the wide or the ANSI form by @ref UNICODE, as
 /// `winreg.h` does for the functions they mirror.
 #ifdef UNICODE
+#define VReg_RegOpenKey VReg_RegOpenKeyW
+#define VReg_RegOpenKeyEx VReg_RegOpenKeyExW
 #define VReg_RegCreateKey VReg_RegCreateKeyW
 #define VReg_RegCreateKeyEx VReg_RegCreateKeyExW
+#define VReg_RegQueryValue VReg_RegQueryValueW
+#define VReg_RegQueryValueEx VReg_RegQueryValueExW
+#define VReg_RegGetValue VReg_RegGetValueW
+#define VReg_RegQueryMultipleValues VReg_RegQueryMultipleValuesW
+#define VReg_RegSetValue VReg_RegSetValueW
+#define VReg_RegSetValueEx VReg_RegSetValueExW
+#define VReg_RegSetKeyValue VReg_RegSetKeyValueW
+#define VReg_RegDeleteValue VReg_RegDeleteValueW
+#define VReg_RegDeleteKeyValue VReg_RegDeleteKeyValueW
+#define VReg_RegLoadMUIString VReg_RegLoadMUIStringW
 #define VReg_RegDeleteKey VReg_RegDeleteKeyW
 #define VReg_RegDeleteKeyEx VReg_RegDeleteKeyExW
-#define VReg_RegDeleteKeyValue VReg_RegDeleteKeyValueW
 #define VReg_RegDeleteTree VReg_RegDeleteTreeW
-#define VReg_RegDeleteValue VReg_RegDeleteValueW
 #define VReg_RegEnumKey VReg_RegEnumKeyW
 #define VReg_RegEnumKeyEx VReg_RegEnumKeyExW
 #define VReg_RegEnumValue VReg_RegEnumValueW
-#define VReg_RegGetValue VReg_RegGetValueW
-#define VReg_RegLoadMUIString VReg_RegLoadMUIStringW
-#define VReg_RegOpenKey VReg_RegOpenKeyW
-#define VReg_RegOpenKeyEx VReg_RegOpenKeyExW
 #define VReg_RegQueryInfoKey VReg_RegQueryInfoKeyW
-#define VReg_RegQueryMultipleValues VReg_RegQueryMultipleValuesW
-#define VReg_RegQueryValue VReg_RegQueryValueW
-#define VReg_RegQueryValueEx VReg_RegQueryValueExW
-#define VReg_RegSetKeyValue VReg_RegSetKeyValueW
-#define VReg_RegSetValue VReg_RegSetValueW
-#define VReg_RegSetValueEx VReg_RegSetValueExW
 #else
+#define VReg_RegOpenKey VReg_RegOpenKeyA
+#define VReg_RegOpenKeyEx VReg_RegOpenKeyExA
 #define VReg_RegCreateKey VReg_RegCreateKeyA
 #define VReg_RegCreateKeyEx VReg_RegCreateKeyExA
+#define VReg_RegQueryValue VReg_RegQueryValueA
+#define VReg_RegQueryValueEx VReg_RegQueryValueExA
+#define VReg_RegGetValue VReg_RegGetValueA
+#define VReg_RegQueryMultipleValues VReg_RegQueryMultipleValuesA
+#define VReg_RegSetValue VReg_RegSetValueA
+#define VReg_RegSetValueEx VReg_RegSetValueExA
+#define VReg_RegSetKeyValue VReg_RegSetKeyValueA
+#define VReg_RegDeleteValue VReg_RegDeleteValueA
+#define VReg_RegDeleteKeyValue VReg_RegDeleteKeyValueA
+#define VReg_RegLoadMUIString VReg_RegLoadMUIStringA
 #define VReg_RegDeleteKey VReg_RegDeleteKeyA
 #define VReg_RegDeleteKeyEx VReg_RegDeleteKeyExA
-#define VReg_RegDeleteKeyValue VReg_RegDeleteKeyValueA
 #define VReg_RegDeleteTree VReg_RegDeleteTreeA
-#define VReg_RegDeleteValue VReg_RegDeleteValueA
 #define VReg_RegEnumKey VReg_RegEnumKeyA
 #define VReg_RegEnumKeyEx VReg_RegEnumKeyExA
 #define VReg_RegEnumValue VReg_RegEnumValueA
-#define VReg_RegGetValue VReg_RegGetValueA
-#define VReg_RegLoadMUIString VReg_RegLoadMUIStringA
-#define VReg_RegOpenKey VReg_RegOpenKeyA
-#define VReg_RegOpenKeyEx VReg_RegOpenKeyExA
 #define VReg_RegQueryInfoKey VReg_RegQueryInfoKeyA
-#define VReg_RegQueryMultipleValues VReg_RegQueryMultipleValuesA
-#define VReg_RegQueryValue VReg_RegQueryValueA
-#define VReg_RegQueryValueEx VReg_RegQueryValueExA
-#define VReg_RegSetKeyValue VReg_RegSetKeyValueA
-#define VReg_RegSetValue VReg_RegSetValueA
-#define VReg_RegSetValueEx VReg_RegSetValueExA
 #endif
 
 /// Makes a registry whose calls go to the slots of @p pVtbl, which MUST
@@ -1178,6 +1178,31 @@ typedef struct
         _When_(lpData == NULL, _Out_opt_) _When_(lpData != NULL, _Inout_opt_) LPDWORD lpcbData
     );
 
+    LSTATUS (WINAPI* RegGetValueW)(
+        _In_ HKEY hkey,
+        _In_opt_ LPCWSTR lpSubKey,
+        _In_opt_ LPCWSTR lpValue,
+        _In_ DWORD dwFlags,
+        _Out_opt_ LPDWORD pdwType,
+
+        _When_(
+            (dwFlags & 0x7F) == RRF_RT_REG_SZ
+            || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
+            || (dwFlags & 0x7F) == (RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ)
+            || *pdwType == REG_SZ
+            || *pdwType == REG_EXPAND_SZ,
+            _Post_z_
+        )
+        _When_(
+            (dwFlags & 0x7F) == RRF_RT_REG_MULTI_SZ
+            || *pdwType == REG_MULTI_SZ,
+            _Post_ _NullNull_terminated_
+        )
+        _Out_writes_bytes_to_opt_(*pcbData, *pcbData) PVOID pvData,
+
+        _Inout_opt_ LPDWORD pcbData
+    );
+
     LSTATUS (WINAPI* RegSetValueExW)(
         _In_ HKEY hKey,
         _In_opt_ LPCWSTR lpValueName,
@@ -1192,6 +1217,16 @@ typedef struct
         _In_opt_ LPCWSTR lpValueName
     );
 
+    LSTATUS (WINAPI* RegLoadMUIStringW)(
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR pszValue,
+        _Out_writes_bytes_opt_(cbOutBuf) LPWSTR pszOutBuf,
+        _In_ DWORD cbOutBuf,
+        _Out_opt_ LPDWORD pcbData,
+        _In_ DWORD Flags,
+        _In_opt_ LPCWSTR pszDirectory
+    );
+
     LSTATUS (WINAPI* RegDeleteKeyExW)(
         _In_ HKEY hKey,
         _In_ LPCWSTR lpSubKey,
@@ -1202,6 +1237,10 @@ typedef struct
     LSTATUS (WINAPI* RegDeleteTreeW)(
         _In_ HKEY hKey,
         _In_opt_ LPCWSTR lpSubKey
+    );
+
+    LSTATUS (WINAPI* RegFlushKey)(
+        _In_ HKEY hKey
     );
 
     LSTATUS (WINAPI* RegEnumKeyExW)(
@@ -1241,51 +1280,12 @@ typedef struct
         _Out_opt_ PFILETIME lpftLastWriteTime
     );
 
-    LSTATUS (WINAPI* RegLoadMUIStringW)(
-        _In_ HKEY hKey,
-        _In_opt_ LPCWSTR pszValue,
-        _Out_writes_bytes_opt_(cbOutBuf) LPWSTR pszOutBuf,
-        _In_ DWORD cbOutBuf,
-        _Out_opt_ LPDWORD pcbData,
-        _In_ DWORD Flags,
-        _In_opt_ LPCWSTR pszDirectory
-    );
-
-    LSTATUS (WINAPI* RegGetValueW)(
-        _In_ HKEY hkey,
-        _In_opt_ LPCWSTR lpSubKey,
-        _In_opt_ LPCWSTR lpValue,
-        _In_ DWORD dwFlags,
-        _Out_opt_ LPDWORD pdwType,
-
-        _When_(
-            (dwFlags & 0x7F) == RRF_RT_REG_SZ
-            || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
-            || (dwFlags & 0x7F) == (RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ)
-            || *pdwType == REG_SZ
-            || *pdwType == REG_EXPAND_SZ,
-            _Post_z_
-        )
-        _When_(
-            (dwFlags & 0x7F) == RRF_RT_REG_MULTI_SZ
-            || *pdwType == REG_MULTI_SZ,
-            _Post_ _NullNull_terminated_
-        )
-        _Out_writes_bytes_to_opt_(*pcbData, *pcbData) PVOID pvData,
-
-        _Inout_opt_ LPDWORD pcbData
-    );
-
     LSTATUS (WINAPI* RegNotifyChangeKeyValue)(
         _In_ HKEY hKey,
         _In_ BOOL bWatchSubtree,
         _In_ DWORD dwNotifyFilter,
         _In_opt_ HANDLE hEvent,
         _In_ BOOL fAsynchronous
-    );
-
-    LSTATUS (WINAPI* RegFlushKey)(
-        _In_ HKEY hKey
     );
 } VRegNativeFunctions;
 
@@ -2588,53 +2588,53 @@ VREG_DECL LSTATUS VRegHive_InternalSnapshotUpper(
     X(RegCreateKeyExW)                                                         \
     X(RegCloseKey)                                                             \
     X(RegQueryValueExW)                                                        \
+    X(RegGetValueW)                                                            \
     X(RegSetValueExW)                                                          \
     X(RegDeleteValueW)                                                         \
+    X(RegLoadMUIStringW)                                                       \
     X(RegDeleteKeyExW)                                                         \
     X(RegDeleteTreeW)                                                          \
+    X(RegFlushKey)                                                             \
     X(RegEnumKeyExW)                                                           \
     X(RegEnumValueW)                                                           \
     X(RegQueryInfoKeyW)                                                        \
-    X(RegLoadMUIStringW)                                                       \
-    X(RegGetValueW)                                                            \
-    X(RegNotifyChangeKeyValue)                                                 \
-    X(RegFlushKey)
+    X(RegNotifyChangeKeyValue)
 
 /// Applies `X` to the name of every other form in @ref VRegVtbl: the
 /// ANSI forms, the pre-`Ex` forms and the conveniences Win32 builds from the
 /// wide forms. The hooks emulate these too, but no registry
 /// calls them, so their trampolines stay with the hooks.
 #define VREG_INTERNAL_REGISTRY_FORMS(X)                                        \
-    X(RegOpenKeyExA)                                                           \
-    X(RegOpenKeyW)                                                             \
     X(RegOpenKeyA)                                                             \
-    X(RegCreateKeyExA)                                                         \
-    X(RegCreateKeyW)                                                           \
+    X(RegOpenKeyW)                                                             \
+    X(RegOpenKeyExA)                                                           \
     X(RegCreateKeyA)                                                           \
-    X(RegQueryValueExA)                                                        \
-    X(RegQueryValueW)                                                          \
+    X(RegCreateKeyW)                                                           \
+    X(RegCreateKeyExA)                                                         \
     X(RegQueryValueA)                                                          \
-    X(RegSetValueExA)                                                          \
-    X(RegSetValueW)                                                            \
-    X(RegSetValueA)                                                            \
-    X(RegDeleteValueA)                                                         \
-    X(RegDeleteKeyExA)                                                         \
-    X(RegDeleteKeyW)                                                           \
-    X(RegDeleteKeyA)                                                           \
-    X(RegDeleteTreeA)                                                          \
-    X(RegEnumKeyExA)                                                           \
-    X(RegEnumKeyW)                                                             \
-    X(RegEnumKeyA)                                                             \
-    X(RegEnumValueA)                                                           \
-    X(RegQueryInfoKeyA)                                                        \
-    X(RegLoadMUIStringA)                                                       \
+    X(RegQueryValueW)                                                          \
+    X(RegQueryValueExA)                                                        \
     X(RegGetValueA)                                                            \
-    X(RegSetKeyValueW)                                                         \
-    X(RegSetKeyValueA)                                                         \
-    X(RegDeleteKeyValueW)                                                      \
-    X(RegDeleteKeyValueA)                                                      \
+    X(RegQueryMultipleValuesA)                                                 \
     X(RegQueryMultipleValuesW)                                                 \
-    X(RegQueryMultipleValuesA)
+    X(RegSetValueA)                                                            \
+    X(RegSetValueW)                                                            \
+    X(RegSetValueExA)                                                          \
+    X(RegSetKeyValueA)                                                         \
+    X(RegSetKeyValueW)                                                         \
+    X(RegDeleteValueA)                                                         \
+    X(RegDeleteKeyValueA)                                                      \
+    X(RegDeleteKeyValueW)                                                      \
+    X(RegLoadMUIStringA)                                                       \
+    X(RegDeleteKeyA)                                                           \
+    X(RegDeleteKeyW)                                                           \
+    X(RegDeleteKeyExA)                                                         \
+    X(RegDeleteTreeA)                                                          \
+    X(RegEnumKeyA)                                                             \
+    X(RegEnumKeyW)                                                             \
+    X(RegEnumKeyExA)                                                           \
+    X(RegEnumValueA)                                                           \
+    X(RegQueryInfoKeyA)
 
 /// Both lists: every function the @ref VReg::Registry surface mirrors.
 #define VREG_INTERNAL_REGISTRY_FUNCTIONS(X)                                    \
@@ -2703,17 +2703,17 @@ VREG_DECL VRegOpenKeyExWFunction VReg_InternalVirtualRegOpenKeyExW;
 VREG_DECL VRegCreateKeyExWFunction VReg_InternalVirtualRegCreateKeyExW;
 VREG_DECL VRegCloseKeyFunction VReg_InternalVirtualRegCloseKey;
 VREG_DECL VRegQueryValueExWFunction VReg_InternalVirtualRegQueryValueExW;
+VREG_DECL VRegGetValueWFunction VReg_InternalVirtualRegGetValueW;
 VREG_DECL VRegSetValueExWFunction VReg_InternalVirtualRegSetValueExW;
 VREG_DECL VRegDeleteValueWFunction VReg_InternalVirtualRegDeleteValueW;
+VREG_DECL VRegLoadMUIStringWFunction VReg_InternalVirtualRegLoadMUIStringW;
 VREG_DECL VRegDeleteKeyExWFunction VReg_InternalVirtualRegDeleteKeyExW;
 VREG_DECL VRegDeleteTreeWFunction VReg_InternalVirtualRegDeleteTreeW;
+VREG_DECL VRegFlushKeyFunction VReg_InternalVirtualRegFlushKey;
 VREG_DECL VRegEnumKeyExWFunction VReg_InternalVirtualRegEnumKeyExW;
 VREG_DECL VRegEnumValueWFunction VReg_InternalVirtualRegEnumValueW;
 VREG_DECL VRegQueryInfoKeyWFunction VReg_InternalVirtualRegQueryInfoKeyW;
-VREG_DECL VRegLoadMUIStringWFunction VReg_InternalVirtualRegLoadMUIStringW;
-VREG_DECL VRegGetValueWFunction VReg_InternalVirtualRegGetValueW;
 VREG_DECL VRegNotifyChangeKeyValueFunction VReg_InternalVirtualRegNotifyChangeKeyValue;
-VREG_DECL VRegFlushKeyFunction VReg_InternalVirtualRegFlushKey;
 
 /// Frees the mount tables; @ref VReg_Destroy frees the registry.
 VREG_DECL void WINAPI VReg_InternalVirtualDestroy(
@@ -3567,22 +3567,22 @@ static const VRegVtbl g_VRegVtbl_Empty = {0};
 /// The table of a virtual registry: its wide forms, from which every other
 /// form is derived.
 static const VRegVtbl g_VRegVtbl_Virtual = {
-    &VReg_InternalVirtualDestroy,
-    &VReg_InternalVirtualRegOpenKeyExW,
-    &VReg_InternalVirtualRegCreateKeyExW,
-    &VReg_InternalVirtualRegCloseKey,
-    &VReg_InternalVirtualRegQueryValueExW,
-    &VReg_InternalVirtualRegSetValueExW,
-    &VReg_InternalVirtualRegDeleteValueW,
-    &VReg_InternalVirtualRegDeleteKeyExW,
-    &VReg_InternalVirtualRegDeleteTreeW,
-    &VReg_InternalVirtualRegEnumKeyExW,
-    &VReg_InternalVirtualRegEnumValueW,
-    &VReg_InternalVirtualRegQueryInfoKeyW,
-    &VReg_InternalVirtualRegLoadMUIStringW,
-    &VReg_InternalVirtualRegGetValueW,
-    &VReg_InternalVirtualRegNotifyChangeKeyValue,
-    &VReg_InternalVirtualRegFlushKey,
+    .Destroy = &VReg_InternalVirtualDestroy,
+    .RegOpenKeyExW = &VReg_InternalVirtualRegOpenKeyExW,
+    .RegCreateKeyExW = &VReg_InternalVirtualRegCreateKeyExW,
+    .RegCloseKey = &VReg_InternalVirtualRegCloseKey,
+    .RegQueryValueExW = &VReg_InternalVirtualRegQueryValueExW,
+    .RegGetValueW = &VReg_InternalVirtualRegGetValueW,
+    .RegSetValueExW = &VReg_InternalVirtualRegSetValueExW,
+    .RegDeleteValueW = &VReg_InternalVirtualRegDeleteValueW,
+    .RegLoadMUIStringW = &VReg_InternalVirtualRegLoadMUIStringW,
+    .RegDeleteKeyExW = &VReg_InternalVirtualRegDeleteKeyExW,
+    .RegDeleteTreeW = &VReg_InternalVirtualRegDeleteTreeW,
+    .RegFlushKey = &VReg_InternalVirtualRegFlushKey,
+    .RegEnumKeyExW = &VReg_InternalVirtualRegEnumKeyExW,
+    .RegEnumValueW = &VReg_InternalVirtualRegEnumValueW,
+    .RegQueryInfoKeyW = &VReg_InternalVirtualRegQueryInfoKeyW,
+    .RegNotifyChangeKeyValue = &VReg_InternalVirtualRegNotifyChangeKeyValue,
 };
 
 /// The slots a flat function calls when they are filled: a custom registry's

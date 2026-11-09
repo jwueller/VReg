@@ -121,7 +121,9 @@ the API it sits beside.
   declaration of an implementation use the typedef, and only definitions
   repeat the signature. The README's
   [Supported functions](./README.md#supported-functions) lists every `Reg*`
-  function with the same links.
+  function with the same links, and its order is the order of the typedefs,
+  the slots and every list of declarations: the ANSI form right before the
+  wide one, so a mismatch between the two stands out.
 - Win32-shaped entry points return `LSTATUS`. There are no exceptions:
   every allocation is checked and a failure answers `ERROR_OUTOFMEMORY`, and
   a function with several resources frees them at one `done:` label.
