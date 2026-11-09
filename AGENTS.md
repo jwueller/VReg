@@ -53,20 +53,24 @@ work is done; git keeps how it got there.
 
 ## Code conventions
 
-Agent's choice: these follow Win32 naming, because the library sits beside
-the API it reimplements. Change them freely before the first release.
+Agent's choice: beyond the names of functions and types, these follow Win32
+naming, because the library sits beside the API it reimplements.
 
 - C99 as MSVC 2013 and later compile it (declarations anywhere, `//`
   comments, designated initializers; no variable-length arrays, no `_Bool`
   in the API), MSVC and clang-cl, x86, x64 and ARM64. The headers compile
   as C and as C++, and the tests are C++20. `WIN32_LEAN_AND_MEAN`,
   `NOMINMAX` and `UNICODE` everywhere in the library's own build.
-- Public functions are `VReg` plus a PascalCase name, `WINAPI`, declared
-  with `VREG_DECL`; the `Reg*` family is `VReg` plus the Win32 name, so a
-  public name carries no underscore. Private functions, static ones
-  included, are `VReg_Name` with a name unique across `vreg.h`, since its
-  implementation is one translation unit. Private types are `VReg_Name`,
-  public ones `VRegName`.
+- Public functions are `VReg`, the object, an underscore and the verb,
+  as COM's `IUnknown_QueryInterface` macros are: `VRegHive_Create`,
+  `VRegScript_Parse`. The registry itself is the implied object
+  (`VReg_Create`, `VReg_Mount`), and so is the library for what has no
+  object (`VReg_CompareNames`); the `Reg*` family is `VReg_` plus the
+  Win32 name without its `Reg` (`VReg_OpenKeyExW`). All are `WINAPI`,
+  declared with `VREG_DECL`. Private functions, static ones included,
+  are `VRegInternal_Name` with a name unique across `vreg.h`, since its
+  implementation is one translation unit. Types carry no underscore:
+  public ones are `VRegName`, private ones `VRegInternalName`.
 - Hungarian prefixes like the Win32 API beside them: parameters and locals
   (`pszPath`, `cbData`, `hKey`), struct members in Win32's shape without
   `m_` (`pShared`, `cbData`), globals `g_`.
@@ -117,7 +121,7 @@ the API it reimplements. Change them freely before the first release.
 - Parameter names are never omitted or commented out; an unused one is
   `(void)name;` in the body.
 - Signatures of the Win32-shaped functions and every call to a `Reg*`
-  function (Win32 or a `VReg*` flat function) put one parameter or argument
+  function (Win32 or a `VReg_*` flat function) put one parameter or argument
   per line, with blank lines between multi-line declarations. Any other call
   or signature does the same once it would run its line past the
   `max_line_length` of `.editorconfig`.
@@ -133,8 +137,8 @@ the API it reimplements. Change them freely before the first release.
   each item, even a single one, on a line of its own; the IDE formatter
   keeps that layout. A multiline statement is set off by blank lines, with
   its comment attached.
-- Neither `min` nor `max` is called: the library uses `VReg_MinDword` and
-  `VReg_MaxDword` or a comparison, so the `windows.h` macros never apply,
+- Neither `min` nor `max` is called: the library uses `VRegInternal_MinDword` and
+  `VRegInternal_MaxDword` or a comparison, so the `windows.h` macros never apply,
   even in a consumer that includes it without `NOMINMAX`. A C++ test calls
   them parenthesized, `(std::max)(a, b)`.
 - Macros are tested with `#ifdef` or `#ifndef`, never with `defined`: a

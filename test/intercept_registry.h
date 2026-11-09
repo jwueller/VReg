@@ -24,13 +24,13 @@ public:
     explicit InterceptRegistry(VReg* const pInner) :
         m_pInner(pInner)
     {
-        if (VRegCreateCustom(&VTBL, this, &m_pRegistry) != ERROR_SUCCESS)
+        if (VReg_CreateCustom(&VTBL, this, &m_pRegistry) != ERROR_SUCCESS)
             throw std::bad_alloc();
     }
 
     ~InterceptRegistry()
     {
-        VRegDestroy(m_pRegistry);
+        VReg_Destroy(m_pRegistry);
     }
 
     InterceptRegistry(const InterceptRegistry&) = delete;
@@ -54,7 +54,7 @@ public:
 private:
     static InterceptRegistry* Self(VReg* const pThis) noexcept
     {
-        return static_cast<InterceptRegistry*>(VRegGetContext(pThis));
+        return static_cast<InterceptRegistry*>(VReg_GetContext(pThis));
     }
 
     std::optional<LSTATUS> Enter(const char* const pszName) const
@@ -81,7 +81,7 @@ private:
         auto& self = *Self(pThis);
         if (const auto status = self.Enter("RegOpenKeyExW"))
             return *status;
-        return VRegOpenKeyExW(
+        return VReg_OpenKeyExW(
             self.m_pInner,
             hKey,
             lpSubKey,
@@ -107,7 +107,7 @@ private:
         auto& self = *Self(pThis);
         if (const auto status = self.Enter("RegCreateKeyExW"))
             return *status;
-        return VRegCreateKeyExW(
+        return VReg_CreateKeyExW(
             self.m_pInner,
             hKey,
             lpSubKey,
@@ -127,7 +127,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VRegCloseKey(
+        return VReg_CloseKey(
             self.m_pInner,
             hKey
         );
@@ -146,7 +146,7 @@ private:
         auto& self = *Self(pThis);
         if (const auto status = self.Enter("RegQueryValueExW"))
             return *status;
-        return VRegQueryValueExW(
+        return VReg_QueryValueExW(
             self.m_pInner,
             hKey,
             lpValueName,
@@ -170,7 +170,7 @@ private:
         auto& self = *Self(pThis);
         if (const auto status = self.Enter("RegSetValueExW"))
             return *status;
-        return VRegSetValueExW(
+        return VReg_SetValueExW(
             self.m_pInner,
             hKey,
             lpValueName,
@@ -190,7 +190,7 @@ private:
         auto& self = *Self(pThis);
         if (const auto status = self.Enter("RegDeleteValueW"))
             return *status;
-        return VRegDeleteValueW(
+        return VReg_DeleteValueW(
             self.m_pInner,
             hKey,
             lpValueName
@@ -208,7 +208,7 @@ private:
         auto& self = *Self(pThis);
         if (const auto status = self.Enter("RegDeleteKeyExW"))
             return *status;
-        return VRegDeleteKeyExW(
+        return VReg_DeleteKeyExW(
             self.m_pInner,
             hKey,
             lpSubKey,
@@ -226,7 +226,7 @@ private:
         auto& self = *Self(pThis);
         if (const auto status = self.Enter("RegDeleteTreeW"))
             return *status;
-        return VRegDeleteTreeW(
+        return VReg_DeleteTreeW(
             self.m_pInner,
             hKey,
             lpSubKey
@@ -248,7 +248,7 @@ private:
         auto& self = *Self(pThis);
         if (const auto status = self.Enter("RegEnumKeyExW"))
             return *status;
-        return VRegEnumKeyExW(
+        return VReg_EnumKeyExW(
             self.m_pInner,
             hKey,
             dwIndex,
@@ -276,7 +276,7 @@ private:
         auto& self = *Self(pThis);
         if (const auto status = self.Enter("RegEnumValueW"))
             return *status;
-        return VRegEnumValueW(
+        return VReg_EnumValueW(
             self.m_pInner,
             hKey,
             dwIndex,
@@ -308,7 +308,7 @@ private:
         auto& self = *Self(pThis);
         if (const auto status = self.Enter("RegQueryInfoKeyW"))
             return *status;
-        return VRegQueryInfoKeyW(
+        return VReg_QueryInfoKeyW(
             self.m_pInner,
             hKey,
             lpClass,
@@ -339,7 +339,7 @@ private:
         auto& self = *Self(pThis);
         if (const auto status = self.Enter("RegLoadMUIStringW"))
             return *status;
-        return VRegLoadMUIStringW(
+        return VReg_LoadMUIStringW(
             self.m_pInner,
             hKey,
             pszValue,
@@ -378,7 +378,7 @@ private:
         auto& self = *Self(pThis);
         if (const auto status = self.Enter("RegGetValueW"))
             return *status;
-        return VRegGetValueW(
+        return VReg_GetValueW(
             self.m_pInner,
             hkey,
             lpSubKey,
@@ -402,7 +402,7 @@ private:
         auto& self = *Self(pThis);
         if (const auto status = self.Enter("RegNotifyChangeKeyValue"))
             return *status;
-        return VRegNotifyChangeKeyValue(
+        return VReg_NotifyChangeKeyValue(
             self.m_pInner,
             hKey,
             bWatchSubtree,
@@ -420,7 +420,7 @@ private:
         auto& self = *Self(pThis);
         if (const auto status = self.Enter("RegFlushKey"))
             return *status;
-        return VRegFlushKey(
+        return VReg_FlushKey(
             self.m_pInner,
             hKey
         );
@@ -453,7 +453,7 @@ private:
         auto& self = *Self(pThis);
         if (const auto status = self.Enter("RegGetValueA"))
             return *status;
-        return VRegGetValueA(
+        return VReg_GetValueA(
             self.m_pInner,
             hkey,
             lpSubKey,

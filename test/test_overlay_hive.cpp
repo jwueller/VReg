@@ -31,7 +31,7 @@ public:
         m_lowerRegistry(m_native)
     {
         REQUIRE(
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 m_native,
                 m_appHive.Root(),
                 L"Lower",
@@ -48,7 +48,7 @@ public:
         m_overlay = MakeLayeredHive(m_lowerRegistry, m_appHive.Root(), L"Lower");
         m_registry = MakeVirtualRegistry(m_lowerRegistry);
         REQUIRE(
-            VRegMount(
+            VReg_Mount(
                 m_registry,
                 HKEY_CURRENT_USER,
                 mountPath.c_str(),
@@ -60,7 +60,7 @@ public:
 
     ~Fixture()
     {
-        VRegCloseKey(
+        VReg_CloseKey(
             m_native,
             m_hLower
         );
@@ -119,7 +119,7 @@ HKEY Create(
     std::wstring className = pszClass ? pszClass : L"";
     HKEY hKey{};
     REQUIRE(
-        VRegCreateKeyExW(
+        VReg_CreateKeyExW(
             registry,
             hParent,
             pszPath,
@@ -144,7 +144,7 @@ LSTATUS Open(
 ) noexcept
 {
     hKey = nullptr;
-    return VRegOpenKeyExW(
+    return VReg_OpenKeyExW(
         registry,
         hParent,
         pszPath,
@@ -172,7 +172,7 @@ LSTATUS SetDword(
     const DWORD dwValue
 ) noexcept
 {
-    return VRegSetValueExW(
+    return VReg_SetValueExW(
         registry,
         hKey,
         pszName,
@@ -190,7 +190,7 @@ LSTATUS SetString(
     const std::wstring& text
 ) noexcept
 {
-    return VRegSetValueExW(
+    return VReg_SetValueExW(
         registry,
         hKey,
         pszName,
@@ -209,7 +209,7 @@ LSTATUS SetSized(
 )
 {
     const std::vector<BYTE> data(cbData, 0x5A);
-    return VRegSetValueExW(
+    return VReg_SetValueExW(
         registry,
         hKey,
         pszName,
@@ -229,7 +229,7 @@ LSTATUS QueryDword(
 {
     dwValue = 0;
     DWORD cbValue = sizeof(dwValue);
-    return VRegQueryValueExW(
+    return VReg_QueryValueExW(
         registry,
         hKey,
         pszName,
@@ -271,7 +271,7 @@ Listing ListKeys(VReg* const registry, const HKEY hKey)
         wchar_t className[300]{};
         DWORD cchName = 300;
         DWORD cchClass = 300;
-        const auto status = VRegEnumKeyExW(
+        const auto status = VReg_EnumKeyExW(
             registry,
             hKey,
             i,
@@ -301,7 +301,7 @@ Listing ListValues(VReg* const registry, const HKEY hKey)
     {
         wchar_t name[300]{};
         DWORD cchName = 300;
-        const auto status = VRegEnumValueW(
+        const auto status = VReg_EnumValueW(
             registry,
             hKey,
             i,
@@ -342,7 +342,7 @@ Info QueryInfo(VReg* const registry, const HKEY hKey)
     Info info;
     wchar_t className[300]{};
     DWORD cchClass = 300;
-    info.status = VRegQueryInfoKeyW(
+    info.status = VReg_QueryInfoKeyW(
         registry,
         hKey,
         className,
@@ -394,7 +394,7 @@ void Snapshot(
         lines.push_back(std::format(L"{}\\{}", path, name));
         HKEY hChild{};
         REQUIRE(
-            VRegOpenKeyExW(
+            VReg_OpenKeyExW(
                 registry,
                 hKey,
                 name.c_str(),
@@ -404,7 +404,7 @@ void Snapshot(
             ) == ERROR_SUCCESS
         );
         Snapshot(registry, hChild, std::format(L"{}\\{}", path, name), lines);
-        VRegCloseKey(
+        VReg_CloseKey(
             registry,
             hChild
         );
@@ -440,7 +440,7 @@ TEST_CASE("Upper values and keys shadow lower ones")
     DWORD dwDisposition = 0;
     HKEY hK{};
     REQUIRE(
-        VRegCreateKeyExW(
+        VReg_CreateKeyExW(
             reg,
             fx.Root(),
             L"K",
@@ -454,7 +454,7 @@ TEST_CASE("Upper values and keys shadow lower ones")
         ) == ERROR_SUCCESS
     );
     CHECK(dwDisposition == REG_OPENED_EXISTING_KEY);
-    CHECK(VRegIsVirtualHKey(hK));
+    CHECK(VReg_IsVirtualHKey(hK));
     REQUIRE(SetDword(reg, hK, L"b", 5) == ERROR_SUCCESS);
     CHECK(DwordOr(reg, hK, L"a") == 1);
     CHECK(DwordOr(reg, hK, L"b") == 5);
@@ -463,7 +463,7 @@ TEST_CASE("Upper values and keys shadow lower ones")
     CHECK(MustOpen(reg, fx.Root(), L"k") == hK);
 
     CHECK(Snapshot(native, fx.LowerRoot()) == before);
-    VRegCloseKey(
+    VReg_CloseKey(
         native,
         hLowerK
     );
@@ -479,7 +479,7 @@ TEST_CASE("Value tombstones hide lower values")
     const auto before = Snapshot(native, fx.LowerRoot());
 
     REQUIRE(
-        VRegDeleteValueW(
+        VReg_DeleteValueW(
             reg,
             fx.Root(),
             L"v1"
@@ -490,14 +490,14 @@ TEST_CASE("Value tombstones hide lower values")
     CHECK(ListValues(reg, fx.Root()).names == Names{L"v2"});
     CHECK(QueryInfo(reg, fx.Root()).cValues == 1);
     CHECK(
-        VRegDeleteValueW(
+        VReg_DeleteValueW(
             reg,
             fx.Root(),
             L"v1"
         ) == ERROR_FILE_NOT_FOUND
     );
     CHECK(
-        VRegDeleteValueW(
+        VReg_DeleteValueW(
             reg,
             fx.Root(),
             L"missing"
@@ -513,7 +513,7 @@ TEST_CASE("Value tombstones hide lower values")
     {
         REQUIRE(SetDword(reg, fx.Root(), L"u", 1) == ERROR_SUCCESS);
         REQUIRE(
-            VRegDeleteValueW(
+            VReg_DeleteValueW(
                 reg,
                 fx.Root(),
                 L"u"
@@ -528,18 +528,18 @@ TEST_CASE("Key tombstones hide lower keys")
     Fixture fx;
     VReg* const native = fx.Native();
     VReg* const reg = fx.Registry();
-    VRegCloseKey(
+    VReg_CloseKey(
         native,
         Create(native, fx.LowerRoot(), L"Empty")
     );
-    VRegCloseKey(
+    VReg_CloseKey(
         native,
         Create(native, fx.LowerRoot(), L"Full\\Child")
     );
     const auto before = Snapshot(native, fx.LowerRoot());
 
     REQUIRE(
-        VRegDeleteKeyExW(
+        VReg_DeleteKeyExW(
             reg,
             fx.Root(),
             L"empty",
@@ -552,7 +552,7 @@ TEST_CASE("Key tombstones hide lower keys")
     CHECK(ListKeys(reg, fx.Root()).names == Names{L"Full"});
     CHECK(QueryInfo(reg, fx.Root()).cSubKeys == 1);
     CHECK(
-        VRegDeleteKeyExW(
+        VReg_DeleteKeyExW(
             reg,
             fx.Root(),
             L"Empty",
@@ -563,7 +563,7 @@ TEST_CASE("Key tombstones hide lower keys")
     CHECK(Snapshot(native, fx.LowerRoot()) == before);
 
     CHECK(
-        VRegDeleteKeyExW(
+        VReg_DeleteKeyExW(
             reg,
             fx.Root(),
             L"Full",
@@ -572,7 +572,7 @@ TEST_CASE("Key tombstones hide lower keys")
         ) == ERROR_ACCESS_DENIED
     );
     REQUIRE(
-        VRegDeleteKeyExW(
+        VReg_DeleteKeyExW(
             reg,
             fx.Root(),
             L"Full\\Child",
@@ -582,7 +582,7 @@ TEST_CASE("Key tombstones hide lower keys")
     );
     CHECK(Open(reg, fx.Root(), L"Full\\Child", hKey) == ERROR_FILE_NOT_FOUND);
     REQUIRE(
-        VRegDeleteKeyExW(
+        VReg_DeleteKeyExW(
             reg,
             fx.Root(),
             L"Full",
@@ -597,7 +597,7 @@ TEST_CASE("Key tombstones hide lower keys")
     {
         DWORD dwDisposition = 0;
         REQUIRE(
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 reg,
                 fx.Root(),
                 L"Full",
@@ -625,13 +625,13 @@ TEST_CASE("Opaque keys hide everything below them")
     VReg* const reg = fx.Registry();
     const HKEY hLowerK = Create(native, fx.LowerRoot(), L"K");
     REQUIRE(SetDword(native, hLowerK, L"a", 1) == ERROR_SUCCESS);
-    VRegCloseKey(
+    VReg_CloseKey(
         native,
         Create(native, hLowerK, L"S\\Deep")
     );
     const HKEY hLowerL = Create(native, fx.LowerRoot(), L"L");
     REQUIRE(SetDword(native, hLowerL, L"a", 1) == ERROR_SUCCESS);
-    VRegCloseKey(
+    VReg_CloseKey(
         native,
         Create(native, hLowerL, L"S")
     );
@@ -640,7 +640,7 @@ TEST_CASE("Opaque keys hide everything below them")
     SECTION("RegDeleteTree on a subkey, then creating it again")
     {
         REQUIRE(
-            VRegDeleteTreeW(
+            VReg_DeleteTreeW(
                 reg,
                 fx.Root(),
                 L"K"
@@ -653,7 +653,7 @@ TEST_CASE("Opaque keys hide everything below them")
 
         DWORD dwDisposition = 0;
         REQUIRE(
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 reg,
                 fx.Root(),
                 L"K",
@@ -684,7 +684,7 @@ TEST_CASE("Opaque keys hide everything below them")
     {
         const HKEY hL = MustOpen(reg, fx.Root(), L"L");
         REQUIRE(
-            VRegDeleteTreeW(
+            VReg_DeleteTreeW(
                 reg,
                 hL,
                 nullptr
@@ -703,7 +703,7 @@ TEST_CASE("Opaque keys hide everything below them")
     SECTION("RegDeleteTree on the mount root hides the whole lower key")
     {
         REQUIRE(
-            VRegDeleteTreeW(
+            VReg_DeleteTreeW(
                 reg,
                 fx.Root(),
                 nullptr
@@ -716,11 +716,11 @@ TEST_CASE("Opaque keys hide everything below them")
         CHECK(Snapshot(native, fx.LowerRoot()) == before);
     }
 
-    VRegCloseKey(
+    VReg_CloseKey(
         native,
         hLowerK
     );
-    VRegCloseKey(
+    VReg_CloseKey(
         native,
         hLowerL
     );
@@ -732,18 +732,18 @@ TEST_CASE("Enumeration merges both layers")
     VReg* const native = fx.Native();
     VReg* const reg = fx.Registry();
     for (const auto* const pszName : {L"a", L"c", L"e"})
-        VRegCloseKey(
+        VReg_CloseKey(
             native,
             Create(native, fx.LowerRoot(), pszName)
         );
     for (const auto* const pszName : {L"l1", L"l2", L"l3"})
         REQUIRE(SetDword(native, fx.LowerRoot(), pszName, 1) == ERROR_SUCCESS);
 
-    VRegCloseKey(
+    VReg_CloseKey(
         reg,
         Create(reg, fx.Root(), L"b")
     );
-    VRegCloseKey(
+    VReg_CloseKey(
         reg,
         Create(reg, fx.Root(), L"d")
     );
@@ -790,7 +790,7 @@ TEST_CASE("Enumeration merges both layers")
         wchar_t name[16]{};
         DWORD cchName = 16;
         CHECK(
-            VRegEnumKeyExW(
+            VReg_EnumKeyExW(
                 reg,
                 fx.Root(),
                 3,
@@ -805,7 +805,7 @@ TEST_CASE("Enumeration merges both layers")
         CHECK(std::wstring(name, cchName) == L"a");
         cchName = 16;
         CHECK(
-            VRegEnumKeyExW(
+            VReg_EnumKeyExW(
                 reg,
                 fx.Root(),
                 5,
@@ -819,7 +819,7 @@ TEST_CASE("Enumeration merges both layers")
         );
         cchName = 16;
         CHECK(
-            VRegEnumKeyExW(
+            VReg_EnumKeyExW(
                 reg,
                 fx.Root(),
                 100,
@@ -836,7 +836,7 @@ TEST_CASE("Enumeration merges both layers")
     SECTION("Tombstoned lower keys are stepped over")
     {
         REQUIRE(
-            VRegDeleteKeyExW(
+            VReg_DeleteKeyExW(
                 reg,
                 fx.Root(),
                 L"a",
@@ -855,11 +855,11 @@ TEST_CASE("QueryInfoKey covers both layers")
     Fixture fx;
     VReg* const native = fx.Native();
     VReg* const reg = fx.Registry();
-    VRegCloseKey(
+    VReg_CloseKey(
         native,
         Create(native, fx.LowerRoot(), L"aa", L"ccc")
     );
-    VRegCloseKey(
+    VReg_CloseKey(
         native,
         Create(native, fx.LowerRoot(), L"bbbb")
     );
@@ -875,7 +875,7 @@ TEST_CASE("QueryInfoKey covers both layers")
     CHECK(info.cchMaxValueName == 6);
     CHECK(info.cbMaxValue == 10);
 
-    VRegCloseKey(
+    VReg_CloseKey(
         reg,
         Create(reg, fx.Root(), L"ccccccc", L"upperclass")
     );
@@ -902,14 +902,14 @@ TEST_CASE("QueryInfoKey covers both layers")
     SECTION("A shadowed name is counted once, a tombstone not at all")
     {
         REQUIRE(
-            VRegDeleteValueW(
+            VReg_DeleteValueW(
                 reg,
                 fx.Root(),
                 L"value2"
             ) == ERROR_SUCCESS
         );
         REQUIRE(
-            VRegDeleteKeyExW(
+            VReg_DeleteKeyExW(
                 reg,
                 fx.Root(),
                 L"aa",
@@ -930,13 +930,13 @@ TEST_CASE("A failed lower query is never a smaller successful view")
     Fixture fx;
     VReg* const native = fx.Native();
     VReg* const reg = fx.Registry();
-    VRegCloseKey(
+    VReg_CloseKey(
         native,
         Create(native, fx.LowerRoot(), L"sub")
     );
     REQUIRE(SetDword(native, fx.LowerRoot(), L"v", 1) == ERROR_SUCCESS);
     REQUIRE(SetDword(native, fx.LowerRoot(), L"lw", 3) == ERROR_SUCCESS);
-    VRegCloseKey(
+    VReg_CloseKey(
         reg,
         Create(reg, fx.Root(), L"upperkey")
     );
@@ -977,7 +977,7 @@ TEST_CASE("A failed lower query is never a smaller successful view")
     wchar_t buffer[32]{};
     DWORD cch = 32;
     CHECK(
-        VRegEnumKeyExW(
+        VReg_EnumKeyExW(
             reg,
             fx.Root(),
             0,
@@ -991,7 +991,7 @@ TEST_CASE("A failed lower query is never a smaller successful view")
     );
     cch = 32;
     CHECK(
-        VRegEnumValueW(
+        VReg_EnumValueW(
             reg,
             fx.Root(),
             0,
@@ -1005,7 +1005,7 @@ TEST_CASE("A failed lower query is never a smaller successful view")
     );
 
     cch = 32;
-    const auto keyStatus = VRegEnumKeyExW(
+    const auto keyStatus = VReg_EnumKeyExW(
         reg,
         fx.Root(),
         1,
@@ -1017,7 +1017,7 @@ TEST_CASE("A failed lower query is never a smaller successful view")
         nullptr
     );
     cch = 32;
-    const auto valueStatus = VRegEnumValueW(
+    const auto valueStatus = VReg_EnumValueW(
         reg,
         fx.Root(),
         2,
@@ -1045,15 +1045,15 @@ TEST_CASE("Classes come from the lower key for keys the upper layer does not def
     Fixture fx;
     VReg* const native = fx.Native();
     VReg* const reg = fx.Registry();
-    VRegCloseKey(
+    VReg_CloseKey(
         native,
         Create(native, fx.LowerRoot(), L"K", L"LowerClass")
     );
-    VRegCloseKey(
+    VReg_CloseKey(
         native,
         Create(native, fx.LowerRoot(), L"Untouched", L"Other")
     );
-    VRegCloseKey(
+    VReg_CloseKey(
         reg,
         Create(reg, fx.Root(), L"U", L"UpperClass")
     );
@@ -1086,7 +1086,7 @@ TEST_CASE("Classes come from the lower key for keys the upper layer does not def
 
     SECTION("Creating an existing key keeps its class")
     {
-        VRegCloseKey(
+        VReg_CloseKey(
             reg,
             Create(reg, fx.Root(), L"K", L"Ignored")
         );
@@ -1115,7 +1115,7 @@ TEST_CASE("Classes come from the lower key for keys the upper layer does not def
     SECTION("A key created again takes the new class")
     {
         REQUIRE(
-            VRegDeleteKeyExW(
+            VReg_DeleteKeyExW(
                 reg,
                 fx.Root(),
                 L"K",
@@ -1123,7 +1123,7 @@ TEST_CASE("Classes come from the lower key for keys the upper layer does not def
                 0
             ) == ERROR_SUCCESS
         );
-        VRegCloseKey(
+        VReg_CloseKey(
             reg,
             Create(reg, fx.Root(), L"K", L"Fresh")
         );
@@ -1143,7 +1143,7 @@ TEST_CASE("An upper-only key ends its enumerations with ERROR_NO_MORE_ITEMS")
     wchar_t buffer[32]{};
     DWORD cch = 32;
     CHECK(
-        VRegEnumKeyExW(
+        VReg_EnumKeyExW(
             reg,
             hUpper,
             0,
@@ -1157,7 +1157,7 @@ TEST_CASE("An upper-only key ends its enumerations with ERROR_NO_MORE_ITEMS")
     );
     cch = 32;
     CHECK(
-        VRegEnumValueW(
+        VReg_EnumValueW(
             reg,
             hUpper,
             0,
@@ -1170,7 +1170,7 @@ TEST_CASE("An upper-only key ends its enumerations with ERROR_NO_MORE_ITEMS")
         ) == ERROR_NO_MORE_ITEMS
     );
 
-    VRegCloseKey(
+    VReg_CloseKey(
         reg,
         Create(reg, hUpper, L"child")
     );
@@ -1187,12 +1187,12 @@ TEST_CASE("A key created as a whole path is not a direct child of the root")
     Fixture fx;
     VReg* const native = fx.Native();
     VReg* const reg = fx.Registry();
-    VRegCloseKey(
+    VReg_CloseKey(
         native,
         Create(native, fx.LowerRoot(), L"Other")
     );
 
-    VRegCloseKey(
+    VReg_CloseKey(
         reg,
         Create(reg, fx.Root(), L"A\\B\\C")
     );
@@ -1206,7 +1206,7 @@ TEST_CASE("A key created as a whole path is not a direct child of the root")
 
     SECTION("Also below a lower key")
     {
-        VRegCloseKey(
+        VReg_CloseKey(
             reg,
             Create(reg, fx.Root(), L"Other\\X\\Y")
         );
@@ -1231,14 +1231,14 @@ TEST_CASE("A handle to an ancestor of the mount point opens down into the mount"
     VReg* const reg = fx.Registry();
     const HKEY hLowerKey = Create(native, fx.LowerRoot(), L"L");
     REQUIRE(SetDword(native, hLowerKey, L"v", 11) == ERROR_SUCCESS);
-    VRegCloseKey(
+    VReg_CloseKey(
         native,
         hLowerKey
     );
 
     HKEY hSoftware{};
     REQUIRE(
-        VRegOpenKeyExW(
+        VReg_OpenKeyExW(
             fx.Lower(),
             HKEY_CURRENT_USER,
             L"Software",
@@ -1247,13 +1247,13 @@ TEST_CASE("A handle to an ancestor of the mount point opens down into the mount"
             &hSoftware
         ) == ERROR_SUCCESS
     );
-    REQUIRE_FALSE(VRegIsVirtualHKey(hSoftware));
+    REQUIRE_FALSE(VReg_IsVirtualHKey(hSoftware));
 
     HKEY hKey{};
     REQUIRE(
         Open(reg, hSoftware, (name + L"\\L").c_str(), hKey) == ERROR_SUCCESS
     );
-    CHECK(VRegIsVirtualHKey(hKey));
+    CHECK(VReg_IsVirtualHKey(hKey));
     CHECK(DwordOr(reg, hKey, L"v") == 11);
     CHECK(Open(reg, hSoftware, name.c_str(), hKey) == ERROR_SUCCESS);
     CHECK(hKey == fx.Root());
@@ -1268,7 +1268,7 @@ TEST_CASE("A handle to an ancestor of the mount point opens down into the mount"
 
     DWORD dwDisposition = 0;
     REQUIRE(
-        VRegCreateKeyExW(
+        VReg_CreateKeyExW(
             reg,
             hSoftware,
             (name + L"\\L\\New").c_str(),
@@ -1281,7 +1281,7 @@ TEST_CASE("A handle to an ancestor of the mount point opens down into the mount"
             &dwDisposition
         ) == ERROR_SUCCESS
     );
-    CHECK(VRegIsVirtualHKey(hKey));
+    CHECK(VReg_IsVirtualHKey(hKey));
     CHECK(dwDisposition == REG_CREATED_NEW_KEY);
 
     HKEY hCurrentUser{};
@@ -1294,10 +1294,10 @@ TEST_CASE("A handle to an ancestor of the mount point opens down into the mount"
             hKey
         ) == ERROR_SUCCESS
     );
-    CHECK(VRegIsVirtualHKey(hKey));
+    CHECK(VReg_IsVirtualHKey(hKey));
     RegCloseKey(hCurrentUser);
 
-    VRegCloseKey(
+    VReg_CloseKey(
         fx.Lower(),
         hSoftware
     );
@@ -1319,7 +1319,7 @@ TEST_CASE("RegLoadMUIStringW resolves a lower value as the lower key does")
 
     std::wstring expected(256, L'\0');
     DWORD cbExpected = 0;
-    const auto expectedStatus = VRegLoadMUIStringW(
+    const auto expectedStatus = VReg_LoadMUIStringW(
         native,
         fx.LowerRoot(),
         L"Indirect",
@@ -1334,7 +1334,7 @@ TEST_CASE("RegLoadMUIStringW resolves a lower value as the lower key does")
     std::wstring actual(256, L'\0');
     DWORD cbActual = 0;
     CHECK(
-        VRegLoadMUIStringW(
+        VReg_LoadMUIStringW(
             reg,
             fx.Root(),
             L"Indirect",
@@ -1358,7 +1358,7 @@ TEST_CASE("RegLoadMUIStringW resolves a lower value as the lower key does")
         DWORD cb = 0;
         std::wstring text(256, L'\0');
         CHECK(
-            VRegLoadMUIStringW(
+            VReg_LoadMUIStringW(
                 reg,
                 hVirtualSub,
                 L"Indirect",
@@ -1370,7 +1370,7 @@ TEST_CASE("RegLoadMUIStringW resolves a lower value as the lower key does")
             ) == ERROR_SUCCESS
         );
         CHECK(text == expected);
-        VRegCloseKey(
+        VReg_CloseKey(
             native,
             hSub
         );
@@ -1384,7 +1384,7 @@ TEST_CASE("RegLoadMUIStringW resolves a lower value as the lower key does")
         DWORD cb = 0;
         std::wstring text(256, L'\0');
         CHECK(
-            VRegLoadMUIStringW(
+            VReg_LoadMUIStringW(
                 reg,
                 fx.Root(),
                 L"Indirect",
@@ -1401,7 +1401,7 @@ TEST_CASE("RegLoadMUIStringW resolves a lower value as the lower key does")
             SetString(reg, fx.Root(), L"Plain", L"plain text") == ERROR_SUCCESS
         );
         CHECK(
-            VRegLoadMUIStringW(
+            VReg_LoadMUIStringW(
                 reg,
                 fx.Root(),
                 L"Plain",
@@ -1419,7 +1419,7 @@ TEST_CASE("RegLoadMUIStringW resolves a lower value as the lower key does")
         DWORD cb = 0;
         std::wstring text(256, L'\0');
         CHECK(
-            VRegLoadMUIStringW(
+            VReg_LoadMUIStringW(
                 reg,
                 fx.Root(),
                 L"Missing",
@@ -1441,18 +1441,18 @@ TEST_CASE("A frozen overlay refuses writes and hands out lower keys")
     REQUIRE(SetDword(native, fx.LowerRoot(), L"lv", 1) == ERROR_SUCCESS);
     const HKEY hM = Create(native, fx.LowerRoot(), L"M");
     REQUIRE(SetDword(native, hM, L"m", 3) == ERROR_SUCCESS);
-    VRegCloseKey(
+    VReg_CloseKey(
         native,
         hM
     );
     const HKEY hLowerK = Create(native, fx.LowerRoot(), L"K\\Sub");
-    VRegCloseKey(
+    VReg_CloseKey(
         native,
         hLowerK
     );
 
     REQUIRE(SetDword(reg, fx.Root(), L"uv", 2) == ERROR_SUCCESS);
-    VRegCloseKey(
+    VReg_CloseKey(
         reg,
         Create(reg, fx.Root(), L"U")
     );
@@ -1461,8 +1461,8 @@ TEST_CASE("A frozen overlay refuses writes and hands out lower keys")
     );
     const auto before = Snapshot(native, fx.LowerRoot());
 
-    VRegFreezeHive(fx.Overlay());
-    REQUIRE(VReg_HiveIsFrozen(fx.Overlay()));
+    VRegHive_Freeze(fx.Overlay());
+    REQUIRE(VRegInternal_HiveIsFrozen(fx.Overlay()));
 
     SECTION("Writes answer ERROR_ACCESS_DENIED")
     {
@@ -1470,21 +1470,21 @@ TEST_CASE("A frozen overlay refuses writes and hands out lower keys")
         DWORD dwDisposition = 0;
         CHECK(SetDword(reg, fx.Root(), L"new", 1) == ERROR_ACCESS_DENIED);
         CHECK(
-            VRegDeleteValueW(
+            VReg_DeleteValueW(
                 reg,
                 fx.Root(),
                 L"uv"
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VRegDeleteValueW(
+            VReg_DeleteValueW(
                 reg,
                 fx.Root(),
                 L"lv"
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VRegDeleteKeyExW(
+            VReg_DeleteKeyExW(
                 reg,
                 fx.Root(),
                 L"U",
@@ -1493,7 +1493,7 @@ TEST_CASE("A frozen overlay refuses writes and hands out lower keys")
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VRegDeleteKeyExW(
+            VReg_DeleteKeyExW(
                 reg,
                 fx.Root(),
                 L"M",
@@ -1502,28 +1502,28 @@ TEST_CASE("A frozen overlay refuses writes and hands out lower keys")
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VRegDeleteTreeW(
+            VReg_DeleteTreeW(
                 reg,
                 fx.Root(),
                 L"K"
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VRegDeleteTreeW(
+            VReg_DeleteTreeW(
                 reg,
                 fx.Root(),
                 L"M"
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VRegDeleteTreeW(
+            VReg_DeleteTreeW(
                 reg,
                 fx.Root(),
                 nullptr
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 reg,
                 fx.Root(),
                 L"Nope",
@@ -1537,7 +1537,7 @@ TEST_CASE("A frozen overlay refuses writes and hands out lower keys")
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 reg,
                 fx.Root(),
                 L"M\\Nope",
@@ -1557,28 +1557,28 @@ TEST_CASE("A frozen overlay refuses writes and hands out lower keys")
     {
         HKEY hKey{};
         REQUIRE(Open(reg, fx.Root(), L"M", hKey) == ERROR_SUCCESS);
-        CHECK_FALSE(VRegIsVirtualHKey(hKey));
+        CHECK_FALSE(VReg_IsVirtualHKey(hKey));
         CHECK(DwordOr(reg, hKey, L"m") == 3);
         CHECK(
-            VRegCloseKey(
+            VReg_CloseKey(
                 reg,
                 hKey
             ) == ERROR_SUCCESS
         );
 
         REQUIRE(Open(reg, fx.Root(), L"K\\Sub", hKey) == ERROR_SUCCESS);
-        CHECK_FALSE(VRegIsVirtualHKey(hKey));
+        CHECK_FALSE(VReg_IsVirtualHKey(hKey));
         CHECK(
-            VRegCloseKey(
+            VReg_CloseKey(
                 reg,
                 hKey
             ) == ERROR_SUCCESS
         );
 
         REQUIRE(Open(reg, fx.Root(), L"U", hKey) == ERROR_SUCCESS);
-        CHECK(VRegIsVirtualHKey(hKey));
+        CHECK(VReg_IsVirtualHKey(hKey));
         REQUIRE(Open(reg, fx.Root(), L"K", hKey) == ERROR_SUCCESS);
-        CHECK(VRegIsVirtualHKey(hKey));
+        CHECK(VReg_IsVirtualHKey(hKey));
         CHECK(DwordOr(reg, hKey, L"b") == 4);
         CHECK(Open(reg, fx.Root(), L"Missing", hKey) == ERROR_FILE_NOT_FOUND);
     }
@@ -1596,7 +1596,7 @@ TEST_CASE("A frozen overlay refuses writes and hands out lower keys")
         HKEY hKey{};
         DWORD dwDisposition = 0;
         REQUIRE(
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 reg,
                 fx.Root(),
                 L"M",
@@ -1610,15 +1610,15 @@ TEST_CASE("A frozen overlay refuses writes and hands out lower keys")
             ) == ERROR_SUCCESS
         );
         CHECK(dwDisposition == REG_OPENED_EXISTING_KEY);
-        CHECK_FALSE(VRegIsVirtualHKey(hKey));
+        CHECK_FALSE(VReg_IsVirtualHKey(hKey));
         CHECK(DwordOr(reg, hKey, L"m") == 3);
-        VRegCloseKey(
+        VReg_CloseKey(
             reg,
             hKey
         );
 
         REQUIRE(
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 reg,
                 fx.Root(),
                 L"U",
@@ -1632,7 +1632,7 @@ TEST_CASE("A frozen overlay refuses writes and hands out lower keys")
             ) == ERROR_SUCCESS
         );
         CHECK(dwDisposition == REG_OPENED_EXISTING_KEY);
-        CHECK(VRegIsVirtualHKey(hKey));
+        CHECK(VReg_IsVirtualHKey(hKey));
     }
 }
 
@@ -1643,7 +1643,7 @@ TEST_CASE("A writable overlay hands out virtual handles and copies up")
     VReg* const reg = fx.Registry();
     const HKEY hM = Create(native, fx.LowerRoot(), L"M\\Deep");
     REQUIRE(SetDword(native, hM, L"d", 6) == ERROR_SUCCESS);
-    VRegCloseKey(
+    VReg_CloseKey(
         native,
         hM
     );
@@ -1652,10 +1652,10 @@ TEST_CASE("A writable overlay hands out virtual handles and copies up")
 
     HKEY hKey{};
     REQUIRE(Open(reg, fx.Root(), L"M", hKey) == ERROR_SUCCESS);
-    CHECK(VRegIsVirtualHKey(hKey));
+    CHECK(VReg_IsVirtualHKey(hKey));
     const HKEY hM2 = hKey;
     REQUIRE(Open(reg, fx.Root(), L"M\\Deep", hKey) == ERROR_SUCCESS);
-    CHECK(VRegIsVirtualHKey(hKey));
+    CHECK(VReg_IsVirtualHKey(hKey));
     CHECK(DwordOr(reg, hKey, L"d") == 6);
     CHECK(Open(reg, fx.Root(), L"M\\Missing", hKey) == ERROR_FILE_NOT_FOUND);
     CHECK(Open(reg, fx.Root(), L"Missing\\Deep", hKey) == ERROR_FILE_NOT_FOUND);
@@ -1665,7 +1665,7 @@ TEST_CASE("A writable overlay hands out virtual handles and copies up")
     REQUIRE(SetDword(reg, hKey, L"extra", 1) == ERROR_SUCCESS);
     REQUIRE(SetDword(reg, hM2, L"m", 5) == ERROR_SUCCESS);
     REQUIRE(
-        VRegDeleteValueW(
+        VReg_DeleteValueW(
             reg,
             fx.Root(),
             L"lv"
@@ -1683,13 +1683,13 @@ namespace
 {
 /// Whether the hive's lock is free, found by writing to an unrelated key
 /// from another thread and waiting for it with a timeout.
-bool IsLockFree(VRegHive* const overlay, VReg_Node* const pProbe)
+bool IsLockFree(VRegHive* const overlay, VRegInternalNode* const pProbe)
 {
     const Thread writer(
         [&]
         {
             const DWORD dwValue = 1;
-            VReg_HiveSetValue(
+            VRegInternal_HiveSetValue(
                 overlay,
                 pProbe,
                 L"probe",
@@ -1711,22 +1711,22 @@ TEST_CASE("The hive lock is never held across a call into the lower registry")
     const HKEY hLowerL = Create(native, fx.LowerRoot(), L"L");
     REQUIRE(SetDword(native, hLowerL, L"v", 1) == ERROR_SUCCESS);
     REQUIRE(SetDword(native, hLowerL, L"w", 1) == ERROR_SUCCESS);
-    VRegCloseKey(
+    VReg_CloseKey(
         native,
         Create(native, hLowerL, L"s1")
     );
-    VRegCloseKey(
+    VReg_CloseKey(
         native,
         Create(native, hLowerL, L"Empty")
     );
-    VRegCloseKey(
+    VReg_CloseKey(
         native,
         hLowerL
     );
 
     const HKEY hProbe = Create(reg, fx.Root(), L"Probe");
     REQUIRE(SetDword(reg, hProbe, L"seed", 0) == ERROR_SUCCESS);
-    auto* const pProbe = VReg_NodeOf(hProbe);
+    auto* const pProbe = VRegInternal_NodeOf(hProbe);
     REQUIRE(pProbe != nullptr);
 
     int cCalls = 0;
@@ -1766,7 +1766,7 @@ TEST_CASE("The hive lock is never held across a call into the lower registry")
         {
             HKEY hKey{};
             CHECK(
-                VRegCreateKeyExW(
+                VReg_CreateKeyExW(
                     reg,
                     fx.Root(),
                     L"L\\New\\Deeper",
@@ -1815,7 +1815,7 @@ TEST_CASE("The hive lock is never held across a call into the lower registry")
         [&]
         {
             CHECK(
-                VRegDeleteKeyExW(
+                VReg_DeleteKeyExW(
                     reg,
                     fx.Root(),
                     L"L\\Empty",
@@ -1830,7 +1830,7 @@ TEST_CASE("The hive lock is never held across a call into the lower registry")
         [&]
         {
             CHECK(
-                VRegDeleteValueW(
+                VReg_DeleteValueW(
                     reg,
                     hL,
                     L"w"
@@ -1844,7 +1844,7 @@ TEST_CASE("The hive lock is never held across a call into the lower registry")
         {
             DWORD cb = 0;
             wchar_t text[8]{};
-            VRegLoadMUIStringW(
+            VReg_LoadMUIStringW(
                 reg,
                 hL,
                 L"v",
@@ -1861,7 +1861,7 @@ TEST_CASE("The hive lock is never held across a call into the lower registry")
         [&]
         {
             CHECK(
-                VRegDeleteTreeW(
+                VReg_DeleteTreeW(
                     reg,
                     fx.Root(),
                     L"L\\s1"
@@ -1880,11 +1880,11 @@ TEST_CASE("An overlay frozen during a write answers as frozen and writes nothing
     VReg* const reg = fx.Registry();
     const HKEY hLowerL = Create(native, fx.LowerRoot(), L"L");
     REQUIRE(SetDword(native, hLowerL, L"v", 1) == ERROR_SUCCESS);
-    VRegCloseKey(
+    VReg_CloseKey(
         native,
         Create(native, hLowerL, L"Sub")
     );
-    VRegCloseKey(
+    VReg_CloseKey(
         native,
         hLowerL
     );
@@ -1893,16 +1893,16 @@ TEST_CASE("An overlay frozen during a write answers as frozen and writes nothing
     // The writer has checked the overlay writable before its first lower call.
     fx.Lower().onCall = [&](const std::string&)
     {
-        if (!VReg_HiveIsFrozen(fx.Overlay()))
-            VRegFreezeHive(fx.Overlay());
+        if (!VRegInternal_HiveIsFrozen(fx.Overlay()))
+            VRegHive_Freeze(fx.Overlay());
     };
 
     SECTION("Opening a lower key")
     {
         HKEY hKey{};
         CHECK(Open(reg, fx.Root(), L"L\\Sub", hKey) == ERROR_SUCCESS);
-        CHECK(VReg_NodeOf(hKey) == nullptr);
-        VRegCloseKey(
+        CHECK(VRegInternal_NodeOf(hKey) == nullptr);
+        VReg_CloseKey(
             reg,
             hKey
         );
@@ -1913,7 +1913,7 @@ TEST_CASE("An overlay frozen during a write answers as frozen and writes nothing
         HKEY hKey{};
         DWORD dwDisposition = 0;
         CHECK(
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 reg,
                 fx.Root(),
                 L"L\\Sub",
@@ -1927,8 +1927,8 @@ TEST_CASE("An overlay frozen during a write answers as frozen and writes nothing
             ) == ERROR_SUCCESS
         );
         CHECK(dwDisposition == REG_OPENED_EXISTING_KEY);
-        CHECK(VReg_NodeOf(hKey) == nullptr);
-        VRegCloseKey(
+        CHECK(VRegInternal_NodeOf(hKey) == nullptr);
+        VReg_CloseKey(
             reg,
             hKey
         );
@@ -1938,7 +1938,7 @@ TEST_CASE("An overlay frozen during a write answers as frozen and writes nothing
     {
         HKEY hKey{};
         CHECK(
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 reg,
                 fx.Root(),
                 L"L\\New",
@@ -1957,7 +1957,7 @@ TEST_CASE("An overlay frozen during a write answers as frozen and writes nothing
     SECTION("Deleting a lower value")
     {
         CHECK(
-            VRegDeleteValueW(
+            VReg_DeleteValueW(
                 reg,
                 hL,
                 L"v"
@@ -1970,7 +1970,7 @@ TEST_CASE("An overlay frozen during a write answers as frozen and writes nothing
     SECTION("Deleting a lower key")
     {
         CHECK(
-            VRegDeleteKeyExW(
+            VReg_DeleteKeyExW(
                 reg,
                 hL,
                 L"Sub",

@@ -70,7 +70,7 @@ TEST_CASE("Export lays a snapshot out the way regedit does")
     {
         HKEY hKey{};
         REQUIRE(
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 registry,
                 HKEY_CURRENT_USER,
                 L"Software\\VRegTest\\NoValues",
@@ -83,7 +83,7 @@ TEST_CASE("Export lays a snapshot out the way regedit does")
                 nullptr
             ) == ERROR_SUCCESS
         );
-        VRegCloseKey(
+        VReg_CloseKey(
             registry,
             hKey
         );
@@ -455,7 +455,7 @@ TEST_CASE("A snapshot script written to a file has the same bytes and keeps a fi
 
     OwnedScript snapshot;
     REQUIRE(
-        VRegSnapshotScript(
+        VRegScript_Snapshot(
             registry,
             HKEY_CURRENT_USER,
             L"E",
@@ -463,7 +463,7 @@ TEST_CASE("A snapshot script written to a file has the same bytes and keeps a fi
         ) == ERROR_SUCCESS
     );
     REQUIRE(
-        VRegWriteScriptFile(
+        VRegScript_WriteFile(
             Operations(snapshot).data(),
             Operations(snapshot).size(),
             VREG_FORMAT_UNICODE,
@@ -472,7 +472,7 @@ TEST_CASE("A snapshot script written to a file has the same bytes and keeps a fi
     );
     OwnedScript script;
     REQUIRE(
-        VRegParseScriptFile(
+        VRegScript_ParseFile(
             path.c_str(),
             script.Receive(),
             nullptr
@@ -483,7 +483,7 @@ TEST_CASE("A snapshot script written to a file has the same bytes and keeps a fi
 
     OwnedScript missing;
     CHECK(
-        VRegSnapshotScript(
+        VRegScript_Snapshot(
             registry,
             HKEY_CURRENT_USER,
             L"Missing",

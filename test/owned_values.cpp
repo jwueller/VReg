@@ -17,7 +17,7 @@ try
 {
     DWORD dwType{};
     DWORD cbData = 0;
-    const auto sized = VRegQueryValueExW(
+    const auto sized = VReg_QueryValueExW(
         registry,
         hKey,
         lpValueName,
@@ -33,7 +33,7 @@ try
     {
         data.resize(cbData);
         DWORD cbRead = cbData;
-        const auto status = VRegQueryValueExW(
+        const auto status = VReg_QueryValueExW(
             registry,
             hKey,
             lpValueName,
@@ -44,7 +44,7 @@ try
         );
         if (status == ERROR_MORE_DATA)
         {
-            cbData = VReg_Grown(cbData, cbRead);
+            cbData = VRegInternal_Grown(cbData, cbRead);
             continue;
         }
         if (status == ERROR_SUCCESS)
@@ -74,7 +74,7 @@ try
 {
     DWORD dwType{};
     DWORD cbData = 0;
-    const auto sized = VRegGetValueW(
+    const auto sized = VReg_GetValueW(
         registry,
         hKey,
         lpSubKey,
@@ -91,7 +91,7 @@ try
     {
         data.resize(cbData);
         DWORD cbRead = cbData;
-        const auto status = VRegGetValueW(
+        const auto status = VReg_GetValueW(
             registry,
             hKey,
             lpSubKey,
@@ -103,7 +103,7 @@ try
         );
         if (status == ERROR_MORE_DATA)
         {
-            cbData = VReg_Grown(cbData, cbRead);
+            cbData = VRegInternal_Grown(cbData, cbRead);
             continue;
         }
         if (status == ERROR_SUCCESS)
@@ -171,7 +171,7 @@ try
     {
         name.assign(cchName, L'\0');
         DWORD cchRead = cchName;
-        const auto status = VRegEnumKeyExW(
+        const auto status = VReg_EnumKeyExW(
             registry,
             hKey,
             dwIndex,
@@ -184,7 +184,7 @@ try
         );
         if (status == ERROR_MORE_DATA && cchName < VREG_INTERNAL_MAX_CLASS_CHARS)
         {
-            cchName = (std::min)(VReg_Grown(cchName, cchRead), VREG_INTERNAL_MAX_CLASS_CHARS);
+            cchName = (std::min)(VRegInternal_Grown(cchName, cchRead), VREG_INTERNAL_MAX_CLASS_CHARS);
             continue;
         }
         if (status == ERROR_SUCCESS)
@@ -216,7 +216,7 @@ try
         DWORD cchRead = cchName;
         DWORD cbRead = cbData;
         DWORD dwType{};
-        const auto status = VRegEnumValueW(
+        const auto status = VReg_EnumValueW(
             registry,
             hKey,
             dwIndex,
@@ -232,11 +232,11 @@ try
         if (status == ERROR_MORE_DATA)
         {
             cchName = (std::min)(
-                VReg_Grown(cchName, cchRead + 1),
+                VRegInternal_Grown(cchName, cchRead + 1),
                 VREG_INTERNAL_MAX_VALUE_NAME_CHARS
             );
             if (pData)
-                cbData = VReg_Grown(cbData, cbRead);
+                cbData = VRegInternal_Grown(cbData, cbRead);
             if (pData && isSized)
                 pData->resize(cbData);
             continue;
@@ -279,7 +279,7 @@ try
     {
         text.assign(cbBuffer / sizeof(wchar_t), L'\0');
         DWORD cbData = 0;
-        const auto status = VRegLoadMUIStringW(
+        const auto status = VReg_LoadMUIStringW(
             registry,
             hKey,
             pszValue,
@@ -291,7 +291,7 @@ try
         );
         if (status == ERROR_MORE_DATA)
         {
-            cbBuffer = VReg_Grown(cbBuffer, cbData);
+            cbBuffer = VRegInternal_Grown(cbBuffer, cbData);
             continue;
         }
         if (status == ERROR_SUCCESS)

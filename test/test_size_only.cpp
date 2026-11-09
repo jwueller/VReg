@@ -82,7 +82,7 @@ void SetBigValue(VReg* const registry, const HKEY hKey)
 {
     const std::vector<std::byte> value(VALUE_BYTES, std::byte{0x5A});
     REQUIRE(
-        VRegSetValueExW(
+        VReg_SetValueExW(
             registry,
             hKey,
             L"Big",
@@ -105,7 +105,7 @@ void CheckSizeOnly(VReg* const registry, const HKEY hKey)
         std::size_t cbLargest{};
         {
             const LargestAllocation tracker;
-            status = VRegQueryValueExW(
+            status = VReg_QueryValueExW(
                 registry,
                 hKey,
                 L"Big",
@@ -131,7 +131,7 @@ void CheckSizeOnly(VReg* const registry, const HKEY hKey)
         std::size_t cbLargest{};
         {
             const LargestAllocation tracker;
-            status = VRegEnumValueW(
+            status = VReg_EnumValueW(
                 registry,
                 hKey,
                 0,
@@ -321,7 +321,7 @@ TEST_CASE("A size-only query of a Hive value copies no data")
     OwnedHive hive = MakeHive();
     OwnedRegistry registry = MakeVirtualRegistry();
     REQUIRE(
-        VRegMount(registry, HKEY_CURRENT_USER, L"SizeOnly", hive, 0) == ERROR_SUCCESS
+        VReg_Mount(registry, HKEY_CURRENT_USER, L"SizeOnly", hive, 0) == ERROR_SUCCESS
     );
 
     SetBigValue(registry, RootHandle(hive));
@@ -335,7 +335,7 @@ TEST_CASE("A size-only query of an Hive upper value copies no data")
     OwnedHive overlay = MakeLayeredHive(native, appHive.Root(), L"");
     OwnedRegistry registry = MakeVirtualRegistry(native);
     REQUIRE(
-        VRegMount(registry, HKEY_CURRENT_USER, L"SizeOnly", overlay, 0) == ERROR_SUCCESS
+        VReg_Mount(registry, HKEY_CURRENT_USER, L"SizeOnly", overlay, 0) == ERROR_SUCCESS
     );
 
     SetBigValue(registry, RootHandle(overlay));
@@ -351,7 +351,7 @@ TEST_CASE("A size-only query of an Hive lower value copies no data")
     OwnedHive overlay = MakeLayeredHive(native, appHive.Root(), L"");
     OwnedRegistry registry = MakeVirtualRegistry(native);
     REQUIRE(
-        VRegMount(registry, HKEY_CURRENT_USER, L"SizeOnly", overlay, 0) == ERROR_SUCCESS
+        VReg_Mount(registry, HKEY_CURRENT_USER, L"SizeOnly", overlay, 0) == ERROR_SUCCESS
     );
 
     CheckSizeOnly(registry, RootHandle(overlay));

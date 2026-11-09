@@ -19,7 +19,7 @@ public:
         m_native(MakeNativeRegistry())
     {
         REQUIRE(
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 m_native,
                 m_appHive.Root(),
                 L"Lower",
@@ -38,7 +38,7 @@ public:
         m_modifiedRegistry = MakeVirtualRegistry(m_native);
         m_freshRegistry = MakeVirtualRegistry(m_native);
         REQUIRE(
-            VRegMount(
+            VReg_Mount(
                 m_modifiedRegistry,
                 HKEY_CURRENT_USER,
                 MOUNT,
@@ -47,7 +47,7 @@ public:
             ) == ERROR_SUCCESS
         );
         REQUIRE(
-            VRegMount(
+            VReg_Mount(
                 m_freshRegistry,
                 HKEY_CURRENT_USER,
                 MOUNT,
@@ -59,7 +59,7 @@ public:
 
     ~DeltaFixture()
     {
-        VRegCloseKey(
+        VReg_CloseKey(
             m_native,
             m_hLower
         );
@@ -78,7 +78,7 @@ public:
     {
         HKEY hKey{};
         REQUIRE(
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 m_native,
                 m_hLower,
                 pszPath,
@@ -92,7 +92,7 @@ public:
             ) == ERROR_SUCCESS
         );
         REQUIRE(
-            VRegSetValueExW(
+            VReg_SetValueExW(
                 m_native,
                 hKey,
                 pszName,
@@ -103,7 +103,7 @@ public:
             )
             == ERROR_SUCCESS
         );
-        VRegCloseKey(
+        VReg_CloseKey(
             m_native,
             hKey
         );
@@ -113,7 +113,7 @@ public:
     {
         HKEY hKey{};
         REQUIRE(
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 m_native,
                 m_hLower,
                 pszPath,
@@ -126,7 +126,7 @@ public:
                 nullptr
             ) == ERROR_SUCCESS
         );
-        VRegCloseKey(
+        VReg_CloseKey(
             m_native,
             hKey
         );
@@ -147,7 +147,7 @@ public:
     {
         HKEY hKey{};
         REQUIRE(
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 m_modifiedRegistry,
                 HKEY_CURRENT_USER,
                 Full(path).c_str(),
@@ -160,7 +160,7 @@ public:
                 nullptr
             ) == ERROR_SUCCESS
         );
-        VRegCloseKey(
+        VReg_CloseKey(
             m_modifiedRegistry,
             hKey
         );
@@ -168,7 +168,7 @@ public:
 
     void Open(const std::wstring& path)
     {
-        VRegCloseKey(
+        VReg_CloseKey(
             m_modifiedRegistry,
             MustOpen(m_modifiedRegistry, Full(path).c_str())
         );
@@ -182,13 +182,13 @@ public:
             KEY_SET_VALUE
         );
         CHECK(
-            VRegDeleteValueW(
+            VReg_DeleteValueW(
                 m_modifiedRegistry,
                 hKey,
                 pszName
             ) == ERROR_SUCCESS
         );
-        VRegCloseKey(
+        VReg_CloseKey(
             m_modifiedRegistry,
             hKey
         );
@@ -197,7 +197,7 @@ public:
     void DeleteKey(const std::wstring& path)
     {
         CHECK(
-            VRegDeleteKeyExW(
+            VReg_DeleteKeyExW(
                 m_modifiedRegistry,
                 HKEY_CURRENT_USER,
                 Full(path).c_str(),
@@ -216,13 +216,13 @@ public:
             KEY_ALL_ACCESS
         );
         CHECK(
-            VRegDeleteTreeW(
+            VReg_DeleteTreeW(
                 m_modifiedRegistry,
                 hKey,
                 nullptr
             ) == ERROR_SUCCESS
         );
-        VRegCloseKey(
+        VReg_CloseKey(
             m_modifiedRegistry,
             hKey
         );
@@ -231,7 +231,7 @@ public:
     void DeleteTree(const std::wstring& path)
     {
         CHECK(
-            VRegDeleteTreeW(
+            VReg_DeleteTreeW(
                 m_modifiedRegistry,
                 HKEY_CURRENT_USER,
                 Full(path).c_str()

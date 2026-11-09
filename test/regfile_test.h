@@ -69,7 +69,7 @@ inline LSTATUS Parse(
     VRegParseError* const pError
 )
 {
-    return VRegParseScript(
+    return VRegScript_Parse(
         file.data(),
         file.size(),
         script.Receive(),
@@ -91,7 +91,7 @@ inline OwnedScript MustParse(const std::wstring_view text)
 inline std::span<const VRegOperation> Operations(const VRegScript* const pScript)
 {
     SIZE_T cOperations = 0;
-    const VRegOperation* const pOperations = VRegGetScriptOperations(pScript, &cOperations);
+    const VRegOperation* const pOperations = VRegScript_GetOperations(pScript, &cOperations);
     return {pOperations, cOperations};
 }
 
@@ -99,7 +99,7 @@ inline std::span<const VRegOperation> Operations(const VRegScript* const pScript
 inline LSTATUS Apply(const VRegScript* const pScript, VReg* const registry, SIZE_T* const pFailedIndex)
 {
     const auto operations = Operations(pScript);
-    return VRegApplyOperations(operations.data(), operations.size(), registry, pFailedIndex);
+    return VReg_ApplyOperations(operations.data(), operations.size(), registry, pFailedIndex);
 }
 
 inline std::vector<std::byte> DataOf(const VRegOperation& operation)
@@ -118,7 +118,7 @@ inline LSTATUS TryWriteBytes(
     void* pBytes = nullptr;
     SIZE_T cbBytes = 0;
     const auto operations = Operations(pScript);
-    const LSTATUS status = VRegWriteScript(
+    const LSTATUS status = VRegScript_Write(
         operations.data(),
         operations.size(),
         format,
@@ -130,7 +130,7 @@ inline LSTATUS TryWriteBytes(
 
     const auto* const pFirst = static_cast<const std::byte*>(pBytes);
     file.assign(pFirst, pFirst + cbBytes);
-    VRegFree(pBytes);
+    VReg_Free(pBytes);
     return ERROR_SUCCESS;
 }
 
@@ -152,7 +152,7 @@ inline LSTATUS TryExportSnapshot(
 )
 {
     OwnedScript script;
-    const LSTATUS status = VRegSnapshotScript(
+    const LSTATUS status = VRegScript_Snapshot(
         registry,
         hRoot,
         pszPath,
@@ -186,7 +186,7 @@ inline LSTATUS TryExportDelta(
 )
 {
     OwnedScript script;
-    const LSTATUS status = VRegDeltaScript(
+    const LSTATUS status = VRegScript_Delta(
         hive,
         hRoot,
         pszPath,
@@ -227,7 +227,7 @@ inline HKEY MustOpen(
 {
     HKEY hKey{};
     REQUIRE(
-        VRegOpenKeyExW(
+        VReg_OpenKeyExW(
             registry,
             HKEY_CURRENT_USER,
             pszPath,
@@ -250,7 +250,7 @@ inline void MustSet(
 {
     HKEY hKey{};
     REQUIRE(
-        VRegCreateKeyExW(
+        VReg_CreateKeyExW(
             registry,
             HKEY_CURRENT_USER,
             pszPath,
@@ -268,7 +268,7 @@ inline void MustSet(
     std::vector<std::byte> padded(data);
     padded.insert(padded.end(), 4, std::byte{0x11});
     REQUIRE(
-        VRegSetValueExW(
+        VReg_SetValueExW(
             registry,
             hKey,
             pszName,
@@ -278,7 +278,7 @@ inline void MustSet(
             static_cast<DWORD>(data.size())
         ) == ERROR_SUCCESS
     );
-    VRegCloseKey(
+    VReg_CloseKey(
         registry,
         hKey
     );
@@ -302,7 +302,7 @@ inline RegValue MustGet(
             value.data
         ) == ERROR_SUCCESS
     );
-    VRegCloseKey(
+    VReg_CloseKey(
         registry,
         hKey
     );

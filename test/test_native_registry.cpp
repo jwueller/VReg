@@ -25,7 +25,7 @@ TEST_CASE("Export lookup agrees with the loader")
         );
         CAPTURE(pszName);
         CHECK(
-            VReg_FindExport(
+            VRegInternal_FindExport(
                 hKernelBase,
                 pszName
             ) == reinterpret_cast<void*>(GetProcAddress(hKernelBase, pszName))
@@ -34,8 +34,8 @@ TEST_CASE("Export lookup agrees with the loader")
 
     SECTION("a missing name or module resolves to nothing")
     {
-        CHECK(VReg_FindExport(hKernelBase, "NoSuchExport") == nullptr);
-        CHECK(VReg_FindExport(nullptr, "RegOpenKeyExW") == nullptr);
+        CHECK(VRegInternal_FindExport(hKernelBase, "NoSuchExport") == nullptr);
+        CHECK(VRegInternal_FindExport(nullptr, "RegOpenKeyExW") == nullptr);
     }
 }
 
@@ -87,7 +87,7 @@ TEST_CASE("Forwarded exports are not resolved")
             continue;
 
         INFO(name);
-        CHECK(VReg_FindExport(hAdvapi32, name.c_str()) == nullptr);
+        CHECK(VRegInternal_FindExport(hAdvapi32, name.c_str()) == nullptr);
         ++cForwarded;
     }
     CHECK(cForwarded > 0);
@@ -96,7 +96,7 @@ TEST_CASE("Forwarded exports are not resolved")
 TEST_CASE("Every native registry function resolves")
 {
     VRegTest::OwnedRegistry registry = VRegTest::MakeNativeRegistry();
-    const VRegNativeFunctions functions = *VRegGetNativeFunctions(registry);
+    const VRegNativeFunctions functions = *VReg_GetNativeFunctions(registry);
     const auto pointers =
         std::bit_cast<std::array<void*, sizeof(functions) / sizeof(void*)>>(
             functions

@@ -28,7 +28,7 @@ struct CreateOpenAndClose
         DWORD dwDisposition = FILL_SIZE;
         RECORD(
             "create new",
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 api,
                 hRoot,
                 L"Key",
@@ -44,7 +44,7 @@ struct CreateOpenAndClose
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
@@ -53,7 +53,7 @@ struct CreateOpenAndClose
         dwDisposition = FILL_SIZE;
         RECORD(
             "create existing",
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 api,
                 hRoot,
                 L"key",
@@ -69,7 +69,7 @@ struct CreateOpenAndClose
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
@@ -77,7 +77,7 @@ struct CreateOpenAndClose
 
         RECORD(
             "open",
-            VRegOpenKeyExW(
+            VReg_OpenKeyExW(
                 api,
                 hRoot,
                 L"KEY",
@@ -88,7 +88,7 @@ struct CreateOpenAndClose
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
@@ -97,7 +97,7 @@ struct CreateOpenAndClose
         hKey = FillKey();
         RECORD(
             "open missing",
-            VRegOpenKeyExW(
+            VReg_OpenKeyExW(
                 api,
                 hRoot,
                 L"Missing",
@@ -121,7 +121,7 @@ struct QueryStringBufferTooSmall
         constexpr wchar_t VALUE_TEXT[] = L"value";
         RECORD(
             "set",
-            VRegSetValueExW(
+            VReg_SetValueExW(
                 api,
                 hRoot,
                 L"Text",
@@ -138,7 +138,7 @@ struct QueryStringBufferTooSmall
         DWORD cbData = static_cast<DWORD>(data.size());
         RECORD(
             "query too small",
-            VRegQueryValueExW(
+            VReg_QueryValueExW(
                 api,
                 hRoot,
                 L"Text",
@@ -169,7 +169,7 @@ struct CreateDispositionAndClass
         wchar_t szClass[] = L"MyClass";
         RECORD(
             "create with class",
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 api,
                 hRoot,
                 L"WithClass",
@@ -188,7 +188,7 @@ struct CreateDispositionAndClass
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
@@ -198,7 +198,7 @@ struct CreateDispositionAndClass
         wchar_t szOther[] = L"OtherClass";
         RECORD(
             "create existing other class",
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 api,
                 hRoot,
                 L"WithClass",
@@ -214,7 +214,7 @@ struct CreateDispositionAndClass
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
@@ -222,7 +222,7 @@ struct CreateDispositionAndClass
 
         RECORD(
             "open",
-            VRegOpenKeyExW(
+            VReg_OpenKeyExW(
                 api,
                 hRoot,
                 L"WithClass",
@@ -238,7 +238,7 @@ struct CreateDispositionAndClass
             DWORD cch = cchClass;
             RECORD(
                 "class",
-                VRegQueryInfoKeyW(
+                VReg_QueryInfoKeyW(
                     api,
                     hKey,
                     cls.data(),
@@ -259,7 +259,7 @@ struct CreateDispositionAndClass
         }
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
@@ -268,7 +268,7 @@ struct CreateDispositionAndClass
         dwDisposition = FILL_SIZE;
         RECORD(
             "create volatile",
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 api,
                 hRoot,
                 L"Volatile",
@@ -284,7 +284,7 @@ struct CreateDispositionAndClass
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
@@ -292,7 +292,7 @@ struct CreateDispositionAndClass
 
         RECORD(
             "create no disposition",
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 api,
                 hRoot,
                 L"NoDisposition",
@@ -307,7 +307,7 @@ struct CreateDispositionAndClass
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
@@ -315,7 +315,7 @@ struct CreateDispositionAndClass
 
         RECORD(
             "create no result",
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 api,
                 hRoot,
                 L"NoResult",
@@ -331,7 +331,7 @@ struct CreateDispositionAndClass
         dwDisposition = FILL_SIZE;
         RECORD(
             "create no result with disposition",
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 api,
                 hRoot,
                 L"NoResult2",
@@ -350,7 +350,7 @@ struct CreateDispositionAndClass
         hKey = FillKey();
         RECORD(
             "create nested",
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 api,
                 hRoot,
                 L"A\\B\\C",
@@ -369,7 +369,7 @@ struct CreateDispositionAndClass
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
@@ -377,7 +377,7 @@ struct CreateDispositionAndClass
         dwDisposition = FILL_SIZE;
         RECORD(
             "create nested partly existing",
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 api,
                 hRoot,
                 L"A\\B\\D",
@@ -393,7 +393,7 @@ struct CreateDispositionAndClass
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
@@ -406,7 +406,7 @@ struct CreateDispositionAndClass
         {
             dwDisposition = FILL_SIZE;
             hKey = FillKey();
-            const auto status = VRegCreateKeyExW(
+            const auto status = VReg_CreateKeyExW(
                 api,
                 hRoot,
                 pszSub,
@@ -430,7 +430,7 @@ struct CreateDispositionAndClass
             if (status == ERROR_SUCCESS && !HandedBack(api, hKey, hRoot))
                 RECORD(
                 "close",
-                VRegCloseKey(
+                VReg_CloseKey(
                     api,
                     hKey
                 )
@@ -440,7 +440,7 @@ struct CreateDispositionAndClass
         hKey = FillKey();
         RECORD(
             "create invalid handle",
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 api,
                 nullptr,
                 L"X",
@@ -456,7 +456,7 @@ struct CreateDispositionAndClass
         );
         RECORD(
             "create reserved",
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 api,
                 hRoot,
                 L"R",
@@ -472,7 +472,7 @@ struct CreateDispositionAndClass
         );
         RECORD(
             "create unknown option",
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 api,
                 hRoot,
                 L"O",
@@ -488,7 +488,7 @@ struct CreateDispositionAndClass
         );
         RECORD(
             "create long name",
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 api,
                 hRoot,
                 std::wstring(300, L'k').c_str(),
@@ -505,7 +505,7 @@ struct CreateDispositionAndClass
         dwDisposition = FILL_SIZE;
         RECORD(
             "create case differs",
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 api,
                 hRoot,
                 L"withclass",
@@ -521,7 +521,7 @@ struct CreateDispositionAndClass
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
@@ -542,7 +542,7 @@ struct CreateOpenAnsi
         char szClass[] = "Cl\xe4ss\x80";
         RECORD(
             "create A",
-            VRegCreateKeyExA(
+            VReg_CreateKeyExA(
                 api,
                 hRoot,
                 "K\xe4y\x80",
@@ -561,7 +561,7 @@ struct CreateOpenAnsi
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
@@ -569,7 +569,7 @@ struct CreateOpenAnsi
 
         RECORD(
             "open W of A-created",
-            VRegOpenKeyExW(
+            VReg_OpenKeyExW(
                 api,
                 hRoot,
                 L"K\u00e4y\u20ac",
@@ -583,7 +583,7 @@ struct CreateOpenAnsi
         DWORD cch = 16;
         RECORD(
             "class as W",
-            VRegQueryInfoKeyW(
+            VReg_QueryInfoKeyW(
                 api,
                 hKey,
                 cls.data(),
@@ -603,7 +603,7 @@ struct CreateOpenAnsi
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
@@ -612,7 +612,7 @@ struct CreateOpenAnsi
         dwDisposition = FILL_SIZE;
         RECORD(
             "create A existing",
-            VRegCreateKeyExA(
+            VReg_CreateKeyExA(
                 api,
                 hRoot,
                 "k\xe4y\x80",
@@ -628,7 +628,7 @@ struct CreateOpenAnsi
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
@@ -636,7 +636,7 @@ struct CreateOpenAnsi
 
         RECORD(
             "open A",
-            VRegOpenKeyExA(
+            VReg_OpenKeyExA(
                 api,
                 hRoot,
                 "K\xe4y\x80",
@@ -647,7 +647,7 @@ struct CreateOpenAnsi
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
@@ -655,7 +655,7 @@ struct CreateOpenAnsi
         hKey = FillKey();
         RECORD(
             "open A missing",
-            VRegOpenKeyExA(
+            VReg_OpenKeyExA(
                 api,
                 hRoot,
                 "Missing",
@@ -667,7 +667,7 @@ struct CreateOpenAnsi
         );
         RECORD(
             "open A unrepresentable",
-            VRegOpenKeyExA(
+            VReg_OpenKeyExA(
                 api,
                 hRoot,
                 "K?y?",
@@ -679,7 +679,7 @@ struct CreateOpenAnsi
 
         RECORD(
             "create W unrepresentable",
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 api,
                 hRoot,
                 L"U\u4e2d",
@@ -694,14 +694,14 @@ struct CreateOpenAnsi
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
         );
         RECORD(
             "open A as ?",
-            VRegOpenKeyExA(
+            VReg_OpenKeyExA(
                 api,
                 hRoot,
                 "U?",
@@ -712,7 +712,7 @@ struct CreateOpenAnsi
         );
         RECORD(
             "open W",
-            VRegOpenKeyExW(
+            VReg_OpenKeyExW(
                 api,
                 hRoot,
                 L"U\u4e2d",
@@ -723,14 +723,14 @@ struct CreateOpenAnsi
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
         );
         RECORD(
             "create W best fit",
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 api,
                 hRoot,
                 L"b\u0101",
@@ -745,14 +745,14 @@ struct CreateOpenAnsi
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
         );
         RECORD(
             "open A best fit",
-            VRegOpenKeyExA(
+            VReg_OpenKeyExA(
                 api,
                 hRoot,
                 "ba",
@@ -772,7 +772,7 @@ struct CreateOpenAnsi
         )
         {
             hKey = FillKey();
-            const auto status = VRegOpenKeyExA(
+            const auto status = VReg_OpenKeyExA(
                 api,
                 hRoot,
                 pszSub,
@@ -791,7 +791,7 @@ struct CreateOpenAnsi
             if (status == ERROR_SUCCESS && !HandedBack(api, hKey, hRoot))
                 RECORD(
                 "close",
-                VRegCloseKey(
+                VReg_CloseKey(
                     api,
                     hKey
                 )
@@ -801,7 +801,7 @@ struct CreateOpenAnsi
         hKey = FillKey();
         RECORD(
             "open A no result",
-            VRegOpenKeyExA(
+            VReg_OpenKeyExA(
                 api,
                 hRoot,
                 "K\xe4y\x80",
@@ -812,7 +812,7 @@ struct CreateOpenAnsi
         );
         RECORD(
             "create A no result",
-            VRegCreateKeyExA(
+            VReg_CreateKeyExA(
                 api,
                 hRoot,
                 "K\xe4y\x80",
@@ -827,7 +827,7 @@ struct CreateOpenAnsi
         );
         RECORD(
             "open A invalid handle",
-            VRegOpenKeyExA(
+            VReg_OpenKeyExA(
                 api,
                 nullptr,
                 "K",
@@ -839,7 +839,7 @@ struct CreateOpenAnsi
         );
         RECORD(
             "create A invalid handle",
-            VRegCreateKeyExA(
+            VReg_CreateKeyExA(
                 api,
                 nullptr,
                 "K",
@@ -855,7 +855,7 @@ struct CreateOpenAnsi
         );
         RECORD(
             "create A reserved",
-            VRegCreateKeyExA(
+            VReg_CreateKeyExA(
                 api,
                 hRoot,
                 "R",
@@ -871,7 +871,7 @@ struct CreateOpenAnsi
         );
         RECORD(
             "create A long name",
-            VRegCreateKeyExA(
+            VReg_CreateKeyExA(
                 api,
                 hRoot,
                 std::string(300, 'k').c_str(),
@@ -899,7 +899,7 @@ struct OpenKeyForms
         HKEY hKey{};
         RECORD(
             "create",
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 api,
                 hRoot,
                 L"A\\B",
@@ -914,7 +914,7 @@ struct OpenKeyForms
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
@@ -935,7 +935,7 @@ struct OpenKeyForms
         )
         {
             hKey = FillKey();
-            const auto status = VRegOpenKeyExW(
+            const auto status = VReg_OpenKeyExW(
                 api,
                 hRoot,
                 pszSub,
@@ -954,7 +954,7 @@ struct OpenKeyForms
             if (status == ERROR_SUCCESS && !HandedBack(api, hKey, hRoot))
                 RECORD(
                 "close",
-                VRegCloseKey(
+                VReg_CloseKey(
                     api,
                     hKey
                 )
@@ -963,7 +963,7 @@ struct OpenKeyForms
 
         RECORD(
             "open no access",
-            VRegOpenKeyExW(
+            VReg_OpenKeyExW(
                 api,
                 hRoot,
                 L"A",
@@ -974,14 +974,14 @@ struct OpenKeyForms
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
         );
         RECORD(
             "open link option",
-            VRegOpenKeyExW(
+            VReg_OpenKeyExW(
                 api,
                 hRoot,
                 L"A",
@@ -992,7 +992,7 @@ struct OpenKeyForms
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
@@ -1002,7 +1002,7 @@ struct OpenKeyForms
         if (!api.isVirtualKeys)
         {
             hKey = FillKey();
-            const auto backupStatus = VRegOpenKeyExW(
+            const auto backupStatus = VReg_OpenKeyExW(
                 api,
                 hRoot,
                 L"A",
@@ -1014,7 +1014,7 @@ struct OpenKeyForms
             if (backupStatus == ERROR_SUCCESS)
                 RECORD(
                 "close",
-                VRegCloseKey(
+                VReg_CloseKey(
                     api,
                     hKey
                 )
@@ -1023,7 +1023,7 @@ struct OpenKeyForms
         hKey = FillKey();
         RECORD(
             "open unknown option",
-            VRegOpenKeyExW(
+            VReg_OpenKeyExW(
                 api,
                 hRoot,
                 L"A",
@@ -1035,7 +1035,7 @@ struct OpenKeyForms
         );
         RECORD(
             "open wow64 64",
-            VRegOpenKeyExW(
+            VReg_OpenKeyExW(
                 api,
                 hRoot,
                 L"A",
@@ -1046,14 +1046,14 @@ struct OpenKeyForms
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
         );
         RECORD(
             "open wow64 32",
-            VRegOpenKeyExW(
+            VReg_OpenKeyExW(
                 api,
                 hRoot,
                 L"A",
@@ -1064,14 +1064,14 @@ struct OpenKeyForms
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
         );
         RECORD(
             "open no result",
-            VRegOpenKeyExW(
+            VReg_OpenKeyExW(
                 api,
                 hRoot,
                 L"A",
@@ -1083,7 +1083,7 @@ struct OpenKeyForms
         hKey = FillKey();
         RECORD(
             "open invalid handle",
-            VRegOpenKeyExW(
+            VReg_OpenKeyExW(
                 api,
                 nullptr,
                 L"A",
@@ -1095,7 +1095,7 @@ struct OpenKeyForms
         );
         RECORD(
             "open long name",
-            VRegOpenKeyExW(
+            VReg_OpenKeyExW(
                 api,
                 hRoot,
                 std::wstring(300, L'k').c_str(),
@@ -1113,7 +1113,7 @@ struct OpenKeyForms
             HKEY hRead{};
             RECORD(
                 "open read",
-                VRegOpenKeyExW(
+                VReg_OpenKeyExW(
                     api,
                     hRoot,
                     L"A",
@@ -1125,7 +1125,7 @@ struct OpenKeyForms
             const BYTE data[4] = {1, 2, 3, 4};
             RECORD(
                 "set on read key",
-                VRegSetValueExW(
+                VReg_SetValueExW(
                     api,
                     hRead,
                     L"v",
@@ -1138,7 +1138,7 @@ struct OpenKeyForms
             hKey = FillKey();
             RECORD(
                 "create on read key",
-                VRegCreateKeyExW(
+                VReg_CreateKeyExW(
                     api,
                     hRead,
                     L"New",
@@ -1154,7 +1154,7 @@ struct OpenKeyForms
             );
             RECORD(
                 "delete on read key",
-                VRegDeleteKeyExW(
+                VReg_DeleteKeyExW(
                     api,
                     hRead,
                     L"B",
@@ -1164,7 +1164,7 @@ struct OpenKeyForms
             );
             RECORD(
                 "delete value on read key",
-                VRegDeleteValueW(
+                VReg_DeleteValueW(
                     api,
                     hRead,
                     L"v"
@@ -1172,7 +1172,7 @@ struct OpenKeyForms
             );
             RECORD(
                 "close",
-                VRegCloseKey(
+                VReg_CloseKey(
                     api,
                     hRead
                 )
@@ -1180,7 +1180,7 @@ struct OpenKeyForms
         }
         RECORD(
             "close null",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 nullptr
             )
@@ -1199,7 +1199,7 @@ struct PreExOpenAndCreate
         HKEY hKey{};
         RECORD(
             "create W",
-            VRegCreateKeyW(
+            VReg_CreateKeyW(
                 api,
                 hRoot,
                 L"A\\B",
@@ -1208,7 +1208,7 @@ struct PreExOpenAndCreate
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
@@ -1229,7 +1229,7 @@ struct PreExOpenAndCreate
         {
             const auto label = std::string(pszSub ? Narrow(pszSub) : "(null)");
             hKey = FillKey();
-            auto status = VRegOpenKeyW(
+            auto status = VReg_OpenKeyW(
                 api,
                 hRoot,
                 pszSub,
@@ -1240,7 +1240,7 @@ struct PreExOpenAndCreate
                 CloseUnlessParent(api, record, "open W " + label, hKey, hRoot);
 
             hKey = FillKey();
-            status = VRegCreateKeyW(
+            status = VReg_CreateKeyW(
                 api,
                 hRoot,
                 pszSub,
@@ -1266,7 +1266,7 @@ struct PreExOpenAndCreate
             const auto narrow = pszSub ? Narrow(pszSub) : std::string();
             const char* const pszNarrow = pszSub ? narrow.c_str() : nullptr;
             hKey = FillKey();
-            status = VRegOpenKeyA(
+            status = VReg_OpenKeyA(
                 api,
                 hRoot,
                 pszNarrow,
@@ -1277,7 +1277,7 @@ struct PreExOpenAndCreate
                 CloseUnlessParent(api, record, "open A " + label, hKey, hRoot);
 
             hKey = FillKey();
-            status = VRegCreateKeyA(
+            status = VReg_CreateKeyA(
                 api,
                 hRoot,
                 pszNarrow,
@@ -1303,7 +1303,7 @@ struct PreExOpenAndCreate
 
         RECORD(
             "open W no result",
-            VRegOpenKeyW(
+            VReg_OpenKeyW(
                 api,
                 hRoot,
                 L"A",
@@ -1312,7 +1312,7 @@ struct PreExOpenAndCreate
         );
         RECORD(
             "open W empty no result",
-            VRegOpenKeyW(
+            VReg_OpenKeyW(
                 api,
                 hRoot,
                 L"",
@@ -1321,7 +1321,7 @@ struct PreExOpenAndCreate
         );
         RECORD(
             "open A no result",
-            VRegOpenKeyA(
+            VReg_OpenKeyA(
                 api,
                 hRoot,
                 "A",
@@ -1330,7 +1330,7 @@ struct PreExOpenAndCreate
         );
         RECORD(
             "open A empty no result",
-            VRegOpenKeyA(
+            VReg_OpenKeyA(
                 api,
                 hRoot,
                 "",
@@ -1339,7 +1339,7 @@ struct PreExOpenAndCreate
         );
         RECORD(
             "create W no result",
-            VRegCreateKeyW(
+            VReg_CreateKeyW(
                 api,
                 hRoot,
                 L"A",
@@ -1348,7 +1348,7 @@ struct PreExOpenAndCreate
         );
         RECORD(
             "create W empty no result",
-            VRegCreateKeyW(
+            VReg_CreateKeyW(
                 api,
                 hRoot,
                 L"",
@@ -1357,7 +1357,7 @@ struct PreExOpenAndCreate
         );
         RECORD(
             "create A no result",
-            VRegCreateKeyA(
+            VReg_CreateKeyA(
                 api,
                 hRoot,
                 "A",
@@ -1366,7 +1366,7 @@ struct PreExOpenAndCreate
         );
         RECORD(
             "create A empty no result",
-            VRegCreateKeyA(
+            VReg_CreateKeyA(
                 api,
                 hRoot,
                 "",
@@ -1377,7 +1377,7 @@ struct PreExOpenAndCreate
         hKey = FillKey();
         RECORD(
             "open W invalid handle",
-            VRegOpenKeyW(
+            VReg_OpenKeyW(
                 api,
                 nullptr,
                 L"A",
@@ -1387,7 +1387,7 @@ struct PreExOpenAndCreate
         );
         RECORD(
             "open W empty invalid handle",
-            VRegOpenKeyW(
+            VReg_OpenKeyW(
                 api,
                 nullptr,
                 L"",
@@ -1397,7 +1397,7 @@ struct PreExOpenAndCreate
         );
         RECORD(
             "open A empty invalid handle",
-            VRegOpenKeyA(
+            VReg_OpenKeyA(
                 api,
                 nullptr,
                 "",
@@ -1408,7 +1408,7 @@ struct PreExOpenAndCreate
         hKey = FillKey();
         RECORD(
             "create W invalid handle",
-            VRegCreateKeyW(
+            VReg_CreateKeyW(
                 api,
                 nullptr,
                 L"A",
@@ -1418,7 +1418,7 @@ struct PreExOpenAndCreate
         );
         RECORD(
             "create W empty invalid handle",
-            VRegCreateKeyW(
+            VReg_CreateKeyW(
                 api,
                 nullptr,
                 L"",
@@ -1428,7 +1428,7 @@ struct PreExOpenAndCreate
         );
         RECORD(
             "create A invalid handle",
-            VRegCreateKeyA(
+            VReg_CreateKeyA(
                 api,
                 nullptr,
                 "A",
@@ -1438,7 +1438,7 @@ struct PreExOpenAndCreate
         );
         RECORD(
             "create A empty invalid handle",
-            VRegCreateKeyA(
+            VReg_CreateKeyA(
                 api,
                 nullptr,
                 "",
@@ -1449,7 +1449,7 @@ struct PreExOpenAndCreate
 
         RECORD(
             "create A non-ASCII",
-            VRegCreateKeyA(
+            VReg_CreateKeyA(
                 api,
                 hRoot,
                 "N\xe4\x80",
@@ -1458,14 +1458,14 @@ struct PreExOpenAndCreate
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
         );
         RECORD(
             "open W non-ASCII",
-            VRegOpenKeyW(
+            VReg_OpenKeyW(
                 api,
                 hRoot,
                 L"N\u00e4\u20ac",
@@ -1474,14 +1474,14 @@ struct PreExOpenAndCreate
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
         );
         RECORD(
             "open A non-ASCII",
-            VRegOpenKeyA(
+            VReg_OpenKeyA(
                 api,
                 hRoot,
                 "n\xe4\x80",
@@ -1490,7 +1490,7 @@ struct PreExOpenAndCreate
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
@@ -1498,7 +1498,7 @@ struct PreExOpenAndCreate
         hKey = FillKey();
         RECORD(
             "open A missing",
-            VRegOpenKeyA(
+            VReg_OpenKeyA(
                 api,
                 hRoot,
                 "Missing",
@@ -1531,7 +1531,7 @@ struct DeleteKeys
         {
             RECORD(
                 "create",
-                VRegCreateKeyExW(
+                VReg_CreateKeyExW(
                     api,
                     hRoot,
                     pszName,
@@ -1546,7 +1546,7 @@ struct DeleteKeys
             );
             RECORD(
                 "close",
-                VRegCloseKey(
+                VReg_CloseKey(
                     api,
                     hKey
                 )
@@ -1555,7 +1555,7 @@ struct DeleteKeys
 
         RECORD(
             "delete missing Ex",
-            VRegDeleteKeyExW(
+            VReg_DeleteKeyExW(
                 api,
                 hRoot,
                 L"Missing",
@@ -1565,7 +1565,7 @@ struct DeleteKeys
         );
         RECORD(
             "delete missing W",
-            VRegDeleteKeyW(
+            VReg_DeleteKeyW(
                 api,
                 hRoot,
                 L"Missing"
@@ -1573,7 +1573,7 @@ struct DeleteKeys
         );
         RECORD(
             "delete missing A",
-            VRegDeleteKeyA(
+            VReg_DeleteKeyA(
                 api,
                 hRoot,
                 "Missing"
@@ -1581,7 +1581,7 @@ struct DeleteKeys
         );
         RECORD(
             "delete missing ExA",
-            VRegDeleteKeyExA(
+            VReg_DeleteKeyExA(
                 api,
                 hRoot,
                 "Missing",
@@ -1591,7 +1591,7 @@ struct DeleteKeys
         );
         RECORD(
             "delete with children Ex",
-            VRegDeleteKeyExW(
+            VReg_DeleteKeyExW(
                 api,
                 hRoot,
                 L"Parent",
@@ -1601,7 +1601,7 @@ struct DeleteKeys
         );
         RECORD(
             "delete with children W",
-            VRegDeleteKeyW(
+            VReg_DeleteKeyW(
                 api,
                 hRoot,
                 L"Parent"
@@ -1609,7 +1609,7 @@ struct DeleteKeys
         );
         RECORD(
             "delete with children A",
-            VRegDeleteKeyA(
+            VReg_DeleteKeyA(
                 api,
                 hRoot,
                 "Parent"
@@ -1617,7 +1617,7 @@ struct DeleteKeys
         );
         RECORD(
             "delete with children ExA",
-            VRegDeleteKeyExA(
+            VReg_DeleteKeyExA(
                 api,
                 hRoot,
                 "Parent",
@@ -1627,7 +1627,7 @@ struct DeleteKeys
         );
         RECORD(
             "delete reserved",
-            VRegDeleteKeyExW(
+            VReg_DeleteKeyExW(
                 api,
                 hRoot,
                 L"Leaf1",
@@ -1637,7 +1637,7 @@ struct DeleteKeys
         );
         RECORD(
             "delete reserved A",
-            VRegDeleteKeyExA(
+            VReg_DeleteKeyExA(
                 api,
                 hRoot,
                 "Leaf1",
@@ -1647,7 +1647,7 @@ struct DeleteKeys
         );
         RECORD(
             "delete wow64 flags",
-            VRegDeleteKeyExW(
+            VReg_DeleteKeyExW(
                 api,
                 hRoot,
                 L"Leaf1",
@@ -1657,7 +1657,7 @@ struct DeleteKeys
         );
         RECORD(
             "delete wow64 flags again",
-            VRegDeleteKeyExW(
+            VReg_DeleteKeyExW(
                 api,
                 hRoot,
                 L"Leaf1",
@@ -1667,7 +1667,7 @@ struct DeleteKeys
         );
         RECORD(
             "delete wow64 flags A",
-            VRegDeleteKeyExA(
+            VReg_DeleteKeyExA(
                 api,
                 hRoot,
                 "Leaf2",
@@ -1677,7 +1677,7 @@ struct DeleteKeys
         );
         RECORD(
             "delete other flags",
-            VRegDeleteKeyExW(
+            VReg_DeleteKeyExW(
                 api,
                 hRoot,
                 L"Leaf3",
@@ -1687,7 +1687,7 @@ struct DeleteKeys
         );
         RECORD(
             "delete invalid handle",
-            VRegDeleteKeyExW(
+            VReg_DeleteKeyExW(
                 api,
                 nullptr,
                 L"Leaf4\u00e4",
@@ -1697,7 +1697,7 @@ struct DeleteKeys
         );
         RECORD(
             "delete invalid handle A",
-            VRegDeleteKeyA(
+            VReg_DeleteKeyA(
                 api,
                 nullptr,
                 "Leaf4\xe4"
@@ -1705,7 +1705,7 @@ struct DeleteKeys
         );
         RECORD(
             "delete nested",
-            VRegDeleteKeyW(
+            VReg_DeleteKeyW(
                 api,
                 hRoot,
                 L"Parent\\Child"
@@ -1713,7 +1713,7 @@ struct DeleteKeys
         );
         RECORD(
             "delete nested again",
-            VRegDeleteKeyW(
+            VReg_DeleteKeyW(
                 api,
                 hRoot,
                 L"Parent\\Child"
@@ -1721,7 +1721,7 @@ struct DeleteKeys
         );
         RECORD(
             "delete parent",
-            VRegDeleteKeyA(
+            VReg_DeleteKeyA(
                 api,
                 hRoot,
                 "parent"
@@ -1729,7 +1729,7 @@ struct DeleteKeys
         );
         RECORD(
             "delete A non-ASCII",
-            VRegDeleteKeyA(
+            VReg_DeleteKeyA(
                 api,
                 hRoot,
                 "Leaf4\xe4"
@@ -1737,7 +1737,7 @@ struct DeleteKeys
         );
         RECORD(
             "delete backslash",
-            VRegDeleteKeyW(
+            VReg_DeleteKeyW(
                 api,
                 hRoot,
                 L"\\"
@@ -1745,7 +1745,7 @@ struct DeleteKeys
         );
         RECORD(
             "delete long",
-            VRegDeleteKeyW(
+            VReg_DeleteKeyW(
                 api,
                 hRoot,
                 std::wstring(300, L'k').c_str()
@@ -1753,7 +1753,7 @@ struct DeleteKeys
         );
         RECORD(
             "delete trailing slash",
-            VRegDeleteKeyW(
+            VReg_DeleteKeyW(
                 api,
                 hRoot,
                 L"Leaf5\\"
@@ -1772,7 +1772,7 @@ struct DeleteKeys
         )
         {
             hKey = FillKey();
-            const auto status = VRegOpenKeyExW(
+            const auto status = VReg_OpenKeyExW(
                 api,
                 hRoot,
                 pszSub,
@@ -1784,7 +1784,7 @@ struct DeleteKeys
             if (status == ERROR_SUCCESS)
                 RECORD(
                 "close",
-                VRegCloseKey(
+                VReg_CloseKey(
                     api,
                     hKey
                 )
@@ -1805,7 +1805,7 @@ struct OperateOnDeletedKey
         const BYTE data[4] = {1, 2, 3, 4};
         RECORD(
             "create",
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 api,
                 hRoot,
                 L"Doomed",
@@ -1820,7 +1820,7 @@ struct OperateOnDeletedKey
         );
         RECORD(
             "set",
-            VRegSetValueExW(
+            VReg_SetValueExW(
                 api,
                 hKey,
                 L"v",
@@ -1832,7 +1832,7 @@ struct OperateOnDeletedKey
         );
         RECORD(
             "delete",
-            VRegDeleteKeyExW(
+            VReg_DeleteKeyExW(
                 api,
                 hRoot,
                 L"Doomed",
@@ -1846,7 +1846,7 @@ struct OperateOnDeletedKey
         out.fill(FILL);
         RECORD(
             "query",
-            VRegQueryValueExW(
+            VReg_QueryValueExW(
                 api,
                 hKey,
                 L"v",
@@ -1861,7 +1861,7 @@ struct OperateOnDeletedKey
         cbData = 4;
         RECORD(
             "query A",
-            VRegQueryValueExA(
+            VReg_QueryValueExA(
                 api,
                 hKey,
                 "v",
@@ -1875,7 +1875,7 @@ struct OperateOnDeletedKey
         );
         RECORD(
             "set after",
-            VRegSetValueExW(
+            VReg_SetValueExW(
                 api,
                 hKey,
                 L"w",
@@ -1887,7 +1887,7 @@ struct OperateOnDeletedKey
         );
         RECORD(
             "set after A",
-            VRegSetValueExA(
+            VReg_SetValueExA(
                 api,
                 hKey,
                 "w",
@@ -1899,7 +1899,7 @@ struct OperateOnDeletedKey
         );
         RECORD(
             "delete value after",
-            VRegDeleteValueW(
+            VReg_DeleteValueW(
                 api,
                 hKey,
                 L"v"
@@ -1908,7 +1908,7 @@ struct OperateOnDeletedKey
         HKEY hChild = FillKey();
         RECORD(
             "create child after",
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 api,
                 hKey,
                 L"Child",
@@ -1925,7 +1925,7 @@ struct OperateOnDeletedKey
         hChild = FillKey();
         RECORD(
             "open child after",
-            VRegOpenKeyExW(
+            VReg_OpenKeyExW(
                 api,
                 hKey,
                 L"Child",
@@ -1939,7 +1939,7 @@ struct OperateOnDeletedKey
         DWORD cchName = 8;
         RECORD(
             "enum key after",
-            VRegEnumKeyExW(
+            VReg_EnumKeyExW(
                 api,
                 hKey,
                 0,
@@ -1954,7 +1954,7 @@ struct OperateOnDeletedKey
         cchName = 8;
         RECORD(
             "enum value after",
-            VRegEnumValueW(
+            VReg_EnumValueW(
                 api,
                 hKey,
                 0,
@@ -1968,7 +1968,7 @@ struct OperateOnDeletedKey
         );
         RECORD(
             "query info after",
-            VRegQueryInfoKeyW(
+            VReg_QueryInfoKeyW(
                 api,
                 hKey,
                 nullptr,
@@ -1986,14 +1986,14 @@ struct OperateOnDeletedKey
         );
         RECORD(
             "flush after",
-            VRegFlushKey(
+            VReg_FlushKey(
                 api,
                 hKey
             )
         );
         RECORD(
             "delete tree after",
-            VRegDeleteTreeW(
+            VReg_DeleteTreeW(
                 api,
                 hKey,
                 nullptr
@@ -2001,7 +2001,7 @@ struct OperateOnDeletedKey
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
@@ -2032,7 +2032,7 @@ struct DeleteTrees
         )
             RECORD(
             "set " + Narrow(pszSub),
-            VRegSetKeyValueW(
+            VReg_SetKeyValueW(
                 api,
                 hRoot,
                 pszSub,
@@ -2045,7 +2045,7 @@ struct DeleteTrees
 
         RECORD(
             "tree missing",
-            VRegDeleteTreeW(
+            VReg_DeleteTreeW(
                 api,
                 hRoot,
                 L"Missing"
@@ -2053,7 +2053,7 @@ struct DeleteTrees
         );
         RECORD(
             "tree missing A",
-            VRegDeleteTreeA(
+            VReg_DeleteTreeA(
                 api,
                 hRoot,
                 "Missing"
@@ -2061,7 +2061,7 @@ struct DeleteTrees
         );
         RECORD(
             "tree nested",
-            VRegDeleteTreeW(
+            VReg_DeleteTreeW(
                 api,
                 hRoot,
                 L"T\\A\\B"
@@ -2069,7 +2069,7 @@ struct DeleteTrees
         );
         RECORD(
             "tree nested again",
-            VRegDeleteTreeW(
+            VReg_DeleteTreeW(
                 api,
                 hRoot,
                 L"T\\A\\B"
@@ -2077,7 +2077,7 @@ struct DeleteTrees
         );
         RECORD(
             "tree A",
-            VRegDeleteTreeA(
+            VReg_DeleteTreeA(
                 api,
                 hRoot,
                 "u\xe4"
@@ -2085,7 +2085,7 @@ struct DeleteTrees
         );
         RECORD(
             "tree A again",
-            VRegDeleteTreeA(
+            VReg_DeleteTreeA(
                 api,
                 hRoot,
                 "u\xe4"
@@ -2093,7 +2093,7 @@ struct DeleteTrees
         );
         RECORD(
             "tree invalid handle",
-            VRegDeleteTreeW(
+            VReg_DeleteTreeW(
                 api,
                 nullptr,
                 L"T"
@@ -2101,7 +2101,7 @@ struct DeleteTrees
         );
         RECORD(
             "tree invalid handle A",
-            VRegDeleteTreeA(
+            VReg_DeleteTreeA(
                 api,
                 nullptr,
                 "T"
@@ -2109,7 +2109,7 @@ struct DeleteTrees
         );
         RECORD(
             "tree invalid handle null sub",
-            VRegDeleteTreeW(
+            VReg_DeleteTreeW(
                 api,
                 nullptr,
                 nullptr
@@ -2119,7 +2119,7 @@ struct DeleteTrees
         HKEY hKey{};
         RECORD(
             "open",
-            VRegOpenKeyExW(
+            VReg_OpenKeyExW(
                 api,
                 hRoot,
                 L"V",
@@ -2130,7 +2130,7 @@ struct DeleteTrees
         );
         RECORD(
             "tree contents via null W",
-            VRegDeleteTreeW(
+            VReg_DeleteTreeW(
                 api,
                 hKey,
                 nullptr
@@ -2138,7 +2138,7 @@ struct DeleteTrees
         );
         RECORD(
             "tree contents via empty A",
-            VRegDeleteTreeA(
+            VReg_DeleteTreeA(
                 api,
                 hKey,
                 ""
@@ -2148,7 +2148,7 @@ struct DeleteTrees
         DWORD cValues = FILL_SIZE;
         RECORD(
             "info",
-            VRegQueryInfoKeyW(
+            VReg_QueryInfoKeyW(
                 api,
                 hKey,
                 nullptr,
@@ -2170,7 +2170,7 @@ struct DeleteTrees
         );
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )
@@ -2180,7 +2180,7 @@ struct DeleteTrees
         {
             RECORD(
                 "open read",
-                VRegOpenKeyExW(
+                VReg_OpenKeyExW(
                     api,
                     hRoot,
                     L"W",
@@ -2191,7 +2191,7 @@ struct DeleteTrees
             );
             RECORD(
                 "tree on read key",
-                VRegDeleteTreeW(
+                VReg_DeleteTreeW(
                     api,
                     hKey,
                     L"X"
@@ -2199,7 +2199,7 @@ struct DeleteTrees
             );
             RECORD(
                 "close",
-                VRegCloseKey(
+                VReg_CloseKey(
                     api,
                     hKey
                 )
@@ -2208,7 +2208,7 @@ struct DeleteTrees
 
         RECORD(
             "tree top",
-            VRegDeleteTreeW(
+            VReg_DeleteTreeW(
                 api,
                 hRoot,
                 L"T"
@@ -2216,7 +2216,7 @@ struct DeleteTrees
         );
         RECORD(
             "tree trailing slash",
-            VRegDeleteTreeW(
+            VReg_DeleteTreeW(
                 api,
                 hRoot,
                 L"X\\"
@@ -2225,7 +2225,7 @@ struct DeleteTrees
 
         RECORD(
             "tree root",
-            VRegDeleteTreeW(
+            VReg_DeleteTreeW(
                 api,
                 hRoot,
                 nullptr
@@ -2235,7 +2235,7 @@ struct DeleteTrees
         cValues = FILL_SIZE;
         RECORD(
             "root info",
-            VRegQueryInfoKeyW(
+            VReg_QueryInfoKeyW(
                 api,
                 hRoot,
                 nullptr,
@@ -2269,7 +2269,7 @@ struct FlushAndNotify
         HKEY hKey{};
         RECORD(
             "create",
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 api,
                 hRoot,
                 L"Sub",
@@ -2284,21 +2284,21 @@ struct FlushAndNotify
         );
         RECORD(
             "flush root",
-            VRegFlushKey(
+            VReg_FlushKey(
                 api,
                 hRoot
             )
         );
         RECORD(
             "flush sub",
-            VRegFlushKey(
+            VReg_FlushKey(
                 api,
                 hKey
             )
         );
         RECORD(
             "flush invalid handle",
-            VRegFlushKey(
+            VReg_FlushKey(
                 api,
                 nullptr
             )
@@ -2307,7 +2307,7 @@ struct FlushAndNotify
         const HANDLE hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
         RECORD(
             "notify async",
-            VRegNotifyChangeKeyValue(
+            VReg_NotifyChangeKeyValue(
                 api,
                 hKey,
                 TRUE,
@@ -2318,7 +2318,7 @@ struct FlushAndNotify
         );
         RECORD(
             "notify async filter name",
-            VRegNotifyChangeKeyValue(
+            VReg_NotifyChangeKeyValue(
                 api,
                 hKey,
                 FALSE,
@@ -2329,7 +2329,7 @@ struct FlushAndNotify
         );
         RECORD(
             "notify async thread agnostic",
-            VRegNotifyChangeKeyValue(
+            VReg_NotifyChangeKeyValue(
                 api,
                 hKey,
                 FALSE,
@@ -2340,7 +2340,7 @@ struct FlushAndNotify
         );
         RECORD(
             "notify async no filter",
-            VRegNotifyChangeKeyValue(
+            VReg_NotifyChangeKeyValue(
                 api,
                 hKey,
                 FALSE,
@@ -2351,7 +2351,7 @@ struct FlushAndNotify
         );
         RECORD(
             "notify async bad filter",
-            VRegNotifyChangeKeyValue(
+            VReg_NotifyChangeKeyValue(
                 api,
                 hKey,
                 FALSE,
@@ -2362,7 +2362,7 @@ struct FlushAndNotify
         );
         RECORD(
             "notify async no event",
-            VRegNotifyChangeKeyValue(
+            VReg_NotifyChangeKeyValue(
                 api,
                 hKey,
                 FALSE,
@@ -2373,7 +2373,7 @@ struct FlushAndNotify
         );
         RECORD(
             "notify invalid handle",
-            VRegNotifyChangeKeyValue(
+            VReg_NotifyChangeKeyValue(
                 api,
                 nullptr,
                 FALSE,
@@ -2386,7 +2386,7 @@ struct FlushAndNotify
         const BYTE data[4] = {1, 2, 3, 4};
         RECORD(
             "set after notify",
-            VRegSetValueExW(
+            VReg_SetValueExW(
                 api,
                 hKey,
                 L"v",
@@ -2398,7 +2398,7 @@ struct FlushAndNotify
         );
         RECORD(
             "notify async again",
-            VRegNotifyChangeKeyValue(
+            VReg_NotifyChangeKeyValue(
                 api,
                 hKey,
                 FALSE,
@@ -2410,7 +2410,7 @@ struct FlushAndNotify
         CloseHandle(hEvent);
         RECORD(
             "close",
-            VRegCloseKey(
+            VReg_CloseKey(
                 api,
                 hKey
             )

@@ -38,7 +38,7 @@ struct Spec
 bool KeyExists(VReg* const registry, const wchar_t* const pszPath) noexcept
 {
     HKEY hKey{};
-    const auto status = VRegOpenKeyExW(
+    const auto status = VReg_OpenKeyExW(
         registry,
         HKEY_CURRENT_USER,
         pszPath,
@@ -47,7 +47,7 @@ bool KeyExists(VReg* const registry, const wchar_t* const pszPath) noexcept
         &hKey
     );
     if (status == ERROR_SUCCESS)
-        VRegCloseKey(
+        VReg_CloseKey(
             registry,
             hKey
         );
@@ -138,7 +138,7 @@ TEST_CASE("Apply deletes values and keys")
         const HKEY hKey = MustOpen(registry, L"T");
         DWORD dwType{};
         CHECK(
-            VRegQueryValueExW(
+            VReg_QueryValueExW(
                 registry,
                 hKey,
                 L"a",
@@ -149,7 +149,7 @@ TEST_CASE("Apply deletes values and keys")
             ) == ERROR_FILE_NOT_FOUND
         );
         CHECK(
-            VRegQueryValueExW(
+            VReg_QueryValueExW(
                 registry,
                 hKey,
                 L"",
@@ -160,7 +160,7 @@ TEST_CASE("Apply deletes values and keys")
             ) == ERROR_FILE_NOT_FOUND
         );
         CHECK(
-            VRegQueryValueExW(
+            VReg_QueryValueExW(
                 registry,
                 hKey,
                 L"b",
@@ -170,7 +170,7 @@ TEST_CASE("Apply deletes values and keys")
                 nullptr
             ) == ERROR_SUCCESS
         );
-        VRegCloseKey(
+        VReg_CloseKey(
             registry,
             hKey
         );
@@ -213,7 +213,7 @@ TEST_CASE("Apply deletes values and keys")
             missingValue.View(),
         };
         CHECK(
-            VRegApplyOperations(
+            VReg_ApplyOperations(
                 operations.data(),
                 operations.size(),
                 registry,
@@ -242,7 +242,7 @@ TEST_CASE("Delete then create replaces a key")
     CheckValue(registry, L"T", L"z", REG_DWORD, DwordBytes(2));
     const HKEY hKey = MustOpen(registry, L"T");
     CHECK(
-        VRegQueryValueExW(
+        VReg_QueryValueExW(
             registry,
             hKey,
             L"y",
@@ -252,7 +252,7 @@ TEST_CASE("Delete then create replaces a key")
             nullptr
         ) == ERROR_FILE_NOT_FOUND
     );
-    VRegCloseKey(
+    VReg_CloseKey(
         registry,
         hKey
     );
@@ -274,7 +274,7 @@ TEST_CASE("Apply stops at the first failing operation")
 
     SIZE_T failed = 99;
     CHECK(
-        VRegApplyOperations(
+        VReg_ApplyOperations(
             operations.data(),
             operations.size(),
             registry,
@@ -287,7 +287,7 @@ TEST_CASE("Apply stops at the first failing operation")
     CHECK_FALSE(KeyExists(registry, L"Never"));
 
     CHECK(
-        VRegApplyOperations(
+        VReg_ApplyOperations(
             operations.data(),
             operations.size(),
             registry,
@@ -308,7 +308,7 @@ TEST_CASE("Apply refuses an operation that would delete a root")
 
     SIZE_T failed = 99;
     CHECK(
-        VRegApplyOperations(
+        VReg_ApplyOperations(
             &operation,
             1,
             registry,
@@ -325,7 +325,7 @@ TEST_CASE("An empty script applies to nothing")
     AppHiveRegistry registry(hive.Root());
     SIZE_T failed = 99;
     CHECK(
-        VRegApplyOperations(
+        VReg_ApplyOperations(
             nullptr,
             0,
             registry,

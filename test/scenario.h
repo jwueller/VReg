@@ -137,7 +137,7 @@ inline void CloseUnlessParent(
         return;
     RECORD(
         label + " close",
-        VRegCloseKey(
+        VReg_CloseKey(
             api,
             hKey
         )
@@ -164,7 +164,7 @@ inline LSTATUS SetStored(
 {
     auto guarded = value.data;
     guarded.insert(guarded.end(), 4, BYTE{0x58});
-    return VRegSetValueExW(
+    return VReg_SetValueExW(
         api,
         hKey,
         value.name.c_str(),
@@ -194,7 +194,7 @@ inline LSTATUS QueryEx(
     LPDWORD pcbData
 ) noexcept
 {
-    return VRegQueryValueExW(
+    return VReg_QueryValueExW(
         api,
         hKey,
         pszName,
@@ -214,7 +214,7 @@ inline LSTATUS QueryEx(
     LPDWORD pcbData
 ) noexcept
 {
-    return VRegQueryValueExA(
+    return VReg_QueryValueExA(
         api,
         hKey,
         pszName,

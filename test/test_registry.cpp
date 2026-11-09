@@ -32,7 +32,7 @@ LSTATUS SetString(
     const std::wstring& text
 ) noexcept
 {
-    return VRegSetValueExW(
+    return VReg_SetValueExW(
         registry,
         hKey,
         pszName,
@@ -50,7 +50,7 @@ LSTATUS SetDword(
     const DWORD dwValue
 ) noexcept
 {
-    return VRegSetValueExW(
+    return VReg_SetValueExW(
         registry,
         hKey,
         pszName,
@@ -145,7 +145,7 @@ LSTATUS WINAPI GrowingGetValueW(
 OwnedRegistry GrowingRegistry()
 {
     OwnedRegistry registry = MakeNativeRegistry();
-    VRegNativeFunctions* const pFunctions = VRegGetNativeFunctions(registry);
+    VRegNativeFunctions* const pFunctions = VReg_GetNativeFunctions(registry);
     pFunctions->RegQueryValueExW = &GrowingQueryValueExW;
     pFunctions->RegGetValueW = &GrowingGetValueW;
     return registry;
@@ -170,7 +170,7 @@ TEST_CASE("QueryValue returns the type and the bytes")
         ) == ERROR_SUCCESS
     );
     REQUIRE(
-        VRegSetValueExW(
+        VReg_SetValueExW(
             registry,
             hive.Root(),
             L"Empty",
@@ -268,7 +268,7 @@ TEST_CASE("GetValue applies the flags")
     OwnedRegistry registry = MakeNativeRegistry();
 
     REQUIRE(
-        VRegSetKeyValueW(
+        VReg_SetKeyValueW(
             registry,
             hive.Root(),
             L"Sub",
@@ -526,7 +526,7 @@ TEST_CASE("EnumKey walks the subkeys to the end")
     {
         HKEY hKey{};
         REQUIRE(
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 registry,
                 hive.Root(),
                 name.c_str(),
@@ -540,7 +540,7 @@ TEST_CASE("EnumKey walks the subkeys to the end")
             )
             == ERROR_SUCCESS
         );
-        VRegCloseKey(
+        VReg_CloseKey(
             registry,
             hKey
         );
@@ -689,7 +689,7 @@ LSTATUS WINAPI StubLoadMUIStringW(
 TEST_CASE("LoadMUIString grows its buffer to the size it is told")
 {
     OwnedRegistry registry = MakeNativeRegistry();
-    VRegGetNativeFunctions(registry)->RegLoadMUIStringW = &StubLoadMUIStringW;
+    VReg_GetNativeFunctions(registry)->RegLoadMUIStringW = &StubLoadMUIStringW;
 
     std::wstring text;
     CHECK(

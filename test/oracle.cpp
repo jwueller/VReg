@@ -57,7 +57,7 @@ VirtualHive::VirtualHive() :
     m_hive(MakeHive()),
     m_registry(MakeVirtualRegistry())
 {
-    REQUIRE(VRegMount(m_registry, HKEY_CURRENT_USER, L"VRegOracle", m_hive, 0) == ERROR_SUCCESS);
+    REQUIRE(VReg_Mount(m_registry, HKEY_CURRENT_USER, L"VRegOracle", m_hive, 0) == ERROR_SUCCESS);
 }
 
 VReg* VirtualHive::Registry() noexcept
@@ -79,7 +79,7 @@ OverlayMount::OverlayMount() :
     m_native(MakeNativeRegistry())
 {
     REQUIRE(
-        VRegCreateKeyExW(
+        VReg_CreateKeyExW(
             m_native,
             m_appHive.Root(),
             L"Lower",
@@ -95,12 +95,12 @@ OverlayMount::OverlayMount() :
     );
     m_hive = MakeLayeredHive(m_native, m_appHive.Root(), L"Lower");
     m_registry = MakeVirtualRegistry(m_native);
-    REQUIRE(VRegMount(m_registry, HKEY_CURRENT_USER, L"VRegOracle", m_hive, 0) == ERROR_SUCCESS);
+    REQUIRE(VReg_Mount(m_registry, HKEY_CURRENT_USER, L"VRegOracle", m_hive, 0) == ERROR_SUCCESS);
 }
 
 OverlayMount::~OverlayMount()
 {
-    VRegCloseKey(
+    VReg_CloseKey(
         m_native,
         m_hLower
     );

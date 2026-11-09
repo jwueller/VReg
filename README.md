@@ -10,13 +10,13 @@ It grew out of the virtual registry in [DirectRetrofit](https://retrofit.games).
 ## What it does
 
 - **The Win32 `Reg*` function family as an interface.** A `VReg` is an
-  opaque registry handle; the flat `VReg*` functions take it first and
+  opaque registry handle; the flat `VReg_*` functions take it first and
   mirror every member of the family, names and signatures alike (ANSI and
   wide, `Ex` and pre-`Ex`), and the `UNICODE` macros select among them as
   among the functions. Native, virtual and in-memory registries are
-  interchangeable behind it, and `VRegCreateCustom` makes one from a
+  interchangeable behind it, and `VReg_CreateCustom` makes one from a
   function table of your own (a `VRegVtbl` with a slot per form) and an
-  object its slots reach through `VRegGetContext`; a slot left null is
+  object its slots reach through `VReg_GetContext`; a slot left null is
   derived from the wide `Ex` forms. Each form has a function typedef
   (`VRegOpenKeyExWFunction`) that the flat function and the slot share.
 - **Hives mounted into a virtual namespace.** A virtual registry mounts
@@ -25,7 +25,7 @@ It grew out of the virtual registry in [DirectRetrofit](https://retrofit.games).
   and deletes keys and values over the registry below it, while real values
   it does not override stay visible.
 - **Hives as a function table.** A hive can be supplied as a table of slots
-  (a `VRegHiveVtbl`, made into a hive with `VRegCreateCustomHive`) over an
+  (a `VRegHiveVtbl`, made into a hive with `VRegHive_CreateCustom`) over an
   object of your own, so a data structure of yours, or values computed on
   each read, show as registry keys, while VReg keeps every Win32 rule:
   handles, caller buffers, ANSI and wide, views and mounts.
@@ -116,17 +116,17 @@ else is the real registry.
 VReg* native;
 VReg* registry;
 VRegHive* overlay;
-VRegCreateNative(&native);
-VRegCreateLayeredHive(native, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", 0, &overlay);
-VRegCreateVirtual(native, &registry);
-VRegMount(registry, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", overlay, 0);
+VReg_CreateNative(&native);
+VRegHive_CreateLayered(native, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", 0, &overlay);
+VReg_CreateVirtual(native, &registry);
+VReg_Mount(registry, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", overlay, 0);
 
 const DWORD dwOne = 1;
-VRegSetKeyValueW(registry, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", L"Windowed", REG_DWORD, &dwOne, sizeof(dwOne));
+VReg_SetKeyValueW(registry, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", L"Windowed", REG_DWORD, &dwOne, sizeof(dwOne));
 ```
 
-Writes stay in memory. `VRegDeltaScript` collects them as a `.reg` script
-whose operations `VRegWriteScriptFile` saves and `VRegApplyOperations`
+Writes stay in memory. `VRegScript_Delta` collects them as a `.reg` script
+whose operations `VRegScript_WriteFile` saves and `VReg_ApplyOperations`
 replays later. Every status is the `LSTATUS` the native function answers;
 the creation functions answer `ERROR_OUTOFMEMORY` when memory ran out.
 
@@ -140,11 +140,11 @@ stays the hive's own.
 VRegHive* machine;
 VRegHive* user;
 VReg* registry;
-VRegCreateHive(&machine);
-VRegCreateHive(&user);
-VRegCreateVirtual(NULL, &registry);   // no base: nothing else exists
-VRegMount(registry, HKEY_LOCAL_MACHINE, L"", machine, 0);
-VRegMount(registry, HKEY_CURRENT_USER, L"", user, 0);
+VRegHive_Create(&machine);
+VRegHive_Create(&user);
+VReg_CreateVirtual(NULL, &registry);   // no base: nothing else exists
+VReg_Mount(registry, HKEY_LOCAL_MACHINE, L"", machine, 0);
+VReg_Mount(registry, HKEY_CURRENT_USER, L"", user, 0);
 ```
 
 ### Supplying a hive
@@ -162,12 +162,12 @@ static LSTATUS WINAPI OpenKey(VRegHive* hive, VRegHiveKey* parent, LPCWSTR name,
 static LSTATUS SetTicks(VRegHiveResult* result)
 {
     const DWORD ticks = GetTickCount();
-    return VRegHiveResultSetValue(result, REG_DWORD, (const BYTE*)&ticks, sizeof(ticks));
+    return VRegHiveResult_SetValue(result, REG_DWORD, (const BYTE*)&ticks, sizeof(ticks));
 }
 
 static LSTATUS WINAPI QueryValue(VRegHive* hive, VRegHiveKey* key, LPCWSTR name, VRegHiveResult* result)
 {
-    return VRegCompareNames(name, L"Ticks") == 0 ? SetTicks(result) : ERROR_FILE_NOT_FOUND;
+    return VReg_CompareNames(name, L"Ticks") == 0 ? SetTicks(result) : ERROR_FILE_NOT_FOUND;
 }
 
 static LSTATUS WINAPI EnumKey(VRegHive* hive, VRegHiveKey* key, DWORD index, VRegHiveResult* result)
@@ -179,7 +179,7 @@ static LSTATUS WINAPI EnumValue(VRegHive* hive, VRegHiveKey* key, DWORD index, V
 {
     if (index != 0)
         return ERROR_NO_MORE_ITEMS;
-    const LSTATUS status = VRegHiveResultSetName(result, L"Ticks");
+    const LSTATUS status = VRegHiveResult_SetName(result, L"Ticks");
     return status == ERROR_SUCCESS ? SetTicks(result) : status;
 }
 
@@ -187,16 +187,16 @@ static const VRegHiveVtbl CLOCK = {.OpenKey = OpenKey, .QueryValue = QueryValue,
 
 VRegHive* clock;
 VReg* registry;
-VRegCreateCustomHive(&CLOCK, NULL, &clock);   // the context: VRegGetHiveContext
-VRegCreateVirtual(NULL, &registry);
-VRegMount(registry, HKEY_CURRENT_USER, L"Software\\Clock", clock, 0);
+VRegHive_CreateCustom(&CLOCK, NULL, &clock);   // the context: VRegHive_GetContext
+VReg_CreateVirtual(NULL, &registry);
+VReg_Mount(registry, HKEY_CURRENT_USER, L"Software\\Clock", clock, 0);
 ```
 
 `OpenKey`, `QueryValue`, `EnumKey` and `EnumValue` are required. VReg opens
 and creates one name at a time and keeps a record of each key it reached,
 which a slot receives as its `VRegHiveKey`: the provider's own token for it
-(`VRegGetHiveKeyToken`, what `OpenKey` or `CreateKey` answered), its name
-and its parent. Results go through the `VRegHiveResultSet*` functions,
+(`VRegHiveKey_GetToken`, what `OpenKey` or `CreateKey` answered), its name
+and its parent. Results go through the `VRegHiveResult_Set*` functions,
 which copy, so a computed value can live on the stack.
 
 - **Writes** go through to `CreateKey`, `DeleteKey`, `DeleteTree`,
@@ -211,13 +211,13 @@ which copy, so a computed value can live on the stack.
   wait on a lock a loader-lock holder could own. VReg holds no lock of its
   own across a slot call; the provider locks its own state.
 - **Names** arrive as the caller passed them and MUST compare as the
-  registry compares them: `VRegCompareNames`.
+  registry compares them: `VReg_CompareNames`.
 - **Registry rules**: `DeleteKey` on a key with subkeys MUST answer
   `ERROR_ACCESS_DENIED`, as native does. Enumeration order MUST stay stable
   while nothing changes. Two reads of a value MAY differ; VReg's reads
   retry when it grows. No slot sees the access a key was opened with.
 - **Changes the provider makes on its own** fire watches through
-  `VRegNotifyHiveChange`, called from the provider's own thread, never from
+  `VRegHive_NotifyChange`, called from the provider's own thread, never from
   inside a slot.
 
 ### Hooked into the process
@@ -227,13 +227,13 @@ which copy, so a computed value can live on the stack.
 VReg* native;
 VReg* registry;
 VRegHive* hive;
-VRegCreateNative(&native);
-VRegCreateVirtual(native, &registry);
-VRegCreateHive(&hive);
-VRegMount(registry, HKEY_LOCAL_MACHINE, L"Software\\Vendor\\Game", hive, 0);
-// Fill the hive through registry (or VRegApplyOperations), then:
-VRegFreezeHive(hive);
-VRegInstallHooks(registry, native);
+VReg_CreateNative(&native);
+VReg_CreateVirtual(native, &registry);
+VRegHive_Create(&hive);
+VReg_Mount(registry, HKEY_LOCAL_MACHINE, L"Software\\Vendor\\Game", hive, 0);
+// Fill the hive through registry (or VReg_ApplyOperations), then:
+VRegHive_Freeze(hive);
+VRegHooks_Install(registry, native);
 ```
 
 From then on the process's own `Reg*` calls see the mount. A frozen hive is
@@ -254,7 +254,7 @@ write into it.
   code unmapped.
 - **Several modules** MAY each link VReg and install their own hooks; their
   handles never collide, and each answers only its own mounts.
-- **Tracing:** `VRegInstallHooks` takes any `VReg`, so a table
+- **Tracing:** `VRegHooks_Install` takes any `VReg`, so a table
   that logs each call and forwards it to the virtual registry can stand in
   front of it; a form it leaves null reaches it as the wide `Ex` form.
 - **MUI strings:** `RegLoadMUIString` resolves an `@` indirect string in a
@@ -272,7 +272,7 @@ Calls straight to `ntdll` (`NtOpenKey` and friends) bypass the hooks; see
 
 ## Supported functions
 
-As flat functions (`VRegOpenKeyExW` and so on, the registry first) and
+As flat functions (`VReg_OpenKeyExW` and so on, the registry first) and
 table slots, and, once hooked, for every virtual key.
 
 #### Open, create and close

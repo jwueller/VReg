@@ -129,7 +129,7 @@ void WriterLoop(
         {
             HKEY hKey{};
             const auto status =
-                VRegCreateKeyExW(
+                VReg_CreateKeyExW(
                     registry,
                     hRoot,
                     path.c_str(),
@@ -143,7 +143,7 @@ void WriterLoop(
                 );
             Judge(shared, status);
             if (status == ERROR_SUCCESS)
-                VRegCloseKey(
+                VReg_CloseKey(
                     registry,
                     hKey
                 );
@@ -153,7 +153,7 @@ void WriterLoop(
         case 3:
         {
             HKEY hKey{};
-            const auto status = VRegOpenKeyExW(
+            const auto status = VReg_OpenKeyExW(
                 registry,
                 hRoot,
                 path.c_str(),
@@ -170,7 +170,7 @@ void WriterLoop(
             const DWORD dwValue = ValueData(index);
             Judge(
                 shared,
-                VRegSetValueExW(
+                VReg_SetValueExW(
                     registry,
                     hKey,
                     name.c_str(),
@@ -180,7 +180,7 @@ void WriterLoop(
                     sizeof(dwValue)
                 )
             );
-            VRegCloseKey(
+            VReg_CloseKey(
                 registry,
                 hKey
             );
@@ -189,7 +189,7 @@ void WriterLoop(
         case 4:
         {
             HKEY hKey{};
-            const auto status = VRegOpenKeyExW(
+            const auto status = VReg_OpenKeyExW(
                 registry,
                 hRoot,
                 path.c_str(),
@@ -203,13 +203,13 @@ void WriterLoop(
 
             Judge(
                 shared,
-                VRegDeleteValueW(
+                VReg_DeleteValueW(
                     registry,
                     hKey,
                     ValueName(random.Next(VALUES)).c_str()
                 )
             );
-            VRegCloseKey(
+            VReg_CloseKey(
                 registry,
                 hKey
             );
@@ -218,7 +218,7 @@ void WriterLoop(
         case 5:
             Judge(
                 shared,
-                VRegDeleteKeyExW(
+                VReg_DeleteKeyExW(
                     registry,
                     hRoot,
                     path.c_str(),
@@ -232,7 +232,7 @@ void WriterLoop(
             if (random.Next(8) == 0)
                 Judge(
                     shared,
-                    VRegDeleteTreeW(
+                    VReg_DeleteTreeW(
                         registry,
                         hRoot,
                         KeyName(random.Next(KEYS)).c_str()
@@ -260,7 +260,7 @@ void ReadKey(
         const auto index = random.Next(VALUES);
         const auto name = ValueName(index);
         const auto status =
-            VRegQueryValueExW(
+            VReg_QueryValueExW(
                 registry,
                 hKey,
                 name.c_str(),
@@ -282,7 +282,7 @@ void ReadKey(
         {
             wchar_t szName[64];
             DWORD cchName = ARRAYSIZE(szName);
-            const auto status = VRegEnumKeyExW(
+            const auto status = VReg_EnumKeyExW(
                 registry,
                 hKey,
                 i,
@@ -307,7 +307,7 @@ void ReadKey(
             BYTE data[16];
             DWORD cbData = sizeof(data);
             const auto status =
-                VRegEnumValueW(
+                VReg_EnumValueW(
                     registry,
                     hKey,
                     i,
@@ -327,7 +327,7 @@ void ReadKey(
     {
         DWORD cSubKeys{};
         DWORD cValues{};
-        const auto status = VRegQueryInfoKeyW(
+        const auto status = VReg_QueryInfoKeyW(
             registry,
             hKey,
             nullptr,
@@ -366,7 +366,7 @@ void ReaderLoop(
     {
         const auto path = RandomPath(random);
         HKEY hKey{};
-        const auto status = VRegOpenKeyExW(
+        const auto status = VReg_OpenKeyExW(
             registry,
             hRoot,
             path.c_str(),
@@ -383,7 +383,7 @@ void ReaderLoop(
         for (int i = 0; i < 4; ++i)
             ReadKey(registry, hKey, shared, random);
 
-        VRegCloseKey(
+        VReg_CloseKey(
             registry,
             hKey
         );
@@ -398,7 +398,7 @@ void WatcherLoop(VReg* const registry, const HKEY hRoot, Shared& shared) noexcep
     {
         ResetEvent(hEvent);
         const auto status =
-            VRegNotifyChangeKeyValue(
+            VReg_NotifyChangeKeyValue(
                 registry,
                 hRoot,
                 TRUE,
@@ -424,7 +424,7 @@ void ExporterLoop(
     while (!shared.isStopped.load(std::memory_order_relaxed))
     {
         OwnedScript script;
-        const auto status = VRegSnapshotScript(registry, HKEY_CURRENT_USER, pszMount, script.Receive());
+        const auto status = VRegScript_Snapshot(registry, HKEY_CURRENT_USER, pszMount, script.Receive());
         // A key may be deleted between listing and opening it.
         if (status == ERROR_SUCCESS)
             shared.cSnapshots.fetch_add(1, std::memory_order_relaxed);
@@ -442,7 +442,7 @@ void CheckConsistent(VReg* const registry, const HKEY hRoot)
     {
         wchar_t szName[64];
         DWORD cchName = ARRAYSIZE(szName);
-        const auto status = VRegEnumKeyExW(
+        const auto status = VReg_EnumKeyExW(
             registry,
             hRoot,
             i,
@@ -461,7 +461,7 @@ void CheckConsistent(VReg* const registry, const HKEY hRoot)
 
     DWORD cSubKeys{};
     REQUIRE(
-        VRegQueryInfoKeyW(
+        VReg_QueryInfoKeyW(
             registry,
             hRoot,
             nullptr,
@@ -483,7 +483,7 @@ void CheckConsistent(VReg* const registry, const HKEY hRoot)
     for (unsigned k = 0; k < KEYS; ++k)
     {
         HKEY hKey{};
-        const auto status = VRegOpenKeyExW(
+        const auto status = VReg_OpenKeyExW(
             registry,
             hRoot,
             KeyName(k).c_str(),
@@ -500,7 +500,7 @@ void CheckConsistent(VReg* const registry, const HKEY hRoot)
         {
             wchar_t szName[64];
             DWORD cchName = ARRAYSIZE(szName);
-            const auto enumStatus = VRegEnumKeyExW(
+            const auto enumStatus = VReg_EnumKeyExW(
                 registry,
                 hKey,
                 i,
@@ -525,7 +525,7 @@ void CheckConsistent(VReg* const registry, const HKEY hRoot)
             DWORD dwType{};
             DWORD dwValue{};
             DWORD cbValue = sizeof(dwValue);
-            const auto enumStatus = VRegEnumValueW(
+            const auto enumStatus = VReg_EnumValueW(
                 registry,
                 hKey,
                 i,
@@ -550,7 +550,7 @@ void CheckConsistent(VReg* const registry, const HKEY hRoot)
         DWORD cSubs{};
         DWORD cVals{};
         REQUIRE(
-            VRegQueryInfoKeyW(
+            VReg_QueryInfoKeyW(
                 registry,
                 hKey,
                 nullptr,
@@ -574,7 +574,7 @@ void CheckConsistent(VReg* const registry, const HKEY hRoot)
         {
             HKEY hSub{};
             CHECK(
-                VRegOpenKeyExW(
+                VReg_OpenKeyExW(
                     registry,
                     hKey,
                     name.c_str(),
@@ -583,7 +583,7 @@ void CheckConsistent(VReg* const registry, const HKEY hRoot)
                     &hSub
                 ) == ERROR_SUCCESS
             );
-            VRegCloseKey(
+            VReg_CloseKey(
                 registry,
                 hSub
             );
@@ -594,7 +594,7 @@ void CheckConsistent(VReg* const registry, const HKEY hRoot)
             DWORD dwValue{};
             DWORD cbValue = sizeof(dwValue);
             CHECK(
-                VRegQueryValueExW(
+                VReg_QueryValueExW(
                     registry,
                     hKey,
                     name.c_str(),
@@ -607,7 +607,7 @@ void CheckConsistent(VReg* const registry, const HKEY hRoot)
             );
         }
 
-        VRegCloseKey(
+        VReg_CloseKey(
             registry,
             hKey
         );
@@ -698,7 +698,7 @@ TEST_CASE("Readers and writers on a writable Hive")
     OwnedHive hive = MakeHive();
     OwnedRegistry registry = MakeVirtualRegistry();
     REQUIRE(
-        VRegMount(registry, HKEY_CURRENT_USER, L"VRegStress", hive, 0) == ERROR_SUCCESS
+        VReg_Mount(registry, HKEY_CURRENT_USER, L"VRegStress", hive, 0) == ERROR_SUCCESS
     );
     RunStress(
         registry,
@@ -714,13 +714,13 @@ TEST_CASE("Readers and writers on a Hive frozen halfway")
     OwnedHive hive = MakeHive();
     OwnedRegistry registry = MakeVirtualRegistry();
     REQUIRE(
-        VRegMount(registry, HKEY_CURRENT_USER, L"VRegStress", hive, 0) == ERROR_SUCCESS
+        VReg_Mount(registry, HKEY_CURRENT_USER, L"VRegStress", hive, 0) == ERROR_SUCCESS
     );
     RunStress(
         registry,
         L"VRegStress",
         RootHandle(hive),
-        [](void* const pHive) { VRegFreezeHive(static_cast<VRegHive*>(pHive)); },
+        [](void* const pHive) { VRegHive_Freeze(static_cast<VRegHive*>(pHive)); },
         hive.Get()
     );
 }
@@ -739,7 +739,7 @@ TEST_CASE("Readers and writers on a writable Hive over an app hive")
             const auto path = KeyName(k) + L'\\' + SubName(s);
             HKEY hKey{};
             REQUIRE(
-                VRegCreateKeyExW(
+                VReg_CreateKeyExW(
                     native,
                     mount.LowerRoot(),
                     path.c_str(),
@@ -758,7 +758,7 @@ TEST_CASE("Readers and writers on a writable Hive over an app hive")
                 const DWORD dwValue = ValueData(v);
                 const auto name = ValueName(v);
                 REQUIRE(
-                    VRegSetValueExW(
+                    VReg_SetValueExW(
                         native,
                         hKey,
                         name.c_str(),
@@ -770,7 +770,7 @@ TEST_CASE("Readers and writers on a writable Hive over an app hive")
                     == ERROR_SUCCESS
                 );
             }
-            VRegCloseKey(
+            VReg_CloseKey(
                 native,
                 hKey
             );

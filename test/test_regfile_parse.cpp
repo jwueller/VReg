@@ -481,7 +481,7 @@ TEST_CASE("ParseFile reads a file and reports a missing one")
 
     OwnedScript script;
     CHECK(
-        VRegParseScriptFile(
+        VRegScript_ParseFile(
             path.c_str(),
             script.Receive(),
             nullptr
@@ -489,7 +489,7 @@ TEST_CASE("ParseFile reads a file and reports a missing one")
     );
     CHECK(Operations(script).size() == 2);
     CHECK(
-        VRegParseScriptFile(
+        VRegScript_ParseFile(
             (directory / L"missing.reg").c_str(),
             script.Receive(),
             nullptr

@@ -22,9 +22,9 @@ namespace VRegTest
 inline std::wstring HiveKeyPath(VRegHiveKey* pKey)
 {
     std::wstring path;
-    for (; VRegGetHiveKeyParent(pKey); pKey = VRegGetHiveKeyParent(pKey))
-        path = path.empty() ? std::wstring(VRegGetHiveKeyName(pKey))
-                            : std::wstring(VRegGetHiveKeyName(pKey)) + L"\\" + path;
+    for (; VRegHiveKey_GetParent(pKey); pKey = VRegHiveKey_GetParent(pKey))
+        path = path.empty() ? std::wstring(VRegHiveKey_GetName(pKey))
+                            : std::wstring(VRegHiveKey_GetName(pKey)) + L"\\" + path;
     return path;
 }
 
@@ -36,7 +36,7 @@ public:
         m_pTarget(pTarget),
         m_hTargetRoot(hTargetRoot)
     {
-        REQUIRE(VRegCreateCustomHive(&VTBL, this, m_hive.Receive()) == ERROR_SUCCESS);
+        REQUIRE(VRegHive_CreateCustom(&VTBL, this, m_hive.Receive()) == ERROR_SUCCESS);
     }
 
     ForwardingProvider(const ForwardingProvider&) = delete;
@@ -50,7 +50,7 @@ public:
 private:
     static ForwardingProvider& Of(VRegHive* const pHive) noexcept
     {
-        return *static_cast<ForwardingProvider*>(VRegGetHiveContext(pHive));
+        return *static_cast<ForwardingProvider*>(VRegHive_GetContext(pHive));
     }
 
     static std::wstring Join(const std::wstring& path, const LPCWSTR pszSubKey)
@@ -62,7 +62,7 @@ private:
 
     LSTATUS Open(const std::wstring& path, const REGSAM samDesired, HKEY& hKey) const noexcept
     {
-        return VRegOpenKeyExW(
+        return VReg_OpenKeyExW(
             m_pTarget,
             m_hTargetRoot,
             path.empty() ? nullptr : path.c_str(),
@@ -74,7 +74,7 @@ private:
 
     void Close(const HKEY hKey) const noexcept
     {
-        VRegCloseKey(
+        VReg_CloseKey(
             m_pTarget,
             hKey
         );
@@ -111,7 +111,7 @@ private:
         *ppToken = nullptr;
         HKEY hKey{};
         DWORD dwDisposition = 0;
-        const LSTATUS status = VRegCreateKeyExW(
+        const LSTATUS status = VReg_CreateKeyExW(
             self.m_pTarget,
             self.m_hTargetRoot,
             path.c_str(),
@@ -134,7 +134,7 @@ private:
     static LSTATUS WINAPI DeleteKey(VRegHive* const pHive, VRegHiveKey* const pKey)
     {
         const ForwardingProvider& self = Of(pHive);
-        return VRegDeleteKeyExW(
+        return VReg_DeleteKeyExW(
             self.m_pTarget,
             self.m_hTargetRoot,
             HiveKeyPath(pKey).c_str(),
@@ -151,7 +151,7 @@ private:
         if (status != ERROR_SUCCESS)
             return status;
 
-        status = VRegDeleteTreeW(
+        status = VReg_DeleteTreeW(
             self.m_pTarget,
             hKey,
             nullptr
@@ -180,7 +180,7 @@ private:
         if (status != ERROR_SUCCESS)
             return status;
 
-        return VRegHiveResultSetValue(
+        return VRegHiveResult_SetValue(
             pResult,
             dwType,
             data.empty() ? nullptr : reinterpret_cast<const BYTE*>(data.data()),
@@ -203,7 +203,7 @@ private:
         if (status != ERROR_SUCCESS)
             return status;
 
-        status = VRegSetValueExW(
+        status = VReg_SetValueExW(
             self.m_pTarget,
             hKey,
             pszName,
@@ -224,7 +224,7 @@ private:
         if (status != ERROR_SUCCESS)
             return status;
 
-        status = VRegDeleteValueW(
+        status = VReg_DeleteValueW(
             self.m_pTarget,
             hKey,
             pszName
@@ -247,7 +247,7 @@ private:
             return status;
 
         DWORD cchMaxClass = 0;
-        status = VRegQueryInfoKeyW(
+        status = VReg_QueryInfoKeyW(
             self.m_pTarget,
             hKey,
             nullptr,
@@ -268,7 +268,7 @@ private:
         DWORD cchClass = static_cast<DWORD>(className.size());
         FILETIME lastWrite{};
         if (status == ERROR_SUCCESS)
-            status = VRegEnumKeyExW(
+            status = VReg_EnumKeyExW(
                 self.m_pTarget,
                 hKey,
                 dwIndex,
@@ -281,11 +281,11 @@ private:
             );
         self.Close(hKey);
         if (status == ERROR_SUCCESS)
-            status = VRegHiveResultSetName(pResult, name.data());
+            status = VRegHiveResult_SetName(pResult, name.data());
         if (status == ERROR_SUCCESS)
-            status = VRegHiveResultSetClass(pResult, className.data());
+            status = VRegHiveResult_SetClass(pResult, className.data());
         if (status == ERROR_SUCCESS)
-            status = VRegHiveResultSetLastWrite(pResult, &lastWrite);
+            status = VRegHiveResult_SetLastWrite(pResult, &lastWrite);
         return status;
     }
 
@@ -308,9 +308,9 @@ private:
         status = VRegTest::EnumValue(self.m_pTarget, hKey, dwIndex, name, &dwType, &data);
         self.Close(hKey);
         if (status == ERROR_SUCCESS)
-            status = VRegHiveResultSetName(pResult, name.c_str());
+            status = VRegHiveResult_SetName(pResult, name.c_str());
         if (status == ERROR_SUCCESS)
-            status = VRegHiveResultSetValue(
+            status = VRegHiveResult_SetValue(
                 pResult,
                 dwType,
                 data.empty() ? nullptr : reinterpret_cast<const BYTE*>(data.data()),
@@ -339,7 +339,7 @@ private:
         for (;;)
         {
             cchClass = static_cast<DWORD>(className.size());
-            status = VRegQueryInfoKeyW(
+            status = VReg_QueryInfoKeyW(
                 self.m_pTarget,
                 hKey,
                 className.data(),
@@ -360,11 +360,11 @@ private:
         }
         self.Close(hKey);
         if (status == ERROR_SUCCESS)
-            status = VRegHiveResultSetClass(pResult, className.data());
+            status = VRegHiveResult_SetClass(pResult, className.data());
         if (status == ERROR_SUCCESS)
-            status = VRegHiveResultSetLastWrite(pResult, &lastWrite);
+            status = VRegHiveResult_SetLastWrite(pResult, &lastWrite);
         if (status == ERROR_SUCCESS)
-            status = VRegHiveResultSetInfo(
+            status = VRegHiveResult_SetInfo(
                 pResult,
                 cSubKeys,
                 cchMaxSubKey,
@@ -384,7 +384,7 @@ private:
         if (status != ERROR_SUCCESS)
             return status;
 
-        status = VRegFlushKey(
+        status = VReg_FlushKey(
             self.m_pTarget,
             hKey
         );
@@ -424,8 +424,8 @@ public:
         m_provider(m_targetRegistry, RootHandle(m_target)),
         m_registry(MakeVirtualRegistry())
     {
-        REQUIRE(VRegMount(m_targetRegistry, HKEY_CURRENT_USER, L"VRegTarget", m_target, 0) == ERROR_SUCCESS);
-        REQUIRE(VRegMount(m_registry, HKEY_CURRENT_USER, L"VRegOracle", m_provider.Hive(), 0) == ERROR_SUCCESS);
+        REQUIRE(VReg_Mount(m_targetRegistry, HKEY_CURRENT_USER, L"VRegTarget", m_target, 0) == ERROR_SUCCESS);
+        REQUIRE(VReg_Mount(m_registry, HKEY_CURRENT_USER, L"VRegOracle", m_provider.Hive(), 0) == ERROR_SUCCESS);
     }
 
     CustomMount(const CustomMount&) = delete;

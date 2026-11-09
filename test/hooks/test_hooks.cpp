@@ -201,7 +201,7 @@ void CheckRealKeysWork()
         )
         == ERROR_SUCCESS
     );
-    CHECK(!VRegIsVirtualHKey(hKey));
+    CHECK(!VReg_IsVirtualHKey(hKey));
     DWORD cValues = 0;
     CHECK(
         ::RegQueryInfoKeyW(
@@ -240,8 +240,8 @@ void CheckBothMounts(
 
     const HKEY hLower = OpenMount(lower.name);
     const HKEY hUpper = OpenMount(upper.name);
-    CHECK(VRegIsVirtualHKey(hLower));
-    CHECK(VRegIsVirtualHKey(hUpper));
+    CHECK(VReg_IsVirtualHKey(hLower));
+    CHECK(VReg_IsVirtualHKey(hUpper));
     CHECK(hLower != hUpper);
 
     // A handle of the lower module is answered by it through the upper one's
@@ -299,7 +299,7 @@ TEST_CASE("Hooked Reg functions answer on virtual keys")
     REQUIRE(InstallMount(name.c_str(), L"Exe") == NO_ERROR);
 
     const HKEY hRoot = OpenMount(name);
-    CHECK(VRegIsVirtualHKey(hRoot));
+    CHECK(VReg_IsVirtualHKey(hRoot));
     LSTATUS status{};
     CHECK(ReadModule(hRoot, status) == L"Exe");
 
@@ -360,7 +360,7 @@ TEST_CASE("Hooked Reg functions answer on virtual keys")
         )
         == ERROR_SUCCESS
     );
-    CHECK(VRegIsVirtualHKey(hDeep));
+    CHECK(VReg_IsVirtualHKey(hDeep));
     CHECK(dwDisposition == REG_CREATED_NEW_KEY);
 
     HKEY hOther{};
@@ -712,7 +712,7 @@ TEST_CASE("Hooked Reg functions pass real keys through")
         )
         == ERROR_SUCCESS
     );
-    CHECK(!VRegIsVirtualHKey(hKey));
+    CHECK(!VReg_IsVirtualHKey(hKey));
     CHECK(dwDisposition == REG_CREATED_NEW_KEY);
 
     const DWORD dwValue = 7;
@@ -1153,7 +1153,7 @@ TEST_CASE("A second Install answers already initialized")
 
     OwnedRegistry native = MakeNativeRegistry();
     OwnedRegistry registry = MakeVirtualRegistry(native);
-    CHECK(VRegInstallHooks(registry, native) == ERROR_ALREADY_INITIALIZED);
+    CHECK(VRegHooks_Install(registry, native) == ERROR_ALREADY_INITIALIZED);
     CHECK(ReadMountModule(name) == L"Exe");
     CHECK(!RealKeyExists(name));
 }
@@ -1205,7 +1205,7 @@ TEST_CASE("Neutralize removes the mount and leaves real keys working")
     REQUIRE(InstallMount(name.c_str(), L"Exe") == NO_ERROR);
     REQUIRE(ReadMountModule(name) == L"Exe");
 
-    VRegNeutralizeHooks();
+    VRegHooks_Neutralize();
 
     HKEY hKey{};
     CHECK(

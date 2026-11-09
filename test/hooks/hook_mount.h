@@ -27,18 +27,18 @@ inline LONG InstallMount(
     VRegHive* pHive = nullptr;
     VReg* pNative = nullptr;
     VReg* pRegistry = nullptr;
-    LONG error = VRegCreateHive(&pHive);
+    LONG error = VRegHive_Create(&pHive);
     if (error == ERROR_SUCCESS)
-        error = VRegCreateNative(&pNative);
+        error = VReg_CreateNative(&pNative);
     if (error == ERROR_SUCCESS)
-        error = VRegCreateVirtual(pNative, &pRegistry);
+        error = VReg_CreateVirtual(pNative, &pRegistry);
     if (error == ERROR_SUCCESS)
-        error = VRegMount(pRegistry, HKEY_CURRENT_USER, pszPath, pHive, 0);
+        error = VReg_Mount(pRegistry, HKEY_CURRENT_USER, pszPath, pHive, 0);
     if (error != ERROR_SUCCESS)
         return error;
 
     const std::wstring_view module = pszModule;
-    error = VRegSetKeyValueW(
+    error = VReg_SetKeyValueW(
         pRegistry,
         HKEY_CURRENT_USER,
         pszPath,
@@ -51,9 +51,9 @@ inline LONG InstallMount(
         return error;
 
     if (!ppIntercept)
-        return VRegInstallHooks(pRegistry, pNative);
+        return VRegHooks_Install(pRegistry, pNative);
 
     *ppIntercept = new InterceptRegistry(pRegistry);
-    return VRegInstallHooks(**ppIntercept, pNative);
+    return VRegHooks_Install(**ppIntercept, pNative);
 }
 } // namespace VRegTest

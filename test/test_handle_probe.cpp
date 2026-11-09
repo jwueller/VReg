@@ -34,7 +34,7 @@ void CheckRoute(const char* route, const LSTATUS error, const HKEY hKey)
     }
 
     CHECK((std::bit_cast<std::uintptr_t>(hKey) & 1) == 0);
-    CHECK_FALSE(VRegIsVirtualHKey(hKey));
+    CHECK_FALSE(VReg_IsVirtualHKey(hKey));
     RegCloseKey(hKey);
 }
 
@@ -192,7 +192,7 @@ TEST_CASE("A virtual handle reaching the real API is invalid and nothing else")
     {
         INFO(std::format("{:#x}", value));
         const auto hKey = std::bit_cast<HKEY>(value);
-        REQUIRE(VRegIsVirtualHKey(hKey));
+        REQUIRE(VReg_IsVirtualHKey(hKey));
 
         DWORD cbData{};
         CHECK(

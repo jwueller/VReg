@@ -47,16 +47,16 @@ Every function is declared `VREG_DECL`, which `VREG_STATIC` turns into `static`.
   struct: its kind and a union with what the kind needs. The native and virtual registries are kinds of their own, so the
   flat functions call them directly and neither needs a function table, a
   struct of its own or a cast.
-- Any other implementation is a custom registry: `VRegCreateCustom` makes
+- Any other implementation is a custom registry: `VReg_CreateCustom` makes
   one over a `VRegVtbl` and a context, the implementation's own object,
-  which its slots reach through `VRegGetContext`. A wrapper's context
+  which its slots reach through `VReg_GetContext`. A wrapper's context
   keeps the registry it wraps. The shape is `fopencookie`'s: a handle made
   from a function table and a context pointer. The slots take the
   registry rather than the context (as `fopencookie`'s callbacks do) so
   that they share the flat functions' typedefs; taking the context would
   need a second typedef per form. Agent's choice: the name
-  `VRegCreateCustom`, over a bare `VRegCreate` that reads like
-  `VRegCreateKey`.
+  `VReg_CreateCustom`, over a bare `VRegCreate` that reads like
+  `VReg_CreateKey`.
 - Each form of the family has one function typedef
   (`VRegOpenKeyExWFunction`) that carries its signature, annotations and
   documentation link. The flat function is declared with it, the slot
@@ -71,7 +71,7 @@ Every function is declared `VREG_DECL`, which `VREG_STATIC` turns into `static`.
   `RegEnumKeyW`, ...) and the conveniences Win32 builds from other calls
   (`RegSetKeyValue`, `RegDeleteKeyValue`, `RegQueryMultipleValues`).
 - Callers use the flat functions, `VReg` plus the Win32 name with the
-  registry first (`VRegOpenKeyExW(pRegistry, hKey, ...)`). A flat wide
+  registry first (`VReg_OpenKeyExW(pRegistry, hKey, ...)`). A flat wide
   function switches on the kind. Every other flat function calls its slot
   when a custom table fills it; otherwise it derives the call from
   the wide `Ex` forms, once, in the "Derived forms" section: ANSI forms widen and
@@ -84,7 +84,7 @@ Every function is declared `VREG_DECL`, which `VREG_STATIC` turns into `static`.
   ANSI call from a wide call by filling the ANSI slot; one that leaves it
   null sees the call as the wide form it becomes.
 - Slots and flat functions carry their Win32 names, `Reg` prefix included,
-  and the `UNICODE` selector macros (`VRegOpenKeyEx`) pick the ANSI or wide
+  and the `UNICODE` selector macros (`VReg_OpenKeyEx`) pick the ANSI or wide
   function as `winreg.h` picks the Win32 one. Only ANSI and wide names are
   declared: a slot with the neutral name would be renamed by the macro.
 - The table holds the `Reg*` function family and nothing else. The reads
@@ -94,7 +94,7 @@ Every function is declared `VREG_DECL`, which `VREG_STATIC` turns into `static`.
 
 Implementations:
 
-- The native registry (`VRegCreateNative`): the flat wide functions call
+- The native registry (`VReg_CreateNative`): the flat wide functions call
   its `VRegNativeFunctions` table, one field per wide form, and every other
   form is derived. The table resolves from the export table of
   `KernelBase.dll`, never via `GetProcAddress` (an apphelp shim stub would
@@ -102,7 +102,7 @@ Implementations:
   fields to `DetourAttach`, so after the commit they hold the trampolines;
   the trampolines of the ANSI and pre-`Ex` hooks, which no registry calls,
   stay in the adapter.
-- The virtual registry (`VRegCreateVirtual`, `VRegMount`): a mount
+- The virtual registry (`VReg_CreateVirtual`, `VReg_Mount`): a mount
   table of hives plus an optional base registry. Paths outside every mount
   go to the base; with no base they answer `ERROR_FILE_NOT_FOUND`. It owns
   the ANSI/wide and caller-buffer rules (sizes in characters vs bytes,
@@ -124,12 +124,12 @@ One struct covers every kind of hive. What varies is the lower behind the
 node tree, which the hive reaches only through a `VRegHiveVtbl` and its
 context, as `fopencookie` makes a `FILE` from functions and a cookie:
 
-- `VRegCreateHive`: nothing below; in memory, starts empty. The flags that
+- `VRegHive_Create`: nothing below; in memory, starts empty. The flags that
   describe a node's relation to the lower layer stay clear in it.
-- `VRegCreateCustomHive(table, context)`: the caller's table, the second
+- `VRegHive_CreateCustom(table, context)`: the caller's table, the second
   extension point beside `VRegVtbl`: data, not interception. Its writes go
   through to the slots.
-- `VRegCreateLayeredHive(lower, lower root, lower path, view)`: a registry
+- `VRegHive_CreateLayered(lower, lower root, lower path, view)`: a registry
   subtree, through an internal implementation of the table ("Hive lowers
   over a registry" in `vreg.h`) whose context holds the lower registry,
   root, path and view. It reads its
@@ -156,12 +156,12 @@ The nodes are the hive's records of its keys:
 - A custom hive's nodes hold no values: each is the record of a key the
   provider answered, published as the opaque `VRegHiveKey`, keeping the
   token its `OpenKey` or `CreateKey` returned. Slots read it through
-  `VRegGetHiveKeyToken`, `VRegGetHiveKeyName` and `VRegGetHiveKeyParent`,
+  `VRegHiveKey_GetToken`, `VRegHiveKey_GetName` and `VRegHiveKey_GetParent`,
   allocation-free and valid for the hive's life. Agent's choice: name and
   parent instead of a joined path, which would need storage the caller
   frees or a buffer rule; a provider that wants the path walks up and joins
   it.
-- Identity is the path, compared with `VReg_CompareNames` as for every
+- Identity is the path, compared with `VRegInternal_CompareNames` as for every
   node, so a virtual handle maps to a record as to any node: one handle per
   record, and a record whose key was deleted through VReg answers
   `ERROR_KEY_DELETED` for good. A provider that answers the same token for
@@ -189,26 +189,26 @@ The nodes are the hive's records of its keys:
   after. The redirect stays private: its constraint, that later calls on
   the handle go to the mounting registry's base, is a sharp edge to
   publish.
-- Slots hand results over through the `VRegHiveResultSet*` sinks, which
+- Slots hand results over through the `VRegHiveResult_Set*` sinks, which
   copy into storage the hive points them at; the internal implementation
   fills that storage directly.
 - VReg's invariants bind the provider's code too, and the public header
   states them as requirements: slots run on any thread, concurrently and
   under a foreign loader lock; VReg holds no lock of its own across a slot
-  call; names arrive unchanged and compare as `VRegCompareNames` does;
+  call; names arrive unchanged and compare as `VReg_CompareNames` does;
   `DeleteKey` on a key with subkeys answers `ERROR_ACCESS_DENIED` without
   VReg checking first; the access mask is never passed.
-- The upper-layer snapshot that `VRegDeltaScript` reads belongs to the
+- The upper-layer snapshot that `VRegScript_Delta` reads belongs to the
   built-in tree.
 - Slots take the hive, as `VRegVtbl` slots take the registry, and reach
-  their object through `VRegGetHiveContext`, so both tables read alike and
-  a slot holds what `VRegNotifyHiveChange` needs.
+  their object through `VRegHive_GetContext`, so both tables read alike and
+  a slot holds what `VRegHive_NotifyChange` needs.
 
 Agent's choices, open until the maintainer confirms them:
 
-- The public pair mirrors the registry's: `VRegCreateCustomHive(table,
-  context, &hive)` and `VRegGetHiveContext(hive)`, freed with
-  `VRegDestroyHive`, over a `VRegHiveVtbl`. Passed over: a separate opaque
+- The public pair mirrors the registry's: `VRegHive_CreateCustom(table,
+  context, &hive)` and `VRegHive_GetContext(hive)`, freed with
+  `VRegHive_Destroy`, over a `VRegHiveVtbl`. Passed over: a separate opaque
   type for custom hives, which would split every mount and script function
   in two.
 - `DeleteTree` is never derived from the other slots: a partial failure
@@ -222,10 +222,10 @@ Agent's choices, open until the maintainer confirms them:
 - Freezing a custom hive refuses writes through VReg and changes nothing
   else: its records are still discovered lazily, so opens keep taking the
   lock, and it keeps its watches. Passed over: refusing the freeze, which
-  would need `VRegFreezeHive` to answer a status.
+  would need `VRegHive_Freeze` to answer a status.
 - A custom hive's delta is empty, which is what the hive holds itself: its
   records are all transparent, so the snapshot of the upper layer has
-  nothing to write. Passed over: refusing `VRegDeltaScript` on it.
+  nothing to write. Passed over: refusing `VRegScript_Delta` on it.
 - The layered hive's lower reopens its key by path on every call and keeps
   no handle per record (the comment at "Hive lowers over a registry" in
   `vreg.h`). Passed over: one lower handle per record, faster but pinned for
@@ -237,8 +237,8 @@ Agent's choices, open until the maintainer confirms them:
 
 Virtual HKEYs are odd values counting down from `0x7FFFFFFF` on both x86 and
 x64. Real handles are even; predefined roots lie above the base
-(sign-extended to `0xFFFFFFFF8000000x` on x64). `VRegIsVirtualHKey` is "nonzero,
-odd, at most the base"; the private `VReg_IsPredefinedHKey` is the range from
+(sign-extended to `0xFFFFFFFF8000000x` on x64). `VReg_IsVirtualHKey` is "nonzero,
+odd, at most the base"; the private `VRegInternal_IsPredefinedHKey` is the range from
 `HKEY_CLASSES_ROOT` to `HKEY_CURRENT_USER_LOCAL_SETTINGS`, the one test for a
 root everywhere in the library.
 
@@ -346,7 +346,7 @@ key's node, kept in the hive's tree (so every hive kind has it).
   the lower registry never signals, and opening a lower key (which creates a
   transparent node) is not a change.
 - A custom hive's provider reports a change it made on its own with
-  `VRegNotifyHiveChange(hive, key, filter)`, which fires the watches as a
+  `VRegHive_NotifyChange(hive, key, filter)`, which fires the watches as a
   write through the hive would, under the same lock; it must not be called
   from inside a slot. A key the provider deletes on its own is reported to
   its parent and is not marked deleted.
@@ -392,7 +392,7 @@ into a mount. The last case is resolved by the parent's native path:
   Agent's choice: below the mount point the name is an ordinary key, since a
   hive's own tree is not a registry view; stripping the whole path was passed
   over. The longest matching mount wins.
-- Each mount has a view, in the `REGSAM` vocabulary `VRegCreateLayeredHive`
+- Each mount has a view, in the `REGSAM` vocabulary `VRegHive_CreateLayered`
   uses for its lower view too: `KEY_WOW64_64KEY`,
   `KEY_WOW64_32KEY`, or 0 (the default) for both. A call is of the view its
   `samDesired` names (`RRF_SUBKEY_WOW64*KEY` for `RegGetValue`), else of the
@@ -445,7 +445,7 @@ of each group.
 
 ### Install
 
-- `VRegInstallHooks(pRegistry, pNative)` calls `DetourAttach` in a
+- `VRegHooks_Install(pRegistry, pNative)` calls `DetourAttach` in a
   transaction of its own, enrolling the calling thread; a consumer with
   hooks of its own installs them beside it. Every hook calls through
   `pRegistry`, normally a virtual registry, or a wrapper in front of one
@@ -453,7 +453,7 @@ of each group.
   the hooks: its function table holds the targets handed to Detours, so
   after the commit it holds the trampolines. A second call answers
   `ERROR_ALREADY_INITIALIZED`.
-- `VRegNeutralizeHooks()` makes every hook of the copy pass straight
+- `VRegHooks_Neutralize()` makes every hook of the copy pass straight
   through; it also runs by itself when the module unloads, registered with
   `atexit` at install.
 - A consumer installing from `DllMain` builds, freezes and mounts its hives
@@ -500,27 +500,27 @@ In the ".reg scripts" section, a `VRegScript` holds an ordered list of
 `VRegOperation`s (create key, delete key, set value, delete value, each
 with its root, path, name, type and data). Parsing, snapshot and delta
 produce a script; applying and writing take an operation array
-(`VRegGetScriptOperations` reads a script's), so operations built by hand
+(`VRegScript_GetOperations` reads a script's), so operations built by hand
 are applied and written like parsed ones. Parse and write are symmetric.
 
-- `VRegParseScript(file bytes)`: a syntax error reports line and column.
-- `VRegApplyOperations(operations, registry)`: reports the index of the
+- `VRegScript_Parse(file bytes)`: a syntax error reports line and column.
+- `VReg_ApplyOperations(operations, registry)`: reports the index of the
   failing operation.
-- `VRegSnapshotScript(registry, root, path)`: the merged view, no deletion
+- `VRegScript_Snapshot(registry, root, path)`: the merged view, no deletion
   operations; for fixtures and inspection.
-- `VRegDeltaScript(hive, root, path)`: the hive's own layer, with
+- `VRegScript_Delta(hive, root, path)`: the hive's own layer, with
   tombstones as `[-K]` and `"Name"=-` and opaque keys as `[-K]` followed by
   `[K]`; the persistence format for overlays, and for an in-memory hive its
   whole contents. Re-importing over the same lower registry reproduces the
   view. `root` and `path` name where the hive is mounted; key names are that
-  prefix plus the key's path in the hive. The walk is `VReg_HiveSnapshotUpper`,
+  prefix plus the key's path in the hive. The walk is `VRegInternal_HiveSnapshotUpper`,
   a visitor under the hive's read lock that never calls the lower registry.
   A key that only shows a lower key through and holds no value of its own
   is omitted, so opening keys does not change the delta; one with upper
   values or value tombstones appears as `[K]` (it exists below, so creating
   it is harmless).
-- `VRegWriteScript(operations, format)` lays operations out as a file; the
-  file helpers (`VRegParseScriptFile`, `VRegWriteScriptFile`) sit on top. Hooks
+- `VRegScript_Write(operations, format)` lays operations out as a file; the
+  file helpers (`VRegScript_ParseFile`, `VRegScript_WriteFile`) sit on top. Hooks
   never perform file I/O.
 
 ### Import

@@ -5,10 +5,10 @@
 int main()
 {
     VRegScript* pScript = nullptr;
-    const LSTATUS status = VRegParseScript("", 0, &pScript, nullptr);
-    VRegDestroyScript(pScript);
+    const LSTATUS status = VRegScript_Parse("", 0, &pScript, nullptr);
+    VRegScript_Destroy(pScript);
 #ifdef CONSUMER_WITH_DETOURS
-    VRegNeutralizeHooks();
+    VRegHooks_Neutralize();
 #endif
     const ULONGLONG version = VREG_VERSION;
     const bool isFound =

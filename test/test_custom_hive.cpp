@@ -42,7 +42,7 @@ class ComputedProvider
 public:
     ComputedProvider()
     {
-        REQUIRE(VRegCreateCustomHive(&VTBL, this, m_hive.Receive()) == ERROR_SUCCESS);
+        REQUIRE(VRegHive_CreateCustom(&VTBL, this, m_hive.Receive()) == ERROR_SUCCESS);
     }
 
     ComputedProvider(const ComputedProvider&) = delete;
@@ -62,14 +62,14 @@ public:
 private:
     static ComputedProvider& Of(VRegHive* const pHive) noexcept
     {
-        return *static_cast<ComputedProvider*>(VRegGetHiveContext(pHive));
+        return *static_cast<ComputedProvider*>(VRegHive_GetContext(pHive));
     }
 
     const ComputedKey* KeyOf(VRegHiveKey* const pKey) noexcept
     {
-        if (!VRegGetHiveKeyParent(pKey))
+        if (!VRegHiveKey_GetParent(pKey))
             return &ROOT;
-        const auto* const pComputed = static_cast<const ComputedKey*>(VRegGetHiveKeyToken(pKey));
+        const auto* const pComputed = static_cast<const ComputedKey*>(VRegHiveKey_GetToken(pKey));
         if (!pComputed)
             ++m_cMissingTokens;
         return pComputed;
@@ -96,7 +96,7 @@ private:
             const ComputedKey* pNext = nullptr;
             for (const ComputedKey* const pChild : pCurrent->children)
             {
-                if (VRegCompareNames(pChild->pszName, name.c_str()) == 0)
+                if (VReg_CompareNames(pChild->pszName, name.c_str()) == 0)
                     pNext = pChild;
             }
             if (!pNext)
@@ -110,14 +110,14 @@ private:
 
     static LSTATUS SetComputedValue(ComputedProvider& self, const wchar_t* const pszName, VRegHiveResult* const pResult)
     {
-        if (VRegCompareNames(pszName, L"Counter") == 0)
+        if (VReg_CompareNames(pszName, L"Counter") == 0)
         {
             const DWORD dwCount = ++self.m_cCounterReads;
-            return VRegHiveResultSetValue(pResult, REG_DWORD, reinterpret_cast<const BYTE*>(&dwCount), sizeof(dwCount));
+            return VRegHiveResult_SetValue(pResult, REG_DWORD, reinterpret_cast<const BYTE*>(&dwCount), sizeof(dwCount));
         }
 
-        const wchar_t* const pszText = VRegCompareNames(pszName, L"Text") == 0 ? L"computed" : L"alpha";
-        return VRegHiveResultSetValue(
+        const wchar_t* const pszText = VReg_CompareNames(pszName, L"Text") == 0 ? L"computed" : L"alpha";
+        return VRegHiveResult_SetValue(
             pResult,
             REG_SZ,
             reinterpret_cast<const BYTE*>(pszText),
@@ -139,7 +139,7 @@ private:
 
         for (const wchar_t* const pszValue : pComputed->values)
         {
-            if (VRegCompareNames(pszValue, pszName) == 0)
+            if (VReg_CompareNames(pszValue, pszName) == 0)
                 return SetComputedValue(self, pszValue, pResult);
         }
         return ERROR_FILE_NOT_FOUND;
@@ -157,7 +157,7 @@ private:
             return ERROR_FILE_NOT_FOUND;
         if (dwIndex >= pComputed->children.size())
             return ERROR_NO_MORE_ITEMS;
-        return VRegHiveResultSetName(pResult, pComputed->children[dwIndex]->pszName);
+        return VRegHiveResult_SetName(pResult, pComputed->children[dwIndex]->pszName);
     }
 
     static LSTATUS WINAPI EnumValue(
@@ -174,7 +174,7 @@ private:
         if (dwIndex >= pComputed->values.size())
             return ERROR_NO_MORE_ITEMS;
 
-        const LSTATUS status = VRegHiveResultSetName(pResult, pComputed->values[dwIndex]);
+        const LSTATUS status = VRegHiveResult_SetName(pResult, pComputed->values[dwIndex]);
         return status == ERROR_SUCCESS ? SetComputedValue(self, pComputed->values[dwIndex], pResult) : status;
     }
 
@@ -197,7 +197,7 @@ class GrowingProvider
 public:
     GrowingProvider()
     {
-        REQUIRE(VRegCreateCustomHive(&VTBL, this, m_hive.Receive()) == ERROR_SUCCESS);
+        REQUIRE(VRegHive_CreateCustom(&VTBL, this, m_hive.Receive()) == ERROR_SUCCESS);
     }
 
     GrowingProvider(const GrowingProvider&) = delete;
@@ -230,13 +230,13 @@ private:
         VRegHiveResult* const pResult
     )
     {
-        auto& self = *static_cast<GrowingProvider*>(VRegGetHiveContext(pHive));
-        if (VRegCompareNames(pszName, L"Grows") != 0)
+        auto& self = *static_cast<GrowingProvider*>(VRegHive_GetContext(pHive));
+        if (VReg_CompareNames(pszName, L"Grows") != 0)
             return ERROR_FILE_NOT_FOUND;
 
         self.m_cbData = self.m_cbData + 16 > MAX_SIZE ? MAX_SIZE : self.m_cbData + 16;
         const std::vector<std::byte> data(self.m_cbData, std::byte{0x5A});
-        return VRegHiveResultSetValue(pResult, REG_BINARY, reinterpret_cast<const BYTE*>(data.data()), self.m_cbData);
+        return VRegHiveResult_SetValue(pResult, REG_BINARY, reinterpret_cast<const BYTE*>(data.data()), self.m_cbData);
     }
 
     static LSTATUS WINAPI EnumNothing(VRegHive*, VRegHiveKey*, DWORD, VRegHiveResult*)
@@ -259,7 +259,7 @@ private:
 OwnedRegistry MountAlone(VRegHive* const pHive)
 {
     OwnedRegistry registry = MakeVirtualRegistry();
-    REQUIRE(VRegMount(registry, HKEY_CURRENT_USER, L"Custom", pHive, 0) == ERROR_SUCCESS);
+    REQUIRE(VReg_Mount(registry, HKEY_CURRENT_USER, L"Custom", pHive, 0) == ERROR_SUCCESS);
     return registry;
 }
 
@@ -268,7 +268,7 @@ DWORD QueryDword(VReg* const registry, const HKEY hKey, const wchar_t* const psz
     DWORD dwValue = 0;
     DWORD cbValue = sizeof(dwValue);
     REQUIRE(
-        VRegQueryValueExW(
+        VReg_QueryValueExW(
             registry,
             hKey,
             pszName,
@@ -298,7 +298,7 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
     {
         HKEY hDeep{};
         CHECK(
-            VRegOpenKeyExW(
+            VReg_OpenKeyExW(
                 registry,
                 hRoot,
                 L"alpha\\DEEP",
@@ -309,7 +309,7 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
         );
         HKEY hMissing{};
         CHECK(
-            VRegOpenKeyExW(
+            VReg_OpenKeyExW(
                 registry,
                 hRoot,
                 L"Alpha\\Missing",
@@ -333,7 +333,7 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
         DWORD cchMaxValueName = 0;
         DWORD cbMaxValue = 0;
         REQUIRE(
-            VRegQueryInfoKeyW(
+            VReg_QueryInfoKeyW(
                 registry,
                 hRoot,
                 nullptr,
@@ -363,7 +363,7 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
         const auto* const pOne = reinterpret_cast<const BYTE*>(&dwOne);
         HKEY hNew{};
         CHECK(
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 registry,
                 hRoot,
                 L"New",
@@ -377,7 +377,7 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VRegCreateKeyExA(
+            VReg_CreateKeyExA(
                 registry,
                 hRoot,
                 "New",
@@ -391,7 +391,7 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VRegCreateKeyW(
+            VReg_CreateKeyW(
                 registry,
                 hRoot,
                 L"New",
@@ -399,7 +399,7 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VRegSetValueExW(
+            VReg_SetValueExW(
                 registry,
                 hRoot,
                 L"Text",
@@ -410,7 +410,7 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VRegSetValueExA(
+            VReg_SetValueExA(
                 registry,
                 hRoot,
                 "Text",
@@ -421,7 +421,7 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VRegSetValueW(
+            VReg_SetValueW(
                 registry,
                 hRoot,
                 L"Alpha",
@@ -431,7 +431,7 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VRegSetKeyValueW(
+            VReg_SetKeyValueW(
                 registry,
                 hRoot,
                 L"Alpha",
@@ -442,21 +442,21 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VRegDeleteValueW(
+            VReg_DeleteValueW(
                 registry,
                 hRoot,
                 L"Text"
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VRegDeleteValueA(
+            VReg_DeleteValueA(
                 registry,
                 hRoot,
                 "Text"
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VRegDeleteKeyValueW(
+            VReg_DeleteKeyValueW(
                 registry,
                 hRoot,
                 L"Alpha",
@@ -464,14 +464,14 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VRegDeleteKeyW(
+            VReg_DeleteKeyW(
                 registry,
                 hRoot,
                 L"Beta"
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VRegDeleteKeyExW(
+            VReg_DeleteKeyExW(
                 registry,
                 hRoot,
                 L"Beta",
@@ -480,21 +480,21 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VRegDeleteKeyA(
+            VReg_DeleteKeyA(
                 registry,
                 hRoot,
                 "Beta"
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VRegDeleteTreeW(
+            VReg_DeleteTreeW(
                 registry,
                 hRoot,
                 L"Alpha"
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VRegDeleteTreeW(
+            VReg_DeleteTreeW(
                 registry,
                 hRoot,
                 nullptr
@@ -505,7 +505,7 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
         HKEY hAlpha{};
         DWORD dwDisposition = 0;
         CHECK(
-            VRegCreateKeyExW(
+            VReg_CreateKeyExW(
                 registry,
                 hRoot,
                 L"Alpha",
@@ -565,9 +565,9 @@ TEST_CASE("A custom hive needs OpenKey, QueryValue, EnumKey and EnumValue")
     };
 
     OwnedHive hive;
-    CHECK(VRegCreateCustomHive(&complete, nullptr, hive.Receive()) == ERROR_SUCCESS);
+    CHECK(VRegHive_CreateCustom(&complete, nullptr, hive.Receive()) == ERROR_SUCCESS);
     CHECK(hive.Get() != nullptr);
-    CHECK(VRegGetHiveContext(hive) == nullptr);
+    CHECK(VRegHive_GetContext(hive) == nullptr);
 
     VRegHiveVtbl missing = complete;
     SECTION("OpenKey")
@@ -591,7 +591,7 @@ TEST_CASE("A custom hive needs OpenKey, QueryValue, EnumKey and EnumValue")
     }
 
     VRegHive* pHive = reinterpret_cast<VRegHive*>(1);
-    CHECK(VRegCreateCustomHive(&missing, nullptr, &pHive) == ERROR_INVALID_PARAMETER);
+    CHECK(VRegHive_CreateCustom(&missing, nullptr, &pHive) == ERROR_INVALID_PARAMETER);
     CHECK(pHive == nullptr);
 }
 
@@ -601,7 +601,7 @@ TEST_CASE("A custom hive keeps one handle per key and marks deleted keys")
     const HKEY hRoot = mount.Root();
     HKEY hFirst{};
     REQUIRE(
-        VRegCreateKeyExW(
+        VReg_CreateKeyExW(
             mount.Registry(),
             hRoot,
             L"Key\\Sub",
@@ -617,7 +617,7 @@ TEST_CASE("A custom hive keeps one handle per key and marks deleted keys")
 
     HKEY hSecond{};
     REQUIRE(
-        VRegOpenKeyExW(
+        VReg_OpenKeyExW(
             mount.Registry(),
             hRoot,
             L"KEY\\sub",
@@ -629,14 +629,14 @@ TEST_CASE("A custom hive keeps one handle per key and marks deleted keys")
     CHECK(hSecond == hFirst);
 
     REQUIRE(
-        VRegDeleteKeyW(
+        VReg_DeleteKeyW(
             mount.Registry(),
             hRoot,
             L"Key\\Sub"
         ) == ERROR_SUCCESS
     );
     CHECK(
-        VRegQueryValueExW(
+        VReg_QueryValueExW(
             mount.Registry(),
             hFirst,
             L"v",
@@ -649,7 +649,7 @@ TEST_CASE("A custom hive keeps one handle per key and marks deleted keys")
 
     HKEY hRecreated{};
     REQUIRE(
-        VRegCreateKeyExW(
+        VReg_CreateKeyExW(
             mount.Registry(),
             hRoot,
             L"Key\\Sub",
@@ -671,7 +671,7 @@ TEST_CASE("A frozen custom hive refuses writes and still opens its keys")
     const HKEY hRoot = mount.Root();
     const DWORD dwOne = 1;
     REQUIRE(
-        VRegSetKeyValueW(
+        VReg_SetKeyValueW(
             mount.Registry(),
             hRoot,
             L"Key",
@@ -682,10 +682,10 @@ TEST_CASE("A frozen custom hive refuses writes and still opens its keys")
         ) == ERROR_SUCCESS
     );
 
-    VRegFreezeHive(mount.Hive());
+    VRegHive_Freeze(mount.Hive());
     HKEY hKey{};
     CHECK(
-        VRegOpenKeyExW(
+        VReg_OpenKeyExW(
             mount.Registry(),
             hRoot,
             L"Key",
@@ -696,7 +696,7 @@ TEST_CASE("A frozen custom hive refuses writes and still opens its keys")
     );
     CHECK(QueryDword(mount.Registry(), hKey, L"v") == 1);
     CHECK(
-        VRegSetValueExW(
+        VReg_SetValueExW(
             mount.Registry(),
             hKey,
             L"v",
@@ -707,7 +707,7 @@ TEST_CASE("A frozen custom hive refuses writes and still opens its keys")
         ) == ERROR_ACCESS_DENIED
     );
     CHECK(
-        VRegDeleteKeyW(
+        VReg_DeleteKeyW(
             mount.Registry(),
             hRoot,
             L"Key"
@@ -720,7 +720,7 @@ TEST_CASE("A custom hive's delta is empty: it holds nothing itself")
     CustomMount mount;
     const DWORD dwOne = 1;
     REQUIRE(
-        VRegSetKeyValueW(
+        VReg_SetKeyValueW(
             mount.Registry(),
             mount.Root(),
             L"Key",
@@ -732,19 +732,19 @@ TEST_CASE("A custom hive's delta is empty: it holds nothing itself")
     );
 
     OwnedScript script;
-    REQUIRE(VRegDeltaScript(mount.Hive(), HKEY_CURRENT_USER, L"VRegOracle", script.Receive()) == ERROR_SUCCESS);
+    REQUIRE(VRegScript_Delta(mount.Hive(), HKEY_CURRENT_USER, L"VRegOracle", script.Receive()) == ERROR_SUCCESS);
     SIZE_T cOperations = 99;
-    VRegGetScriptOperations(script, &cOperations);
+    VRegScript_GetOperations(script, &cOperations);
     CHECK(cOperations == 0);
 }
 
-TEST_CASE("VRegCompareNames is the registry's collation")
+TEST_CASE("VReg_CompareNames is the registry's collation")
 {
-    CHECK(VRegCompareNames(L"abc", L"ABC") == 0);
-    CHECK(VRegCompareNames(L"a", L"b") < 0);
-    CHECK(VRegCompareNames(L"b", L"a") > 0);
-    CHECK(VRegCompareNames(L"", L"a") < 0);
-    CHECK(VRegCompareNames(L"ä", L"Ä") == 0);
+    CHECK(VReg_CompareNames(L"abc", L"ABC") == 0);
+    CHECK(VReg_CompareNames(L"a", L"b") < 0);
+    CHECK(VReg_CompareNames(L"b", L"a") > 0);
+    CHECK(VReg_CompareNames(L"", L"a") < 0);
+    CHECK(VReg_CompareNames(L"ä", L"Ä") == 0);
 }
 
 namespace
@@ -800,13 +800,13 @@ struct ChangingKey
 };
 
 /// A read-only provider whose data changes outside VReg, which it then
-/// reports through @ref VRegNotifyHiveChange.
+/// reports through @ref VRegHive_NotifyChange.
 class ChangingProvider
 {
 public:
     ChangingProvider()
     {
-        REQUIRE(VRegCreateCustomHive(&VTBL, this, m_hive.Receive()) == ERROR_SUCCESS);
+        REQUIRE(VRegHive_CreateCustom(&VTBL, this, m_hive.Receive()) == ERROR_SUCCESS);
     }
 
     ChangingProvider(const ChangingProvider&) = delete;
@@ -832,12 +832,12 @@ public:
 private:
     static ChangingProvider& Of(VRegHive* const pHive) noexcept
     {
-        return *static_cast<ChangingProvider*>(VRegGetHiveContext(pHive));
+        return *static_cast<ChangingProvider*>(VRegHive_GetContext(pHive));
     }
 
     ChangingKey* KeyOf(VRegHiveKey* const pKey) noexcept
     {
-        return VRegGetHiveKeyParent(pKey) ? static_cast<ChangingKey*>(VRegGetHiveKeyToken(pKey)) : &m_root;
+        return VRegHiveKey_GetParent(pKey) ? static_cast<ChangingKey*>(VRegHiveKey_GetToken(pKey)) : &m_root;
     }
 
     static LSTATUS WINAPI OpenKey(
@@ -850,7 +850,7 @@ private:
         *ppToken = nullptr;
         for (const auto& pChild : Of(pHive).KeyOf(pParent)->children)
         {
-            if (VRegCompareNames(pChild->name.c_str(), pszSubKey) == 0)
+            if (VReg_CompareNames(pChild->name.c_str(), pszSubKey) == 0)
             {
                 *ppToken = pChild.get();
                 return ERROR_SUCCESS;
@@ -868,8 +868,8 @@ private:
     {
         for (const auto& [name, dwValue] : Of(pHive).KeyOf(pKey)->values)
         {
-            if (VRegCompareNames(name.c_str(), pszName) == 0)
-                return VRegHiveResultSetValue(pResult, REG_DWORD, reinterpret_cast<const BYTE*>(&dwValue), sizeof(dwValue));
+            if (VReg_CompareNames(name.c_str(), pszName) == 0)
+                return VRegHiveResult_SetValue(pResult, REG_DWORD, reinterpret_cast<const BYTE*>(&dwValue), sizeof(dwValue));
         }
         return ERROR_FILE_NOT_FOUND;
     }
@@ -884,7 +884,7 @@ private:
         const ChangingKey* const pChanging = Of(pHive).KeyOf(pKey);
         if (dwIndex >= pChanging->children.size())
             return ERROR_NO_MORE_ITEMS;
-        return VRegHiveResultSetName(pResult, pChanging->children[dwIndex]->name.c_str());
+        return VRegHiveResult_SetName(pResult, pChanging->children[dwIndex]->name.c_str());
     }
 
     static LSTATUS WINAPI EnumValue(
@@ -899,9 +899,9 @@ private:
             return ERROR_NO_MORE_ITEMS;
 
         const auto& [name, dwValue] = pChanging->values[dwIndex];
-        const LSTATUS status = VRegHiveResultSetName(pResult, name.c_str());
+        const LSTATUS status = VRegHiveResult_SetName(pResult, name.c_str());
         return status == ERROR_SUCCESS
-            ? VRegHiveResultSetValue(pResult, REG_DWORD, reinterpret_cast<const BYTE*>(&dwValue), sizeof(dwValue))
+            ? VRegHiveResult_SetValue(pResult, REG_DWORD, reinterpret_cast<const BYTE*>(&dwValue), sizeof(dwValue))
             : status;
     }
 
@@ -920,7 +920,7 @@ private:
 void Watch(VReg* const registry, const HKEY hKey, const BOOL bWatchSubtree, const DWORD dwFilter, const Event& event)
 {
     REQUIRE(
-        VRegNotifyChangeKeyValue(
+        VReg_NotifyChangeKeyValue(
             registry,
             hKey,
             bWatchSubtree,
@@ -935,7 +935,7 @@ HKEY MustOpenKey(VReg* const registry, const HKEY hParent, const wchar_t* const 
 {
     HKEY hKey{};
     REQUIRE(
-        VRegOpenKeyExW(
+        VReg_OpenKeyExW(
             registry,
             hParent,
             pszSubKey,
@@ -961,14 +961,14 @@ TEST_CASE("A provider's own value change signals last-set watches on the key onc
     Watch(registry, hA, FALSE, NAME, name);
 
     a.values.emplace_back(L"v", 1);
-    CHECK(VRegNotifyHiveChange(provider.Hive(), VReg_NodeOf(hA), LAST_SET) == ERROR_SUCCESS);
+    CHECK(VRegHive_NotifyChange(provider.Hive(), VRegInternal_NodeOf(hA), LAST_SET) == ERROR_SUCCESS);
     CHECK(lastSet.IsSet());
     CHECK_FALSE(name.IsSet());
     CHECK(QueryDword(registry, hA, L"v") == 1);
 
     // A watch fires once.
     lastSet.Reset();
-    CHECK(VRegNotifyHiveChange(provider.Hive(), VReg_NodeOf(hA), LAST_SET) == ERROR_SUCCESS);
+    CHECK(VRegHive_NotifyChange(provider.Hive(), VRegInternal_NodeOf(hA), LAST_SET) == ERROR_SUCCESS);
     CHECK_FALSE(lastSet.IsSet());
 }
 
@@ -989,7 +989,7 @@ TEST_CASE("A provider's own new key signals name watches on its parent and subtr
     Watch(registry, hRoot, FALSE, NAME, rootOnly);
 
     provider.AddKey(b, L"C");
-    CHECK(VRegNotifyHiveChange(provider.Hive(), VReg_NodeOf(hB), NAME) == ERROR_SUCCESS);
+    CHECK(VRegHive_NotifyChange(provider.Hive(), VRegInternal_NodeOf(hB), NAME) == ERROR_SUCCESS);
     CHECK(parent.IsSet());
     CHECK(subtree.IsSet());
     CHECK_FALSE(rootOnly.IsSet());
@@ -1005,22 +1005,22 @@ TEST_CASE("A frozen custom hive keeps its watches and still signals")
 
     Event before;
     Watch(registry, hA, FALSE, LAST_SET, before);
-    VRegFreezeHive(provider.Hive());
+    VRegHive_Freeze(provider.Hive());
     Event after;
     Watch(registry, hA, FALSE, LAST_SET, after);
 
     a.values.emplace_back(L"v", 1);
-    CHECK(VRegNotifyHiveChange(provider.Hive(), VReg_NodeOf(hA), LAST_SET) == ERROR_SUCCESS);
+    CHECK(VRegHive_NotifyChange(provider.Hive(), VRegInternal_NodeOf(hA), LAST_SET) == ERROR_SUCCESS);
     CHECK(before.IsSet());
     CHECK(after.IsSet());
 }
 
-TEST_CASE("VRegNotifyHiveChange refuses a filter it never fires and a deleted key")
+TEST_CASE("VRegHive_NotifyChange refuses a filter it never fires and a deleted key")
 {
     CustomMount mount;
     HKEY hKey{};
     REQUIRE(
-        VRegCreateKeyExW(
+        VReg_CreateKeyExW(
             mount.Registry(),
             mount.Root(),
             L"Key",
@@ -1033,19 +1033,19 @@ TEST_CASE("VRegNotifyHiveChange refuses a filter it never fires and a deleted ke
             nullptr
         ) == ERROR_SUCCESS
     );
-    VRegHiveKey* const pKey = VReg_NodeOf(hKey);
+    VRegHiveKey* const pKey = VRegInternal_NodeOf(hKey);
 
-    CHECK(VRegNotifyHiveChange(mount.Hive(), pKey, 0) == ERROR_INVALID_PARAMETER);
-    CHECK(VRegNotifyHiveChange(mount.Hive(), pKey, REG_NOTIFY_CHANGE_ATTRIBUTES) == ERROR_INVALID_PARAMETER);
+    CHECK(VRegHive_NotifyChange(mount.Hive(), pKey, 0) == ERROR_INVALID_PARAMETER);
+    CHECK(VRegHive_NotifyChange(mount.Hive(), pKey, REG_NOTIFY_CHANGE_ATTRIBUTES) == ERROR_INVALID_PARAMETER);
 
     REQUIRE(
-        VRegDeleteKeyW(
+        VReg_DeleteKeyW(
             mount.Registry(),
             mount.Root(),
             L"Key"
         ) == ERROR_SUCCESS
     );
-    CHECK(VRegNotifyHiveChange(mount.Hive(), pKey, NAME) == ERROR_KEY_DELETED);
+    CHECK(VRegHive_NotifyChange(mount.Hive(), pKey, NAME) == ERROR_KEY_DELETED);
 }
 
 TEST_CASE("A synchronous watch on a custom hive returns when the provider notifies")
@@ -1059,7 +1059,7 @@ TEST_CASE("A synchronous watch on a custom hive returns when the provider notifi
     Thread waiter(
         [&]
         {
-            status = VRegNotifyChangeKeyValue(
+            status = VReg_NotifyChangeKeyValue(
                 registry,
                 hA,
                 FALSE,
@@ -1073,7 +1073,7 @@ TEST_CASE("A synchronous watch on a custom hive returns when the provider notifi
 
     // The registration may not be in place yet; notify until the waiter returns.
     for (int i = 0; i < 100 && !waiter.Wait(50); ++i)
-        REQUIRE(VRegNotifyHiveChange(provider.Hive(), VReg_NodeOf(hA), LAST_SET) == ERROR_SUCCESS);
+        REQUIRE(VRegHive_NotifyChange(provider.Hive(), VRegInternal_NodeOf(hA), LAST_SET) == ERROR_SUCCESS);
 
     REQUIRE(waiter.Wait(5000));
     CHECK(status == ERROR_SUCCESS);

@@ -37,7 +37,7 @@ public:
 private:
     static AppHiveRegistry* Self(VReg* const pThis) noexcept
     {
-        return static_cast<AppHiveRegistry*>(VRegGetContext(pThis));
+        return static_cast<AppHiveRegistry*>(VReg_GetContext(pThis));
     }
 
     HKEY Map(const HKEY hKey) const noexcept
@@ -55,7 +55,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VRegOpenKeyExW(
+        return VReg_OpenKeyExW(
             self.m_native,
             self.Map(hKey),
             lpSubKey,
@@ -79,7 +79,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VRegCreateKeyExW(
+        return VReg_CreateKeyExW(
             self.m_native,
             self.Map(hKey),
             lpSubKey,
@@ -99,7 +99,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VRegCloseKey(
+        return VReg_CloseKey(
             self.m_native,
             self.Map(hKey)
         );
@@ -116,7 +116,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VRegQueryValueExW(
+        return VReg_QueryValueExW(
             self.m_native,
             self.Map(hKey),
             lpValueName,
@@ -138,7 +138,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VRegSetValueExW(
+        return VReg_SetValueExW(
             self.m_native,
             self.Map(hKey),
             lpValueName,
@@ -156,7 +156,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VRegDeleteValueW(
+        return VReg_DeleteValueW(
             self.m_native,
             self.Map(hKey),
             lpValueName
@@ -172,7 +172,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VRegDeleteKeyExW(
+        return VReg_DeleteKeyExW(
             self.m_native,
             self.Map(hKey),
             lpSubKey,
@@ -188,7 +188,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VRegDeleteTreeW(
+        return VReg_DeleteTreeW(
             self.m_native,
             self.Map(hKey),
             lpSubKey
@@ -208,7 +208,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VRegEnumKeyExW(
+        return VReg_EnumKeyExW(
             self.m_native,
             self.Map(hKey),
             dwIndex,
@@ -234,7 +234,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VRegEnumValueW(
+        return VReg_EnumValueW(
             self.m_native,
             self.Map(hKey),
             dwIndex,
@@ -264,7 +264,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VRegQueryInfoKeyW(
+        return VReg_QueryInfoKeyW(
             self.m_native,
             self.Map(hKey),
             lpClass,
@@ -293,7 +293,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VRegLoadMUIStringW(
+        return VReg_LoadMUIStringW(
             self.m_native,
             self.Map(hKey),
             pszValue,
@@ -330,7 +330,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VRegGetValueW(
+        return VReg_GetValueW(
             self.m_native,
             self.Map(hkey),
             lpSubKey,
@@ -352,7 +352,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VRegNotifyChangeKeyValue(
+        return VReg_NotifyChangeKeyValue(
             self.m_native,
             self.Map(hKey),
             bWatchSubtree,
@@ -368,7 +368,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VRegFlushKey(
+        return VReg_FlushKey(
             self.m_native,
             self.Map(hKey)
         );

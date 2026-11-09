@@ -25,7 +25,7 @@ public:
 
     ~OwnedRegistry()
     {
-        VRegDestroy(m_pRegistry);
+        VReg_Destroy(m_pRegistry);
     }
 
     OwnedRegistry(OwnedRegistry&& other) noexcept :
@@ -37,7 +37,7 @@ public:
     {
         if (this != &other)
         {
-            VRegDestroy(m_pRegistry);
+            VReg_Destroy(m_pRegistry);
             m_pRegistry = std::exchange(other.m_pRegistry, nullptr);
         }
         return *this;
@@ -59,7 +59,7 @@ public:
     /// Where a creation function stores the registry this then owns.
     [[nodiscard]] VReg** Receive() noexcept
     {
-        VRegDestroy(m_pRegistry);
+        VReg_Destroy(m_pRegistry);
         m_pRegistry = nullptr;
         return &m_pRegistry;
     }
@@ -76,7 +76,7 @@ public:
 
     ~OwnedHive()
     {
-        VRegDestroyHive(m_pHive);
+        VRegHive_Destroy(m_pHive);
     }
 
     OwnedHive(OwnedHive&& other) noexcept :
@@ -88,7 +88,7 @@ public:
     {
         if (this != &other)
         {
-            VRegDestroyHive(m_pHive);
+            VRegHive_Destroy(m_pHive);
             m_pHive = std::exchange(other.m_pHive, nullptr);
         }
         return *this;
@@ -109,7 +109,7 @@ public:
 
     [[nodiscard]] VRegHive** Receive() noexcept
     {
-        VRegDestroyHive(m_pHive);
+        VRegHive_Destroy(m_pHive);
         m_pHive = nullptr;
         return &m_pHive;
     }
@@ -126,7 +126,7 @@ public:
 
     ~OwnedScript()
     {
-        VRegDestroyScript(m_pScript);
+        VRegScript_Destroy(m_pScript);
     }
 
     OwnedScript(OwnedScript&& other) noexcept :
@@ -138,7 +138,7 @@ public:
     {
         if (this != &other)
         {
-            VRegDestroyScript(m_pScript);
+            VRegScript_Destroy(m_pScript);
             m_pScript = std::exchange(other.m_pScript, nullptr);
         }
         return *this;
@@ -159,7 +159,7 @@ public:
 
     [[nodiscard]] VRegScript** Receive() noexcept
     {
-        VRegDestroyScript(m_pScript);
+        VRegScript_Destroy(m_pScript);
         m_pScript = nullptr;
         return &m_pScript;
     }
@@ -175,14 +175,14 @@ inline OwnedRegistry MakeCustomRegistry(
 )
 {
     OwnedRegistry registry;
-    REQUIRE(VRegCreateCustom(pVtbl, pvContext, registry.Receive()) == ERROR_SUCCESS);
+    REQUIRE(VReg_CreateCustom(pVtbl, pvContext, registry.Receive()) == ERROR_SUCCESS);
     return registry;
 }
 
 inline OwnedRegistry MakeNativeRegistry()
 {
     OwnedRegistry registry;
-    REQUIRE(VRegCreateNative(registry.Receive()) == ERROR_SUCCESS);
+    REQUIRE(VReg_CreateNative(registry.Receive()) == ERROR_SUCCESS);
     return registry;
 }
 
@@ -190,11 +190,11 @@ inline OwnedRegistry MakeNativeRegistry()
 /// the `ntdll` export it resolved.
 inline OwnedRegistry MakeVirtualRegistry(
     VReg* const pBase = nullptr,
-    const VReg_NtQueryKeyFunction pfnNtQueryKey = nullptr
+    const VRegInternal_NtQueryKeyFunction pfnNtQueryKey = nullptr
 )
 {
     OwnedRegistry registry;
-    REQUIRE(VRegCreateVirtual(pBase, registry.Receive()) == ERROR_SUCCESS);
+    REQUIRE(VReg_CreateVirtual(pBase, registry.Receive()) == ERROR_SUCCESS);
     if (pfnNtQueryKey)
         registry.Get()->implementation.virtualRegistry.pfnNtQueryKey = pfnNtQueryKey;
     return registry;
@@ -204,7 +204,7 @@ inline OwnedRegistry MakeVirtualRegistry(
 inline OwnedHive MakeHive()
 {
     OwnedHive hive;
-    REQUIRE(VRegCreateHive(hive.Receive()) == ERROR_SUCCESS);
+    REQUIRE(VRegHive_Create(hive.Receive()) == ERROR_SUCCESS);
     return hive;
 }
 
@@ -216,7 +216,7 @@ inline OwnedHive MakeLayeredHive(
 )
 {
     OwnedHive hive;
-    const auto status = VRegCreateLayeredHive(pLower, hLowerRoot, pszLowerPath, samLowerView, hive.Receive());
+    const auto status = VRegHive_CreateLayered(pLower, hLowerRoot, pszLowerPath, samLowerView, hive.Receive());
     REQUIRE(status == ERROR_SUCCESS);
     return hive;
 }
@@ -224,7 +224,7 @@ inline OwnedHive MakeLayeredHive(
 /// The virtual handle of a hive's root.
 inline HKEY RootHandle(VRegHive* const pHive) noexcept
 {
-    return VReg_NodeHandle(VReg_HiveRoot(pHive));
+    return VRegInternal_NodeHandle(VRegInternal_HiveRoot(pHive));
 }
 
 /// A registry a scenario runs against, with what the scenario has to know
