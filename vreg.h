@@ -1492,7 +1492,7 @@ VREG_DECL LSTATUS WINAPI VReg_ApplyOperations(
     _In_ SIZE_T cOperations,
     _In_ VReg* pRegistry,
     _In_ DWORD dwFlags,
-    _On_failure_(_Out_opt_) SIZE_T* pFailedIndex
+    _Pre_maybenull_ _Pre_writable_size_(1) SIZE_T* pFailedIndex
 );
 
 /**
@@ -12601,7 +12601,7 @@ VREG_DECL LSTATUS WINAPI VReg_ApplyOperations(
     _In_ const SIZE_T cOperations,
     _In_ VReg* const pRegistry,
     _In_ const DWORD dwFlags,
-    _On_failure_(_Out_opt_) SIZE_T* const pFailedIndex
+    _Pre_maybenull_ _Pre_writable_size_(1) SIZE_T* const pFailedIndex
 )
 {
     LSTATUS firstFailure = ERROR_SUCCESS;
