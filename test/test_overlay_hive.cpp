@@ -1466,7 +1466,7 @@ TEST_CASE("A frozen overlay refuses writes and hands out lower keys")
     const auto before = Snapshot(native, fx.LowerRoot());
 
     VRegHive_Freeze(fx.Overlay());
-    REQUIRE(VRegInternal_HiveIsFrozen(fx.Overlay()));
+    REQUIRE(VRegHive_InternalIsFrozen(fx.Overlay()));
 
     SECTION("Writes answer ERROR_ACCESS_DENIED")
     {
@@ -1693,7 +1693,7 @@ bool IsLockFree(VRegHive* const overlay, VRegInternalNode* const pProbe)
         [&]
         {
             const DWORD dwValue = 1;
-            VRegInternal_HiveSetValue(
+            VRegHive_InternalSetValue(
                 overlay,
                 pProbe,
                 L"probe",
@@ -1730,7 +1730,7 @@ TEST_CASE("The hive lock is never held across a call into the lower registry")
 
     const HKEY hProbe = Create(reg, fx.Root(), L"Probe");
     REQUIRE(SetDword(reg, hProbe, L"seed", 0) == ERROR_SUCCESS);
-    auto* const pProbe = VRegInternal_NodeOf(hProbe);
+    auto* const pProbe = VRegInternalNode_Of(hProbe);
     REQUIRE(pProbe != nullptr);
 
     int cCalls = 0;
@@ -1897,7 +1897,7 @@ TEST_CASE("An overlay frozen during a write answers as frozen and writes nothing
     // The writer has checked the overlay writable before its first lower call.
     fx.Lower().onCall = [&](const std::string&)
     {
-        if (!VRegInternal_HiveIsFrozen(fx.Overlay()))
+        if (!VRegHive_InternalIsFrozen(fx.Overlay()))
             VRegHive_Freeze(fx.Overlay());
     };
 
@@ -1905,7 +1905,7 @@ TEST_CASE("An overlay frozen during a write answers as frozen and writes nothing
     {
         HKEY hKey{};
         CHECK(Open(reg, fx.Root(), L"L\\Sub", hKey) == ERROR_SUCCESS);
-        CHECK(VRegInternal_NodeOf(hKey) == nullptr);
+        CHECK(VRegInternalNode_Of(hKey) == nullptr);
         VReg_RegCloseKey(
             reg,
             hKey
@@ -1931,7 +1931,7 @@ TEST_CASE("An overlay frozen during a write answers as frozen and writes nothing
             ) == ERROR_SUCCESS
         );
         CHECK(dwDisposition == REG_OPENED_EXISTING_KEY);
-        CHECK(VRegInternal_NodeOf(hKey) == nullptr);
+        CHECK(VRegInternalNode_Of(hKey) == nullptr);
         VReg_RegCloseKey(
             reg,
             hKey

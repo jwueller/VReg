@@ -67,9 +67,11 @@ the API it sits beside.
   (`VReg_Create`, `VReg_Mount`), and so is the library for what has no
   object (`VReg_CompareNames`); the `Reg*` family is `VReg_` plus the
   whole Win32 name (`VReg_RegOpenKeyExW`), so that name stays greppable.
-  All are `WINAPI`,
-  declared with `VREG_DECL`. Private functions, static ones included,
-  are `VRegInternal_Name` with a name unique across `vreg.h`, since its
+  All are `WINAPI`, declared with `VREG_DECL`. A private function, static
+  ones included, carries `Internal` once, opening the private part of its
+  name: the type when that is private (`VRegInternalWString_Free`), the
+  verb when the object is public (`VRegHive_InternalCreate`,
+  `VReg_InternalAlloc`). Its name is unique across `vreg.h`, since the
   implementation is one translation unit. Types carry no underscore:
   public ones are `VRegName`, private ones `VRegInternalName`. A struct or
   enum has a tag only where C needs one, for an opaque or forward-declared
@@ -146,8 +148,8 @@ the API it sits beside.
   each item, even a single one, on a line of its own; the IDE formatter
   keeps that layout. A multiline statement is set off by blank lines, with
   its comment attached.
-- Neither `min` nor `max` is called: the library uses `VRegInternal_MinDword` and
-  `VRegInternal_MaxDword` or a comparison, so the `windows.h` macros never apply,
+- Neither `min` nor `max` is called: the library uses `VReg_InternalMinDword` and
+  `VReg_InternalMaxDword` or a comparison, so the `windows.h` macros never apply,
   even in a consumer that includes it without `NOMINMAX`. A C++ test calls
   them parenthesized, `(std::max)(a, b)`.
 - Macros are tested with `#ifdef` or `#ifndef`, never with `defined`: a

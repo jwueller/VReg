@@ -162,7 +162,7 @@ The nodes are the hive's records of its keys:
   buffer rule; `VRegHiveKey_EqualsPath` compares a record with a path
   component by component, and a provider that wants the path itself walks
   up and joins it.
-- Identity is the path, compared with `VRegInternal_CompareNames` as for every
+- Identity is the path, compared with `VRegInternalWStringView_CompareNames` as for every
   node, so a virtual handle maps to a record as to any node: one handle per
   record, and a record whose key was deleted through VReg answers
   `ERROR_KEY_DELETED` for good. A provider that answers the same token for
@@ -243,7 +243,7 @@ The nodes are the hive's records of its keys:
 Virtual HKEYs are odd values counting down from `0x7FFFFFFF` on both x86 and
 x64. Real handles are even; predefined roots lie above the base
 (sign-extended to `0xFFFFFFFF8000000x` on x64). `VReg_IsVirtualHKey` is "nonzero,
-odd, at most the base"; the private `VRegInternal_IsPredefinedHKey` is the range from
+odd, at most the base"; the private `VReg_InternalIsPredefinedHKey` is the range from
 `HKEY_CLASSES_ROOT` to `HKEY_CURRENT_USER_LOCAL_SETTINGS`, the one test for a
 root everywhere in the library.
 
@@ -520,7 +520,7 @@ are applied and written like parsed ones. Parse and write are symmetric.
   `[K]`; the persistence format for overlays, and for an in-memory hive its
   whole contents. Re-importing over the same lower registry reproduces the
   view. `root` and `path` name where the hive is mounted; key names are that
-  prefix plus the key's path in the hive. The walk is `VRegInternal_HiveSnapshotUpper`,
+  prefix plus the key's path in the hive. The walk is `VRegHive_InternalSnapshotUpper`,
   a visitor under the hive's read lock that never calls the lower registry.
   A key that only shows a lower key through and holds no value of its own
   is omitted, so opening keys does not change the delta; one with upper

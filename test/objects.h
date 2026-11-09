@@ -190,7 +190,7 @@ inline OwnedRegistry MakeNativeRegistry()
 /// the `ntdll` export it resolved.
 inline OwnedRegistry MakeVirtualRegistry(
     VReg* const pBase = nullptr,
-    const VRegInternal_NtQueryKeyFunction pfnNtQueryKey = nullptr
+    const VRegInternalNtQueryKeyFunction pfnNtQueryKey = nullptr
 )
 {
     OwnedRegistry registry;
@@ -224,7 +224,7 @@ inline OwnedHive MakeOverlayHive(
 /// The virtual handle of a hive's root.
 inline HKEY RootHandle(VRegHive* const pHive) noexcept
 {
-    return VRegInternal_NodeHandle(VRegInternal_HiveRoot(pHive));
+    return VRegInternalNode_Handle(VRegHive_InternalRoot(pHive));
 }
 
 /// A registry a scenario runs against, with what the scenario has to know

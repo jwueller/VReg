@@ -197,10 +197,10 @@ TEST_CASE("A frozen hive refuses writes and still answers reads")
 
     const HKEY hSub = CreateKey(registry, hRoot, L"Sub");
     REQUIRE(SetDword(registry, hSub, L"v", 7) == ERROR_SUCCESS);
-    REQUIRE_FALSE(VRegInternal_HiveIsFrozen(hive));
+    REQUIRE_FALSE(VRegHive_InternalIsFrozen(hive));
 
     VRegHive_Freeze(hive);
-    CHECK(VRegInternal_HiveIsFrozen(hive));
+    CHECK(VRegHive_InternalIsFrozen(hive));
 
     LSTATUS status = ERROR_SUCCESS;
     CHECK(QueryDword(registry, hSub, L"v", status) == 7);
@@ -272,9 +272,9 @@ TEST_CASE("A hive created through the C functions freezes and is destroyed")
     VRegHive* pHive = nullptr;
     REQUIRE(VRegHive_CreateInMemory(&pHive) == ERROR_SUCCESS);
 
-    CHECK_FALSE(VRegInternal_HiveIsFrozen(pHive));
+    CHECK_FALSE(VRegHive_InternalIsFrozen(pHive));
     VRegHive_Freeze(pHive);
-    CHECK(VRegInternal_HiveIsFrozen(pHive));
+    CHECK(VRegHive_InternalIsFrozen(pHive));
 
     VRegHive_Destroy(pHive);
     VRegHive_Destroy(nullptr);
@@ -698,11 +698,11 @@ TEST_CASE("A handle released with its hive is invalid")
         );
         hRoot = RootHandle(hive);
         hChild = CreateKey(mounted, hRoot, L"Child");
-        CHECK(VRegInternal_NodeOf(hChild) != nullptr);
+        CHECK(VRegInternalNode_Of(hChild) != nullptr);
     }
 
-    CHECK(VRegInternal_NodeOf(hRoot) == nullptr);
-    CHECK(VRegInternal_NodeOf(hChild) == nullptr);
+    CHECK(VRegInternalNode_Of(hRoot) == nullptr);
+    CHECK(VRegInternalNode_Of(hChild) == nullptr);
 
     LSTATUS status = ERROR_SUCCESS;
     QueryDword(registry, hRoot, L"v", status);
