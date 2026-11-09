@@ -2,7 +2,7 @@
   "default": {
     "vreg": {
       "baseline": "0.4.0",
-      "port-version": 0
+      "port-version": 1
     }
   }
 }
