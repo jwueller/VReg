@@ -57,7 +57,7 @@ extern "C" {
 // Raised with every change to this file; the tweak is always 0.
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 11
-#define VREG_VERSION_PATCH 0
+#define VREG_VERSION_PATCH 1
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -828,7 +828,7 @@ VREG_DECL LSTATUS WINAPI VRegHive_Create(
 VREG_DECL LSTATUS WINAPI VRegHive_CreateLayered(
     _In_ VReg* pLower,
     _In_ HKEY hLowerRoot,
-    _In_opt_z_ LPCWSTR pszLowerPath,
+    _In_opt_ LPCWSTR pszLowerPath,
     _In_ REGSAM samLowerView,
     _Outptr_ VRegHive** ppHive
 );
@@ -874,7 +874,7 @@ typedef struct VRegHiveResult VRegHiveResult;
 typedef LSTATUS WINAPI VRegHiveOpenKeyFunction(
     _In_ VRegHive* pHive,
     _In_ VRegHiveKey* pParent,
-    _In_z_ LPCWSTR pszSubKey,
+    _In_ LPCWSTR pszSubKey,
     _Outptr_result_maybenull_ void** ppToken
 );
 
@@ -884,8 +884,8 @@ typedef LSTATUS WINAPI VRegHiveOpenKeyFunction(
 typedef LSTATUS WINAPI VRegHiveCreateKeyFunction(
     _In_ VRegHive* pHive,
     _In_ VRegHiveKey* pParent,
-    _In_z_ LPCWSTR pszSubKey,
-    _In_z_ LPCWSTR pszClassName,
+    _In_ LPCWSTR pszSubKey,
+    _In_ LPCWSTR pszClassName,
     _In_ DWORD dwOptions,
     _Outptr_result_maybenull_ void** ppToken,
     _Out_ BOOL* pIsCreated
@@ -909,14 +909,14 @@ typedef LSTATUS WINAPI VRegHiveDeleteTreeFunction(
 typedef LSTATUS WINAPI VRegHiveQueryValueFunction(
     _In_ VRegHive* pHive,
     _In_ VRegHiveKey* pKey,
-    _In_z_ LPCWSTR pszName,
+    _In_ LPCWSTR pszName,
     _In_ VRegHiveResult* pResult
 );
 
 typedef LSTATUS WINAPI VRegHiveSetValueFunction(
     _In_ VRegHive* pHive,
     _In_ VRegHiveKey* pKey,
-    _In_z_ LPCWSTR pszName,
+    _In_ LPCWSTR pszName,
     _In_ DWORD dwType,
     _In_reads_bytes_opt_(cbData) const BYTE* pData,
     _In_ DWORD cbData
@@ -925,7 +925,7 @@ typedef LSTATUS WINAPI VRegHiveSetValueFunction(
 typedef LSTATUS WINAPI VRegHiveDeleteValueFunction(
     _In_ VRegHive* pHive,
     _In_ VRegHiveKey* pKey,
-    _In_z_ LPCWSTR pszName
+    _In_ LPCWSTR pszName
 );
 
 /// Subkey @p dwIndex of @p pKey, through @ref VRegHiveResult_SetName and, if
@@ -1032,7 +1032,7 @@ VREG_DECL _Ret_maybenull_ void* WINAPI VRegHiveKey_GetToken(
 
 /// The name of @p pKey as it was first opened or created; empty for the
 /// root.
-VREG_DECL _Ret_z_ LPCWSTR WINAPI VRegHiveKey_GetName(
+VREG_DECL _Ret_notnull_ LPCWSTR WINAPI VRegHiveKey_GetName(
     _In_ VRegHiveKey* pKey
 );
 
@@ -1055,13 +1055,13 @@ VREG_DECL LSTATUS WINAPI VRegHiveResult_SetValue(
 /// Hands VReg the name of an enumerated key or value, copied.
 VREG_DECL LSTATUS WINAPI VRegHiveResult_SetName(
     _In_ VRegHiveResult* pResult,
-    _In_z_ LPCWSTR pszName
+    _In_ LPCWSTR pszName
 );
 
 /// Hands VReg the class of a key, copied.
 VREG_DECL LSTATUS WINAPI VRegHiveResult_SetClass(
     _In_ VRegHiveResult* pResult,
-    _In_z_ LPCWSTR pszClassName
+    _In_ LPCWSTR pszClassName
 );
 
 /// Hands VReg the last write time of a key.
@@ -1085,8 +1085,8 @@ VREG_DECL LSTATUS WINAPI VRegHiveResult_SetInfo(
 /// Compares two key or value names as the registry does: ordinal,
 /// case-insensitive by uppercase. Negative, zero or positive.
 VREG_DECL int WINAPI VReg_CompareNames(
-    _In_z_ LPCWSTR pszLeft,
-    _In_z_ LPCWSTR pszRight
+    _In_ LPCWSTR pszLeft,
+    _In_ LPCWSTR pszRight
 );
 
 /**
@@ -1339,7 +1339,7 @@ VREG_DECL LSTATUS WINAPI VReg_CreateVirtual(
 VREG_DECL LSTATUS WINAPI VReg_Mount(
     _In_ VReg* pRegistry,
     _In_ HKEY hRoot,
-    _In_opt_z_ LPCWSTR pszPath,
+    _In_opt_ LPCWSTR pszPath,
     _In_ VRegHive* pHive,
     _In_ REGSAM samView
 );
@@ -1437,7 +1437,7 @@ VREG_DECL LSTATUS WINAPI VRegScript_Parse(
 /// Reads the file @p pszPath, then @ref VRegScript_Parse. Failures to read
 /// answer the Win32 error.
 VREG_DECL LSTATUS WINAPI VRegScript_ParseFile(
-    _In_z_ LPCWSTR pszPath,
+    _In_ LPCWSTR pszPath,
     _Outptr_ VRegScript** ppScript,
     _Out_opt_ VRegParseError* pError
 );
@@ -1487,7 +1487,7 @@ VREG_DECL LSTATUS WINAPI VReg_ApplyOperations(
 VREG_DECL LSTATUS WINAPI VRegScript_Snapshot(
     _In_ VReg* pRegistry,
     _In_ HKEY hRoot,
-    _In_opt_z_ LPCWSTR pszPath,
+    _In_opt_ LPCWSTR pszPath,
     _Outptr_ VRegScript** ppScript
 );
 
@@ -1511,7 +1511,7 @@ VREG_DECL LSTATUS WINAPI VRegScript_Snapshot(
 VREG_DECL LSTATUS WINAPI VRegScript_Delta(
     _In_ VRegHive* pHive,
     _In_ HKEY hRoot,
-    _In_opt_z_ LPCWSTR pszPath,
+    _In_opt_ LPCWSTR pszPath,
     _Outptr_ VRegScript** ppScript
 );
 
@@ -1549,7 +1549,7 @@ VREG_DECL LSTATUS WINAPI VRegScript_WriteFile(
     _In_reads_(cOperations) const VRegOperation* pOperations,
     _In_ SIZE_T cOperations,
     _In_ VRegFormat format,
-    _In_z_ LPCWSTR pszPath
+    _In_ LPCWSTR pszPath
 );
 
 #ifdef __cplusplus
@@ -1728,7 +1728,7 @@ typedef struct
 } VRegInternalWStringView;
 
 VREG_DECL VRegInternalWStringView VRegInternal_ViewOf(
-    _In_opt_z_ LPCWSTR psz
+    _In_opt_ LPCWSTR psz
 );
 
 VREG_DECL DWORD VRegInternal_MinDword(DWORD a, DWORD b);
@@ -1785,7 +1785,7 @@ typedef struct
 } VRegInternalWString;
 
 /// The text, `L""` for an unallocated string.
-VREG_DECL _Ret_z_ LPCWSTR VRegInternal_WStringText(
+VREG_DECL _Ret_notnull_ LPCWSTR VRegInternal_WStringText(
     _In_ const VRegInternalWString* pString
 );
 
@@ -1934,12 +1934,12 @@ typedef struct
 
 /// Fills @p pArg from @p psz; a zero-filled @p pArg stands for a null one.
 VREG_DECL LSTATUS VRegInternal_WideArgInit(
-    _In_opt_z_ LPCSTR psz,
+    _In_opt_ LPCSTR psz,
     _Out_ VRegInternalWideArg* pArg
 );
 
 /// The wide text, null when the argument was null.
-VREG_DECL _Ret_maybenull_z_ LPCWSTR VRegInternal_WideArgText(
+VREG_DECL _Ret_maybenull_ LPCWSTR VRegInternal_WideArgText(
     _In_ const VRegInternalWideArg* pArg
 );
 
@@ -2041,14 +2041,14 @@ VREG_DECL int VRegInternal_CompareNames(
 /// export forwards to another module.
 VREG_DECL _Ret_maybenull_ void* VRegInternal_FindExport(
     _In_opt_ HMODULE hModule,
-    _In_z_ LPCSTR pszName
+    _In_ LPCSTR pszName
 );
 
 /// A registry function, from `KernelBase.dll` or else `advapi32.dll`, which
 /// alone exports the pre-`Ex` forms; null when neither exports it. Never
 /// loads a module.
 VREG_DECL _Ret_maybenull_ void* VRegInternal_FindRegistryExport(
-    _In_z_ LPCSTR pszName
+    _In_ LPCSTR pszName
 );
 
 // ==========================================================================
@@ -2073,7 +2073,7 @@ VREG_DECL DWORD VRegInternal_Grown(DWORD cbOld, DWORD cbRequired);
 VREG_DECL LSTATUS VRegInternal_QueryValueOwned(
     _In_ VReg* pRegistry,
     _In_ HKEY hKey,
-    _In_opt_z_ LPCWSTR lpValueName,
+    _In_opt_ LPCWSTR lpValueName,
     _Out_opt_ LPDWORD lpType,
     _Inout_ VRegInternalBuffer* pData
 );
@@ -2081,8 +2081,8 @@ VREG_DECL LSTATUS VRegInternal_QueryValueOwned(
 VREG_DECL LSTATUS VRegInternal_GetValueOwned(
     _In_ VReg* pRegistry,
     _In_ HKEY hKey,
-    _In_opt_z_ LPCWSTR lpSubKey,
-    _In_opt_z_ LPCWSTR lpValue,
+    _In_opt_ LPCWSTR lpSubKey,
+    _In_opt_ LPCWSTR lpValue,
     _In_ DWORD dwFlags,
     _Out_opt_ LPDWORD pdwType,
     _Inout_ VRegInternalBuffer* pData
@@ -2235,7 +2235,7 @@ typedef struct
 /// unusable: @ref VRegInternal_HandleSpaceAllocate then answers null.
 VREG_DECL void VRegInternal_HandleSpaceInit(
     _Out_ VRegInternalHandleSpace* pSpace,
-    _In_z_ LPCWSTR pszName
+    _In_ LPCWSTR pszName
 );
 
 /// This copy's instance over this process's section, created on first use
@@ -2363,7 +2363,7 @@ struct VRegHiveResult
 typedef LSTATUS VRegInternal_HiveOpenLowerFunction(
     _In_ VRegHive* pHive,
     _In_ VRegInternalNode* pParent,
-    _In_z_ LPCWSTR pszSubKey,
+    _In_ LPCWSTR pszSubKey,
     REGSAM samDesired,
     BOOL isRedirect,
     _Out_ VRegInternalRedirect* pRedirect
@@ -2449,7 +2449,7 @@ VREG_DECL LSTATUS VRegInternal_HiveCreateKey(
     _Inout_ VRegInternalNode* pParent,
     _In_reads_(cPath) const VRegInternalWStringView* pPath,
     SIZE_T cPath,
-    _In_z_ LPCWSTR pszClassName,
+    _In_ LPCWSTR pszClassName,
     DWORD dwOptions,
     REGSAM samDesired,
     _Out_ VRegInternalOpenResult* pResult,
@@ -2477,7 +2477,7 @@ VREG_DECL LSTATUS VRegInternal_HiveDeleteTree(
 VREG_DECL LSTATUS VRegInternal_HiveQueryValue(
     _In_ VRegHive* pHive,
     _In_ VRegInternalNode* pNode,
-    _In_z_ LPCWSTR pszName,
+    _In_ LPCWSTR pszName,
     _Out_ LPDWORD pdwType,
     _Out_ LPDWORD pcbData,
     _Inout_opt_ VRegInternalBuffer* pData
@@ -2486,7 +2486,7 @@ VREG_DECL LSTATUS VRegInternal_HiveQueryValue(
 VREG_DECL LSTATUS VRegInternal_HiveSetValue(
     _In_ VRegHive* pHive,
     _Inout_ VRegInternalNode* pNode,
-    _In_z_ LPCWSTR pszName,
+    _In_ LPCWSTR pszName,
     DWORD dwType,
     _In_reads_bytes_opt_(cbData) const BYTE* pData,
     DWORD cbData
@@ -2495,7 +2495,7 @@ VREG_DECL LSTATUS VRegInternal_HiveSetValue(
 VREG_DECL LSTATUS VRegInternal_HiveDeleteValue(
     _In_ VRegHive *pHive,
     _Inout_ VRegInternalNode* pNode,
-    _In_z_ LPCWSTR pszName
+    _In_ LPCWSTR pszName
 );
 
 VREG_DECL LSTATUS VRegInternal_HiveEnumKey(
@@ -2773,7 +2773,7 @@ typedef struct
 } VRegInternalRootKey;
 
 /// The long name of a root a `.reg` file can name; null for any other handle.
-VREG_DECL _Ret_maybenull_z_ LPCWSTR VRegInternal_RootName(
+VREG_DECL _Ret_maybenull_ LPCWSTR VRegInternal_RootName(
     _In_opt_ HKEY hRoot
 );
 
@@ -2821,12 +2821,12 @@ VREG_DECL LSTATUS VRegInternal_EncodeFile(
 
 /// Reads and writes whole files; Win32 errors answer as is.
 VREG_DECL LSTATUS VRegInternal_ReadWholeFile(
-    _In_z_ LPCWSTR pszPath,
+    _In_ LPCWSTR pszPath,
     _Inout_ VRegInternalBuffer* pFile
 );
 
 VREG_DECL LSTATUS VRegInternal_WriteWholeFile(
-    _In_z_ LPCWSTR pszPath,
+    _In_ LPCWSTR pszPath,
     _In_reads_bytes_(cbFile) const void* pFile,
     SIZE_T cbFile
 );
@@ -2903,7 +2903,7 @@ VREG_DECL void VRegInternal_Free(
 // ANSI conversion
 // ==========================================================================
 
-static SIZE_T VRegInternal_AnsiLength(_In_z_ const LPCSTR psz)
+static SIZE_T VRegInternal_AnsiLength(_In_ const LPCSTR psz)
 {
     SIZE_T cch = 0;
     while (psz[cch] != '\0')
@@ -2993,7 +2993,7 @@ VREG_DECL LSTATUS VRegInternal_AnsiFromWide(
 }
 
 VREG_DECL LSTATUS VRegInternal_WideArgInit(
-    _In_opt_z_ const LPCSTR psz,
+    _In_opt_ const LPCSTR psz,
     _Out_ VRegInternalWideArg* const pArg
 )
 {
@@ -3005,7 +3005,7 @@ VREG_DECL LSTATUS VRegInternal_WideArgInit(
     return VRegInternal_WideFromAnsi(psz, VRegInternal_AnsiLength(psz), &pArg->text);
 }
 
-VREG_DECL _Ret_maybenull_z_ LPCWSTR VRegInternal_WideArgText(
+VREG_DECL _Ret_maybenull_ LPCWSTR VRegInternal_WideArgText(
     _In_ const VRegInternalWideArg* const pArg
 )
 {
@@ -3062,7 +3062,7 @@ static SIZE_T VRegInternal_MinSize(const SIZE_T a, const SIZE_T b)
 }
 
 VREG_DECL VRegInternalWStringView VRegInternal_ViewOf(
-    _In_opt_z_ const LPCWSTR psz
+    _In_opt_ const LPCWSTR psz
 )
 {
     VRegInternalWStringView view;
@@ -3154,7 +3154,7 @@ VREG_DECL void VRegInternal_BufferFree(
     pBuffer->cbCapacity = 0;
 }
 
-VREG_DECL _Ret_z_ LPCWSTR VRegInternal_WStringText(
+VREG_DECL _Ret_notnull_ LPCWSTR VRegInternal_WStringText(
     _In_ const VRegInternalWString* const pString
 )
 {
@@ -3454,8 +3454,8 @@ static void* volatile g_pfnImportAdvapi32;
 
 /// Ordinal comparison of two export names: negative, zero or positive.
 static int VRegInternal_CompareExportNames(
-    _In_z_ LPCSTR pszLeft,
-    _In_z_ LPCSTR pszRight
+    _In_ LPCSTR pszLeft,
+    _In_ LPCSTR pszRight
 )
 {
     while (*pszLeft != '\0' && *pszLeft == *pszRight)
@@ -3469,7 +3469,7 @@ static int VRegInternal_CompareExportNames(
 
 VREG_DECL _Ret_maybenull_ void* VRegInternal_FindExport(
     _In_opt_ const HMODULE hModule,
-    _In_z_ const LPCSTR pszName
+    _In_ const LPCSTR pszName
 )
 {
     const BYTE* pBase;
@@ -3527,7 +3527,7 @@ VREG_DECL _Ret_maybenull_ void* VRegInternal_FindExport(
 }
 
 VREG_DECL _Ret_maybenull_ void* VRegInternal_FindRegistryExport(
-    _In_z_ const LPCSTR pszName
+    _In_ const LPCSTR pszName
 )
 {
     void* const pFunction = VRegInternal_FindExport(GetModuleHandleW(L"KernelBase.dll"), pszName);
@@ -5746,7 +5746,7 @@ static INIT_ONCE g_processSpaceOnce = INIT_ONCE_STATIC_INIT;
 
 VREG_DECL void VRegInternal_HandleSpaceInit(
     _Out_ VRegInternalHandleSpace* const pSpace,
-    _In_z_ const LPCWSTR pszName
+    _In_ const LPCWSTR pszName
 )
 {
     HANDLE hSection;
@@ -6657,7 +6657,7 @@ VREG_DECL _Ret_maybenull_ void* WINAPI VRegHiveKey_GetToken(
     return pKey->pToken;
 }
 
-VREG_DECL _Ret_z_ LPCWSTR WINAPI VRegHiveKey_GetName(
+VREG_DECL _Ret_notnull_ LPCWSTR WINAPI VRegHiveKey_GetName(
     _In_ VRegHiveKey* const pKey
 )
 {
@@ -6690,7 +6690,7 @@ VREG_DECL LSTATUS WINAPI VRegHiveResult_SetValue(
 
 VREG_DECL LSTATUS WINAPI VRegHiveResult_SetName(
     _In_ VRegHiveResult* const pResult,
-    _In_z_ const LPCWSTR pszName
+    _In_ const LPCWSTR pszName
 )
 {
     const VRegInternalWStringView name = VRegInternal_ViewOf(pszName);
@@ -6702,7 +6702,7 @@ VREG_DECL LSTATUS WINAPI VRegHiveResult_SetName(
 
 VREG_DECL LSTATUS WINAPI VRegHiveResult_SetClass(
     _In_ VRegHiveResult* const pResult,
-    _In_z_ const LPCWSTR pszClassName
+    _In_ const LPCWSTR pszClassName
 )
 {
     const VRegInternalWStringView className = VRegInternal_ViewOf(pszClassName);
@@ -6751,8 +6751,8 @@ VREG_DECL LSTATUS WINAPI VRegHiveResult_SetInfo(
 }
 
 VREG_DECL int WINAPI VReg_CompareNames(
-    _In_z_ const LPCWSTR pszLeft,
-    _In_z_ const LPCWSTR pszRight
+    _In_ const LPCWSTR pszLeft,
+    _In_ const LPCWSTR pszRight
 )
 {
     return VRegInternal_CompareNames(VRegInternal_ViewOf(pszLeft), VRegInternal_ViewOf(pszRight));
@@ -7126,7 +7126,7 @@ static LSTATUS VRegInternal_HiveCreateKeyThrough(
     _Inout_ VRegInternalNode* const pParent,
     _In_reads_(cPath) const VRegInternalWStringView* const pPath,
     const SIZE_T cPath,
-    _In_z_ const LPCWSTR pszClassName,
+    _In_ const LPCWSTR pszClassName,
     const DWORD dwOptions,
     const REGSAM samDesired,
     _Out_ VRegInternalOpenResult* const pResult,
@@ -7193,7 +7193,7 @@ VREG_DECL LSTATUS VRegInternal_HiveCreateKey(
     _Inout_ VRegInternalNode* const pParent,
     _In_reads_(cPath) const VRegInternalWStringView* const pPath,
     const SIZE_T cPath,
-    _In_z_ const LPCWSTR pszClassName,
+    _In_ const LPCWSTR pszClassName,
     const DWORD dwOptions,
     const REGSAM samDesired,
     _Out_ VRegInternalOpenResult* const pResult,
@@ -7690,7 +7690,7 @@ static LSTATUS VRegInternal_HiveQueryUpperValue(
 VREG_DECL LSTATUS VRegInternal_HiveQueryValue(
     _In_ VRegHive* const pHive,
     _In_ VRegInternalNode* const pNode,
-    _In_z_ const LPCWSTR pszName,
+    _In_ const LPCWSTR pszName,
     _Out_ LPDWORD const pdwType,
     _Out_ LPDWORD const pcbData,
     _Inout_opt_ VRegInternalBuffer* const pData
@@ -7802,7 +7802,7 @@ static LSTATUS VRegInternal_HiveStoreValue(
 VREG_DECL LSTATUS VRegInternal_HiveSetValue(
     _In_ VRegHive* const pHive,
     _Inout_ VRegInternalNode* const pNode,
-    _In_z_ const LPCWSTR pszName,
+    _In_ const LPCWSTR pszName,
     const DWORD dwType,
     _In_reads_bytes_opt_(cbData) const BYTE* const pData,
     const DWORD cbData
@@ -7826,7 +7826,7 @@ VREG_DECL LSTATUS VRegInternal_HiveSetValue(
 VREG_DECL LSTATUS VRegInternal_HiveDeleteValue(
     _In_ VRegHive* const pHive,
     _Inout_ VRegInternalNode* const pNode,
-    _In_z_ const LPCWSTR pszName
+    _In_ const LPCWSTR pszName
 )
 {
     const VRegInternalWStringView name = VRegInternal_ViewOf(pszName);
@@ -8648,7 +8648,7 @@ VREG_DECL void VRegInternal_CloseRedirect(
 static LSTATUS VRegInternal_RegistryLowerOpen(
     _In_ VRegHive* const pHive,
     _In_ const VRegInternalNode* const pNode,
-    _In_z_ const LPCWSTR pszSubKey,
+    _In_ const LPCWSTR pszSubKey,
     const REGSAM samDesired,
     _Out_ PHKEY const phKey
 )
@@ -8698,7 +8698,7 @@ static void VRegInternal_RegistryLowerClose(
 static LSTATUS VRegInternal_RegistryLowerOpenAs(
     _In_ VRegHive* const pHive,
     _In_ VRegInternalNode* const pParent,
-    _In_z_ const LPCWSTR pszSubKey,
+    _In_ const LPCWSTR pszSubKey,
     const REGSAM samDesired,
     const BOOL isRedirect,
     _Out_ VRegInternalRedirect* const pRedirect
@@ -8727,7 +8727,7 @@ static LSTATUS VRegInternal_RegistryLowerOpenAs(
 static LSTATUS WINAPI VRegInternal_RegistryLowerOpenKey(
     _In_ VRegHive* const pHive,
     _In_ VRegHiveKey* const pParent,
-    _In_z_ const LPCWSTR pszSubKey,
+    _In_ const LPCWSTR pszSubKey,
     _Outptr_result_maybenull_ void** const ppToken
 )
 {
@@ -8739,7 +8739,7 @@ static LSTATUS WINAPI VRegInternal_RegistryLowerOpenKey(
 static LSTATUS WINAPI VRegInternal_RegistryLowerQueryValue(
     _In_ VRegHive* const pHive,
     _In_ VRegInternalNode* const pNode,
-    _In_z_ const LPCWSTR pszName,
+    _In_ const LPCWSTR pszName,
     _Inout_ VRegHiveResult* const pResult
 )
 {
@@ -8967,7 +8967,7 @@ static const VRegHiveVtbl VRegInternal_RegistryLowerVtbl = {
 VREG_DECL LSTATUS WINAPI VRegHive_CreateLayered(
     _In_ VReg* const pLower,
     _In_ const HKEY hLowerRoot,
-    _In_opt_z_ const LPCWSTR pszLowerPath,
+    _In_opt_ const LPCWSTR pszLowerPath,
     _In_ const REGSAM samLowerView,
     _Outptr_ VRegHive** const ppHive
 )
@@ -9044,7 +9044,7 @@ VREG_DECL DWORD VRegInternal_Grown(const DWORD cbOld, const DWORD cbRequired)
 VREG_DECL LSTATUS VRegInternal_QueryValueOwned(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
-    _In_opt_z_ const LPCWSTR lpValueName,
+    _In_opt_ const LPCWSTR lpValueName,
     _Out_opt_ const LPDWORD lpType,
     _Inout_ VRegInternalBuffer* const pData
 )
@@ -9097,8 +9097,8 @@ VREG_DECL LSTATUS VRegInternal_QueryValueOwned(
 VREG_DECL LSTATUS VRegInternal_GetValueOwned(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
-    _In_opt_z_ const LPCWSTR lpSubKey,
-    _In_opt_z_ const LPCWSTR lpValue,
+    _In_opt_ const LPCWSTR lpSubKey,
+    _In_opt_ const LPCWSTR lpValue,
     _In_ const DWORD dwFlags,
     _Out_opt_ const LPDWORD pdwType,
     _Inout_ VRegInternalBuffer* const pData
@@ -10221,7 +10221,7 @@ typedef struct
         | REG_NOTIFY_THREAD_AGNOSTIC)
 
 /// @p psz, or an empty string for null: the hive layer takes no null names.
-static LPCWSTR VRegInternal_OrEmpty(_In_opt_z_ const LPCWSTR psz)
+static LPCWSTR VRegInternal_OrEmpty(_In_opt_ const LPCWSTR psz)
 {
     return psz ? psz : L"";
 }
@@ -11555,7 +11555,7 @@ done:
 static LSTATUS VRegInternal_LoadIndirectString(
     _In_ const VRegInternalBuffer* const pData,
     const DWORD dwType,
-    _In_opt_z_ const LPCWSTR pszDirectory,
+    _In_opt_ const LPCWSTR pszDirectory,
     _Inout_ VRegInternalWString* const pText
 )
 {
@@ -12253,7 +12253,7 @@ VREG_DECL LSTATUS WINAPI VReg_CreateVirtual(
 VREG_DECL LSTATUS WINAPI VReg_Mount(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hRoot,
-    _In_opt_z_ const LPCWSTR pszPath,
+    _In_opt_ const LPCWSTR pszPath,
     _In_ VRegHive* const pHive,
     _In_ const REGSAM samView
 )
@@ -12721,7 +12721,7 @@ done:
 VREG_DECL LSTATUS WINAPI VRegScript_Snapshot(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hRoot,
-    _In_opt_z_ const LPCWSTR pszPath,
+    _In_opt_ const LPCWSTR pszPath,
     _Outptr_ VRegScript** const ppScript
 )
 {
@@ -12855,7 +12855,7 @@ static LSTATUS VRegInternal_VisitUpper(
 VREG_DECL LSTATUS WINAPI VRegScript_Delta(
     _In_ VRegHive* const pHive,
     _In_ const HKEY hRoot,
-    _In_opt_z_ const LPCWSTR pszPath,
+    _In_opt_ const LPCWSTR pszPath,
     _Outptr_ VRegScript** const ppScript
 )
 {
@@ -12938,7 +12938,7 @@ typedef struct
 /// Records a syntax error at the parser's position and answers its status.
 static LSTATUS VRegInternal_ParseFail(
     _Inout_ VRegInternalParser* const pParser,
-    _In_z_ const LPCSTR pszMessage
+    _In_ const LPCSTR pszMessage
 )
 {
     pParser->pszError = pszMessage;
@@ -13095,7 +13095,7 @@ static LSTATUS VRegInternal_ExpectEnd(_Inout_ VRegInternalParser* const pParser)
 /// Consumes @p pszToken, ignoring case, if the text continues with it.
 static BOOL VRegInternal_Consume(
     _Inout_ VRegInternalParser* const pParser,
-    _In_z_ const LPCWSTR pszToken
+    _In_ const LPCWSTR pszToken
 )
 {
     const VRegInternalWStringView token = VRegInternal_ViewOf(pszToken);
@@ -13588,7 +13588,7 @@ VREG_DECL LSTATUS WINAPI VRegScript_Parse(
 }
 
 VREG_DECL LSTATUS WINAPI VRegScript_ParseFile(
-    _In_z_ const LPCWSTR pszPath,
+    _In_ const LPCWSTR pszPath,
     _Outptr_ VRegScript** const ppScript,
     _Out_opt_ VRegParseError* const pError
 )
@@ -13620,7 +13620,7 @@ static const VRegInternalRootKey VREG_INTERNAL_ROOT_KEYS[] = {
     {L"HKEY_CURRENT_CONFIG", L"HKCC", HKEY_CURRENT_CONFIG},
 };
 
-VREG_DECL _Ret_maybenull_z_ LPCWSTR VRegInternal_RootName(
+VREG_DECL _Ret_maybenull_ LPCWSTR VRegInternal_RootName(
     _In_opt_ const HKEY hRoot
 )
 {
@@ -13753,7 +13753,7 @@ VREG_DECL void WINAPI VReg_Free(_In_opt_ void* const p)
 
 static LSTATUS VRegInternal_DecodeFail(
     _Inout_opt_ VRegParseError* const pError,
-    _In_z_ const LPCSTR pszMessage
+    _In_ const LPCSTR pszMessage
 )
 {
     if (pError)
@@ -13769,7 +13769,7 @@ static LSTATUS VRegInternal_DecodeFail(
 static BOOL VRegInternal_StartsWithAscii(
     _In_reads_bytes_(cb) const BYTE* const pb,
     const SIZE_T cb,
-    _In_z_ const LPCSTR pszPrefix
+    _In_ const LPCSTR pszPrefix
 )
 {
     SIZE_T i;
@@ -13885,7 +13885,7 @@ VREG_DECL LSTATUS VRegInternal_EncodeFile(
 }
 
 VREG_DECL LSTATUS VRegInternal_ReadWholeFile(
-    _In_z_ const LPCWSTR pszPath,
+    _In_ const LPCWSTR pszPath,
     _Inout_ VRegInternalBuffer* const pFile
 )
 {
@@ -13930,7 +13930,7 @@ VREG_DECL LSTATUS VRegInternal_ReadWholeFile(
 }
 
 VREG_DECL LSTATUS VRegInternal_WriteWholeFile(
-    _In_z_ const LPCWSTR pszPath,
+    _In_ const LPCWSTR pszPath,
     _In_reads_bytes_(cbFile) const void* const pFile,
     const SIZE_T cbFile
 )
@@ -13962,7 +13962,7 @@ static const wchar_t VREG_INTERNAL_NEWLINE[] = L"\r\n";
 /// Appends the terminated literal @p psz.
 static BOOL VRegInternal_OutAppend(
     _Inout_ VRegInternalWString* const pOut,
-    _In_z_ const LPCWSTR psz
+    _In_ const LPCWSTR psz
 )
 {
     const VRegInternalWStringView text = VRegInternal_ViewOf(psz);
@@ -14286,7 +14286,7 @@ VREG_DECL LSTATUS WINAPI VRegScript_WriteFile(
     _In_reads_(cOperations) const VRegOperation* const pOperations,
     _In_ const SIZE_T cOperations,
     _In_ const VRegFormat format,
-    _In_z_ const LPCWSTR pszPath
+    _In_ const LPCWSTR pszPath
 )
 {
     void* pBytes = NULL;
@@ -15464,7 +15464,7 @@ static BOOL VRegInternal_IsUntransacted(
  */
 static LSTATUS VRegInternal_RefuseMountPathW(
     _In_ const HKEY hKey,
-    _In_opt_z_ const LPCWSTR pszSubKey,
+    _In_opt_ const LPCWSTR pszSubKey,
     const REGSAM samDesired
 )
 {
@@ -15520,7 +15520,7 @@ static LSTATUS VRegInternal_RefuseMountPathW(
 
 static LSTATUS VRegInternal_RefuseMountPathA(
     _In_ const HKEY hKey,
-    _In_opt_z_ const LPCSTR pszSubKey,
+    _In_opt_ const LPCSTR pszSubKey,
     const REGSAM samDesired
 )
 {

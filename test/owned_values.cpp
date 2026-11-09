@@ -9,7 +9,7 @@ namespace VRegTest
 LSTATUS QueryValue(
     VReg* const registry,
     const HKEY hKey,
-    _In_opt_z_ const LPCWSTR lpValueName,
+    _In_opt_ const LPCWSTR lpValueName,
     _Out_opt_ const LPDWORD lpType,
     std::vector<std::byte>& data
 ) noexcept
@@ -64,8 +64,8 @@ catch (...)
 LSTATUS GetValue(
     VReg* const registry,
     const HKEY hKey,
-    _In_opt_z_ const LPCWSTR lpSubKey,
-    _In_opt_z_ const LPCWSTR lpValue,
+    _In_opt_ const LPCWSTR lpSubKey,
+    _In_opt_ const LPCWSTR lpValue,
     const DWORD dwFlags,
     _Out_opt_ const LPDWORD pdwType,
     std::vector<std::byte>& data
@@ -123,8 +123,8 @@ catch (...)
 LSTATUS GetString(
     VReg* const registry,
     const HKEY hKey,
-    _In_opt_z_ const LPCWSTR lpSubKey,
-    _In_opt_z_ const LPCWSTR lpValue,
+    _In_opt_ const LPCWSTR lpSubKey,
+    _In_opt_ const LPCWSTR lpValue,
     const DWORD dwFlags,
     std::wstring& text
 ) noexcept
@@ -267,9 +267,9 @@ catch (...)
 LSTATUS LoadMUIString(
     VReg* const registry,
     const HKEY hKey,
-    _In_opt_z_ const LPCWSTR pszValue,
+    _In_opt_ const LPCWSTR pszValue,
     const DWORD Flags,
-    _In_opt_z_ const LPCWSTR pszDirectory,
+    _In_opt_ const LPCWSTR pszDirectory,
     std::wstring& text
 ) noexcept
 try

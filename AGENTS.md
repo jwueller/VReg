@@ -75,7 +75,9 @@ the API it sits beside.
   type (`typedef struct VRegHive VRegHive;`); any other is anonymous.
 - Win32's typedefs wherever they say more than the C type: `LPCWSTR` and
   `LPCSTR` for a terminated string, `LPCWCH` and `LPCCH` for counted
-  characters, `LPWSTR` for a buffer that becomes one. `const` precedes what
+  characters, `LPWSTR` for a buffer that becomes one. No `_z_` beside them:
+  the SDK's `LPCWSTR` already carries `_Null_terminated_`, so it writes
+  `_In_opt_ LPCWSTR`, and so does VReg. `const` precedes what
   it qualifies (`const LPCWSTR psz`, never `LPCWSTR const psz`).
 - Hungarian prefixes like the Win32 API beside them: parameters and locals
   (`pszPath`, `cbData`, `hKey`), struct members in Win32's shape without

@@ -23,7 +23,7 @@ namespace VRegTest
 LSTATUS QueryValue(
     VReg* const registry,
     HKEY hKey,
-    _In_opt_z_ LPCWSTR lpValueName,
+    _In_opt_ LPCWSTR lpValueName,
     _Out_opt_ LPDWORD lpType,
     std::vector<std::byte>& data
 ) noexcept;
@@ -31,8 +31,8 @@ LSTATUS QueryValue(
 LSTATUS GetValue(
     VReg* const registry,
     HKEY hKey,
-    _In_opt_z_ LPCWSTR lpSubKey,
-    _In_opt_z_ LPCWSTR lpValue,
+    _In_opt_ LPCWSTR lpSubKey,
+    _In_opt_ LPCWSTR lpValue,
     DWORD dwFlags,
     _Out_opt_ LPDWORD pdwType,
     std::vector<std::byte>& data
@@ -45,8 +45,8 @@ LSTATUS GetValue(
 LSTATUS GetString(
     VReg* const registry,
     HKEY hKey,
-    _In_opt_z_ LPCWSTR lpSubKey,
-    _In_opt_z_ LPCWSTR lpValue,
+    _In_opt_ LPCWSTR lpSubKey,
+    _In_opt_ LPCWSTR lpValue,
     DWORD dwFlags,
     std::wstring& text
 ) noexcept;
@@ -70,9 +70,9 @@ LSTATUS EnumValue(
 LSTATUS LoadMUIString(
     VReg* const registry,
     HKEY hKey,
-    _In_opt_z_ LPCWSTR pszValue,
+    _In_opt_ LPCWSTR pszValue,
     DWORD Flags,
-    _In_opt_z_ LPCWSTR pszDirectory,
+    _In_opt_ LPCWSTR pszDirectory,
     std::wstring& text
 ) noexcept;
 } // namespace VRegTest
