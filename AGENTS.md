@@ -73,6 +73,10 @@ the API it sits beside.
   public ones are `VRegName`, private ones `VRegInternalName`. A struct or
   enum has a tag only where C needs one, for an opaque or forward-declared
   type (`typedef struct VRegHive VRegHive;`); any other is anonymous.
+- Win32's typedefs wherever they say more than the C type: `LPCWSTR` and
+  `LPCSTR` for a terminated string, `LPCWCH` and `LPCCH` for counted
+  characters, `LPWSTR` for a buffer that becomes one. `const` precedes what
+  it qualifies (`const LPCWSTR psz`, never `LPCWSTR const psz`).
 - Hungarian prefixes like the Win32 API beside them: parameters and locals
   (`pszPath`, `cbData`, `hKey`), struct members in Win32's shape without
   `m_` (`pShared`, `cbData`), globals `g_`.

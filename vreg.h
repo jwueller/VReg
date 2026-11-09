@@ -58,7 +58,7 @@ extern "C" {
 // Raised with every change to this file; the tweak is always 0.
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 10
-#define VREG_VERSION_PATCH 3
+#define VREG_VERSION_PATCH 4
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -1413,7 +1413,7 @@ typedef struct
     SIZE_T column;
 
     /// A static string.
-    const char* pszMessage;
+    LPCSTR pszMessage;
 } VRegParseError;
 
 /**
@@ -1779,7 +1779,7 @@ typedef struct
 {
     SIZE_T cchCapacity;
     _Field_range_(0, cchCapacity) SIZE_T cch;
-    _Field_size_opt_(cchCapacity) wchar_t* psz;
+    _Field_size_opt_(cchCapacity) LPWSTR psz;
 } VRegInternalWString;
 
 /// The text, `L""` for an unallocated string.
@@ -1806,13 +1806,13 @@ VREG_DECL BOOL VRegInternal_WStringResize(
 
 VREG_DECL BOOL VRegInternal_WStringAssign(
     _Inout_ VRegInternalWString* pString,
-    _In_reads_opt_(cch) const wchar_t* pch,
+    _In_reads_opt_(cch) LPCWCH pch,
     SIZE_T cch
 );
 
 VREG_DECL BOOL VRegInternal_WStringAppend(
     _Inout_ VRegInternalWString* pString,
-    _In_reads_(cch) const wchar_t* pch,
+    _In_reads_(cch) LPCWCH pch,
     SIZE_T cch
 );
 
@@ -1908,7 +1908,7 @@ VREG_DECL void VRegInternal_WStringArrayFree(
 /// @ref ERROR_OUTOFMEMORY when memory ran out or the text is longer than the
 /// conversion can take.
 VREG_DECL LSTATUS VRegInternal_WideFromAnsi(
-    _In_reads_(cch) const char* pch,
+    _In_reads_(cch) LPCCH pch,
     SIZE_T cch,
     _Inout_ VRegInternalWString* pText
 );
@@ -1918,7 +1918,7 @@ VREG_DECL LSTATUS VRegInternal_WideFromAnsi(
 /// its default character. Answers @ref ERROR_OUTOFMEMORY as
 /// @ref VRegInternal_WideFromAnsi does.
 VREG_DECL LSTATUS VRegInternal_AnsiFromWide(
-    _In_reads_(cch) const wchar_t* pch,
+    _In_reads_(cch) LPCWCH pch,
     SIZE_T cch,
     _Inout_ VRegInternalBuffer* pText
 );
@@ -2039,14 +2039,14 @@ VREG_DECL int VRegInternal_CompareNames(
 /// export forwards to another module.
 VREG_DECL _Ret_maybenull_ void* VRegInternal_FindExport(
     _In_opt_ HMODULE hModule,
-    _In_z_ const char* pszName
+    _In_z_ LPCSTR pszName
 );
 
 /// A registry function, from `KernelBase.dll` or else `advapi32.dll`, which
 /// alone exports the pre-`Ex` forms; null when neither exports it. Never
 /// loads a module.
 VREG_DECL _Ret_maybenull_ void* VRegInternal_FindRegistryExport(
-    _In_z_ const char* pszName
+    _In_z_ LPCSTR pszName
 );
 
 // ==========================================================================
@@ -2765,13 +2765,13 @@ struct VRegScript
 /// imports accept either.
 typedef struct
 {
-    const wchar_t* pszLong;
-    const wchar_t* pszShort;
+    LPCWSTR pszLong;
+    LPCWSTR pszShort;
     HKEY hKey;
 } VRegInternalRootKey;
 
 /// The long name of a root a `.reg` file can name; null for any other handle.
-VREG_DECL _Ret_maybenull_z_ const wchar_t* VRegInternal_RootName(
+VREG_DECL _Ret_maybenull_z_ LPCWSTR VRegInternal_RootName(
     _In_opt_ HKEY hRoot
 );
 
@@ -2901,7 +2901,7 @@ VREG_DECL void VRegInternal_Free(
 // ANSI conversion
 // ==========================================================================
 
-static SIZE_T VRegInternal_AnsiLength(_In_z_ const char* const psz)
+static SIZE_T VRegInternal_AnsiLength(_In_z_ const LPCSTR psz)
 {
     SIZE_T cch = 0;
     while (psz[cch] != '\0')
@@ -2917,7 +2917,7 @@ static SIZE_T VRegInternal_AnsiLength(_In_z_ const char* const psz)
 static LSTATUS VRegInternal_WideFromMultiByte(
     const UINT codePage,
     const DWORD dwFlags,
-    _In_reads_(cch) const char* const pch,
+    _In_reads_(cch) const LPCCH pch,
     const SIZE_T cch,
     _Inout_ VRegInternalWString* const pText
 )
@@ -2947,7 +2947,7 @@ static LSTATUS VRegInternal_MultiByteFromWide(
     const UINT codePage,
     const DWORD dwFlags,
     _Out_opt_ BOOL* const pfUsedDefault,
-    _In_reads_(cch) const wchar_t* const pch,
+    _In_reads_(cch) const LPCWCH pch,
     const SIZE_T cch,
     _Inout_ VRegInternalBuffer* const pText
 )
@@ -2973,7 +2973,7 @@ static LSTATUS VRegInternal_MultiByteFromWide(
 }
 
 VREG_DECL LSTATUS VRegInternal_WideFromAnsi(
-    _In_reads_(cch) const char* const pch,
+    _In_reads_(cch) const LPCCH pch,
     const SIZE_T cch,
     _Inout_ VRegInternalWString* const pText
 )
@@ -2982,7 +2982,7 @@ VREG_DECL LSTATUS VRegInternal_WideFromAnsi(
 }
 
 VREG_DECL LSTATUS VRegInternal_AnsiFromWide(
-    _In_reads_(cch) const wchar_t* const pch,
+    _In_reads_(cch) const LPCWCH pch,
     const SIZE_T cch,
     _Inout_ VRegInternalBuffer* const pText
 )
@@ -3174,7 +3174,7 @@ VREG_DECL BOOL VRegInternal_WStringReserve(
     const SIZE_T cch
 )
 {
-    wchar_t* psz;
+    LPWSTR psz;
     if (cch < pString->cchCapacity)
         return TRUE;
 
@@ -3211,7 +3211,7 @@ VREG_DECL BOOL VRegInternal_WStringResize(
 
 VREG_DECL BOOL VRegInternal_WStringAssign(
     _Inout_ VRegInternalWString* const pString,
-    _In_reads_opt_(cch) const wchar_t* const pch,
+    _In_reads_opt_(cch) const LPCWCH pch,
     const SIZE_T cch
 )
 {
@@ -3230,7 +3230,7 @@ VREG_DECL BOOL VRegInternal_WStringAssign(
 
 VREG_DECL BOOL VRegInternal_WStringAppend(
     _Inout_ VRegInternalWString* const pString,
-    _In_reads_(cch) const wchar_t* const pch,
+    _In_reads_(cch) const LPCWCH pch,
     const SIZE_T cch
 )
 {
@@ -3255,7 +3255,7 @@ VREG_DECL BOOL VRegInternal_WStringAppendChar(
 /// Appends a key path component, after a backslash unless @p pPath is empty.
 static BOOL VRegInternal_AppendPathComponent(
     _Inout_ VRegInternalWString* const pPath,
-    _In_reads_(cch) const wchar_t* const pch,
+    _In_reads_(cch) const LPCWCH pch,
     const SIZE_T cch
 )
 {
@@ -3452,8 +3452,8 @@ static void* volatile g_pfnImportAdvapi32;
 
 /// Ordinal comparison of two export names: negative, zero or positive.
 static int VRegInternal_CompareExportNames(
-    _In_z_ const char* pszLeft,
-    _In_z_ const char* pszRight
+    _In_z_ LPCSTR pszLeft,
+    _In_z_ LPCSTR pszRight
 )
 {
     while (*pszLeft != '\0' && *pszLeft == *pszRight)
@@ -3467,7 +3467,7 @@ static int VRegInternal_CompareExportNames(
 
 VREG_DECL _Ret_maybenull_ void* VRegInternal_FindExport(
     _In_opt_ const HMODULE hModule,
-    _In_z_ const char* const pszName
+    _In_z_ const LPCSTR pszName
 )
 {
     const BYTE* pBase;
@@ -3503,7 +3503,7 @@ VREG_DECL _Ret_maybenull_ void* VRegInternal_FindExport(
     while (low < high)
     {
         const DWORD middle = low + (high - low) / 2;
-        const int order = VRegInternal_CompareExportNames(pszName, (const char*)(pBase + pNames[middle]));
+        const int order = VRegInternal_CompareExportNames(pszName, (LPCSTR)(pBase + pNames[middle]));
         if (order == 0)
         {
             const DWORD rva = pFunctions[pOrdinals[middle]];
@@ -3525,7 +3525,7 @@ VREG_DECL _Ret_maybenull_ void* VRegInternal_FindExport(
 }
 
 VREG_DECL _Ret_maybenull_ void* VRegInternal_FindRegistryExport(
-    _In_z_ const char* const pszName
+    _In_z_ const LPCSTR pszName
 )
 {
     void* const pFunction = VRegInternal_FindExport(GetModuleHandleW(L"KernelBase.dll"), pszName);
@@ -3840,7 +3840,7 @@ VREG_DECL LSTATUS WINAPI VReg_QueryValueExA(
     if (status != ERROR_SUCCESS)
         goto done;
 
-    status = VRegInternal_AnsiFromWide((const wchar_t*)value.pb, value.cb / sizeof(wchar_t), &text);
+    status = VRegInternal_AnsiFromWide((LPCWCH)value.pb, value.cb / sizeof(wchar_t), &text);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -3921,7 +3921,7 @@ VREG_DECL LSTATUS WINAPI VReg_SetValueExA(
         goto done;
     }
 
-    status = VRegInternal_WideFromAnsi((const char*)lpData, cbData, &text);
+    status = VRegInternal_WideFromAnsi((LPCCH)lpData, cbData, &text);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -4231,7 +4231,7 @@ VREG_DECL LSTATUS WINAPI VReg_EnumValueA(
     cbValue = (DWORD)value.cb;
     if (lpcbData && isString)
     {
-        status = VRegInternal_AnsiFromWide((const wchar_t*)value.pb, value.cb / sizeof(wchar_t), &text);
+        status = VRegInternal_AnsiFromWide((LPCWCH)value.pb, value.cb / sizeof(wchar_t), &text);
         if (status != ERROR_SUCCESS)
             goto done;
 
@@ -4628,7 +4628,7 @@ VREG_DECL LSTATUS WINAPI VReg_GetValueA(
         cbStoredRaw = cbStoredQuery - VRegInternal_MinDword(cbStoredQuery, 2);
     }
 
-    status = VRegInternal_AnsiFromWide((const wchar_t*)data.pb, data.cb / sizeof(wchar_t), &text);
+    status = VRegInternal_AnsiFromWide((LPCWCH)data.pb, data.cb / sizeof(wchar_t), &text);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -4645,7 +4645,7 @@ VREG_DECL LSTATUS WINAPI VReg_GetValueA(
     if (isExpanded)
     {
         status = VRegInternal_AnsiFromWide(
-            (const wchar_t*)stored.pb,
+            (LPCWCH)stored.pb,
             cbStoredRaw / sizeof(wchar_t),
             &rawText
         );
@@ -4682,7 +4682,7 @@ VREG_DECL LSTATUS WINAPI VReg_GetValueA(
             // Native copies the unexpanded text, then clears its first
             // character.
             status = VRegInternal_AnsiFromWide(
-                (const wchar_t*)stored.pb,
+                (LPCWCH)stored.pb,
                 stored.cb / sizeof(wchar_t),
                 &storedText
             );
@@ -5796,7 +5796,7 @@ VREG_DECL void VRegInternal_HandleSpaceInit(
 /// Writes @p value in decimal at @p pszOut, which has room for @p cchOut
 /// characters including the terminator, and answers the characters written.
 static SIZE_T VRegInternal_WriteDecimal(
-    _Out_writes_z_(cchOut) wchar_t* const pszOut,
+    _Out_writes_z_(cchOut) const LPWSTR pszOut,
     const SIZE_T cchOut,
     DWORD value
 )
@@ -10322,7 +10322,7 @@ static LSTATUS VRegInternal_NativeRootPath(
     _Inout_ VRegInternalArray* const pPath
 )
 {
-    const wchar_t* pszSecond = NULL;
+    LPCWSTR pszSecond = NULL;
     VRegInternalWString sid = {0, 0, NULL};
     LSTATUS status = ERROR_SUCCESS;
 
@@ -10574,7 +10574,7 @@ static LSTATUS VRegInternal_ResolveNative(
     if (
         !VRegInternal_WStringAssign(
             &pTarget->nativeText,
-            (const wchar_t*)(buffer.pb + sizeof(ULONG)),
+            (LPCWCH)(buffer.pb + sizeof(ULONG)),
             cbName / sizeof(wchar_t)
         )
     )
@@ -11557,7 +11557,7 @@ static LSTATUS VRegInternal_LoadIndirectString(
     _Inout_ VRegInternalWString* const pText
 )
 {
-    const wchar_t* const pch = (const wchar_t*)pData->pb;
+    const LPCWCH pch = (LPCWCH)pData->pb;
     const SIZE_T cchData = pData->cb / sizeof(wchar_t);
     SIZE_T cch = 0;
     SIZE_T iComma = 1;
@@ -11714,7 +11714,7 @@ static LSTATUS VRegInternal_LoadIndirectString(
         status = ERROR_RESOURCE_NAME_NOT_FOUND;
         goto done;
     }
-    if (!VRegInternal_WStringAssign(pText, (const wchar_t*)(pBlock + iWord + 1), pBlock[iWord]))
+    if (!VRegInternal_WStringAssign(pText, (LPCWCH)(pBlock + iWord + 1), pBlock[iWord]))
         status = ERROR_OUTOFMEMORY;
 
 done:
@@ -12025,7 +12025,7 @@ VREG_DECL LSTATUS WINAPI VRegInternal_VirtualRegGetValueW(
         cbReported = (DWORD)stages[1].cb;
         if (dwType == REG_EXPAND_SZ && !(dwFlags & RRF_NOEXPAND))
         {
-            const wchar_t* const pszRaw = (const wchar_t*)stages[1].pb;
+            const LPCWSTR pszRaw = (LPCWSTR)stages[1].pb;
             DWORD cwchExpanded;
 
             // The text was terminated above, so the stage holds at least that.
@@ -12929,14 +12929,14 @@ typedef struct
     VRegInternalWString path;
 
     /// Set by @ref VRegInternal_ParseFail: where in @ref text, and why.
-    const char* pszError;
+    LPCSTR pszError;
     SIZE_T errorOffset;
 } VRegInternalParser;
 
 /// Records a syntax error at the parser's position and answers its status.
 static LSTATUS VRegInternal_ParseFail(
     _Inout_ VRegInternalParser* const pParser,
-    _In_z_ const char* const pszMessage
+    _In_z_ const LPCSTR pszMessage
 )
 {
     pParser->pszError = pszMessage;
@@ -13093,7 +13093,7 @@ static LSTATUS VRegInternal_ExpectEnd(_Inout_ VRegInternalParser* const pParser)
 /// Consumes @p pszToken, ignoring case, if the text continues with it.
 static BOOL VRegInternal_Consume(
     _Inout_ VRegInternalParser* const pParser,
-    _In_z_ const wchar_t* const pszToken
+    _In_z_ const LPCWSTR pszToken
 )
 {
     const VRegInternalWStringView token = VRegInternal_ViewOf(pszToken);
@@ -13618,7 +13618,7 @@ static const VRegInternalRootKey VREG_INTERNAL_ROOT_KEYS[] = {
     {L"HKEY_CURRENT_CONFIG", L"HKCC", HKEY_CURRENT_CONFIG},
 };
 
-VREG_DECL _Ret_maybenull_z_ const wchar_t* VRegInternal_RootName(
+VREG_DECL _Ret_maybenull_z_ LPCWSTR VRegInternal_RootName(
     _In_opt_ const HKEY hRoot
 )
 {
@@ -13751,7 +13751,7 @@ VREG_DECL void WINAPI VReg_Free(_In_opt_ void* const p)
 
 static LSTATUS VRegInternal_DecodeFail(
     _Inout_opt_ VRegParseError* const pError,
-    _In_z_ const char* const pszMessage
+    _In_z_ const LPCSTR pszMessage
 )
 {
     if (pError)
@@ -13767,7 +13767,7 @@ static LSTATUS VRegInternal_DecodeFail(
 static BOOL VRegInternal_StartsWithAscii(
     _In_reads_bytes_(cb) const BYTE* const pb,
     const SIZE_T cb,
-    _In_z_ const char* const pszPrefix
+    _In_z_ const LPCSTR pszPrefix
 )
 {
     SIZE_T i;
@@ -13789,7 +13789,7 @@ static LSTATUS VRegInternal_Widen(
 )
 {
     const DWORD dwFlags = codePage == CP_UTF8 ? MB_ERR_INVALID_CHARS : 0;
-    const LSTATUS status = VRegInternal_WideFromMultiByte(codePage, dwFlags, (const char*)pb, cb, pText);
+    const LSTATUS status = VRegInternal_WideFromMultiByte(codePage, dwFlags, (LPCCH)pb, cb, pText);
     if (status == ERROR_NO_UNICODE_TRANSLATION)
         return VRegInternal_DecodeFail(pError, "the text is not valid in its encoding");
 
@@ -13812,7 +13812,7 @@ VREG_DECL LSTATUS VRegInternal_DecodeFile(
         const SIZE_T cbBody = cbFile - 2;
         if (cbBody % sizeof(wchar_t) != 0)
             return VRegInternal_DecodeFail(pError, "a UTF-16 file has an odd byte count");
-        if (!VRegInternal_WStringAssign(pText, (const wchar_t*)(pb + 2), cbBody / sizeof(wchar_t)))
+        if (!VRegInternal_WStringAssign(pText, (LPCWCH)(pb + 2), cbBody / sizeof(wchar_t)))
             return ERROR_OUTOFMEMORY;
 
         return ERROR_SUCCESS;
@@ -13960,7 +13960,7 @@ static const wchar_t VREG_INTERNAL_NEWLINE[] = L"\r\n";
 /// Appends the terminated literal @p psz.
 static BOOL VRegInternal_OutAppend(
     _Inout_ VRegInternalWString* const pOut,
-    _In_z_ const wchar_t* const psz
+    _In_z_ const LPCWSTR psz
 )
 {
     const VRegInternalWStringView text = VRegInternal_ViewOf(psz);
@@ -14008,7 +14008,7 @@ static BOOL VRegInternal_FriendlyString(
     _Out_ VRegInternalWStringView* pText
 )
 {
-    const wchar_t* pch;
+    LPCWCH pch;
     SIZE_T cch;
     SIZE_T i;
 
@@ -14019,7 +14019,7 @@ static BOOL VRegInternal_FriendlyString(
 
     // Two bytes or more of data have storage.
     _Analysis_assume_(pData != NULL);
-    pch = (const wchar_t*)pData;
+    pch = (LPCWCH)pData;
     cch = cbData / sizeof(wchar_t);
     if (pch[cch - 1] != L'\0')
         return FALSE;
@@ -14166,7 +14166,7 @@ static LSTATUS VRegInternal_AppendKeyLine(
     const BOOL isFirst
 )
 {
-    const wchar_t* const pszRoot = VRegInternal_RootName(pOperation->hRoot);
+    const LPCWSTR pszRoot = VRegInternal_RootName(pOperation->hRoot);
     const VRegInternalWStringView path = VRegInternal_ViewOf(pOperation->pszPath);
     if (!pszRoot)
         return ERROR_INVALID_HANDLE;
