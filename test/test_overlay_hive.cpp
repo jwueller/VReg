@@ -241,7 +241,11 @@ LSTATUS QueryDword(
 }
 
 /// The value as a number, or 0xFFFFFFFF when the query fails.
-DWORD DwordOr(VReg* const registry, const HKEY hKey, const wchar_t* const pszName) noexcept
+DWORD DwordOr(
+    VReg* const registry,
+    const HKEY hKey,
+    const wchar_t* const pszName
+) noexcept
 {
     DWORD dwValue{};
     return QueryDword(

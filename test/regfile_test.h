@@ -88,7 +88,9 @@ inline OwnedScript MustParse(const std::wstring_view text)
 }
 
 /// The operations a script holds; valid while the script lives.
-inline std::span<const VRegOperation> Operations(const VRegScript* const pScript)
+inline std::span<const VRegOperation> Operations(
+    const VRegScript* const pScript
+)
 {
     SIZE_T cOperations = 0;
     const VRegOperation* const pOperations = VRegScript_GetOperations(pScript, &cOperations);
@@ -96,7 +98,11 @@ inline std::span<const VRegOperation> Operations(const VRegScript* const pScript
 }
 
 /// Applies a script's operations through @p registry.
-inline LSTATUS Apply(const VRegScript* const pScript, VReg* const registry, SIZE_T* const pFailedIndex)
+inline LSTATUS Apply(
+    const VRegScript* const pScript,
+    VReg* const registry,
+    SIZE_T* const pFailedIndex
+)
 {
     const auto operations = Operations(pScript);
     return VReg_ApplyOperations(operations.data(), operations.size(), registry, pFailedIndex);
@@ -134,7 +140,10 @@ inline LSTATUS TryWriteBytes(
     return ERROR_SUCCESS;
 }
 
-inline std::vector<std::byte> WriteBytes(const VRegScript* const pScript, const VRegFormat format)
+inline std::vector<std::byte> WriteBytes(
+    const VRegScript* const pScript,
+    const VRegFormat format
+)
 {
     std::vector<std::byte> file;
     REQUIRE(TryWriteBytes(pScript, format, file) == ERROR_SUCCESS);

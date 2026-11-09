@@ -58,7 +58,7 @@ extern "C" {
 // Raised with every change to this file; the tweak is always 0.
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 10
-#define VREG_VERSION_PATCH 1
+#define VREG_VERSION_PATCH 2
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -1607,7 +1607,10 @@ extern "C" {
 /// @ref VReg_CreateNative made, and the commit turns its function table into
 /// the trampolines. Both MUST outlive the process. Answers the first Detours
 /// error, or @ref ERROR_ALREADY_INITIALIZED when this copy installed before.
-VREG_DECL LONG WINAPI VRegHooks_Install(_In_ VReg* pRegistry, _In_ VReg* pNative);
+VREG_DECL LONG WINAPI VRegHooks_Install(
+    _In_ VReg* pRegistry,
+    _In_ VReg* pNative
+);
 
 /// Makes every hook of this copy pass calls straight through, for good.
 VREG_DECL void WINAPI VRegHooks_Neutralize(void);
@@ -2034,12 +2037,17 @@ VREG_DECL int VRegInternal_CompareNames(
 /// The entry point @p hModule exports as @p pszName, read from its export
 /// table; null when @p hModule is null, the name is not exported, or the
 /// export forwards to another module.
-VREG_DECL _Ret_maybenull_ void* VRegInternal_FindExport(_In_opt_ HMODULE hModule, _In_z_ const char* pszName);
+VREG_DECL _Ret_maybenull_ void* VRegInternal_FindExport(
+    _In_opt_ HMODULE hModule,
+    _In_z_ const char* pszName
+);
 
 /// A registry function, from `KernelBase.dll` or else `advapi32.dll`, which
 /// alone exports the pre-`Ex` forms; null when neither exports it. Never
 /// loads a module.
-VREG_DECL _Ret_maybenull_ void* VRegInternal_FindRegistryExport(_In_z_ const char* pszName);
+VREG_DECL _Ret_maybenull_ void* VRegInternal_FindRegistryExport(
+    _In_z_ const char* pszName
+);
 
 // ==========================================================================
 // Owned reads
@@ -2232,31 +2240,49 @@ VREG_DECL void VRegInternal_HandleSpaceInit(
 /// and never destroyed.
 VREG_DECL _Ret_notnull_ VRegInternalHandleSpace* VRegInternal_ProcessHandleSpace(void);
 
-VREG_DECL BOOL VRegInternal_HandleSpaceIsUsable(_In_ const VRegInternalHandleSpace* pSpace);
+VREG_DECL BOOL VRegInternal_HandleSpaceIsUsable(
+    _In_ const VRegInternalHandleSpace* pSpace
+);
 
 /// A fresh handle owned by @p pSpace and bound to @p pTarget, or null when
 /// the section is unusable, the namespace is exhausted or memory ran out.
-VREG_DECL _Ret_maybenull_ HKEY VRegInternal_HandleSpaceAllocate(_Inout_ VRegInternalHandleSpace* pSpace, _In_opt_ void* pTarget);
+VREG_DECL _Ret_maybenull_ HKEY VRegInternal_HandleSpaceAllocate(
+    _Inout_ VRegInternalHandleSpace* pSpace,
+    _In_opt_ void* pTarget
+);
 
 /// Whether @p hKey is a virtual handle from one of @p pSpace's blocks.
 /// Lock-free.
-VREG_DECL BOOL VRegInternal_HandleSpaceOwns(_In_ const VRegInternalHandleSpace* pSpace, _In_opt_ HKEY hKey);
+VREG_DECL BOOL VRegInternal_HandleSpaceOwns(
+    _In_ const VRegInternalHandleSpace* pSpace,
+    _In_opt_ HKEY hKey
+);
 
 /// Unbinds @p hKey from its target. The value is never handed out again;
 /// later lookups answer null.
-VREG_DECL void VRegInternal_HandleSpaceRelease(_Inout_ VRegInternalHandleSpace* pSpace, _In_opt_ HKEY hKey);
+VREG_DECL void VRegInternal_HandleSpaceRelease(
+    _Inout_ VRegInternalHandleSpace* pSpace,
+    _In_opt_ HKEY hKey
+);
 
 /// The target @p hKey was allocated for; null when @p pSpace does not own
 /// it. Lock-free.
-VREG_DECL _Ret_maybenull_ void* VRegInternal_HandleSpaceFind(_In_ const VRegInternalHandleSpace* pSpace, _In_opt_ HKEY hKey);
+VREG_DECL _Ret_maybenull_ void* VRegInternal_HandleSpaceFind(
+    _In_ const VRegInternalHandleSpace* pSpace,
+    _In_opt_ HKEY hKey
+);
 
 /// The handle for @p index, counting down from @ref VREG_INTERNAL_VIRTUAL_HKEY_BASE in
 /// odd steps; null when @p index is out of range.
-VREG_DECL _Ret_maybenull_ HKEY VRegInternal_VirtualHKeyFromIndex(UINT_PTR index);
+VREG_DECL _Ret_maybenull_ HKEY VRegInternal_VirtualHKeyFromIndex(
+    UINT_PTR index
+);
 
 /// The inverse of @ref VRegInternal_VirtualHKeyFromIndex; only meaningful when
 /// @ref VReg_IsVirtualHKey holds.
-VREG_DECL UINT_PTR VRegInternal_IndexFromVirtualHKey(_In_opt_ HKEY hKey);
+VREG_DECL UINT_PTR VRegInternal_IndexFromVirtualHKey(
+    _In_opt_ HKEY hKey
+);
 
 // ==========================================================================
 // Hive internals
@@ -2700,7 +2726,10 @@ VREG_DECL void WINAPI VRegInternal_VirtualDestroy(
 /// @ref VRegInternalWStringView: empty components are skipped, a trailing backslash
 /// is ignored, a leading one answers @ref ERROR_BAD_PATHNAME and a component
 /// over @ref VREG_INTERNAL_MAX_KEY_NAME_CHARS @ref ERROR_INVALID_PARAMETER.
-VREG_DECL LSTATUS VRegInternal_SplitPath(VRegInternalWStringView path, _Inout_ VRegInternalArray* pComponents);
+VREG_DECL LSTATUS VRegInternal_SplitPath(
+    VRegInternalWStringView path,
+    _Inout_ VRegInternalArray* pComponents
+);
 
 // ==========================================================================
 // Status
@@ -2974,12 +3003,16 @@ VREG_DECL LSTATUS VRegInternal_WideArgInit(
     return VRegInternal_WideFromAnsi(psz, VRegInternal_AnsiLength(psz), &pArg->text);
 }
 
-VREG_DECL _Ret_maybenull_z_ LPCWSTR VRegInternal_WideArgText(_In_ const VRegInternalWideArg* const pArg)
+VREG_DECL _Ret_maybenull_z_ LPCWSTR VRegInternal_WideArgText(
+    _In_ const VRegInternalWideArg* const pArg
+)
 {
     return pArg->isNull ? NULL : VRegInternal_WStringText(&pArg->text);
 }
 
-VREG_DECL _Ret_maybenull_ LPWSTR VRegInternal_WideArgMutable(_In_ VRegInternalWideArg* const pArg)
+VREG_DECL _Ret_maybenull_ LPWSTR VRegInternal_WideArgMutable(
+    _In_ VRegInternalWideArg* const pArg
+)
 {
     if (pArg->isNull)
         return NULL;
@@ -3002,7 +3035,10 @@ VREG_DECL void VRegInternal_WideArgFree(_Inout_ VRegInternalWideArg* const pArg)
 
 /// The capacity to grow to for @p needed elements: at least double the old
 /// one, so repeated appends stay linear.
-static SIZE_T VRegInternal_GrownCapacity(const SIZE_T capacity, const SIZE_T needed)
+static SIZE_T VRegInternal_GrownCapacity(
+    const SIZE_T capacity,
+    const SIZE_T needed
+)
 {
     SIZE_T grown = capacity < 8 ? 8 : capacity * 2;
     return grown < needed ? needed : grown;
@@ -3023,7 +3059,9 @@ static SIZE_T VRegInternal_MinSize(const SIZE_T a, const SIZE_T b)
     return a < b ? a : b;
 }
 
-VREG_DECL VRegInternalWStringView VRegInternal_ViewOf(_In_opt_z_ const LPCWSTR psz)
+VREG_DECL VRegInternalWStringView VRegInternal_ViewOf(
+    _In_opt_z_ const LPCWSTR psz
+)
 {
     VRegInternalWStringView view;
     view.pch = psz;
@@ -3514,7 +3552,9 @@ static const VRegVtbl VRegInternal_NoSlots = {0};
 
 /// The slots a derived form calls when they are filled: a custom registry's
 /// own, and none for the kinds VReg implements.
-static _Ret_notnull_ const VRegVtbl* VRegInternal_SlotsOf(_In_ const VReg* const pRegistry)
+static _Ret_notnull_ const VRegVtbl* VRegInternal_SlotsOf(
+    _In_ const VReg* const pRegistry
+)
 {
     return pRegistry->dwKind == VREG_INTERNAL_KIND_CUSTOM ? pRegistry->implementation.custom.lpVtbl : &VRegInternal_NoSlots;
 }
@@ -5702,7 +5742,10 @@ struct VRegInternalHandleDirectory
 static VRegInternalHandleSpace g_processSpace;
 static INIT_ONCE g_processSpaceOnce = INIT_ONCE_STATIC_INIT;
 
-VREG_DECL void VRegInternal_HandleSpaceInit(_Out_ VRegInternalHandleSpace* const pSpace, _In_z_ const LPCWSTR pszName)
+VREG_DECL void VRegInternal_HandleSpaceInit(
+    _Out_ VRegInternalHandleSpace* const pSpace,
+    _In_z_ const LPCWSTR pszName
+)
 {
     HANDLE hSection;
     VRegInternalHandleSpaceShared* pShared;
@@ -5752,7 +5795,11 @@ VREG_DECL void VRegInternal_HandleSpaceInit(_Out_ VRegInternalHandleSpace* const
 
 /// Writes @p value in decimal at @p pszOut, which has room for @p cchOut
 /// characters including the terminator, and answers the characters written.
-static SIZE_T VRegInternal_WriteDecimal(_Out_writes_z_(cchOut) wchar_t* const pszOut, const SIZE_T cchOut, DWORD value)
+static SIZE_T VRegInternal_WriteDecimal(
+    _Out_writes_z_(cchOut) wchar_t* const pszOut,
+    const SIZE_T cchOut,
+    DWORD value
+)
 {
     wchar_t wszDigits[10];
     SIZE_T cchDigits = 0;
@@ -5807,19 +5854,27 @@ VREG_DECL _Ret_notnull_ VRegInternalHandleSpace* VRegInternal_ProcessHandleSpace
     return &g_processSpace;
 }
 
-VREG_DECL BOOL VRegInternal_HandleSpaceIsUsable(_In_ const VRegInternalHandleSpace* const pSpace)
+VREG_DECL BOOL VRegInternal_HandleSpaceIsUsable(
+    _In_ const VRegInternalHandleSpace* const pSpace
+)
 {
     return pSpace->pShared != NULL;
 }
 
 // A slot holds null while unbound, which WritePointerRelease's annotations
 // reject; the exchange accepts it, and its full barrier covers the release.
-static void VRegInternal_StoreTarget(_Inout_ void* volatile* const pSlot, _In_opt_ void* const pTarget)
+static void VRegInternal_StoreTarget(
+    _Inout_ void* volatile* const pSlot,
+    _In_opt_ void* const pTarget
+)
 {
     InterlockedExchangePointer(pSlot, pTarget);
 }
 
-static VRegInternalHandleBlock* VRegInternal_FindBlock(_In_ const VRegInternalHandleSpace* const pSpace, const UINT_PTR block)
+static VRegInternalHandleBlock* VRegInternal_FindBlock(
+    _In_ const VRegInternalHandleSpace* const pSpace,
+    const UINT_PTR block
+)
 {
     const VRegInternalHandleDirectory* const pDirectory = (const VRegInternalHandleDirectory*)ReadPointerAcquire(
         (PVOID volatile*)&pSpace->directories[block / VREG_INTERNAL_HANDLE_DIRECTORY_SIZE]
@@ -5832,7 +5887,10 @@ static VRegInternalHandleBlock* VRegInternal_FindBlock(_In_ const VRegInternalHa
     );
 }
 
-static BOOL VRegInternal_AddBlock(_Inout_ VRegInternalHandleSpace* const pSpace, const UINT_PTR block)
+static BOOL VRegInternal_AddBlock(
+    _Inout_ VRegInternalHandleSpace* const pSpace,
+    const UINT_PTR block
+)
 {
     VRegInternalHandleDirectory* volatile* const pDirectorySlot = &pSpace->directories[block / VREG_INTERNAL_HANDLE_DIRECTORY_SIZE];
     VRegInternalHandleDirectory* pDirectory = *pDirectorySlot;
@@ -5893,14 +5951,20 @@ VREG_DECL _Ret_maybenull_ HKEY VRegInternal_HandleSpaceAllocate(
     return hKey;
 }
 
-VREG_DECL BOOL VRegInternal_HandleSpaceOwns(_In_ const VRegInternalHandleSpace* const pSpace, _In_opt_ const HKEY hKey)
+VREG_DECL BOOL VRegInternal_HandleSpaceOwns(
+    _In_ const VRegInternalHandleSpace* const pSpace,
+    _In_opt_ const HKEY hKey
+)
 {
     return
         VReg_IsVirtualHKey(hKey)
         && VRegInternal_FindBlock(pSpace, VRegInternal_IndexFromVirtualHKey(hKey) / VREG_INTERNAL_HANDLE_BLOCK_SIZE) != NULL;
 }
 
-VREG_DECL void VRegInternal_HandleSpaceRelease(_Inout_ VRegInternalHandleSpace* const pSpace, _In_opt_ const HKEY hKey)
+VREG_DECL void VRegInternal_HandleSpaceRelease(
+    _Inout_ VRegInternalHandleSpace* const pSpace,
+    _In_opt_ const HKEY hKey
+)
 {
     UINT_PTR index;
     VRegInternalHandleBlock* pBlock;
@@ -5933,7 +5997,9 @@ VREG_DECL _Ret_maybenull_ void* VRegInternal_HandleSpaceFind(
     return ReadPointerAcquire((PVOID volatile*)&pBlock->targets[index % VREG_INTERNAL_HANDLE_BLOCK_SIZE]);
 }
 
-VREG_DECL _Ret_maybenull_ HKEY VRegInternal_VirtualHKeyFromIndex(const UINT_PTR index)
+VREG_DECL _Ret_maybenull_ HKEY VRegInternal_VirtualHKeyFromIndex(
+    const UINT_PTR index
+)
 {
     if (index >= VREG_INTERNAL_VIRTUAL_HKEY_COUNT)
         return NULL;
@@ -5988,7 +6054,10 @@ struct VRegHive
 
 static const VRegInternalWStringView VREG_INTERNAL_NO_NAME = {NULL, 0};
 
-VREG_DECL int VRegInternal_CompareNames(const VRegInternalWStringView left, const VRegInternalWStringView right)
+VREG_DECL int VRegInternal_CompareNames(
+    const VRegInternalWStringView left,
+    const VRegInternalWStringView right
+)
 {
     if (left.cch == 0 || right.cch == 0)
         return (left.cch == 0) == (right.cch == 0) ? 0 : (left.cch == 0 ? -1 : 1);
@@ -6027,7 +6096,10 @@ static BOOL VRegInternal_HiveLockRead(_In_ VRegHive* const pHive)
     return TRUE;
 }
 
-static void VRegInternal_HiveUnlockRead(_In_ VRegHive* const pHive, const BOOL isLocked)
+static void VRegInternal_HiveUnlockRead(
+    _In_ VRegHive* const pHive,
+    const BOOL isLocked
+)
 {
     if (isLocked)
         ReleaseSRWLockShared(&pHive->lock);
@@ -6127,7 +6199,11 @@ static void VRegInternal_HiveDropWatches(_Inout_ VRegInternalNode* const pNode)
 
 /// Signals and drops the watches of @p pNode that @p dwFilter selects;
 /// @p isInherited limits them to those watching their subtree.
-static void VRegInternal_HiveFire(_Inout_ VRegInternalNode* const pNode, const DWORD dwFilter, const BOOL isInherited)
+static void VRegInternal_HiveFire(
+    _Inout_ VRegInternalNode* const pNode,
+    const DWORD dwFilter,
+    const BOOL isInherited
+)
 {
     SIZE_T i = 0;
     while (i < pNode->watches.count)
@@ -6157,7 +6233,10 @@ static void VRegInternal_HiveFire(_Inout_ VRegInternalNode* const pNode, const D
 /// the hive could hold, so they run under the write lock, which the caller
 /// must hold; deferring them would need an allocation after the change is
 /// made.
-static void VRegInternal_HiveNotify(_Inout_ VRegInternalNode* const pNode, const DWORD dwFilter)
+static void VRegInternal_HiveNotify(
+    _Inout_ VRegInternalNode* const pNode,
+    const DWORD dwFilter
+)
 {
     VRegInternalNode* pAncestor;
     VRegInternal_HiveFire(pNode, dwFilter, FALSE);
@@ -6196,7 +6275,10 @@ static _Ret_maybenull_ VRegInternalNode* VRegInternal_HiveFindChild(
     return NULL;
 }
 
-static _Ret_maybenull_ VRegInternalValue* VRegInternal_HiveFindValue(_In_ VRegInternalNode* const pNode, const VRegInternalWStringView name)
+static _Ret_maybenull_ VRegInternalValue* VRegInternal_HiveFindValue(
+    _In_ VRegInternalNode* const pNode,
+    const VRegInternalWStringView name
+)
 {
     SIZE_T i;
     for (i = 0; i < pNode->values.count; ++i)
@@ -6319,7 +6401,10 @@ static BOOL VRegInternal_HiveAppendNodePath(
 
 /// Whether @p pNode's lower key shows through: the hive has a lower and no
 /// key at or above @p pNode is opaque. Read under the lock.
-static BOOL VRegInternal_HiveIsVisible(_In_ VRegHive* const pHive, _In_ const VRegInternalNode* const pNode)
+static BOOL VRegInternal_HiveIsVisible(
+    _In_ VRegHive* const pHive,
+    _In_ const VRegInternalNode* const pNode
+)
 {
     const VRegInternalNode* pCurrent;
     if (!pHive->pLowerVtbl)
@@ -6556,22 +6641,30 @@ VREG_DECL LSTATUS WINAPI VRegHive_CreateCustom(
     return VRegInternal_HiveCreate(pVtbl, pvContext, VREG_INTERNAL_HIVE_WRITE_THROUGH, ppHive);
 }
 
-VREG_DECL _Ret_maybenull_ void* WINAPI VRegHive_GetContext(_In_ VRegHive* const pHive)
+VREG_DECL _Ret_maybenull_ void* WINAPI VRegHive_GetContext(
+    _In_ VRegHive* const pHive
+)
 {
     return pHive->dwWriteMode == VREG_INTERNAL_HIVE_WRITE_THROUGH ? pHive->pvLowerContext : NULL;
 }
 
-VREG_DECL _Ret_maybenull_ void* WINAPI VRegHiveKey_GetToken(_In_ VRegHiveKey* const pKey)
+VREG_DECL _Ret_maybenull_ void* WINAPI VRegHiveKey_GetToken(
+    _In_ VRegHiveKey* const pKey
+)
 {
     return pKey->pToken;
 }
 
-VREG_DECL _Ret_z_ LPCWSTR WINAPI VRegHiveKey_GetName(_In_ VRegHiveKey* const pKey)
+VREG_DECL _Ret_z_ LPCWSTR WINAPI VRegHiveKey_GetName(
+    _In_ VRegHiveKey* const pKey
+)
 {
     return VRegInternal_WStringText(&pKey->name);
 }
 
-VREG_DECL _Ret_maybenull_ VRegHiveKey* WINAPI VRegHiveKey_GetParent(_In_ VRegHiveKey* const pKey)
+VREG_DECL _Ret_maybenull_ VRegHiveKey* WINAPI VRegHiveKey_GetParent(
+    _In_ VRegHiveKey* const pKey
+)
 {
     return pKey->pParent;
 }
@@ -6593,7 +6686,10 @@ VREG_DECL LSTATUS WINAPI VRegHiveResult_SetValue(
     return ERROR_SUCCESS;
 }
 
-VREG_DECL LSTATUS WINAPI VRegHiveResult_SetName(_In_ VRegHiveResult* const pResult, _In_z_ const LPCWSTR pszName)
+VREG_DECL LSTATUS WINAPI VRegHiveResult_SetName(
+    _In_ VRegHiveResult* const pResult,
+    _In_z_ const LPCWSTR pszName
+)
 {
     const VRegInternalWStringView name = VRegInternal_ViewOf(pszName);
     if (pResult->pName && !VRegInternal_WStringAssign(pResult->pName, name.pch, name.cch))
@@ -6602,7 +6698,10 @@ VREG_DECL LSTATUS WINAPI VRegHiveResult_SetName(_In_ VRegHiveResult* const pResu
     return ERROR_SUCCESS;
 }
 
-VREG_DECL LSTATUS WINAPI VRegHiveResult_SetClass(_In_ VRegHiveResult* const pResult, _In_z_ const LPCWSTR pszClassName)
+VREG_DECL LSTATUS WINAPI VRegHiveResult_SetClass(
+    _In_ VRegHiveResult* const pResult,
+    _In_z_ const LPCWSTR pszClassName
+)
 {
     const VRegInternalWStringView className = VRegInternal_ViewOf(pszClassName);
     VRegInternalWString* const pClassName = pResult->pInfo ? &pResult->pInfo->className : pResult->pClassName;
@@ -6649,7 +6748,10 @@ VREG_DECL LSTATUS WINAPI VRegHiveResult_SetInfo(
     return ERROR_SUCCESS;
 }
 
-VREG_DECL int WINAPI VReg_CompareNames(_In_z_ const LPCWSTR pszLeft, _In_z_ const LPCWSTR pszRight)
+VREG_DECL int WINAPI VReg_CompareNames(
+    _In_z_ const LPCWSTR pszLeft,
+    _In_z_ const LPCWSTR pszRight
+)
 {
     return VRegInternal_CompareNames(VRegInternal_ViewOf(pszLeft), VRegInternal_ViewOf(pszRight));
 }
@@ -6688,7 +6790,9 @@ VREG_DECL void WINAPI VRegHive_Freeze(_In_ VRegHive* const pHive)
     ReleaseSRWLockExclusive(&pHive->lock);
 }
 
-VREG_DECL _Ret_notnull_ VRegInternalNode* VRegInternal_HiveRoot(_In_ VRegHive* const pHive)
+VREG_DECL _Ret_notnull_ VRegInternalNode* VRegInternal_HiveRoot(
+    _In_ VRegHive* const pHive
+)
 {
     return pHive->pRoot;
 }
@@ -6698,12 +6802,16 @@ VREG_DECL HKEY VRegInternal_NodeHandle(_In_ const VRegInternalNode* const pNode)
     return pNode->hKey;
 }
 
-VREG_DECL _Ret_maybenull_ VRegInternalNode* VRegInternal_NodeOf(_In_opt_ const HKEY hKey)
+VREG_DECL _Ret_maybenull_ VRegInternalNode* VRegInternal_NodeOf(
+    _In_opt_ const HKEY hKey
+)
 {
     return (VRegInternalNode*)VRegInternal_HandleSpaceFind(VRegInternal_ProcessHandleSpace(), hKey);
 }
 
-VREG_DECL _Ret_notnull_ VRegHive* VRegInternal_NodeHive(_In_ const VRegInternalNode* const pNode)
+VREG_DECL _Ret_notnull_ VRegHive* VRegInternal_NodeHive(
+    _In_ const VRegInternalNode* const pNode
+)
 {
     return pNode->pHive;
 }
@@ -6830,7 +6938,11 @@ static LSTATUS VRegInternal_HiveOpenRecords(
 }
 
 /// Fires @p dwFilter on @p pNode after a write went through to the provider.
-static void VRegInternal_HiveRecordChanged(_In_ VRegHive* const pHive, _Inout_ VRegInternalNode* const pNode, const DWORD dwFilter)
+static void VRegInternal_HiveRecordChanged(
+    _In_ VRegHive* const pHive,
+    _Inout_ VRegInternalNode* const pNode,
+    const DWORD dwFilter
+)
 {
     if (!VRegInternal_HiveLockRecords(pHive))
         return;
@@ -7451,7 +7563,10 @@ done:
 }
 
 /// Whether @p pNode was deleted through VReg, read under the lock.
-static BOOL VRegInternal_HiveIsDeleted(_In_ VRegHive* const pHive, _In_ const VRegInternalNode* const pNode)
+static BOOL VRegInternal_HiveIsDeleted(
+    _In_ VRegHive* const pHive,
+    _In_ const VRegInternalNode* const pNode
+)
 {
     const BOOL isLocked = VRegInternal_HiveLockRead(pHive);
     const BOOL isDeleted = pNode->isDeleted;
@@ -7461,7 +7576,10 @@ static BOOL VRegInternal_HiveIsDeleted(_In_ VRegHive* const pHive, _In_ const VR
 
 /// @ref VRegInternal_HiveDeleteTree on a custom hive: the provider empties the key,
 /// and the records below it are marked deleted.
-static LSTATUS VRegInternal_HiveDeleteTreeThrough(_In_ VRegHive* const pHive, _Inout_ VRegInternalNode* const pNode)
+static LSTATUS VRegInternal_HiveDeleteTreeThrough(
+    _In_ VRegHive* const pHive,
+    _Inout_ VRegInternalNode* const pNode
+)
 {
     LSTATUS status;
     if (VRegInternal_HiveIsFrozen(pHive) || !pHive->pLowerVtbl->DeleteTree)
@@ -7485,7 +7603,10 @@ static LSTATUS VRegInternal_HiveDeleteTreeThrough(_In_ VRegHive* const pHive, _I
     return ERROR_SUCCESS;
 }
 
-VREG_DECL LSTATUS VRegInternal_HiveDeleteTree(_In_ VRegHive* const pHive, _Inout_ VRegInternalNode* const pNode)
+VREG_DECL LSTATUS VRegInternal_HiveDeleteTree(
+    _In_ VRegHive* const pHive,
+    _Inout_ VRegInternalNode* const pNode
+)
 {
     if (pHive->dwWriteMode == VREG_INTERNAL_HIVE_WRITE_THROUGH)
         return VRegInternal_HiveDeleteTreeThrough(pHive, pNode);
@@ -8409,7 +8530,10 @@ VREG_DECL LSTATUS VRegInternal_HiveSnapshotUpper(
     return status;
 }
 
-VREG_DECL LSTATUS VRegInternal_HiveCheckKey(_In_ VRegHive* const pHive, _In_ VRegInternalNode* const pNode)
+VREG_DECL LSTATUS VRegInternal_HiveCheckKey(
+    _In_ VRegHive* const pHive,
+    _In_ VRegInternalNode* const pNode
+)
 {
     if (VRegInternal_HiveIsDeleted(pHive, pNode))
         return ERROR_KEY_DELETED;
@@ -8506,7 +8630,9 @@ typedef struct
     REGSAM samView;
 } VRegInternalRegistryLower;
 
-VREG_DECL void VRegInternal_CloseRedirect(_In_ const VRegInternalRedirect* const pRedirect)
+VREG_DECL void VRegInternal_CloseRedirect(
+    _In_ const VRegInternalRedirect* const pRedirect
+)
 {
     // A redirect always names the registry that answers its key.
     _Analysis_assume_(pRedirect->pRegistry);
@@ -8554,7 +8680,10 @@ static LSTATUS VRegInternal_RegistryLowerOpen(
     return status;
 }
 
-static void VRegInternal_RegistryLowerClose(_In_ VRegHive* const pHive, _In_ const HKEY hKey)
+static void VRegInternal_RegistryLowerClose(
+    _In_ VRegHive* const pHive,
+    _In_ const HKEY hKey
+)
 {
     const VRegInternalRegistryLower* const pLower = (const VRegInternalRegistryLower*)pHive->pvLowerContext;
     VReg_CloseKey(
@@ -8895,7 +9024,9 @@ VREG_DECL LSTATUS WINAPI VReg_CreateNative(
     return ERROR_SUCCESS;
 }
 
-VREG_DECL _Ret_notnull_ VRegNativeFunctions* WINAPI VReg_GetNativeFunctions(_In_ VReg* const pRegistry)
+VREG_DECL _Ret_notnull_ VRegNativeFunctions* WINAPI VReg_GetNativeFunctions(
+    _In_ VReg* const pRegistry
+)
 {
     return &pRegistry->implementation.native;
 }
@@ -9979,7 +10110,9 @@ VREG_DECL LSTATUS WINAPI VReg_CreateCustom(
     return ERROR_SUCCESS;
 }
 
-VREG_DECL _Ret_maybenull_ void* WINAPI VReg_GetContext(_In_ VReg* const pRegistry)
+VREG_DECL _Ret_maybenull_ void* WINAPI VReg_GetContext(
+    _In_ VReg* const pRegistry
+)
 {
     return pRegistry->dwKind == VREG_INTERNAL_KIND_CUSTOM ? pRegistry->implementation.custom.pvContext : NULL;
 }
@@ -10258,7 +10391,9 @@ static BOOL VRegInternal_MatchesNative(
 // --- The mount table ---
 
 /// The current table, or null while nothing is mounted. Lock-free.
-static _Ret_maybenull_ const VRegInternalMountTable* VRegInternal_MountsOf(_In_ const VReg* const pThis)
+static _Ret_maybenull_ const VRegInternalMountTable* VRegInternal_MountsOf(
+    _In_ const VReg* const pThis
+)
 {
     return (const VRegInternalMountTable*)ReadPointerAcquire((PVOID volatile*)&pThis->implementation.virtualRegistry.pMounts);
 }
@@ -10284,7 +10419,9 @@ static _Ret_maybenull_ const VRegInternalMountPoint* VRegInternal_MountOf(
     return NULL;
 }
 
-static void VRegInternal_MountPointFree(_Inout_ VRegInternalMountPoint* const pMount)
+static void VRegInternal_MountPointFree(
+    _Inout_ VRegInternalMountPoint* const pMount
+)
 {
     VRegInternal_WStringArrayFree(&pMount->path);
     VRegInternal_WStringArrayFree(&pMount->nativePath);
@@ -10315,7 +10452,10 @@ static BOOL VRegInternal_MountIsAt(
 
 /// Publishes a table holding the current mounts plus @p pMount, whose strings
 /// it then owns. Under the mount lock.
-static LSTATUS VRegInternal_PublishMount(_In_ VReg* const pThis, _In_ const VRegInternalMountPoint* const pMount)
+static LSTATUS VRegInternal_PublishMount(
+    _In_ VReg* const pThis,
+    _In_ const VRegInternalMountPoint* const pMount
+)
 {
     VRegInternalMountTable* const pOld = pThis->implementation.virtualRegistry.pMounts;
     VRegInternalMountTable* const pNew = (VRegInternalMountTable*)VRegInternal_AllocZeroed(sizeof(VRegInternalMountTable));
@@ -10656,7 +10796,11 @@ typedef struct
     LPDWORD pcbData;
 } VRegInternalGetValueCall;
 
-static LSTATUS VRegInternal_RedirectGetValue(_In_ VReg* const pRegistry, const HKEY hKey, _In_opt_ void* const pContext)
+static LSTATUS VRegInternal_RedirectGetValue(
+    _In_ VReg* const pRegistry,
+    const HKEY hKey,
+    _In_opt_ void* const pContext
+)
 {
     const VRegInternalGetValueCall* const pCall = (const VRegInternalGetValueCall*)pContext;
     _Analysis_assume_(pCall);
@@ -11707,7 +11851,10 @@ static LSTATUS VRegInternal_FailGetValue(
 }
 
 /// Whether the character at @p iwch of @p pBuffer is a terminator.
-static BOOL VRegInternal_IsNulAt(_In_ const VRegInternalBuffer* const pBuffer, const SIZE_T iwch)
+static BOOL VRegInternal_IsNulAt(
+    _In_ const VRegInternalBuffer* const pBuffer,
+    const SIZE_T iwch
+)
 {
     wchar_t ch;
     CopyMemory(&ch, pBuffer->pb + iwch * sizeof(wchar_t), sizeof(ch));
@@ -12168,7 +12315,10 @@ static LSTATUS VRegInternal_NotFoundIsFine(const LSTATUS status)
     return status == ERROR_FILE_NOT_FOUND || status == ERROR_PATH_NOT_FOUND ? ERROR_SUCCESS : status;
 }
 
-static void VRegInternal_ApplyCloseKey(_In_ VReg* const pRegistry, _In_opt_ const HKEY hKey)
+static void VRegInternal_ApplyCloseKey(
+    _In_ VReg* const pRegistry,
+    _In_opt_ const HKEY hKey
+)
 {
     if (hKey)
         VReg_CloseKey(
@@ -12177,7 +12327,10 @@ static void VRegInternal_ApplyCloseKey(_In_ VReg* const pRegistry, _In_opt_ cons
         );
 }
 
-static LSTATUS VRegInternal_PerformSetValue(_In_ const VRegOperation* const pOperation, _In_ VReg* const pRegistry)
+static LSTATUS VRegInternal_PerformSetValue(
+    _In_ const VRegOperation* const pOperation,
+    _In_ VReg* const pRegistry
+)
 {
     const BYTE* const pData = pOperation->pData;
     const DWORD cbData = pOperation->cbData;
@@ -12241,7 +12394,10 @@ static LSTATUS VRegInternal_PerformSetValue(_In_ const VRegOperation* const pOpe
     return status;
 }
 
-static LSTATUS VRegInternal_Perform(_In_ const VRegOperation* const pOperation, _In_ VReg* const pRegistry)
+static LSTATUS VRegInternal_Perform(
+    _In_ const VRegOperation* const pOperation,
+    _In_ VReg* const pRegistry
+)
 {
     HKEY hKey = NULL;
     LSTATUS status;
@@ -12629,7 +12785,10 @@ typedef struct
     VRegInternalArray values;
 } VRegInternalDeltaWalk;
 
-static LSTATUS VRegInternal_VisitUpper(_In_ void* const pContext, _In_ const VRegInternalUpperRecord* const pRecord)
+static LSTATUS VRegInternal_VisitUpper(
+    _In_ void* const pContext,
+    _In_ const VRegInternalUpperRecord* const pRecord
+)
 {
     VRegInternalDeltaWalk* const pWalk = (VRegInternalDeltaWalk*)pContext;
     LSTATUS status;
@@ -12776,7 +12935,10 @@ typedef struct
 } VRegInternalParser;
 
 /// Records a syntax error at the parser's position and answers its status.
-static LSTATUS VRegInternal_ParseFail(_Inout_ VRegInternalParser* const pParser, _In_z_ const char* const pszMessage)
+static LSTATUS VRegInternal_ParseFail(
+    _Inout_ VRegInternalParser* const pParser,
+    _In_z_ const char* const pszMessage
+)
 {
     pParser->pszError = pszMessage;
     pParser->errorOffset = pParser->pos;
@@ -12804,7 +12966,10 @@ static wchar_t VRegInternal_LowerAscii(const wchar_t ch)
     return (ch >= L'A' && ch <= L'Z') ? (wchar_t)(ch - L'A' + L'a') : ch;
 }
 
-static BOOL VRegInternal_ViewEquals(const VRegInternalWStringView left, const VRegInternalWStringView right)
+static BOOL VRegInternal_ViewEquals(
+    const VRegInternalWStringView left,
+    const VRegInternalWStringView right
+)
 {
     SIZE_T i;
     if (left.cch != right.cch)
@@ -12819,7 +12984,10 @@ static BOOL VRegInternal_ViewEquals(const VRegInternalWStringView left, const VR
     return TRUE;
 }
 
-static BOOL VRegInternal_EqualsIgnoreAsciiCase(const VRegInternalWStringView left, const VRegInternalWStringView right)
+static BOOL VRegInternal_EqualsIgnoreAsciiCase(
+    const VRegInternalWStringView left,
+    const VRegInternalWStringView right
+)
 {
     SIZE_T i;
     if (left.cch != right.cch)
@@ -12834,7 +13002,9 @@ static BOOL VRegInternal_EqualsIgnoreAsciiCase(const VRegInternalWStringView lef
     return TRUE;
 }
 
-static VRegInternalWStringView VRegInternal_TrimEnd(VRegInternalWStringView text)
+static VRegInternalWStringView VRegInternal_TrimEnd(
+    VRegInternalWStringView text
+)
 {
     while (text.cch != 0 && VRegInternal_IsBlank(text.pch[text.cch - 1]))
         --text.cch;
@@ -12842,7 +13012,11 @@ static VRegInternalWStringView VRegInternal_TrimEnd(VRegInternalWStringView text
     return text;
 }
 
-static VRegInternalWStringView VRegInternal_Substring(const VRegInternalWStringView text, const SIZE_T start, const SIZE_T cch)
+static VRegInternalWStringView VRegInternal_Substring(
+    const VRegInternalWStringView text,
+    const SIZE_T start,
+    const SIZE_T cch
+)
 {
     VRegInternalWStringView result;
     result.pch = text.pch + start;
@@ -12851,7 +13025,11 @@ static VRegInternalWStringView VRegInternal_Substring(const VRegInternalWStringV
 }
 
 /// The index of @p ch in @p text from @p start on, or the text's length.
-static SIZE_T VRegInternal_FindChar(const VRegInternalWStringView text, const SIZE_T start, const wchar_t ch)
+static SIZE_T VRegInternal_FindChar(
+    const VRegInternalWStringView text,
+    const SIZE_T start,
+    const wchar_t ch
+)
 {
     SIZE_T i;
     for (i = start; i < text.cch; ++i)
@@ -12891,7 +13069,9 @@ static BOOL VRegInternal_AtEnd(_In_ const VRegInternalParser* const pParser)
     return pParser->pos >= pParser->text.cch;
 }
 
-static wchar_t VRegInternal_Current(_In_ const VRegInternalParser* const pParser)
+static wchar_t VRegInternal_Current(
+    _In_ const VRegInternalParser* const pParser
+)
 {
     return pParser->text.psz[pParser->pos];
 }
@@ -12912,7 +13092,10 @@ static LSTATUS VRegInternal_ExpectEnd(_Inout_ VRegInternalParser* const pParser)
 }
 
 /// Consumes @p pszToken, ignoring case, if the text continues with it.
-static BOOL VRegInternal_Consume(_Inout_ VRegInternalParser* const pParser, _In_z_ const wchar_t* const pszToken)
+static BOOL VRegInternal_Consume(
+    _Inout_ VRegInternalParser* const pParser,
+    _In_z_ const wchar_t* const pszToken
+)
 {
     const VRegInternalWStringView token = VRegInternal_ViewOf(pszToken);
     const VRegInternalWStringView text = VRegInternal_WStringViewOf(&pParser->text);
@@ -13057,7 +13240,10 @@ static LSTATUS VRegInternal_ParseKey(_Inout_ VRegInternalParser* const pParser)
 }
 
 /// Reads a quoted string at the position (on its opening quote) into @p pText.
-static LSTATUS VRegInternal_ParseQuoted(_Inout_ VRegInternalParser* const pParser, _Inout_ VRegInternalWString* const pText)
+static LSTATUS VRegInternal_ParseQuoted(
+    _Inout_ VRegInternalParser* const pParser,
+    _Inout_ VRegInternalWString* const pText
+)
 {
     ++pParser->pos;
     if (!VRegInternal_WStringResize(pText, 0))
@@ -13121,7 +13307,10 @@ static LSTATUS VRegInternal_ParseHexNumber(
     return ERROR_SUCCESS;
 }
 
-static LSTATUS VRegInternal_ParseHexBytes(_Inout_ VRegInternalParser* const pParser, _Inout_ VRegInternalBuffer* const pData)
+static LSTATUS VRegInternal_ParseHexBytes(
+    _Inout_ VRegInternalParser* const pParser,
+    _Inout_ VRegInternalBuffer* const pData
+)
 {
     VRegInternal_SkipBlanks(pParser);
     if (VRegInternal_AtEnd(pParser))
@@ -13154,7 +13343,9 @@ static LSTATUS VRegInternal_ParseHexBytes(_Inout_ VRegInternalParser* const pPar
     }
 }
 
-static LSTATUS VRegInternal_ParseValue(_Inout_ VRegInternalParser* const pParser)
+static LSTATUS VRegInternal_ParseValue(
+    _Inout_ VRegInternalParser* const pParser
+)
 {
     VRegInternalWString name = {0, 0, NULL};
     VRegInternalWString text = {0, 0, NULL};
@@ -13269,7 +13460,9 @@ done:
     return status;
 }
 
-static LSTATUS VRegInternal_ParseLogicalLine(_Inout_ VRegInternalParser* const pParser)
+static LSTATUS VRegInternal_ParseLogicalLine(
+    _Inout_ VRegInternalParser* const pParser
+)
 {
     // Key paths and value names reach the registry as C strings, where a NUL
     // would silently cut them short ("[-HKCU\<NUL>x]" would delete all of
@@ -13426,7 +13619,9 @@ static const VRegInternalRootKey VREG_INTERNAL_ROOT_KEYS[] = {
     {L"HKEY_CURRENT_CONFIG", L"HKCC", HKEY_CURRENT_CONFIG},
 };
 
-VREG_DECL _Ret_maybenull_z_ const wchar_t* VRegInternal_RootName(_In_opt_ const HKEY hRoot)
+VREG_DECL _Ret_maybenull_z_ const wchar_t* VRegInternal_RootName(
+    _In_opt_ const HKEY hRoot
+)
 {
     SIZE_T i;
     for (i = 0; i < sizeof(VREG_INTERNAL_ROOT_KEYS) / sizeof(VREG_INTERNAL_ROOT_KEYS[0]); ++i)
@@ -13438,7 +13633,10 @@ VREG_DECL _Ret_maybenull_z_ const wchar_t* VRegInternal_RootName(_In_opt_ const 
     return NULL;
 }
 
-VREG_DECL BOOL VRegInternal_FindRoot(const VRegInternalWStringView name, _Out_ PHKEY const phRoot)
+VREG_DECL BOOL VRegInternal_FindRoot(
+    const VRegInternalWStringView name,
+    _Out_ PHKEY const phRoot
+)
 {
     SIZE_T i;
     *phRoot = NULL;
@@ -13458,7 +13656,9 @@ VREG_DECL BOOL VRegInternal_FindRoot(const VRegInternalWStringView name, _Out_ P
     return FALSE;
 }
 
-VREG_DECL LSTATUS VRegInternal_ScriptCreate(_Outptr_ VRegScript** const ppScript)
+VREG_DECL LSTATUS VRegInternal_ScriptCreate(
+    _Outptr_ VRegScript** const ppScript
+)
 {
     VRegScript* const pScript = (VRegScript*)VRegInternal_AllocZeroed(sizeof(VRegScript));
     *ppScript = NULL;
@@ -13550,7 +13750,10 @@ VREG_DECL void WINAPI VReg_Free(_In_opt_ void* const p)
 // Script text
 // ==========================================================================
 
-static LSTATUS VRegInternal_DecodeFail(_Inout_opt_ VRegParseError* const pError, _In_z_ const char* const pszMessage)
+static LSTATUS VRegInternal_DecodeFail(
+    _Inout_opt_ VRegParseError* const pError,
+    _In_z_ const char* const pszMessage
+)
 {
     if (pError)
     {
@@ -13984,7 +14187,10 @@ static LSTATUS VRegInternal_AppendKeyLine(
 }
 
 /// Whether @p pLeft and @p pRight name the same key.
-static BOOL VRegInternal_SameKey(_In_ const VRegOperation* const pLeft, _In_ const VRegOperation* const pRight)
+static BOOL VRegInternal_SameKey(
+    _In_ const VRegOperation* const pLeft,
+    _In_ const VRegOperation* const pRight
+)
 {
     return pLeft->hRoot == pRight->hRoot
         && VRegInternal_CompareNames(VRegInternal_ViewOf(pLeft->pszPath), VRegInternal_ViewOf(pRight->pszPath)) == 0;
@@ -15924,7 +16130,10 @@ static void** VRegInternal_ThunkSlot(const SIZE_T index)
 
 /// Writes thunk @p index, initially jumping to @p pTarget, and answers its
 /// address.
-static void* VRegInternal_WriteThunk(const SIZE_T index, _In_ void* const pTarget)
+static void* VRegInternal_WriteThunk(
+    const SIZE_T index,
+    _In_ void* const pTarget
+)
 {
     BYTE* const pbCode = g_pbThunks + index * VREG_INTERNAL_THUNK_CODE_SIZE;
     void** const ppSlot = VRegInternal_ThunkSlot(index);
@@ -15980,7 +16189,10 @@ static void __cdecl VRegInternal_NeutralizeHooksAtExit(void)
     VRegHooks_Neutralize();
 }
 
-VREG_DECL LONG WINAPI VRegHooks_Install(_In_ VReg* const pRegistry, _In_ VReg* const pNative)
+VREG_DECL LONG WINAPI VRegHooks_Install(
+    _In_ VReg* const pRegistry,
+    _In_ VReg* const pNative
+)
 {
     static volatile LONG s_isAttached;
     VRegNativeFunctions* functions;

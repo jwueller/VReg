@@ -391,7 +391,11 @@ void ReaderLoop(
 }
 
 /// Registers one-shot watches on the whole hive and counts how many fire.
-void WatcherLoop(VReg* const registry, const HKEY hRoot, Shared& shared) noexcept
+void WatcherLoop(
+    VReg* const registry,
+    const HKEY hRoot,
+    Shared& shared
+) noexcept
 {
     const HANDLE hEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
     while (!shared.isStopped.load(std::memory_order_relaxed))

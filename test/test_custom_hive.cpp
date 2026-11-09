@@ -263,7 +263,11 @@ OwnedRegistry MountAlone(VRegHive* const pHive)
     return registry;
 }
 
-DWORD QueryDword(VReg* const registry, const HKEY hKey, const wchar_t* const pszName)
+DWORD QueryDword(
+    VReg* const registry,
+    const HKEY hKey,
+    const wchar_t* const pszName
+)
 {
     DWORD dwValue = 0;
     DWORD cbValue = sizeof(dwValue);
@@ -917,7 +921,13 @@ private:
 };
 
 /// Registers an asynchronous watch on @p hKey.
-void Watch(VReg* const registry, const HKEY hKey, const BOOL bWatchSubtree, const DWORD dwFilter, const Event& event)
+void Watch(
+    VReg* const registry,
+    const HKEY hKey,
+    const BOOL bWatchSubtree,
+    const DWORD dwFilter,
+    const Event& event
+)
 {
     REQUIRE(
         VReg_NotifyChangeKeyValue(
@@ -931,7 +941,11 @@ void Watch(VReg* const registry, const HKEY hKey, const BOOL bWatchSubtree, cons
     );
 }
 
-HKEY MustOpenKey(VReg* const registry, const HKEY hParent, const wchar_t* const pszSubKey)
+HKEY MustOpenKey(
+    VReg* const registry,
+    const HKEY hParent,
+    const wchar_t* const pszSubKey
+)
 {
     HKEY hKey{};
     REQUIRE(
