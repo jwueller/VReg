@@ -15474,9 +15474,13 @@ static LSTATUS VRegHooks_InternalRefuseMountPathA(
 
 /// @ref ERROR_NOT_SUPPORTED when @p hKey is a virtual handle, else
 /// @ref ERROR_SUCCESS.
-static LSTATUS VRegHooks_InternalRefuseOwned(_In_opt_ const HKEY hKey)
+static LSTATUS VRegHooks_InternalRefuseOwned(
+    _In_opt_ const HKEY hKey
+)
 {
-    return VReg_InternalIsOwned(hKey) ? ERROR_NOT_SUPPORTED : ERROR_SUCCESS;
+    return VReg_InternalIsOwned(hKey)
+        ? ERROR_NOT_SUPPORTED
+        : ERROR_SUCCESS;
 }
 
 /// @ref ERROR_NOT_SUPPORTED when either handle is a virtual handle, else
@@ -15486,7 +15490,9 @@ static LSTATUS VRegHooks_InternalRefuseOwnedPair(
     _In_opt_ const HKEY hSecond
 )
 {
-    return VReg_InternalIsOwned(hFirst) || VReg_InternalIsOwned(hSecond) ? ERROR_NOT_SUPPORTED : ERROR_SUCCESS;
+    return VReg_InternalIsOwned(hFirst) || VReg_InternalIsOwned(hSecond)
+        ? ERROR_NOT_SUPPORTED
+        : ERROR_SUCCESS;
 }
 
 /// The refusal of a transacted ANSI call: a virtual handle first, then a
