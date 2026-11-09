@@ -196,7 +196,8 @@ VReg_Mount(registry, HKEY_CURRENT_USER, L"Software\\Clock", clock, 0);
 and creates one name at a time and keeps a record of each key it reached,
 which a slot receives as its `VRegHiveKey`: the provider's own token for it
 (`VRegHiveKey_GetToken`, what `OpenKey` or `CreateKey` answered), its name
-and its parent. Results go through the `VRegHiveResult_Set*` functions,
+and its parent; `VRegHiveKey_EqualsPath` compares it with a path without
+joining anything. Results go through the `VRegHiveResult_Set*` functions,
 which copy, so a computed value can live on the stack.
 
 - **Writes** go through to `CreateKey`, `DeleteKey`, `DeleteTree`,

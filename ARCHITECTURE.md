@@ -157,10 +157,11 @@ The nodes are the hive's records of its keys:
   provider answered, published as the opaque `VRegHiveKey`, keeping the
   token its `OpenKey` or `CreateKey` returned. Slots read it through
   `VRegHiveKey_GetToken`, `VRegHiveKey_GetName` and `VRegHiveKey_GetParent`,
-  allocation-free and valid for the hive's life. Agent's choice: name and
-  parent instead of a joined path, which would need storage the caller
-  frees or a buffer rule; a provider that wants the path walks up and joins
-  it.
+  allocation-free and valid for the hive's life. Name and parent rather
+  than a joined path, which would need storage the caller frees or a
+  buffer rule; `VRegHiveKey_EqualsPath` compares a record with a path
+  component by component, and a provider that wants the path itself walks
+  up and joins it.
 - Identity is the path, compared with `VRegInternal_CompareNames` as for every
   node, so a virtual handle maps to a record as to any node: one handle per
   record, and a record whose key was deleted through VReg answers

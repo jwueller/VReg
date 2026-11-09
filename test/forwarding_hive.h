@@ -57,6 +57,12 @@ public:
         m_undeletable = std::move(path);
     }
 
+    /// The parent record the last `OpenKey` or `CreateKey` received.
+    [[nodiscard]] VRegHiveKey* LastParent() const noexcept
+    {
+        return m_pLastParent;
+    }
+
 private:
     static ForwardingProvider& Of(VRegHive* const pHive) noexcept
     {
@@ -97,7 +103,8 @@ private:
         void** const ppToken
     )
     {
-        const ForwardingProvider& self = Of(pHive);
+        ForwardingProvider& self = Of(pHive);
+        self.m_pLastParent = pParent;
         *ppToken = nullptr;
         HKEY hKey{};
         const LSTATUS status = self.Open(Join(HiveKeyPath(pParent), pszSubKey), KEY_QUERY_VALUE, hKey);
@@ -116,7 +123,8 @@ private:
         BOOL* const pIsCreated
     )
     {
-        const ForwardingProvider& self = Of(pHive);
+        ForwardingProvider& self = Of(pHive);
+        self.m_pLastParent = pParent;
         const std::wstring path = Join(HiveKeyPath(pParent), pszSubKey);
         *ppToken = nullptr;
         HKEY hKey{};
@@ -144,13 +152,12 @@ private:
     static LSTATUS WINAPI DeleteKey(VRegHive* const pHive, VRegHiveKey* const pKey)
     {
         const ForwardingProvider& self = Of(pHive);
-        const std::wstring path = HiveKeyPath(pKey);
-        if (!self.m_undeletable.empty() && VReg_CompareNames(path.c_str(), self.m_undeletable.c_str()) == 0)
+        if (!self.m_undeletable.empty() && VRegHiveKey_EqualsPath(pKey, self.m_undeletable.c_str()))
             return ERROR_ACCESS_DENIED;
         return VReg_DeleteKeyExW(
             self.m_pTarget,
             self.m_hTargetRoot,
-            path.c_str(),
+            HiveKeyPath(pKey).c_str(),
             0,
             0
         );
@@ -433,6 +440,7 @@ private:
     VReg* m_pTarget;
     HKEY m_hTargetRoot;
     std::wstring m_undeletable;
+    VRegHiveKey* m_pLastParent{};
     OwnedHive m_hive;
 };
 

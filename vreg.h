@@ -56,7 +56,7 @@ extern "C" {
 
 // Raised with every change to this file; the tweak is always 0.
 #define VREG_VERSION_MAJOR 0
-#define VREG_VERSION_MINOR 12
+#define VREG_VERSION_MINOR 13
 #define VREG_VERSION_PATCH 0
 #define VREG_VERSION_TWEAK 0
 
@@ -1042,6 +1042,15 @@ VREG_DECL _Ret_notnull_ LPCWSTR WINAPI VRegHiveKey_GetName(
 /// The key @p pKey is below; null for the root.
 VREG_DECL _Ret_maybenull_ VRegHiveKey* WINAPI VRegHiveKey_GetParent(
     _In_ VRegHiveKey* pKey
+);
+
+/// Whether @p pKey is the key at @p pszPath below the hive's root: the
+/// components, separated by single backslashes, compared one by one as
+/// @ref VReg_CompareNames compares names, so a provider joins and stores
+/// nothing. The root is the empty path.
+VREG_DECL BOOL WINAPI VRegHiveKey_EqualsPath(
+    _In_ VRegHiveKey* pKey,
+    _In_ LPCWSTR pszPath
 );
 
 /// Hands VReg a value: its type, and @p cbData bytes of data, which are
@@ -6672,6 +6681,38 @@ VREG_DECL _Ret_maybenull_ VRegHiveKey* WINAPI VRegHiveKey_GetParent(
 )
 {
     return pKey->pParent;
+}
+
+VREG_DECL BOOL WINAPI VRegHiveKey_EqualsPath(
+    _In_ VRegHiveKey* const pKey,
+    _In_ const LPCWSTR pszPath
+)
+{
+    const VRegInternalNode* pNode = pKey;
+    LPCWCH pchEnd = pszPath + VRegInternal_ViewOf(pszPath).cch;
+    LPCWCH pchStart = pchEnd;
+
+    // From the leaf upward against the components from the end backward.
+    while (pNode->pParent)
+    {
+        VRegInternalWStringView component;
+        pchStart = pchEnd;
+        while (pchStart > pszPath && pchStart[-1] != L'\\')
+            --pchStart;
+        component.pch = pchStart;
+        component.cch = (SIZE_T)(pchEnd - pchStart);
+        if (component.cch == 0)
+            return FALSE;
+        if (VRegInternal_CompareNames(VRegInternal_WStringViewOf(&pNode->name), component) != 0)
+            return FALSE;
+        pNode = pNode->pParent;
+        pchEnd = pchStart > pszPath ? pchStart - 1 : pszPath;
+    }
+
+    // The root is reached exactly when the last component matched began
+    // the path (or the path is empty for the root itself); a separator
+    // before it would name a key above the root.
+    return pchStart == pszPath;
 }
 
 VREG_DECL LSTATUS WINAPI VRegHiveResult_SetValue(

@@ -825,6 +825,49 @@ TEST_CASE("A custom hive without DeleteTree deletes a tree as native does")
     CHECK_FALSE(exists(L"Tree"));
 }
 
+TEST_CASE("VRegHiveKey_EqualsPath compares a record with a path component by component")
+{
+    CustomMount mount;
+    HKEY hGamma{};
+    REQUIRE(
+        VReg_CreateKeyExW(
+            mount.Registry(),
+            mount.Root(),
+            L"Alpha\\Beta\\Gamma",
+            0,
+            nullptr,
+            0,
+            KEY_ALL_ACCESS,
+            nullptr,
+            &hGamma,
+            nullptr
+        ) == ERROR_SUCCESS
+    );
+
+    // Keys open one name at a time, so the last slot call saw Beta as parent.
+    VRegHiveKey* const pBeta = mount.Provider().LastParent();
+    REQUIRE(pBeta != nullptr);
+    REQUIRE(VReg_CompareNames(VRegHiveKey_GetName(pBeta), L"Beta") == 0);
+
+    CHECK(VRegHiveKey_EqualsPath(pBeta, L"Alpha\\Beta"));
+    CHECK(VRegHiveKey_EqualsPath(pBeta, L"alpha\\BETA"));
+    CHECK_FALSE(VRegHiveKey_EqualsPath(pBeta, L"Alpha"));
+    CHECK_FALSE(VRegHiveKey_EqualsPath(pBeta, L"Beta"));
+    CHECK_FALSE(VRegHiveKey_EqualsPath(pBeta, L"Alpha\\Beta\\Gamma"));
+    CHECK_FALSE(VRegHiveKey_EqualsPath(pBeta, L"Alpha\\Bet"));
+    CHECK_FALSE(VRegHiveKey_EqualsPath(pBeta, L"\\Alpha\\Beta"));
+    CHECK_FALSE(VRegHiveKey_EqualsPath(pBeta, L"Alpha\\Beta\\"));
+    CHECK_FALSE(VRegHiveKey_EqualsPath(pBeta, L"Alpha\\\\Beta"));
+    CHECK_FALSE(VRegHiveKey_EqualsPath(pBeta, L""));
+
+    VRegHiveKey* const pRoot = VRegHiveKey_GetParent(VRegHiveKey_GetParent(pBeta));
+    REQUIRE(pRoot != nullptr);
+    REQUIRE(VRegHiveKey_GetParent(pRoot) == nullptr);
+    CHECK(VRegHiveKey_EqualsPath(pRoot, L""));
+    CHECK_FALSE(VRegHiveKey_EqualsPath(pRoot, L"Alpha"));
+    CHECK_FALSE(VRegHiveKey_EqualsPath(pRoot, L"\\"));
+}
+
 TEST_CASE("A frozen custom hive refuses writes and still opens its keys")
 {
     CustomMount mount;
