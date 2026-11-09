@@ -59,7 +59,7 @@ extern "C" {
 // Raised with every change to this file. Tweak is unused (always 0).
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 15
-#define VREG_VERSION_PATCH 4
+#define VREG_VERSION_PATCH 5
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -256,6 +256,7 @@ typedef LSTATUS WINAPI VRegGetValueWFunction(
     _In_opt_ LPCWSTR lpValue,
     _In_ DWORD dwFlags,
     _Out_opt_ LPDWORD pdwType,
+
     _When_(
         (dwFlags & 0x7F) == RRF_RT_REG_SZ
         || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
@@ -270,6 +271,7 @@ typedef LSTATUS WINAPI VRegGetValueWFunction(
         _Post_ _NullNull_terminated_
     )
     _Out_writes_bytes_to_opt_(*pcbData, *pcbData) PVOID pvData,
+
     _Inout_opt_ LPDWORD pcbData
 );
 
@@ -421,6 +423,7 @@ typedef LSTATUS WINAPI VRegGetValueAFunction(
     _In_opt_ LPCSTR lpValue,
     _In_ DWORD dwFlags,
     _Out_opt_ LPDWORD pdwType,
+
     _When_(
         (dwFlags & 0x7F) == RRF_RT_REG_SZ
         || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
@@ -435,6 +438,7 @@ typedef LSTATUS WINAPI VRegGetValueAFunction(
         _Post_ _NullNull_terminated_
     )
     _Out_writes_bytes_to_opt_(*pcbData, *pcbData) PVOID pvData,
+
     _Inout_opt_ LPDWORD pcbData
 );
 
@@ -1255,6 +1259,7 @@ typedef struct
         _In_opt_ LPCWSTR lpValue,
         _In_ DWORD dwFlags,
         _Out_opt_ LPDWORD pdwType,
+
         _When_(
             (dwFlags & 0x7F) == RRF_RT_REG_SZ
             || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
@@ -1269,6 +1274,7 @@ typedef struct
             _Post_ _NullNull_terminated_
         )
         _Out_writes_bytes_to_opt_(*pcbData, *pcbData) PVOID pvData,
+
         _Inout_opt_ LPDWORD pcbData
     );
 
@@ -4474,6 +4480,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegGetValueA(
     _In_opt_ const LPCSTR lpValue,
     _In_ const DWORD dwFlags,
     _Out_opt_ const LPDWORD pdwType,
+
     _When_(
         (dwFlags & 0x7F) == RRF_RT_REG_SZ
         || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
@@ -4488,6 +4495,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegGetValueA(
         _Post_ _NullNull_terminated_
     )
     _Out_writes_bytes_to_opt_(*pcbData, *pcbData) const PVOID pvData,
+
     _Inout_opt_ const LPDWORD pcbData
 )
 {
@@ -10110,6 +10118,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegGetValueW(
     _In_opt_ const LPCWSTR lpValue,
     _In_ const DWORD dwFlags,
     _Out_opt_ const LPDWORD pdwType,
+
     _When_(
         (dwFlags & 0x7F) == RRF_RT_REG_SZ
         || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
@@ -10124,6 +10133,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegGetValueW(
         _Post_ _NullNull_terminated_
     )
     _Out_writes_bytes_to_opt_(*pcbData, *pcbData) const PVOID pvData,
+
     _Inout_opt_ const LPDWORD pcbData
 )
 {
@@ -12055,6 +12065,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegGetValueW(
     _In_opt_ const LPCWSTR lpValue,
     _In_ const DWORD dwFlags,
     _Out_opt_ const LPDWORD pdwType,
+
     _When_(
         (dwFlags & 0x7F) == RRF_RT_REG_SZ
         || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
@@ -12069,6 +12080,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegGetValueW(
         _Post_ _NullNull_terminated_
     )
     _Out_writes_bytes_to_opt_(*pcbData, *pcbData) const PVOID pvData,
+
     _Inout_opt_ const LPDWORD pcbData
 )
 {
@@ -14761,6 +14773,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegGetValueW(
     _In_opt_ const LPCWSTR lpValue,
     _In_ const DWORD dwFlags,
     _Out_opt_ const LPDWORD pdwType,
+
     _When_(
         (dwFlags & 0x7F) == RRF_RT_REG_SZ
         || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
@@ -14775,6 +14788,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegGetValueW(
         _Post_ _NullNull_terminated_
     )
     _Out_writes_bytes_to_opt_(*pcbData, *pcbData) const PVOID pvData,
+
     _Inout_opt_ const LPDWORD pcbData
 )
 {
@@ -15053,6 +15067,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegGetValueA(
     _In_opt_ const LPCSTR lpValue,
     _In_ const DWORD dwFlags,
     _Out_opt_ const LPDWORD pdwType,
+
     _When_(
         (dwFlags & 0x7F) == RRF_RT_REG_SZ
         || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
@@ -15067,6 +15082,7 @@ static LSTATUS APIENTRY VRegHooks_InternalRegGetValueA(
         _Post_ _NullNull_terminated_
     )
     _Out_writes_bytes_to_opt_(*pcbData, *pcbData) const PVOID pvData,
+
     _Inout_opt_ const LPDWORD pcbData
 )
 {
