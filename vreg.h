@@ -58,8 +58,8 @@ extern "C" {
 
 // Raised with every change to this file. Tweak is unused (always 0).
 #define VREG_VERSION_MAJOR 0
-#define VREG_VERSION_MINOR 16
-#define VREG_VERSION_PATCH 5
+#define VREG_VERSION_MINOR 17
+#define VREG_VERSION_PATCH 0
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -1469,20 +1469,29 @@ VREG_DECL _Ret_notnull_ const VRegOperation* WINAPI VRegScript_GetOperations(
     _Out_ SIZE_T* pcOperations
 );
 
+/// @ref VReg_ApplyOperations runs every operation, as `regedit /s` and
+/// `reg import` do, instead of stopping at the first that fails.
+#define VREG_APPLY_CONTINUE_ON_ERROR ((DWORD)0x1)
+
 /**
  * @brief Performs @p cOperations operations through @p pRegistry, in order.
  *
  *  Stops at the first operation that fails, stores its index in
  *  @p pFailedIndex (MAY be null) and returns its status; earlier operations
- *  stay applied. Deleting a key or value that does not exist is not a
- *  failure. An operation that would delete a whole root (a key deletion with
- *  an empty path) answers @ref ERROR_INVALID_PARAMETER.
+ *  stay applied, and nothing is rolled back. With
+ *  @ref VREG_APPLY_CONTINUE_ON_ERROR in @p dwFlags the later operations run
+ *  too, and the first failure is still the one stored and returned. Deleting
+ *  a key or value that does not exist is not a failure. An operation that
+ *  would delete a whole root (a key deletion with an empty path) answers
+ *  @ref ERROR_INVALID_PARAMETER, as does a flag that is not defined, before
+ *  anything is applied.
  */
 _Success_(return == ERROR_SUCCESS)
 VREG_DECL LSTATUS WINAPI VReg_ApplyOperations(
     _In_reads_(cOperations) const VRegOperation* pOperations,
     _In_ SIZE_T cOperations,
     _In_ VReg* pRegistry,
+    _In_ DWORD dwFlags,
     _On_failure_(_Out_opt_) SIZE_T* pFailedIndex
 );
 
@@ -12421,12 +12430,14 @@ VREG_DECL LSTATUS WINAPI VReg_Mount(
 // ==========================================================================
 
 // The whole file parses before anything is applied, so a syntax error
-// writes nothing; apply stops at the first failing operation and reports
-// which, and earlier ones stay applied. Agent's choice: no rollback, since
-// native registries have none without KTM, and a dry-run validation pass
-// was passed over because it cannot catch access-denied. Through an
-// overlay, deletions become tombstones and `[-K]` then `[K]` an opaque key;
-// through any other registry they are real deletes.
+// writes nothing; what applied before a failure stays applied. There is no
+// rollback, since native registries have none without KTM, and a dry-run
+// validation pass cannot catch access-denied. Stopping at the first failure
+// is the default and continuing (what `regedit /s` does) the flag, since the
+// stop reports exactly which operation failed; with the flag the first
+// failure is the one reported, not the last, since later ones often follow
+// from it. Through an overlay, deletions become tombstones and `[-K]` then
+// `[K]` an opaque key; through any other registry they are real deletes.
 
 static LSTATUS VRegScript_InternalIgnoreNotFound(const LSTATUS status)
 {
@@ -12589,22 +12600,30 @@ VREG_DECL LSTATUS WINAPI VReg_ApplyOperations(
     _In_reads_(cOperations) const VRegOperation* const pOperations,
     _In_ const SIZE_T cOperations,
     _In_ VReg* const pRegistry,
+    _In_ const DWORD dwFlags,
     _On_failure_(_Out_opt_) SIZE_T* const pFailedIndex
 )
 {
+    LSTATUS firstFailure = ERROR_SUCCESS;
     SIZE_T i;
+
+    if (dwFlags & ~VREG_APPLY_CONTINUE_ON_ERROR)
+        return ERROR_INVALID_PARAMETER;
+
     for (i = 0; i < cOperations; ++i)
     {
         const LSTATUS status = VRegScript_InternalPerform(&pOperations[i], pRegistry);
-        if (status != ERROR_SUCCESS)
-        {
-            if (pFailedIndex)
-                *pFailedIndex = i;
-            return status;
-        }
+        if (status == ERROR_SUCCESS || firstFailure != ERROR_SUCCESS)
+            continue;
+
+        firstFailure = status;
+        if (pFailedIndex)
+            *pFailedIndex = i;
+        if (!(dwFlags & VREG_APPLY_CONTINUE_ON_ERROR))
+            break;
     }
 
-    return ERROR_SUCCESS;
+    return firstFailure;
 }
 
 // ==========================================================================

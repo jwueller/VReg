@@ -217,6 +217,7 @@ TEST_CASE("Apply deletes values and keys")
                 operations.data(),
                 operations.size(),
                 registry,
+                0,
                 nullptr
             ) == ERROR_SUCCESS
         );
@@ -278,6 +279,7 @@ TEST_CASE("Apply stops at the first failing operation")
             operations.data(),
             operations.size(),
             registry,
+            0,
             &failed
         ) == ERROR_FILE_NOT_FOUND
     );
@@ -291,9 +293,99 @@ TEST_CASE("Apply stops at the first failing operation")
             operations.data(),
             operations.size(),
             registry,
+            0,
             nullptr
         ) == ERROR_FILE_NOT_FOUND
     );
+}
+
+TEST_CASE("Apply continues past failing operations when told to")
+{
+    AppHive hive;
+    AppHiveRegistry registry(hive.Root());
+
+    const auto first = MustParse(HEADER + L"[HKCU\\First]\r\n");
+    const auto last = MustParse(HEADER + L"[HKCU\\Last]\r\n");
+    const Spec orphan{VREG_OPERATION_SET_VALUE, L"NoSuchKey", L"v", REG_DWORD, DwordBytes(1)};
+    const Spec deleteRoot{VREG_OPERATION_DELETE_KEY, L"", L"", 0, {}};
+    const std::vector<VRegOperation> operations{
+        Operations(first)[0],
+        orphan.View(),
+        deleteRoot.View(),
+        Operations(last)[0],
+    };
+
+    SECTION("every operation runs, and the first failure is reported")
+    {
+        SIZE_T failed = 99;
+        CHECK(
+            VReg_ApplyOperations(
+                operations.data(),
+                operations.size(),
+                registry,
+                VREG_APPLY_CONTINUE_ON_ERROR,
+                &failed
+            ) == ERROR_FILE_NOT_FOUND
+        );
+        CHECK(failed == 1);
+        CHECK(KeyExists(registry, L"First"));
+        CHECK_FALSE(KeyExists(registry, L"NoSuchKey"));
+        CHECK(KeyExists(registry, L"Last"));
+    }
+
+    SECTION("the failed index is optional")
+    {
+        CHECK(
+            VReg_ApplyOperations(
+                operations.data(),
+                operations.size(),
+                registry,
+                VREG_APPLY_CONTINUE_ON_ERROR,
+                nullptr
+            ) == ERROR_FILE_NOT_FOUND
+        );
+        CHECK(KeyExists(registry, L"Last"));
+    }
+
+    SECTION("success when nothing fails")
+    {
+        const std::vector<VRegOperation> sound{
+            Operations(first)[0],
+            Operations(last)[0],
+        };
+        SIZE_T failed = 99;
+        CHECK(
+            VReg_ApplyOperations(
+                sound.data(),
+                sound.size(),
+                registry,
+                VREG_APPLY_CONTINUE_ON_ERROR,
+                &failed
+            ) == ERROR_SUCCESS
+        );
+        CHECK(failed == 99);
+    }
+}
+
+TEST_CASE("Apply refuses unknown flags before doing anything")
+{
+    AppHive hive;
+    AppHiveRegistry registry(hive.Root());
+    const OwnedScript script = MustParse(HEADER + L"[HKCU\\Never]\r\n");
+    const auto operations = Operations(script);
+
+    SIZE_T failed = 99;
+    CHECK(
+        VReg_ApplyOperations(
+            operations.data(),
+            operations.size(),
+            registry,
+            ~VREG_APPLY_CONTINUE_ON_ERROR,
+            &failed
+        ) == ERROR_INVALID_PARAMETER
+    );
+    CHECK(failed == 99);
+    CHECK_FALSE(KeyExists(registry, L"Never"));
 }
 
 TEST_CASE("Apply refuses an operation that would delete a root")
@@ -312,6 +404,7 @@ TEST_CASE("Apply refuses an operation that would delete a root")
             &operation,
             1,
             registry,
+            0,
             &failed
         ) == ERROR_INVALID_PARAMETER
     );
@@ -329,6 +422,7 @@ TEST_CASE("An empty script applies to nothing")
             nullptr,
             0,
             registry,
+            0,
             &failed
         ) == ERROR_SUCCESS
     );
