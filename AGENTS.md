@@ -132,9 +132,10 @@ the API it sits beside.
   `(void)name;` in the body.
 - Signatures of the Win32-shaped functions and every call to a `Reg*`
   function (Win32 or a `VReg_*` flat function) put one parameter or argument
-  per line, with blank lines between multi-line declarations. Any other call
-  or signature does the same once it would run its line past column 80, the
-  first ruler in `.editorconfig`.
+  per line, with blank lines between multi-line declarations. Any other
+  signature does the same once it would run its line past column 80, the
+  first ruler in `.editorconfig`; a call stays on one line where that reads
+  better.
 - A braced list that spans lines opens with `{` alone, puts each item on a
   line of its own one level deeper with a trailing comma, and closes with
   `}` at the opening indent; never `{a,` continued as `b}`.
