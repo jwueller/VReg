@@ -59,7 +59,7 @@ extern "C" {
 // Raised with every change to this file. Tweak is unused (always 0).
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 15
-#define VREG_VERSION_PATCH 3
+#define VREG_VERSION_PATCH 4
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -1878,6 +1878,13 @@ VREG_DECL void VRegInternalArray_Free(
     _Inout_ VRegInternalArray* pArray
 );
 
+/// The view of the string at @p index of @p pArray, an array of
+/// @ref VRegInternalWString.
+VREG_DECL VRegInternalWStringView VRegInternalArray_WStringViewAt(
+    _In_ const VRegInternalArray* pArray,
+    SIZE_T index
+);
+
 /// Appends a copy of @p text to @p pArray, an array of @ref VRegInternalWString.
 VREG_DECL BOOL VRegInternalArray_AppendWString(
     _Inout_ VRegInternalArray* pArray,
@@ -3365,6 +3372,14 @@ VREG_DECL void VRegInternalArray_Free(
     pArray->capacity = 0;
 }
 
+VREG_DECL VRegInternalWStringView VRegInternalArray_WStringViewAt(
+    _In_ const VRegInternalArray* const pArray,
+    const SIZE_T index
+)
+{
+    return VRegInternalWString_ViewOf(&VREG_INTERNAL_AT(pArray, VRegInternalWString, index));
+}
+
 VREG_DECL BOOL VRegInternalArray_AppendWString(
     _Inout_ VRegInternalArray* const pArray,
     const VRegInternalWStringView text
@@ -3404,7 +3419,7 @@ VREG_DECL BOOL VRegInternalArray_InsertWStringSorted(
     while (lo < hi)
     {
         const SIZE_T mid = lo + (hi - lo) / 2;
-        const int order = VRegInternalWStringView_CompareNames(VRegInternalWString_ViewOf(&VREG_INTERNAL_AT(pList, VRegInternalWString, mid)), name);
+        const int order = VRegInternalWStringView_CompareNames(VRegInternalArray_WStringViewAt(pList, mid), name);
         if (order == 0)
             return TRUE;
         if (order < 0)
@@ -3434,7 +3449,7 @@ VREG_DECL BOOL VRegInternalArray_ContainsWStringSorted(
     while (lo < hi)
     {
         const SIZE_T mid = lo + (hi - lo) / 2;
-        const int order = VRegInternalWStringView_CompareNames(VRegInternalWString_ViewOf(&VREG_INTERNAL_AT(pList, VRegInternalWString, mid)), name);
+        const int order = VRegInternalWStringView_CompareNames(VRegInternalArray_WStringViewAt(pList, mid), name);
         if (order == 0)
             return TRUE;
         if (order < 0)
@@ -6057,11 +6072,6 @@ struct VRegHive
     VRegInternalArray nodes;
 };
 
-#define VREG_INTERNAL_NODE_AT(pArray, index) VREG_INTERNAL_AT(pArray, VRegInternalNode*, index)
-#define VREG_INTERNAL_VALUE_AT(pArray, index) VREG_INTERNAL_AT(pArray, VRegInternalValue, index)
-#define VREG_INTERNAL_WATCH_AT(pArray, index) VREG_INTERNAL_AT(pArray, VRegInternalChangeWatch, index)
-#define VREG_INTERNAL_NAME_AT(pArray, index) VREG_INTERNAL_AT(pArray, VRegInternalWString, index)
-
 static const VRegInternalWStringView VREG_INTERNAL_NO_NAME = {NULL, 0};
 
 VREG_DECL int VRegInternalWStringView_CompareNames(
@@ -6162,7 +6172,7 @@ static void VRegInternalNode_ClearValues(_Inout_ VRegInternalNode* const pNode)
 {
     SIZE_T i;
     for (i = 0; i < pNode->values.count; ++i)
-        VRegInternalValue_Free(&VREG_INTERNAL_VALUE_AT(&pNode->values, i));
+        VRegInternalValue_Free(&VREG_INTERNAL_AT(&pNode->values, VRegInternalValue, i));
 
     pNode->values.count = 0;
 }
@@ -6201,7 +6211,7 @@ static void VRegHive_InternalDropWatches(_Inout_ VRegInternalNode* const pNode)
         // The array's count bounds its initialized elements, which the
         // analyzer cannot see past the reallocation.
 #pragma warning(suppress: 6001)
-        CloseHandle(VREG_INTERNAL_WATCH_AT(&pNode->watches, i).hEvent);
+        CloseHandle(VREG_INTERNAL_AT(&pNode->watches, VRegInternalChangeWatch, i).hEvent);
     }
 
     pNode->watches.count = 0;
@@ -6218,7 +6228,7 @@ static void VRegHive_InternalFire(
     SIZE_T i = 0;
     while (i < pNode->watches.count)
     {
-        const VRegInternalChangeWatch* const pWatch = &VREG_INTERNAL_WATCH_AT(&pNode->watches, i);
+        const VRegInternalChangeWatch* const pWatch = &VREG_INTERNAL_AT(&pNode->watches, VRegInternalChangeWatch, i);
         HANDLE hEvent;
         if (!(pWatch->dwFilter & dwFilter) || (isInherited && !pWatch->isSubtree))
         {
@@ -6267,7 +6277,8 @@ static _Ret_maybenull_ VRegInternalNode* VRegHive_InternalFindChild(
     while (lo < hi)
     {
         const SIZE_T mid = lo + (hi - lo) / 2;
-        if (VRegInternalWStringView_CompareNames(VRegInternalWString_ViewOf(&VREG_INTERNAL_NODE_AT(&pParent->children, mid)->name), name) < 0)
+        const VRegInternalNode* const pMid = VREG_INTERNAL_AT(&pParent->children, VRegInternalNode*, mid);
+        if (VRegInternalWStringView_CompareNames(VRegInternalWString_ViewOf(&pMid->name), name) < 0)
             lo = mid + 1;
         else
             hi = mid;
@@ -6277,7 +6288,7 @@ static _Ret_maybenull_ VRegInternalNode* VRegHive_InternalFindChild(
         *pIndex = lo;
     if (lo < pParent->children.count)
     {
-        VRegInternalNode* const pChild = VREG_INTERNAL_NODE_AT(&pParent->children, lo);
+        VRegInternalNode* const pChild = VREG_INTERNAL_AT(&pParent->children, VRegInternalNode*, lo);
         if (VRegInternalWStringView_CompareNames(VRegInternalWString_ViewOf(&pChild->name), name) == 0)
             return pChild;
     }
@@ -6293,7 +6304,7 @@ static _Ret_maybenull_ VRegInternalValue* VRegHive_InternalFindValue(
     SIZE_T i;
     for (i = 0; i < pNode->values.count; ++i)
     {
-        VRegInternalValue* const pValue = &VREG_INTERNAL_VALUE_AT(&pNode->values, i);
+        VRegInternalValue* const pValue = &VREG_INTERNAL_AT(&pNode->values, VRegInternalValue, i);
         if (VRegInternalWStringView_CompareNames(VRegInternalWString_ViewOf(&pValue->name), name) == 0)
             return pValue;
     }
@@ -6356,7 +6367,7 @@ static void VRegHive_InternalMarkDeleted(_Inout_ VRegInternalNode* const pNode)
     pNode->isDeleted = TRUE;
     VRegHive_InternalFire(pNode, ~(DWORD)0, FALSE);
     for (i = 0; i < pNode->children.count; ++i)
-        VRegHive_InternalMarkDeleted(VREG_INTERNAL_NODE_AT(&pNode->children, i));
+        VRegHive_InternalMarkDeleted(VREG_INTERNAL_AT(&pNode->children, VRegInternalNode*, i));
 }
 
 /// Marks @p pNode and everything below it deleted, unlinks it from its
@@ -6806,7 +6817,7 @@ VREG_DECL void WINAPI VRegHive_Destroy(_In_opt_ VRegHive* const pHive)
 
     for (i = 0; i < pHive->nodes.count; ++i)
     {
-        VRegInternalNode* const pNode = VREG_INTERNAL_NODE_AT(&pHive->nodes, i);
+        VRegInternalNode* const pNode = VREG_INTERNAL_AT(&pHive->nodes, VRegInternalNode*, i);
         VRegHive_InternalDropWatches(pNode);
         VRegInternalHandleSpace_Release(VReg_InternalProcessHandleSpace(), pNode->hKey);
         VRegInternalNode_Free(pNode);
@@ -6827,7 +6838,7 @@ VREG_DECL void WINAPI VRegHive_Freeze(_In_ VRegHive* const pHive)
     AcquireSRWLockExclusive(&pHive->lock);
     WriteRelease(&pHive->isFrozen, 1);
     for (i = 0; pHive->kind != VREG_INTERNAL_HIVE_CUSTOM && i < pHive->nodes.count; ++i)
-        VRegHive_InternalDropWatches(VREG_INTERNAL_NODE_AT(&pHive->nodes, i));
+        VRegHive_InternalDropWatches(VREG_INTERNAL_AT(&pHive->nodes, VRegInternalNode*, i));
 
     ReleaseSRWLockExclusive(&pHive->lock);
 }
@@ -7425,7 +7436,7 @@ static LSTATUS VRegHive_InternalInspectForDelete(
 
     for (i = 0; status == ERROR_SUCCESS && i < pNode->children.count; ++i)
     {
-        const VRegInternalNode* const pChild = VREG_INTERNAL_NODE_AT(&pNode->children, i);
+        const VRegInternalNode* const pChild = VREG_INTERNAL_AT(&pNode->children, VRegInternalNode*, i);
         if (!pChild->isTombstone)
             status = ERROR_ACCESS_DENIED;
         else if (!VRegInternalArray_InsertWStringSorted(pTombstones, VRegInternalWString_ViewOf(&pChild->name)))
@@ -7566,7 +7577,7 @@ VREG_DECL LSTATUS VRegHive_InternalDeleteKey(
         VRegInternalNode* const pNodeParent = pNode->pParent;
         for (i = 0; i < pNode->children.count; ++i)
         {
-            if (!VREG_INTERNAL_NODE_AT(&pNode->children, i)->isTombstone)
+            if (!VREG_INTERNAL_AT(&pNode->children, VRegInternalNode*, i)->isTombstone)
             {
                 status = ERROR_ACCESS_DENIED;
                 break;
@@ -7653,7 +7664,7 @@ static LSTATUS VRegHive_InternalDeleteSubkeysThrough(
 
     for (i = 0; i < names.count; ++i)
     {
-        const VRegInternalWStringView child = VRegInternalWString_ViewOf(&VREG_INTERNAL_AT(&names, VRegInternalWString, i));
+        const VRegInternalWStringView child = VRegInternalArray_WStringViewAt(&names, i);
         VRegInternalOpenResult opened;
         status = VRegHive_InternalOpenKey(pHive, pNode, &child, 1, KEY_READ, &opened);
         if (status != ERROR_SUCCESS)
@@ -7761,7 +7772,7 @@ static LSTATUS VRegHive_InternalDeleteTreeThrough(
     if (!pNode->isDeleted)
     {
         while (pNode->children.count != 0)
-            VRegHive_InternalRemove(VREG_INTERNAL_NODE_AT(&pNode->children, pNode->children.count - 1));
+            VRegHive_InternalRemove(VREG_INTERNAL_AT(&pNode->children, VRegInternalNode*, pNode->children.count - 1));
 
         VRegHive_InternalTouch(pNode);
         VRegHive_InternalNotify(pNode, REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_LAST_SET);
@@ -7786,7 +7797,7 @@ VREG_DECL LSTATUS VRegHive_InternalDeleteTree(
     }
 
     while (pNode->children.count != 0)
-        VRegHive_InternalRemove(VREG_INTERNAL_NODE_AT(&pNode->children, pNode->children.count - 1));
+        VRegHive_InternalRemove(VREG_INTERNAL_AT(&pNode->children, VRegInternalNode*, pNode->children.count - 1));
 
     VRegInternalNode_ClearValues(pNode);
     pNode->isOpaque = pHive->pLowerVtbl != NULL;
@@ -8104,7 +8115,7 @@ VREG_DECL LSTATUS VRegHive_InternalDeleteValue(
         }
         else if (pValue)
         {
-            const SIZE_T index = (SIZE_T)(pValue - &VREG_INTERNAL_VALUE_AT(&pNode->values, 0));
+            const SIZE_T index = (SIZE_T)(pValue - &VREG_INTERNAL_AT(&pNode->values, VRegInternalValue, 0));
             VRegInternalValue_Free(pValue);
             VRegInternalArray_RemoveAt(&pNode->values, sizeof(*pValue), index);
         }
@@ -8159,7 +8170,7 @@ static LSTATUS VRegHive_InternalEnumUpperKey(
 
     for (i = 0; status == ERROR_SUCCESS && !*pIsFound && !*ppClassNode && i < pNode->children.count; ++i)
     {
-        VRegInternalNode* const pChild = VREG_INTERNAL_NODE_AT(&pNode->children, i);
+        VRegInternalNode* const pChild = VREG_INTERNAL_AT(&pNode->children, VRegInternalNode*, i);
 
         // A transparent child stands for a lower key; it is listed with the
         // lower ones.
@@ -8327,7 +8338,7 @@ static LSTATUS VRegHive_InternalEnumUpperValue(
 
     for (i = 0; status == ERROR_SUCCESS && !*pIsFound && i < pNode->values.count; ++i)
     {
-        const VRegInternalValue* const pValue = &VREG_INTERNAL_VALUE_AT(&pNode->values, i);
+        const VRegInternalValue* const pValue = &VREG_INTERNAL_AT(&pNode->values, VRegInternalValue, i);
         if (!pValue->isTombstone && cUpper++ == dwIndex)
         {
             *pIsFound = TRUE;
@@ -8453,7 +8464,7 @@ static LSTATUS VRegHive_InternalQueryUpperInfo(
 
     for (i = 0; status == ERROR_SUCCESS && i < pNode->children.count; ++i)
     {
-        const VRegInternalNode* const pChild = VREG_INTERNAL_NODE_AT(&pNode->children, i);
+        const VRegInternalNode* const pChild = VREG_INTERNAL_AT(&pNode->children, VRegInternalNode*, i);
         if (pChild->isTransparent)
             continue;
 
@@ -8472,7 +8483,7 @@ static LSTATUS VRegHive_InternalQueryUpperInfo(
 
     for (i = 0; status == ERROR_SUCCESS && i < pNode->values.count; ++i)
     {
-        const VRegInternalValue* const pValue = &VREG_INTERNAL_VALUE_AT(&pNode->values, i);
+        const VRegInternalValue* const pValue = &VREG_INTERNAL_AT(&pNode->values, VRegInternalValue, i);
         if (!VRegInternalArray_InsertWStringSorted(pShadowedValues, VRegInternalWString_ViewOf(&pValue->name)))
         {
             status = ERROR_OUTOFMEMORY;
@@ -8551,7 +8562,7 @@ VREG_DECL LSTATUS VRegHive_InternalQueryInfo(
     // An upper entry that shadows a lower one is counted once.
     for (i = 0; i < shadowedKeys.count; ++i)
     {
-        const VRegInternalWStringView childName = VRegInternalWString_ViewOf(&VREG_INTERNAL_NAME_AT(&shadowedKeys, i));
+        const VRegInternalWStringView childName = VRegInternalArray_WStringViewAt(&shadowedKeys, i);
         const LSTATUS childStatus = VRegHive_InternalProbeLower(pHive, pNode, &childName, 1, KEY_QUERY_VALUE);
         if (childStatus != ERROR_FILE_NOT_FOUND && !VReg_InternalStatusExists(childStatus))
         {
@@ -8569,7 +8580,7 @@ VREG_DECL LSTATUS VRegHive_InternalQueryInfo(
         valueStatus = pHive->pLowerVtbl->QueryValue(
             pHive,
             pNode,
-            VRegInternalWString_Text(&VREG_INTERNAL_NAME_AT(&shadowedValues, i)),
+            VRegInternalWString_Text(&VREG_INTERNAL_AT(&shadowedValues, VRegInternalWString, i)),
             &lower
         );
         if (valueStatus != ERROR_FILE_NOT_FOUND && !VReg_InternalStatusExists(valueStatus))
@@ -8638,7 +8649,7 @@ static LSTATUS VRegHive_InternalListUpper(
 
     for (i = 0; i < pNode->values.count; ++i)
     {
-        const VRegInternalValue* const pValue = &VREG_INTERNAL_VALUE_AT(&pNode->values, i);
+        const VRegInternalValue* const pValue = &VREG_INTERNAL_AT(&pNode->values, VRegInternalValue, i);
         ZeroMemory(&record, sizeof(record));
         record.kind = VREG_INTERNAL_UPPER_VALUE;
         record.path = VRegInternalWString_ViewOf(pPath);
@@ -8654,7 +8665,7 @@ static LSTATUS VRegHive_InternalListUpper(
 
     for (i = 0; i < pNode->children.count; ++i)
     {
-        const VRegInternalNode* const pChild = VREG_INTERNAL_NODE_AT(&pNode->children, i);
+        const VRegInternalNode* const pChild = VREG_INTERNAL_AT(&pNode->children, VRegInternalNode*, i);
         if (
             (pPath->cch != 0 && !VRegInternalWString_AppendChar(pPath, L'\\'))
             || !VRegInternalWString_Append(pPath, VRegInternalWString_Text(&pChild->name), pChild->name.cch)
@@ -10372,15 +10383,6 @@ typedef struct
     VRegInternalWString nativeText;
 } VRegInternalTarget;
 
-#define VREG_INTERNAL_MOUNT_AT(pArray, index) \
-    VREG_INTERNAL_AT(pArray, VRegInternalMountPoint, index)
-
-#define VREG_INTERNAL_STRING_AT(pArray, index) \
-    VREG_INTERNAL_AT(pArray, VRegInternalWString, index)
-
-#define VREG_INTERNAL_VIEW_AT(pArray, index) \
-    VREG_INTERNAL_AT(pArray, VRegInternalWStringView, index)
-
 #define VREG_INTERNAL_PROCESS_VIEW \
     (sizeof(void*) == 8 ? KEY_WOW64_64KEY : KEY_WOW64_32KEY)
 
@@ -10549,13 +10551,13 @@ static BOOL VRegInternalArray_MatchesNative(
     *piRest = 0;
     for (; i < pFull->count && iMount < pMountPath->count; ++i)
     {
-        const VRegInternalWStringView component = VREG_INTERNAL_VIEW_AT(pFull, i);
+        const VRegInternalWStringView component = VREG_INTERNAL_AT(pFull, VRegInternalWStringView, i);
         if (VRegInternalWStringView_IsWow6432Node(component))
         {
             *pIsWow = TRUE;
             continue;
         }
-        if (VRegInternalWStringView_CompareNames(component, VRegInternalWString_ViewOf(&VREG_INTERNAL_STRING_AT(pMountPath, iMount))) != 0)
+        if (VRegInternalWStringView_CompareNames(component, VRegInternalArray_WStringViewAt(pMountPath, iMount)) != 0)
             return FALSE;
 
         ++iMount;
@@ -10588,7 +10590,7 @@ static _Ret_maybenull_ const VRegInternalMountPoint* VReg_InternalMountOf(
 
     for (i = 0; i < pTable->mounts.count; ++i)
     {
-        const VRegInternalMountPoint* const pMount = &VREG_INTERNAL_MOUNT_AT(&pTable->mounts, i);
+        const VRegInternalMountPoint* const pMount = &VREG_INTERNAL_AT(&pTable->mounts, VRegInternalMountPoint, i);
         if (pMount->pHive == pHive)
             return pMount;
     }
@@ -10618,8 +10620,8 @@ static BOOL VRegInternalMountPoint_IsAt(
 
     for (i = 0; i < pPath->count; ++i)
     {
-        const VRegInternalWStringView left = VRegInternalWString_ViewOf(&VREG_INTERNAL_STRING_AT(&pMount->path, i));
-        const VRegInternalWStringView right = VRegInternalWString_ViewOf(&VREG_INTERNAL_STRING_AT(pPath, i));
+        const VRegInternalWStringView left = VRegInternalArray_WStringViewAt(&pMount->path, i);
+        const VRegInternalWStringView right = VRegInternalArray_WStringViewAt(pPath, i);
         if (VRegInternalWStringView_CompareNames(left, right) != 0)
             return FALSE;
     }
@@ -10642,7 +10644,7 @@ static LSTATUS VReg_InternalPublishMount(
 
     for (i = 0; pOld && i < pOld->mounts.count; ++i)
     {
-        const VRegInternalMountPoint* const pExisting = &VREG_INTERNAL_MOUNT_AT(&pOld->mounts, i);
+        const VRegInternalMountPoint* const pExisting = &VREG_INTERNAL_AT(&pOld->mounts, VRegInternalMountPoint, i);
         if (VRegInternalMountPoint_IsAt(pExisting, pMount->hRoot, &pMount->path))
         {
             VRegInternalArray_Free(&pNew->mounts);
@@ -10702,15 +10704,17 @@ static LSTATUS VReg_InternalResolveNative(
     *pIsResolved = FALSE;
     for (i = 0; pTable && !isGated && i < pTable->mounts.count; ++i)
     {
-        const VRegInternalMountPoint* const pMount = &VREG_INTERNAL_MOUNT_AT(&pTable->mounts, i);
+        const VRegInternalMountPoint* const pMount = &VREG_INTERNAL_AT(&pTable->mounts, VRegInternalMountPoint, i);
         SIZE_T j;
         if (pMount->path.count == 0)
             continue;
 
         for (j = 0; !isGated && j < pTarget->components.count; ++j)
         {
-            const VRegInternalWStringView last = VRegInternalWString_ViewOf(&VREG_INTERNAL_STRING_AT(&pMount->path, pMount->path.count - 1));
-            isGated = VRegInternalWStringView_CompareNames(VREG_INTERNAL_VIEW_AT(&pTarget->components, j), last) == 0;
+            const VRegInternalWStringView last = VRegInternalArray_WStringViewAt(&pMount->path, pMount->path.count - 1);
+            isGated =
+                VRegInternalWStringView_CompareNames(VREG_INTERNAL_AT(&pTarget->components, VRegInternalWStringView, j), last)
+                == 0;
         }
     }
     if (!isGated || !pThis->implementation.virtualRegistry.pfnNtQueryKey || VReg_IsVirtualHKey(hKey))
@@ -10783,7 +10787,8 @@ static LSTATUS VReg_InternalResolveNative(
 
     for (i = 0; i < pTarget->components.count; ++i)
     {
-        const VRegInternalWStringView* const pComponent = &VREG_INTERNAL_VIEW_AT(&pTarget->components, i);
+        const VRegInternalWStringView* const pComponent =
+            &VREG_INTERNAL_AT(&pTarget->components, VRegInternalWStringView, i);
         if (!VRegInternalArray_Append(&pTarget->full, sizeof(*pComponent), pComponent))
         {
             status = ERROR_OUTOFMEMORY;
@@ -10794,7 +10799,7 @@ static LSTATUS VReg_InternalResolveNative(
     samCall = VReg_InternalCallView(samDesired);
     for (i = 0; i < pTable->mounts.count; ++i)
     {
-        const VRegInternalMountPoint* const pMount = &VREG_INTERNAL_MOUNT_AT(&pTable->mounts, i);
+        const VRegInternalMountPoint* const pMount = &VREG_INTERNAL_AT(&pTable->mounts, VRegInternalMountPoint, i);
         BOOL isWow = FALSE;
         SIZE_T iRest = 0;
         if (
@@ -10881,7 +10886,7 @@ static LSTATUS VReg_InternalResolve(
         SIZE_T i;
         for (i = 0; pTable && isSplit && i < pTable->mounts.count; ++i)
         {
-            const VRegInternalMountPoint* const pMount = &VREG_INTERNAL_MOUNT_AT(&pTable->mounts, i);
+            const VRegInternalMountPoint* const pMount = &VREG_INTERNAL_AT(&pTable->mounts, VRegInternalMountPoint, i);
             SIZE_T j;
             BOOL isPrefix = TRUE;
             if (
@@ -10893,8 +10898,10 @@ static LSTATUS VReg_InternalResolve(
 
             for (j = 0; isPrefix && j < pMount->path.count; ++j)
             {
-                const VRegInternalWStringView mountName = VRegInternalWString_ViewOf(&VREG_INTERNAL_STRING_AT(&pMount->path, j));
-                isPrefix = VRegInternalWStringView_CompareNames(mountName, VREG_INTERNAL_VIEW_AT(&pTarget->components, j)) == 0;
+                const VRegInternalWStringView mountName = VRegInternalArray_WStringViewAt(&pMount->path, j);
+                isPrefix =
+                    VRegInternalWStringView_CompareNames(mountName, VREG_INTERNAL_AT(&pTarget->components, VRegInternalWStringView, j))
+                    == 0;
             }
             if (!isPrefix)
                 continue;
@@ -12398,7 +12405,7 @@ VREG_DECL void WINAPI VReg_InternalVirtualDestroy(_In_ VReg* const pRegistry)
         {
             SIZE_T i;
             for (i = 0; i < pTable->mounts.count; ++i)
-                VRegInternalMountPoint_Free(&VREG_INTERNAL_MOUNT_AT(&pTable->mounts, i));
+                VRegInternalMountPoint_Free(&VREG_INTERNAL_AT(&pTable->mounts, VRegInternalMountPoint, i));
         }
 
         VRegInternalArray_Free(&pTable->mounts);
@@ -12462,14 +12469,14 @@ VREG_DECL LSTATUS WINAPI VReg_Mount(
 
     for (i = 0; status == ERROR_SUCCESS && i < components.count; ++i)
     {
-        if (!VRegInternalArray_AppendWString(&mount.path, VREG_INTERNAL_VIEW_AT(&components, i)))
+        if (!VRegInternalArray_AppendWString(&mount.path, VREG_INTERNAL_AT(&components, VRegInternalWStringView, i)))
             status = ERROR_OUTOFMEMORY;
     }
     if (status == ERROR_SUCCESS)
         status = VReg_InternalNativeRootPath(hRoot, &mount.nativePath);
     for (i = 0; status == ERROR_SUCCESS && mount.nativePath.count != 0 && i < components.count; ++i)
     {
-        const VRegInternalWStringView component = VREG_INTERNAL_VIEW_AT(&components, i);
+        const VRegInternalWStringView component = VREG_INTERNAL_AT(&components, VRegInternalWStringView, i);
         if (!VRegInternalWStringView_IsWow6432Node(component) && !VRegInternalArray_AppendWString(&mount.nativePath, component))
             status = ERROR_OUTOFMEMORY;
     }
@@ -13234,7 +13241,8 @@ static void VRegInternalParser_Position(
     SIZE_T i;
     for (i = 0; i < pParser->segments.count; ++i)
     {
-        const VRegInternalLineSegment* const pCandidate = &VREG_INTERNAL_AT(&pParser->segments, VRegInternalLineSegment, i);
+        const VRegInternalLineSegment* const pCandidate =
+            &VREG_INTERNAL_AT(&pParser->segments, VRegInternalLineSegment, i);
         if (pCandidate->start > offset)
             break;
 
