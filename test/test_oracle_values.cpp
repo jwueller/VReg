@@ -1964,7 +1964,7 @@ TEMPLATE_LIST_TEST_CASE(
 {
     Win32Registry win32Registry;
     const Api win32 = ReducedReference(win32Registry);
-    CheckSameRecording(Record<TestType>(win32), RecordVirtual<TestType>());
+    CheckSameRecording(Record<TestType>(win32), RecordOn<VirtualHive, TestType>());
 }
 
 TEMPLATE_LIST_TEST_CASE(
@@ -1975,7 +1975,7 @@ TEMPLATE_LIST_TEST_CASE(
 {
     Win32Registry win32Registry;
     const Api win32 = ReducedReference(win32Registry);
-    CheckSameRecording(Record<TestType>(win32), RecordOverlay<TestType>());
+    CheckSameRecording(Record<TestType>(win32), RecordOn<OverlayMount, TestType>());
 }
 
 TEMPLATE_LIST_TEST_CASE(
@@ -1984,7 +1984,7 @@ TEMPLATE_LIST_TEST_CASE(
     Scenarios
 )
 {
-    CheckSameRecording(RecordVirtual<TestType>(), RecordCustom<TestType>());
+    CheckSameRecording(RecordOn<VirtualHive, TestType>(), RecordOn<CustomMount, TestType>());
 }
 
 // Native RegSetValueExA reads the byte after unterminated data and keeps it as

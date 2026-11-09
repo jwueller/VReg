@@ -497,14 +497,4 @@ private:
     ForwardingProvider m_provider;
     OwnedRegistry m_registry;
 };
-
-/// Runs @p Scenario against a custom hive that forwards to an in-memory one.
-template <class Scenario>
-Recording RecordCustom()
-{
-    CustomMount mount;
-    Recorder recorder;
-    Scenario{}(mount.AsApi(), mount.Root(), recorder);
-    return recorder.Take();
-}
 } // namespace VRegTest

@@ -1240,7 +1240,7 @@ TEMPLATE_LIST_TEST_CASE(
     // The reference first, so it skips under Wine before the virtual run
     // resolves an indirect string.
     const auto expected = Record<TestType>(win32);
-    CheckSameRecording(expected, RecordVirtual<TestType>());
+    CheckSameRecording(expected, RecordOn<VirtualHive, TestType>());
 }
 
 TEMPLATE_LIST_TEST_CASE(
@@ -1251,7 +1251,7 @@ TEMPLATE_LIST_TEST_CASE(
 {
     Win32Registry win32Registry;
     const Api win32 = ReducedReference(win32Registry);
-    CheckSameRecording(Record<TestType>(win32), RecordOverlay<TestType>());
+    CheckSameRecording(Record<TestType>(win32), RecordOn<OverlayMount, TestType>());
 }
 
 TEMPLATE_LIST_TEST_CASE(
@@ -1260,5 +1260,5 @@ TEMPLATE_LIST_TEST_CASE(
     Scenarios
 )
 {
-    CheckSameRecording(RecordVirtual<TestType>(), RecordCustom<TestType>());
+    CheckSameRecording(RecordOn<VirtualHive, TestType>(), RecordOn<CustomMount, TestType>());
 }

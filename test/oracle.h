@@ -115,16 +115,6 @@ private:
     OwnedRegistry m_registry;
 };
 
-/// Runs @p Scenario against a virtual registry over a fresh hive.
-template <class Scenario>
-Recording RecordVirtual()
-{
-    VirtualHive hive;
-    Recorder recorder;
-    Scenario{}(hive.AsApi(), hive.Root(), recorder);
-    return recorder.Take();
-}
-
 /// A writable hive over an empty key of an @ref AppHive, mounted below
 /// `HKEY_CURRENT_USER` in a virtual registry whose base is the native
 /// registry: the overlay counterpart of an @ref AppHive.
@@ -156,11 +146,11 @@ private:
     OwnedRegistry m_registry;
 };
 
-/// Runs @p Scenario against a writable hive over an empty lower key.
-template <class Scenario>
-Recording RecordOverlay()
+/// Runs @p Scenario against a fresh @p Mount.
+template <class Mount, class Scenario>
+Recording RecordOn()
 {
-    OverlayMount mount;
+    Mount mount;
     Recorder recorder;
     Scenario{}(mount.AsApi(), mount.Root(), recorder);
     return recorder.Take();
