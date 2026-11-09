@@ -17,7 +17,7 @@ try
 {
     DWORD dwType{};
     DWORD cbData = 0;
-    const auto sized = VReg_QueryValueExW(
+    const auto sized = VReg_RegQueryValueExW(
         registry,
         hKey,
         lpValueName,
@@ -33,7 +33,7 @@ try
     {
         data.resize(cbData);
         DWORD cbRead = cbData;
-        const auto status = VReg_QueryValueExW(
+        const auto status = VReg_RegQueryValueExW(
             registry,
             hKey,
             lpValueName,
@@ -74,7 +74,7 @@ try
 {
     DWORD dwType{};
     DWORD cbData = 0;
-    const auto sized = VReg_GetValueW(
+    const auto sized = VReg_RegGetValueW(
         registry,
         hKey,
         lpSubKey,
@@ -91,7 +91,7 @@ try
     {
         data.resize(cbData);
         DWORD cbRead = cbData;
-        const auto status = VReg_GetValueW(
+        const auto status = VReg_RegGetValueW(
             registry,
             hKey,
             lpSubKey,
@@ -171,7 +171,7 @@ try
     {
         name.assign(cchName, L'\0');
         DWORD cchRead = cchName;
-        const auto status = VReg_EnumKeyExW(
+        const auto status = VReg_RegEnumKeyExW(
             registry,
             hKey,
             dwIndex,
@@ -216,7 +216,7 @@ try
         DWORD cchRead = cchName;
         DWORD cbRead = cbData;
         DWORD dwType{};
-        const auto status = VReg_EnumValueW(
+        const auto status = VReg_RegEnumValueW(
             registry,
             hKey,
             dwIndex,
@@ -279,7 +279,7 @@ try
     {
         text.assign(cbBuffer / sizeof(wchar_t), L'\0');
         DWORD cbData = 0;
-        const auto status = VReg_LoadMUIStringW(
+        const auto status = VReg_RegLoadMUIStringW(
             registry,
             hKey,
             pszValue,

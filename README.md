@@ -143,7 +143,7 @@ VReg_CreateVirtual(native, &registry);
 VReg_Mount(registry, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", overlay, 0);
 
 const DWORD dwOne = 1;
-VReg_SetKeyValueW(registry, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", L"Windowed", REG_DWORD, &dwOne, sizeof(dwOne));
+VReg_RegSetKeyValueW(registry, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", L"Windowed", REG_DWORD, &dwOne, sizeof(dwOne));
 ```
 
 Writes stay in memory. `VRegScript_Delta` collects them as a `.reg` script
@@ -297,7 +297,7 @@ Calls straight to `ntdll` (`NtOpenKey` and friends) bypass the hooks; see
 
 ## Supported functions
 
-As flat functions (`VReg_OpenKeyExW` and so on, the registry first) and
+As flat functions (`VReg_RegOpenKeyExW` and so on, the registry first) and
 table slots, and, once hooked, for every virtual key.
 
 #### Open, create and close

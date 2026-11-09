@@ -126,7 +126,7 @@ struct SetAnsiAndQueryEveryType
             const std::string label = item.name;
             RECORD(
                 label + " set",
-                VReg_SetValueExA(
+                VReg_RegSetValueExA(
                     api,
                     hRoot,
                     item.name,
@@ -155,7 +155,7 @@ struct SetInvalidArguments
 
         RECORD(
             "W no data nonzero size",
-            VReg_SetValueExW(
+            VReg_RegSetValueExW(
                 api,
                 hRoot,
                 L"A",
@@ -167,7 +167,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "W no data zero size",
-            VReg_SetValueExW(
+            VReg_RegSetValueExW(
                 api,
                 hRoot,
                 L"B",
@@ -179,7 +179,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "W string no data zero size",
-            VReg_SetValueExW(
+            VReg_RegSetValueExW(
                 api,
                 hRoot,
                 L"C",
@@ -191,7 +191,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "W reserved",
-            VReg_SetValueExW(
+            VReg_RegSetValueExW(
                 api,
                 hRoot,
                 L"D",
@@ -203,7 +203,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "W invalid handle",
-            VReg_SetValueExW(
+            VReg_RegSetValueExW(
                 api,
                 nullptr,
                 L"E",
@@ -215,7 +215,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "A no data nonzero size",
-            VReg_SetValueExA(
+            VReg_RegSetValueExA(
                 api,
                 hRoot,
                 "A2",
@@ -227,7 +227,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "A no data zero size",
-            VReg_SetValueExA(
+            VReg_RegSetValueExA(
                 api,
                 hRoot,
                 "B2",
@@ -239,7 +239,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "A string no data zero size",
-            VReg_SetValueExA(
+            VReg_RegSetValueExA(
                 api,
                 hRoot,
                 "C2",
@@ -251,7 +251,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "A string no data nonzero size",
-            VReg_SetValueExA(
+            VReg_RegSetValueExA(
                 api,
                 hRoot,
                 "D2",
@@ -263,7 +263,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "A reserved",
-            VReg_SetValueExA(
+            VReg_RegSetValueExA(
                 api,
                 hRoot,
                 "E2",
@@ -275,7 +275,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "A reserved string",
-            VReg_SetValueExA(
+            VReg_RegSetValueExA(
                 api,
                 hRoot,
                 "F2",
@@ -287,7 +287,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "A invalid handle",
-            VReg_SetValueExA(
+            VReg_RegSetValueExA(
                 api,
                 nullptr,
                 "G2",
@@ -299,7 +299,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "A invalid handle string",
-            VReg_SetValueExA(
+            VReg_RegSetValueExA(
                 api,
                 nullptr,
                 "H2",
@@ -311,7 +311,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "A long name",
-            VReg_SetValueExA(
+            VReg_RegSetValueExA(
                 api,
                 hRoot,
                 std::string(300, 'n').c_str(),
@@ -323,7 +323,7 @@ struct SetInvalidArguments
         );
         RECORD(
             "W long name",
-            VReg_SetValueExW(
+            VReg_RegSetValueExW(
                 api,
                 hRoot,
                 std::wstring(300, L'n').c_str(),
@@ -337,7 +337,7 @@ struct SetInvalidArguments
         DWORD cbData = FILL_SIZE;
         RECORD(
             "none stored",
-            VReg_QueryValueExW(
+            VReg_RegQueryValueExW(
                 api,
                 hRoot,
                 L"A",
@@ -351,7 +351,7 @@ struct SetInvalidArguments
         cbData = FILL_SIZE;
         RECORD(
             "zero stored",
-            VReg_QueryValueExW(
+            VReg_RegQueryValueExW(
                 api,
                 hRoot,
                 L"B",
@@ -365,7 +365,7 @@ struct SetInvalidArguments
         cbData = FILL_SIZE;
         RECORD(
             "string stored",
-            VReg_QueryValueExW(
+            VReg_RegQueryValueExW(
                 api,
                 hRoot,
                 L"C",
@@ -379,7 +379,7 @@ struct SetInvalidArguments
         cbData = FILL_SIZE;
         RECORD(
             "string stored A",
-            VReg_QueryValueExW(
+            VReg_RegQueryValueExW(
                 api,
                 hRoot,
                 L"C2",
@@ -410,7 +410,7 @@ struct QueryMissingAndInvalid
         data.fill(FILL);
         RECORD(
             "W reserved",
-            VReg_QueryValueExW(
+            VReg_RegQueryValueExW(
                 api,
                 hRoot,
                 L"Missing",
@@ -426,7 +426,7 @@ struct QueryMissingAndInvalid
         const DWORD reserved = 5;
         RECORD(
             "W reserved set",
-            VReg_QueryValueExW(
+            VReg_RegQueryValueExW(
                 api,
                 hRoot,
                 L"Missing",
@@ -442,7 +442,7 @@ struct QueryMissingAndInvalid
         );
         RECORD(
             "A reserved set",
-            VReg_QueryValueExA(
+            VReg_RegQueryValueExA(
                 api,
                 hRoot,
                 "Missing",
@@ -461,7 +461,7 @@ struct QueryMissingAndInvalid
         dwType = FILL_SIZE;
         RECORD(
             "W invalid handle",
-            VReg_QueryValueExW(
+            VReg_RegQueryValueExW(
                 api,
                 nullptr,
                 L"Missing",
@@ -477,7 +477,7 @@ struct QueryMissingAndInvalid
         );
         RECORD(
             "A invalid handle",
-            VReg_QueryValueExA(
+            VReg_RegQueryValueExA(
                 api,
                 nullptr,
                 "Missing",
@@ -493,7 +493,7 @@ struct QueryMissingAndInvalid
         );
         RECORD(
             "W invalid handle, reserved",
-            VReg_QueryValueExW(
+            VReg_RegQueryValueExW(
                 api,
                 nullptr,
                 L"Missing",
@@ -505,7 +505,7 @@ struct QueryMissingAndInvalid
         );
         RECORD(
             "A invalid handle, reserved",
-            VReg_QueryValueExA(
+            VReg_RegQueryValueExA(
                 api,
                 nullptr,
                 "Missing",
@@ -517,7 +517,7 @@ struct QueryMissingAndInvalid
         );
         RECORD(
             "A invalid handle, data without size",
-            VReg_QueryValueExA(
+            VReg_RegQueryValueExA(
                 api,
                 nullptr,
                 "Missing",
@@ -529,7 +529,7 @@ struct QueryMissingAndInvalid
         );
         RECORD(
             "W missing, data without size",
-            VReg_QueryValueExW(
+            VReg_RegQueryValueExW(
                 api,
                 hRoot,
                 L"Missing",
@@ -541,7 +541,7 @@ struct QueryMissingAndInvalid
         );
         RECORD(
             "A missing, data without size",
-            VReg_QueryValueExA(
+            VReg_RegQueryValueExA(
                 api,
                 hRoot,
                 "Missing",
@@ -582,7 +582,7 @@ struct DefaultValue
 
         RECORD(
             "set null W",
-            VReg_SetValueExW(
+            VReg_RegSetValueExW(
                 api,
                 hRoot,
                 nullptr,
@@ -605,7 +605,7 @@ struct DefaultValue
 
         RECORD(
             "set empty A",
-            VReg_SetValueExA(
+            VReg_RegSetValueExA(
                 api,
                 hRoot,
                 "",
@@ -625,7 +625,7 @@ struct DefaultValue
 
         RECORD(
             "set null A",
-            VReg_SetValueExA(
+            VReg_RegSetValueExA(
                 api,
                 hRoot,
                 nullptr,
@@ -639,7 +639,7 @@ struct DefaultValue
 
         RECORD(
             "delete empty A",
-            VReg_DeleteValueA(
+            VReg_RegDeleteValueA(
                 api,
                 hRoot,
                 ""
@@ -647,7 +647,7 @@ struct DefaultValue
         );
         RECORD(
             "delete empty A again",
-            VReg_DeleteValueA(
+            VReg_RegDeleteValueA(
                 api,
                 hRoot,
                 ""
@@ -655,7 +655,7 @@ struct DefaultValue
         );
         RECORD(
             "set again",
-            VReg_SetValueExW(
+            VReg_RegSetValueExW(
                 api,
                 hRoot,
                 L"",
@@ -667,7 +667,7 @@ struct DefaultValue
         );
         RECORD(
             "delete null W",
-            VReg_DeleteValueW(
+            VReg_RegDeleteValueW(
                 api,
                 hRoot,
                 nullptr
@@ -675,7 +675,7 @@ struct DefaultValue
         );
         RECORD(
             "delete null W again",
-            VReg_DeleteValueW(
+            VReg_RegDeleteValueW(
                 api,
                 hRoot,
                 nullptr
@@ -683,7 +683,7 @@ struct DefaultValue
         );
         RECORD(
             "set again",
-            VReg_SetValueExW(
+            VReg_RegSetValueExW(
                 api,
                 hRoot,
                 L"",
@@ -695,7 +695,7 @@ struct DefaultValue
         );
         RECORD(
             "delete null A",
-            VReg_DeleteValueA(
+            VReg_RegDeleteValueA(
                 api,
                 hRoot,
                 nullptr
@@ -715,7 +715,7 @@ struct NonAsciiNames
         const BYTE data[4] = {1, 2, 3, 4};
         RECORD(
             "set W",
-            VReg_SetValueExW(
+            VReg_RegSetValueExW(
                 api,
                 hRoot,
                 L"n\u00e4me\u20ac",
@@ -730,7 +730,7 @@ struct NonAsciiNames
 
         RECORD(
             "set A",
-            VReg_SetValueExA(
+            VReg_RegSetValueExA(
                 api,
                 hRoot,
                 "caf\xe9",
@@ -744,7 +744,7 @@ struct NonAsciiNames
 
         RECORD(
             "set W unrepresentable",
-            VReg_SetValueExW(
+            VReg_RegSetValueExW(
                 api,
                 hRoot,
                 L"x\u4e2d",
@@ -759,7 +759,7 @@ struct NonAsciiNames
 
         RECORD(
             "set W best fit",
-            VReg_SetValueExW(
+            VReg_RegSetValueExW(
                 api,
                 hRoot,
                 L"b\u0101",
@@ -773,7 +773,7 @@ struct NonAsciiNames
 
         RECORD(
             "delete A",
-            VReg_DeleteValueA(
+            VReg_RegDeleteValueA(
                 api,
                 hRoot,
                 "n\xe4me\x80"
@@ -781,7 +781,7 @@ struct NonAsciiNames
         );
         RECORD(
             "delete A again",
-            VReg_DeleteValueA(
+            VReg_RegDeleteValueA(
                 api,
                 hRoot,
                 "n\xe4me\x80"
@@ -789,7 +789,7 @@ struct NonAsciiNames
         );
         RECORD(
             "delete W",
-            VReg_DeleteValueW(
+            VReg_RegDeleteValueW(
                 api,
                 hRoot,
                 L"caf\u00e9"
@@ -797,7 +797,7 @@ struct NonAsciiNames
         );
         RECORD(
             "delete A unrepresentable",
-            VReg_DeleteValueA(
+            VReg_RegDeleteValueA(
                 api,
                 hRoot,
                 "x?"
@@ -805,7 +805,7 @@ struct NonAsciiNames
         );
         RECORD(
             "delete W unrepresentable",
-            VReg_DeleteValueW(
+            VReg_RegDeleteValueW(
                 api,
                 hRoot,
                 L"x\u4e2d"
@@ -814,7 +814,7 @@ struct NonAsciiNames
 
         RECORD(
             "set A empty-ish",
-            VReg_SetValueExA(
+            VReg_RegSetValueExA(
                 api,
                 hRoot,
                 "\x80",
@@ -839,7 +839,7 @@ struct DeleteValues
         const BYTE data[4] = {1, 2, 3, 4};
         RECORD(
             "delete missing W",
-            VReg_DeleteValueW(
+            VReg_RegDeleteValueW(
                 api,
                 hRoot,
                 L"Missing"
@@ -847,7 +847,7 @@ struct DeleteValues
         );
         RECORD(
             "delete missing A",
-            VReg_DeleteValueA(
+            VReg_RegDeleteValueA(
                 api,
                 hRoot,
                 "Missing"
@@ -855,7 +855,7 @@ struct DeleteValues
         );
         RECORD(
             "set",
-            VReg_SetValueExW(
+            VReg_RegSetValueExW(
                 api,
                 hRoot,
                 L"V",
@@ -867,7 +867,7 @@ struct DeleteValues
         );
         RECORD(
             "delete W",
-            VReg_DeleteValueW(
+            VReg_RegDeleteValueW(
                 api,
                 hRoot,
                 L"v"
@@ -875,7 +875,7 @@ struct DeleteValues
         );
         RECORD(
             "delete W again",
-            VReg_DeleteValueW(
+            VReg_RegDeleteValueW(
                 api,
                 hRoot,
                 L"v"
@@ -883,7 +883,7 @@ struct DeleteValues
         );
         RECORD(
             "set",
-            VReg_SetValueExW(
+            VReg_RegSetValueExW(
                 api,
                 hRoot,
                 L"V",
@@ -895,7 +895,7 @@ struct DeleteValues
         );
         RECORD(
             "delete A",
-            VReg_DeleteValueA(
+            VReg_RegDeleteValueA(
                 api,
                 hRoot,
                 "V"
@@ -903,7 +903,7 @@ struct DeleteValues
         );
         RECORD(
             "delete A again",
-            VReg_DeleteValueA(
+            VReg_RegDeleteValueA(
                 api,
                 hRoot,
                 "V"
@@ -911,7 +911,7 @@ struct DeleteValues
         );
         RECORD(
             "delete W invalid handle",
-            VReg_DeleteValueW(
+            VReg_RegDeleteValueW(
                 api,
                 nullptr,
                 L"V"
@@ -919,7 +919,7 @@ struct DeleteValues
         );
         RECORD(
             "delete A invalid handle",
-            VReg_DeleteValueA(
+            VReg_RegDeleteValueA(
                 api,
                 nullptr,
                 "V"
@@ -941,7 +941,7 @@ struct PreExValues
 
         RECORD(
             "set W new sub",
-            VReg_SetValueW(
+            VReg_RegSetValueW(
                 api,
                 hRoot,
                 L"Sub",
@@ -952,7 +952,7 @@ struct PreExValues
         );
         RECORD(
             "set W new nested",
-            VReg_SetValueW(
+            VReg_RegSetValueW(
                 api,
                 hRoot,
                 L"Deep\\Sub",
@@ -963,7 +963,7 @@ struct PreExValues
         );
         RECORD(
             "set W cb small",
-            VReg_SetValueW(
+            VReg_RegSetValueW(
                 api,
                 hRoot,
                 L"Sub2",
@@ -974,7 +974,7 @@ struct PreExValues
         );
         RECORD(
             "set A new sub",
-            VReg_SetValueA(
+            VReg_RegSetValueA(
                 api,
                 hRoot,
                 "SubA",
@@ -985,7 +985,7 @@ struct PreExValues
         );
         RECORD(
             "set A cb small",
-            VReg_SetValueA(
+            VReg_RegSetValueA(
                 api,
                 hRoot,
                 "SubA2",
@@ -996,7 +996,7 @@ struct PreExValues
         );
         RECORD(
             "set W wrong type",
-            VReg_SetValueW(
+            VReg_RegSetValueW(
                 api,
                 hRoot,
                 L"Wrong",
@@ -1007,7 +1007,7 @@ struct PreExValues
         );
         RECORD(
             "set A wrong type",
-            VReg_SetValueA(
+            VReg_RegSetValueA(
                 api,
                 hRoot,
                 "Wrong",
@@ -1018,7 +1018,7 @@ struct PreExValues
         );
         RECORD(
             "set W null data",
-            VReg_SetValueW(
+            VReg_RegSetValueW(
                 api,
                 hRoot,
                 L"NullData",
@@ -1029,7 +1029,7 @@ struct PreExValues
         );
         RECORD(
             "set A null data",
-            VReg_SetValueA(
+            VReg_RegSetValueA(
                 api,
                 hRoot,
                 "NullDataA",
@@ -1040,7 +1040,7 @@ struct PreExValues
         );
         RECORD(
             "set W null sub",
-            VReg_SetValueW(
+            VReg_RegSetValueW(
                 api,
                 hRoot,
                 nullptr,
@@ -1051,7 +1051,7 @@ struct PreExValues
         );
         RECORD(
             "set A empty sub",
-            VReg_SetValueA(
+            VReg_RegSetValueA(
                 api,
                 hRoot,
                 "",
@@ -1062,7 +1062,7 @@ struct PreExValues
         );
         RECORD(
             "set W invalid handle",
-            VReg_SetValueW(
+            VReg_RegSetValueW(
                 api,
                 nullptr,
                 L"S",
@@ -1073,7 +1073,7 @@ struct PreExValues
         );
         RECORD(
             "set A invalid handle",
-            VReg_SetValueA(
+            VReg_RegSetValueA(
                 api,
                 nullptr,
                 "S",
@@ -1084,7 +1084,7 @@ struct PreExValues
         );
         RECORD(
             "set W unrepresentable",
-            VReg_SetValueW(
+            VReg_RegSetValueW(
                 api,
                 hRoot,
                 L"U\u4e2d",
@@ -1095,7 +1095,7 @@ struct PreExValues
         );
         RECORD(
             "set W unicode data",
-            VReg_SetValueW(
+            VReg_RegSetValueW(
                 api,
                 hRoot,
                 L"UD",
@@ -1106,7 +1106,7 @@ struct PreExValues
         );
         RECORD(
             "set A empty string",
-            VReg_SetValueA(
+            VReg_RegSetValueA(
                 api,
                 hRoot,
                 "Empty",
@@ -1140,7 +1140,7 @@ struct PreExValues
                 LONG cbData = cbBuffer;
                 RECORD(
                     "query W " + label + std::format(" buffer {}", cbBuffer),
-                    VReg_QueryValueW(
+                    VReg_RegQueryValueW(
                         api,
                         hRoot,
                         pszSub,
@@ -1154,7 +1154,7 @@ struct PreExValues
             LONG cbData = static_cast<LONG>(FILL_SIZE);
             RECORD(
                 "query W size " + label,
-                VReg_QueryValueW(
+                VReg_RegQueryValueW(
                     api,
                     hRoot,
                     pszSub,
@@ -1165,7 +1165,7 @@ struct PreExValues
             );
             RECORD(
                 "query W no size " + label,
-                VReg_QueryValueW(
+                VReg_RegQueryValueW(
                     api,
                     hRoot,
                     pszSub,
@@ -1182,7 +1182,7 @@ struct PreExValues
                 LONG cbData2 = cbBuffer;
                 RECORD(
                     "query A " + label + std::format(" buffer {}", cbBuffer),
-                    VReg_QueryValueA(
+                    VReg_RegQueryValueA(
                         api,
                         hRoot,
                         narrow.c_str(),
@@ -1196,7 +1196,7 @@ struct PreExValues
             cbData = static_cast<LONG>(FILL_SIZE);
             RECORD(
                 "query A size " + label,
-                VReg_QueryValueA(
+                VReg_RegQueryValueA(
                     api,
                     hRoot,
                     narrow.c_str(),
@@ -1207,7 +1207,7 @@ struct PreExValues
             );
             RECORD(
                 "query A no size " + label,
-                VReg_QueryValueA(
+                VReg_RegQueryValueA(
                     api,
                     hRoot,
                     narrow.c_str(),
@@ -1223,7 +1223,7 @@ struct PreExValues
             LONG cbData = 8;
             RECORD(
                 "query A null sub",
-                VReg_QueryValueA(
+                VReg_RegQueryValueA(
                     api,
                     hRoot,
                     nullptr,
@@ -1238,7 +1238,7 @@ struct PreExValues
             cbData = 16;
             RECORD(
                 "query W null sub",
-                VReg_QueryValueW(
+                VReg_RegQueryValueW(
                     api,
                     hRoot,
                     nullptr,
@@ -1250,7 +1250,7 @@ struct PreExValues
             );
             RECORD(
                 "query W data without size",
-                VReg_QueryValueW(
+                VReg_RegQueryValueW(
                     api,
                     hRoot,
                     L"Sub",
@@ -1260,7 +1260,7 @@ struct PreExValues
             );
             RECORD(
                 "query A data without size",
-                VReg_QueryValueA(
+                VReg_RegQueryValueA(
                     api,
                     hRoot,
                     "Sub",
@@ -1271,7 +1271,7 @@ struct PreExValues
             cbData = 16;
             RECORD(
                 "query W invalid handle",
-                VReg_QueryValueW(
+                VReg_RegQueryValueW(
                     api,
                     nullptr,
                     L"Sub",
@@ -1282,7 +1282,7 @@ struct PreExValues
             );
             RECORD(
                 "query A invalid handle",
-                VReg_QueryValueA(
+                VReg_RegQueryValueA(
                     api,
                     nullptr,
                     "Sub",
@@ -1297,7 +1297,7 @@ struct PreExValues
         HKEY hSub{};
         RECORD(
             "create typed",
-            VReg_CreateKeyExW(
+            VReg_RegCreateKeyExW(
                 api,
                 hRoot,
                 L"Typed",
@@ -1313,7 +1313,7 @@ struct PreExValues
         const DWORD dwValue = 7;
         RECORD(
             "set typed",
-            VReg_SetValueExW(
+            VReg_RegSetValueExW(
                 api,
                 hSub,
                 nullptr,
@@ -1325,7 +1325,7 @@ struct PreExValues
         );
         RECORD(
             "close typed",
-            VReg_CloseKey(
+            VReg_RegCloseKey(
                 api,
                 hSub
             )
@@ -1337,7 +1337,7 @@ struct PreExValues
             LONG cbData = cbBuffer;
             RECORD(
                 "query typed W",
-                VReg_QueryValueW(
+                VReg_RegQueryValueW(
                     api,
                     hRoot,
                     L"Typed",
@@ -1352,7 +1352,7 @@ struct PreExValues
             cbData = cbBuffer;
             RECORD(
                 "query typed A",
-                VReg_QueryValueA(
+                VReg_RegQueryValueA(
                     api,
                     hRoot,
                     "Typed",
@@ -1366,7 +1366,7 @@ struct PreExValues
         LONG cbData = static_cast<LONG>(FILL_SIZE);
         RECORD(
             "query typed W size",
-            VReg_QueryValueW(
+            VReg_RegQueryValueW(
                 api,
                 hRoot,
                 L"Typed",
@@ -1378,7 +1378,7 @@ struct PreExValues
         cbData = static_cast<LONG>(FILL_SIZE);
         RECORD(
             "query typed A size",
-            VReg_QueryValueA(
+            VReg_RegQueryValueA(
                 api,
                 hRoot,
                 "Typed",
@@ -1402,7 +1402,7 @@ struct SetKeyValueForms
 
         RECORD(
             "W creates subkey",
-            VReg_SetKeyValueW(
+            VReg_RegSetKeyValueW(
                 api,
                 hRoot,
                 L"New\\Sub",
@@ -1415,7 +1415,7 @@ struct SetKeyValueForms
         QueryMatrix(api, record, hRoot, L"New\\Sub", "W subkey as value");
         RECORD(
             "A creates subkey",
-            VReg_SetKeyValueA(
+            VReg_RegSetKeyValueA(
                 api,
                 hRoot,
                 "NewA\\Sub",
@@ -1427,7 +1427,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "W null sub",
-            VReg_SetKeyValueW(
+            VReg_RegSetKeyValueW(
                 api,
                 hRoot,
                 nullptr,
@@ -1439,7 +1439,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "W empty sub",
-            VReg_SetKeyValueW(
+            VReg_RegSetKeyValueW(
                 api,
                 hRoot,
                 L"",
@@ -1451,7 +1451,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "A null sub",
-            VReg_SetKeyValueA(
+            VReg_RegSetKeyValueA(
                 api,
                 hRoot,
                 nullptr,
@@ -1463,7 +1463,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "A empty sub",
-            VReg_SetKeyValueA(
+            VReg_RegSetKeyValueA(
                 api,
                 hRoot,
                 "",
@@ -1475,7 +1475,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "W null name",
-            VReg_SetKeyValueW(
+            VReg_RegSetKeyValueW(
                 api,
                 hRoot,
                 L"New",
@@ -1487,7 +1487,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "A null name",
-            VReg_SetKeyValueA(
+            VReg_RegSetKeyValueA(
                 api,
                 hRoot,
                 "NewA",
@@ -1499,7 +1499,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "W no terminator",
-            VReg_SetKeyValueW(
+            VReg_RegSetKeyValueW(
                 api,
                 hRoot,
                 L"NoTerm",
@@ -1511,7 +1511,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "A no terminator",
-            VReg_SetKeyValueA(
+            VReg_RegSetKeyValueA(
                 api,
                 hRoot,
                 "NoTermA",
@@ -1523,7 +1523,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "W no data",
-            VReg_SetKeyValueW(
+            VReg_RegSetKeyValueW(
                 api,
                 hRoot,
                 L"NoData",
@@ -1535,7 +1535,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "A no data",
-            VReg_SetKeyValueA(
+            VReg_RegSetKeyValueA(
                 api,
                 hRoot,
                 "NoDataA",
@@ -1547,7 +1547,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "W bad data",
-            VReg_SetKeyValueW(
+            VReg_RegSetKeyValueW(
                 api,
                 hRoot,
                 L"BadData",
@@ -1559,7 +1559,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "A bad data",
-            VReg_SetKeyValueA(
+            VReg_RegSetKeyValueA(
                 api,
                 hRoot,
                 "BadDataA",
@@ -1571,7 +1571,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "W invalid handle",
-            VReg_SetKeyValueW(
+            VReg_RegSetKeyValueW(
                 api,
                 nullptr,
                 L"X",
@@ -1583,7 +1583,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "A invalid handle",
-            VReg_SetKeyValueA(
+            VReg_RegSetKeyValueA(
                 api,
                 nullptr,
                 "X",
@@ -1595,7 +1595,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "W invalid handle no sub",
-            VReg_SetKeyValueW(
+            VReg_RegSetKeyValueW(
                 api,
                 nullptr,
                 nullptr,
@@ -1607,7 +1607,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "A invalid handle no sub",
-            VReg_SetKeyValueA(
+            VReg_RegSetKeyValueA(
                 api,
                 nullptr,
                 nullptr,
@@ -1619,7 +1619,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "W unrepresentable",
-            VReg_SetKeyValueW(
+            VReg_RegSetKeyValueW(
                 api,
                 hRoot,
                 L"U\u4e2d",
@@ -1631,7 +1631,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "A multi",
-            VReg_SetKeyValueA(
+            VReg_RegSetKeyValueA(
                 api,
                 hRoot,
                 "MultiA",
@@ -1643,7 +1643,7 @@ struct SetKeyValueForms
         );
         RECORD(
             "W reg link",
-            VReg_SetKeyValueW(
+            VReg_RegSetKeyValueW(
                 api,
                 hRoot,
                 L"LinkW",
@@ -1672,7 +1672,7 @@ struct SetKeyValueForms
         {
             const auto label = Narrow(pszSub);
             HKEY hKey{};
-            const auto status = VReg_OpenKeyExW(
+            const auto status = VReg_RegOpenKeyExW(
                 api,
                 hRoot,
                 pszSub,
@@ -1695,7 +1695,7 @@ struct SetKeyValueForms
                 );
             RECORD(
                 "close " + label,
-                VReg_CloseKey(
+                VReg_RegCloseKey(
                     api,
                     hKey
                 )
@@ -1719,7 +1719,7 @@ struct DeleteKeyValueForms
         const BYTE data[4] = {1, 2, 3, 4};
         RECORD(
             "set sub",
-            VReg_SetKeyValueW(
+            VReg_RegSetKeyValueW(
                 api,
                 hRoot,
                 L"Sub",
@@ -1731,7 +1731,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "set sub 2",
-            VReg_SetKeyValueW(
+            VReg_RegSetKeyValueW(
                 api,
                 hRoot,
                 L"Sub",
@@ -1743,7 +1743,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "set sub 3",
-            VReg_SetKeyValueW(
+            VReg_RegSetKeyValueW(
                 api,
                 hRoot,
                 L"Sub",
@@ -1755,7 +1755,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "set root",
-            VReg_SetKeyValueW(
+            VReg_RegSetKeyValueW(
                 api,
                 hRoot,
                 nullptr,
@@ -1767,7 +1767,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "set root 2",
-            VReg_SetKeyValueW(
+            VReg_RegSetKeyValueW(
                 api,
                 hRoot,
                 nullptr,
@@ -1780,7 +1780,7 @@ struct DeleteKeyValueForms
 
         RECORD(
             "W missing sub",
-            VReg_DeleteKeyValueW(
+            VReg_RegDeleteKeyValueW(
                 api,
                 hRoot,
                 L"Nope",
@@ -1789,7 +1789,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "A missing sub",
-            VReg_DeleteKeyValueA(
+            VReg_RegDeleteKeyValueA(
                 api,
                 hRoot,
                 "Nope",
@@ -1798,7 +1798,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "W missing value",
-            VReg_DeleteKeyValueW(
+            VReg_RegDeleteKeyValueW(
                 api,
                 hRoot,
                 L"Sub",
@@ -1807,7 +1807,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "A missing value",
-            VReg_DeleteKeyValueA(
+            VReg_RegDeleteKeyValueA(
                 api,
                 hRoot,
                 "Sub",
@@ -1816,7 +1816,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "W delete",
-            VReg_DeleteKeyValueW(
+            VReg_RegDeleteKeyValueW(
                 api,
                 hRoot,
                 L"Sub",
@@ -1825,7 +1825,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "W delete again",
-            VReg_DeleteKeyValueW(
+            VReg_RegDeleteKeyValueW(
                 api,
                 hRoot,
                 L"Sub",
@@ -1834,7 +1834,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "A delete",
-            VReg_DeleteKeyValueA(
+            VReg_RegDeleteKeyValueA(
                 api,
                 hRoot,
                 "Sub",
@@ -1843,7 +1843,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "W delete default",
-            VReg_DeleteKeyValueW(
+            VReg_RegDeleteKeyValueW(
                 api,
                 hRoot,
                 L"Sub",
@@ -1852,7 +1852,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "W delete root null sub",
-            VReg_DeleteKeyValueW(
+            VReg_RegDeleteKeyValueW(
                 api,
                 hRoot,
                 nullptr,
@@ -1861,7 +1861,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "A delete root empty sub",
-            VReg_DeleteKeyValueA(
+            VReg_RegDeleteKeyValueA(
                 api,
                 hRoot,
                 "",
@@ -1870,7 +1870,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "W delete root again",
-            VReg_DeleteKeyValueW(
+            VReg_RegDeleteKeyValueW(
                 api,
                 hRoot,
                 nullptr,
@@ -1879,7 +1879,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "W invalid handle",
-            VReg_DeleteKeyValueW(
+            VReg_RegDeleteKeyValueW(
                 api,
                 nullptr,
                 L"Sub",
@@ -1888,7 +1888,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "A invalid handle",
-            VReg_DeleteKeyValueA(
+            VReg_RegDeleteKeyValueA(
                 api,
                 nullptr,
                 "Sub",
@@ -1897,7 +1897,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "W invalid handle no sub",
-            VReg_DeleteKeyValueW(
+            VReg_RegDeleteKeyValueW(
                 api,
                 nullptr,
                 nullptr,
@@ -1906,7 +1906,7 @@ struct DeleteKeyValueForms
         );
         RECORD(
             "A invalid handle no sub",
-            VReg_DeleteKeyValueA(
+            VReg_RegDeleteKeyValueA(
                 api,
                 nullptr,
                 nullptr,
@@ -1917,7 +1917,7 @@ struct DeleteKeyValueForms
         DWORD cbData = FILL_SIZE;
         RECORD(
             "sub values gone",
-            VReg_QueryValueExW(
+            VReg_RegQueryValueExW(
                 api,
                 hRoot,
                 L"v",
@@ -1996,7 +1996,7 @@ TEST_CASE("An unterminated ANSI string is stored with its terminator")
     VirtualHive hive;
     const char data[] = "text\0";
     REQUIRE(
-        VReg_SetValueExA(
+        VReg_RegSetValueExA(
             hive.Registry(),
             hive.Root(),
             "SzNoTerminator",
@@ -2009,7 +2009,7 @@ TEST_CASE("An unterminated ANSI string is stored with its terminator")
 
     DWORD cbAnsi = 0;
     CHECK(
-        VReg_QueryValueExA(
+        VReg_RegQueryValueExA(
             hive.Registry(),
             hive.Root(),
             "SzNoTerminator",
@@ -2023,7 +2023,7 @@ TEST_CASE("An unterminated ANSI string is stored with its terminator")
 
     DWORD cbWide = 0;
     CHECK(
-        VReg_QueryValueExW(
+        VReg_RegQueryValueExW(
             hive.Registry(),
             hive.Root(),
             L"SzNoTerminator",

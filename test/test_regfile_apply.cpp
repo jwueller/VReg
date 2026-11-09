@@ -38,7 +38,7 @@ struct Spec
 bool KeyExists(VReg* const registry, const wchar_t* const pszPath) noexcept
 {
     HKEY hKey{};
-    const auto status = VReg_OpenKeyExW(
+    const auto status = VReg_RegOpenKeyExW(
         registry,
         HKEY_CURRENT_USER,
         pszPath,
@@ -47,7 +47,7 @@ bool KeyExists(VReg* const registry, const wchar_t* const pszPath) noexcept
         &hKey
     );
     if (status == ERROR_SUCCESS)
-        VReg_CloseKey(
+        VReg_RegCloseKey(
             registry,
             hKey
         );
@@ -138,7 +138,7 @@ TEST_CASE("Apply deletes values and keys")
         const HKEY hKey = MustOpen(registry, L"T");
         DWORD dwType{};
         CHECK(
-            VReg_QueryValueExW(
+            VReg_RegQueryValueExW(
                 registry,
                 hKey,
                 L"a",
@@ -149,7 +149,7 @@ TEST_CASE("Apply deletes values and keys")
             ) == ERROR_FILE_NOT_FOUND
         );
         CHECK(
-            VReg_QueryValueExW(
+            VReg_RegQueryValueExW(
                 registry,
                 hKey,
                 L"",
@@ -160,7 +160,7 @@ TEST_CASE("Apply deletes values and keys")
             ) == ERROR_FILE_NOT_FOUND
         );
         CHECK(
-            VReg_QueryValueExW(
+            VReg_RegQueryValueExW(
                 registry,
                 hKey,
                 L"b",
@@ -170,7 +170,7 @@ TEST_CASE("Apply deletes values and keys")
                 nullptr
             ) == ERROR_SUCCESS
         );
-        VReg_CloseKey(
+        VReg_RegCloseKey(
             registry,
             hKey
         );
@@ -242,7 +242,7 @@ TEST_CASE("Delete then create replaces a key")
     CheckValue(registry, L"T", L"z", REG_DWORD, DwordBytes(2));
     const HKEY hKey = MustOpen(registry, L"T");
     CHECK(
-        VReg_QueryValueExW(
+        VReg_RegQueryValueExW(
             registry,
             hKey,
             L"y",
@@ -252,7 +252,7 @@ TEST_CASE("Delete then create replaces a key")
             nullptr
         ) == ERROR_FILE_NOT_FOUND
     );
-    VReg_CloseKey(
+    VReg_RegCloseKey(
         registry,
         hKey
     );

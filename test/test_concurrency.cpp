@@ -129,7 +129,7 @@ void WriterLoop(
         {
             HKEY hKey{};
             const auto status =
-                VReg_CreateKeyExW(
+                VReg_RegCreateKeyExW(
                     registry,
                     hRoot,
                     path.c_str(),
@@ -143,7 +143,7 @@ void WriterLoop(
                 );
             Judge(shared, status);
             if (status == ERROR_SUCCESS)
-                VReg_CloseKey(
+                VReg_RegCloseKey(
                     registry,
                     hKey
                 );
@@ -153,7 +153,7 @@ void WriterLoop(
         case 3:
         {
             HKEY hKey{};
-            const auto status = VReg_OpenKeyExW(
+            const auto status = VReg_RegOpenKeyExW(
                 registry,
                 hRoot,
                 path.c_str(),
@@ -170,7 +170,7 @@ void WriterLoop(
             const DWORD dwValue = ValueData(index);
             Judge(
                 shared,
-                VReg_SetValueExW(
+                VReg_RegSetValueExW(
                     registry,
                     hKey,
                     name.c_str(),
@@ -180,7 +180,7 @@ void WriterLoop(
                     sizeof(dwValue)
                 )
             );
-            VReg_CloseKey(
+            VReg_RegCloseKey(
                 registry,
                 hKey
             );
@@ -189,7 +189,7 @@ void WriterLoop(
         case 4:
         {
             HKEY hKey{};
-            const auto status = VReg_OpenKeyExW(
+            const auto status = VReg_RegOpenKeyExW(
                 registry,
                 hRoot,
                 path.c_str(),
@@ -203,13 +203,13 @@ void WriterLoop(
 
             Judge(
                 shared,
-                VReg_DeleteValueW(
+                VReg_RegDeleteValueW(
                     registry,
                     hKey,
                     ValueName(random.Next(VALUES)).c_str()
                 )
             );
-            VReg_CloseKey(
+            VReg_RegCloseKey(
                 registry,
                 hKey
             );
@@ -218,7 +218,7 @@ void WriterLoop(
         case 5:
             Judge(
                 shared,
-                VReg_DeleteKeyExW(
+                VReg_RegDeleteKeyExW(
                     registry,
                     hRoot,
                     path.c_str(),
@@ -232,7 +232,7 @@ void WriterLoop(
             if (random.Next(8) == 0)
                 Judge(
                     shared,
-                    VReg_DeleteTreeW(
+                    VReg_RegDeleteTreeW(
                         registry,
                         hRoot,
                         KeyName(random.Next(KEYS)).c_str()
@@ -260,7 +260,7 @@ void ReadKey(
         const auto index = random.Next(VALUES);
         const auto name = ValueName(index);
         const auto status =
-            VReg_QueryValueExW(
+            VReg_RegQueryValueExW(
                 registry,
                 hKey,
                 name.c_str(),
@@ -282,7 +282,7 @@ void ReadKey(
         {
             wchar_t szName[64];
             DWORD cchName = ARRAYSIZE(szName);
-            const auto status = VReg_EnumKeyExW(
+            const auto status = VReg_RegEnumKeyExW(
                 registry,
                 hKey,
                 i,
@@ -307,7 +307,7 @@ void ReadKey(
             BYTE data[16];
             DWORD cbData = sizeof(data);
             const auto status =
-                VReg_EnumValueW(
+                VReg_RegEnumValueW(
                     registry,
                     hKey,
                     i,
@@ -327,7 +327,7 @@ void ReadKey(
     {
         DWORD cSubKeys{};
         DWORD cValues{};
-        const auto status = VReg_QueryInfoKeyW(
+        const auto status = VReg_RegQueryInfoKeyW(
             registry,
             hKey,
             nullptr,
@@ -366,7 +366,7 @@ void ReaderLoop(
     {
         const auto path = RandomPath(random);
         HKEY hKey{};
-        const auto status = VReg_OpenKeyExW(
+        const auto status = VReg_RegOpenKeyExW(
             registry,
             hRoot,
             path.c_str(),
@@ -383,7 +383,7 @@ void ReaderLoop(
         for (int i = 0; i < 4; ++i)
             ReadKey(registry, hKey, shared, random);
 
-        VReg_CloseKey(
+        VReg_RegCloseKey(
             registry,
             hKey
         );
@@ -402,7 +402,7 @@ void WatcherLoop(
     {
         ResetEvent(hEvent);
         const auto status =
-            VReg_NotifyChangeKeyValue(
+            VReg_RegNotifyChangeKeyValue(
                 registry,
                 hRoot,
                 TRUE,
@@ -446,7 +446,7 @@ void CheckConsistent(VReg* const registry, const HKEY hRoot)
     {
         wchar_t szName[64];
         DWORD cchName = ARRAYSIZE(szName);
-        const auto status = VReg_EnumKeyExW(
+        const auto status = VReg_RegEnumKeyExW(
             registry,
             hRoot,
             i,
@@ -465,7 +465,7 @@ void CheckConsistent(VReg* const registry, const HKEY hRoot)
 
     DWORD cSubKeys{};
     REQUIRE(
-        VReg_QueryInfoKeyW(
+        VReg_RegQueryInfoKeyW(
             registry,
             hRoot,
             nullptr,
@@ -487,7 +487,7 @@ void CheckConsistent(VReg* const registry, const HKEY hRoot)
     for (unsigned k = 0; k < KEYS; ++k)
     {
         HKEY hKey{};
-        const auto status = VReg_OpenKeyExW(
+        const auto status = VReg_RegOpenKeyExW(
             registry,
             hRoot,
             KeyName(k).c_str(),
@@ -504,7 +504,7 @@ void CheckConsistent(VReg* const registry, const HKEY hRoot)
         {
             wchar_t szName[64];
             DWORD cchName = ARRAYSIZE(szName);
-            const auto enumStatus = VReg_EnumKeyExW(
+            const auto enumStatus = VReg_RegEnumKeyExW(
                 registry,
                 hKey,
                 i,
@@ -529,7 +529,7 @@ void CheckConsistent(VReg* const registry, const HKEY hRoot)
             DWORD dwType{};
             DWORD dwValue{};
             DWORD cbValue = sizeof(dwValue);
-            const auto enumStatus = VReg_EnumValueW(
+            const auto enumStatus = VReg_RegEnumValueW(
                 registry,
                 hKey,
                 i,
@@ -554,7 +554,7 @@ void CheckConsistent(VReg* const registry, const HKEY hRoot)
         DWORD cSubs{};
         DWORD cVals{};
         REQUIRE(
-            VReg_QueryInfoKeyW(
+            VReg_RegQueryInfoKeyW(
                 registry,
                 hKey,
                 nullptr,
@@ -578,7 +578,7 @@ void CheckConsistent(VReg* const registry, const HKEY hRoot)
         {
             HKEY hSub{};
             CHECK(
-                VReg_OpenKeyExW(
+                VReg_RegOpenKeyExW(
                     registry,
                     hKey,
                     name.c_str(),
@@ -587,7 +587,7 @@ void CheckConsistent(VReg* const registry, const HKEY hRoot)
                     &hSub
                 ) == ERROR_SUCCESS
             );
-            VReg_CloseKey(
+            VReg_RegCloseKey(
                 registry,
                 hSub
             );
@@ -598,7 +598,7 @@ void CheckConsistent(VReg* const registry, const HKEY hRoot)
             DWORD dwValue{};
             DWORD cbValue = sizeof(dwValue);
             CHECK(
-                VReg_QueryValueExW(
+                VReg_RegQueryValueExW(
                     registry,
                     hKey,
                     name.c_str(),
@@ -611,7 +611,7 @@ void CheckConsistent(VReg* const registry, const HKEY hRoot)
             );
         }
 
-        VReg_CloseKey(
+        VReg_RegCloseKey(
             registry,
             hKey
         );
@@ -743,7 +743,7 @@ TEST_CASE("Readers and writers on a writable Hive over an app hive")
             const auto path = KeyName(k) + L'\\' + SubName(s);
             HKEY hKey{};
             REQUIRE(
-                VReg_CreateKeyExW(
+                VReg_RegCreateKeyExW(
                     native,
                     mount.LowerRoot(),
                     path.c_str(),
@@ -762,7 +762,7 @@ TEST_CASE("Readers and writers on a writable Hive over an app hive")
                 const DWORD dwValue = ValueData(v);
                 const auto name = ValueName(v);
                 REQUIRE(
-                    VReg_SetValueExW(
+                    VReg_RegSetValueExW(
                         native,
                         hKey,
                         name.c_str(),
@@ -774,7 +774,7 @@ TEST_CASE("Readers and writers on a writable Hive over an app hive")
                     == ERROR_SUCCESS
                 );
             }
-            VReg_CloseKey(
+            VReg_RegCloseKey(
                 native,
                 hKey
             );

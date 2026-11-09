@@ -66,7 +66,8 @@ the API it sits beside.
   `VRegScript_Parse`. The registry itself is the implied object
   (`VReg_Create`, `VReg_Mount`), and so is the library for what has no
   object (`VReg_CompareNames`); the `Reg*` family is `VReg_` plus the
-  Win32 name without its `Reg` (`VReg_OpenKeyExW`). All are `WINAPI`,
+  whole Win32 name (`VReg_RegOpenKeyExW`), so that name stays greppable.
+  All are `WINAPI`,
   declared with `VREG_DECL`. Private functions, static ones included,
   are `VRegInternal_Name` with a name unique across `vreg.h`, since its
   implementation is one translation unit. Types carry no underscore:

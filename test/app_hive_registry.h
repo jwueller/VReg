@@ -55,7 +55,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VReg_OpenKeyExW(
+        return VReg_RegOpenKeyExW(
             self.m_native,
             self.Map(hKey),
             lpSubKey,
@@ -79,7 +79,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VReg_CreateKeyExW(
+        return VReg_RegCreateKeyExW(
             self.m_native,
             self.Map(hKey),
             lpSubKey,
@@ -99,7 +99,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VReg_CloseKey(
+        return VReg_RegCloseKey(
             self.m_native,
             self.Map(hKey)
         );
@@ -116,7 +116,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VReg_QueryValueExW(
+        return VReg_RegQueryValueExW(
             self.m_native,
             self.Map(hKey),
             lpValueName,
@@ -138,7 +138,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VReg_SetValueExW(
+        return VReg_RegSetValueExW(
             self.m_native,
             self.Map(hKey),
             lpValueName,
@@ -156,7 +156,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VReg_DeleteValueW(
+        return VReg_RegDeleteValueW(
             self.m_native,
             self.Map(hKey),
             lpValueName
@@ -172,7 +172,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VReg_DeleteKeyExW(
+        return VReg_RegDeleteKeyExW(
             self.m_native,
             self.Map(hKey),
             lpSubKey,
@@ -188,7 +188,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VReg_DeleteTreeW(
+        return VReg_RegDeleteTreeW(
             self.m_native,
             self.Map(hKey),
             lpSubKey
@@ -208,7 +208,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VReg_EnumKeyExW(
+        return VReg_RegEnumKeyExW(
             self.m_native,
             self.Map(hKey),
             dwIndex,
@@ -234,7 +234,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VReg_EnumValueW(
+        return VReg_RegEnumValueW(
             self.m_native,
             self.Map(hKey),
             dwIndex,
@@ -264,7 +264,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VReg_QueryInfoKeyW(
+        return VReg_RegQueryInfoKeyW(
             self.m_native,
             self.Map(hKey),
             lpClass,
@@ -293,7 +293,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VReg_LoadMUIStringW(
+        return VReg_RegLoadMUIStringW(
             self.m_native,
             self.Map(hKey),
             pszValue,
@@ -330,7 +330,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VReg_GetValueW(
+        return VReg_RegGetValueW(
             self.m_native,
             self.Map(hkey),
             lpSubKey,
@@ -352,7 +352,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VReg_NotifyChangeKeyValue(
+        return VReg_RegNotifyChangeKeyValue(
             self.m_native,
             self.Map(hKey),
             bWatchSubtree,
@@ -368,7 +368,7 @@ private:
     ) noexcept
     {
         auto& self = *Self(pThis);
-        return VReg_FlushKey(
+        return VReg_RegFlushKey(
             self.m_native,
             self.Map(hKey)
         );

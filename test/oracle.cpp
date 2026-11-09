@@ -79,7 +79,7 @@ OverlayMount::OverlayMount() :
     m_native(MakeNativeRegistry())
 {
     REQUIRE(
-        VReg_CreateKeyExW(
+        VReg_RegCreateKeyExW(
             m_native,
             m_appHive.Root(),
             L"Lower",
@@ -100,7 +100,7 @@ OverlayMount::OverlayMount() :
 
 OverlayMount::~OverlayMount()
 {
-    VReg_CloseKey(
+    VReg_RegCloseKey(
         m_native,
         m_hLower
     );

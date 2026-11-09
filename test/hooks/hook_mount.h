@@ -38,7 +38,7 @@ inline LONG InstallMount(
         return error;
 
     const std::wstring_view module = pszModule;
-    error = VReg_SetKeyValueW(
+    error = VReg_RegSetKeyValueW(
         pRegistry,
         HKEY_CURRENT_USER,
         pszPath,

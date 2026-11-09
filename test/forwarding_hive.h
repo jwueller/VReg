@@ -78,7 +78,7 @@ private:
 
     LSTATUS Open(const std::wstring& path, const REGSAM samDesired, HKEY& hKey) const noexcept
     {
-        return VReg_OpenKeyExW(
+        return VReg_RegOpenKeyExW(
             m_pTarget,
             m_hTargetRoot,
             path.empty() ? nullptr : path.c_str(),
@@ -90,7 +90,7 @@ private:
 
     void Close(const HKEY hKey) const noexcept
     {
-        VReg_CloseKey(
+        VReg_RegCloseKey(
             m_pTarget,
             hKey
         );
@@ -129,7 +129,7 @@ private:
         *ppToken = nullptr;
         HKEY hKey{};
         DWORD dwDisposition = 0;
-        const LSTATUS status = VReg_CreateKeyExW(
+        const LSTATUS status = VReg_RegCreateKeyExW(
             self.m_pTarget,
             self.m_hTargetRoot,
             path.c_str(),
@@ -154,7 +154,7 @@ private:
         const ForwardingProvider& self = Of(pHive);
         if (!self.m_undeletable.empty() && VRegHiveKey_EqualsPath(pKey, self.m_undeletable.c_str()))
             return ERROR_ACCESS_DENIED;
-        return VReg_DeleteKeyExW(
+        return VReg_RegDeleteKeyExW(
             self.m_pTarget,
             self.m_hTargetRoot,
             HiveKeyPath(pKey).c_str(),
@@ -171,7 +171,7 @@ private:
         if (status != ERROR_SUCCESS)
             return status;
 
-        status = VReg_DeleteTreeW(
+        status = VReg_RegDeleteTreeW(
             self.m_pTarget,
             hKey,
             nullptr
@@ -223,7 +223,7 @@ private:
         if (status != ERROR_SUCCESS)
             return status;
 
-        status = VReg_SetValueExW(
+        status = VReg_RegSetValueExW(
             self.m_pTarget,
             hKey,
             pszName,
@@ -244,7 +244,7 @@ private:
         if (status != ERROR_SUCCESS)
             return status;
 
-        status = VReg_DeleteValueW(
+        status = VReg_RegDeleteValueW(
             self.m_pTarget,
             hKey,
             pszName
@@ -267,7 +267,7 @@ private:
             return status;
 
         DWORD cchMaxClass = 0;
-        status = VReg_QueryInfoKeyW(
+        status = VReg_RegQueryInfoKeyW(
             self.m_pTarget,
             hKey,
             nullptr,
@@ -288,7 +288,7 @@ private:
         DWORD cchClass = static_cast<DWORD>(className.size());
         FILETIME lastWrite{};
         if (status == ERROR_SUCCESS)
-            status = VReg_EnumKeyExW(
+            status = VReg_RegEnumKeyExW(
                 self.m_pTarget,
                 hKey,
                 dwIndex,
@@ -359,7 +359,7 @@ private:
         for (;;)
         {
             cchClass = static_cast<DWORD>(className.size());
-            status = VReg_QueryInfoKeyW(
+            status = VReg_RegQueryInfoKeyW(
                 self.m_pTarget,
                 hKey,
                 className.data(),
@@ -404,7 +404,7 @@ private:
         if (status != ERROR_SUCCESS)
             return status;
 
-        status = VReg_FlushKey(
+        status = VReg_RegFlushKey(
             self.m_pTarget,
             hKey
         );

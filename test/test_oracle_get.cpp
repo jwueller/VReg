@@ -29,7 +29,7 @@ LSTATUS GetEx(
     LPDWORD pcbData
 ) noexcept
 {
-    return VReg_GetValueW(
+    return VReg_RegGetValueW(
         api,
         hKey,
         pszSub,
@@ -52,7 +52,7 @@ LSTATUS GetEx(
     LPDWORD pcbData
 ) noexcept
 {
-    return VReg_GetValueA(
+    return VReg_RegGetValueA(
         api,
         hKey,
         pszSub,
@@ -295,7 +295,7 @@ struct GetValueSubKeyAndName
     {
         RECORD(
             "set sub",
-            VReg_SetKeyValueW(
+            VReg_RegSetKeyValueW(
                 api,
                 hRoot,
                 L"Sub\\Deep",
@@ -307,7 +307,7 @@ struct GetValueSubKeyAndName
         );
         RECORD(
             "set sub default",
-            VReg_SetKeyValueW(
+            VReg_RegSetKeyValueW(
                 api,
                 hRoot,
                 L"Sub",
@@ -319,7 +319,7 @@ struct GetValueSubKeyAndName
         );
         RECORD(
             "set root default",
-            VReg_SetKeyValueW(
+            VReg_RegSetKeyValueW(
                 api,
                 hRoot,
                 nullptr,
@@ -331,7 +331,7 @@ struct GetValueSubKeyAndName
         );
         RECORD(
             "set non-ASCII",
-            VReg_SetKeyValueW(
+            VReg_RegSetKeyValueW(
                 api,
                 hRoot,
                 L"S\u00e4b",
@@ -343,7 +343,7 @@ struct GetValueSubKeyAndName
         );
         RECORD(
             "set 32",
-            VReg_SetKeyValueW(
+            VReg_RegSetKeyValueW(
                 api,
                 hRoot,
                 L"Sub",
@@ -411,7 +411,7 @@ struct GetValueSubKeyAndName
                     DWORD cbData = sizeof(data);
                     RECORD(
                         label + std::format(" W {:#x}", dwFlags),
-                        VReg_GetValueW(
+                        VReg_RegGetValueW(
                             api,
                             hRoot,
                             pszSub,
@@ -434,7 +434,7 @@ struct GetValueSubKeyAndName
                     cbData = sizeof(adata);
                     RECORD(
                         label + std::format(" A {:#x}", dwFlags),
-                        VReg_GetValueA(
+                        VReg_RegGetValueA(
                             api,
                             hRoot,
                             pszNarrow,
@@ -458,7 +458,7 @@ struct GetValueSubKeyAndName
         std::array<BYTE, 8> data;
         RECORD(
             "W invalid handle",
-            VReg_GetValueW(
+            VReg_RegGetValueW(
                 api,
                 nullptr,
                 nullptr,
@@ -472,7 +472,7 @@ struct GetValueSubKeyAndName
         );
         RECORD(
             "A invalid handle",
-            VReg_GetValueA(
+            VReg_RegGetValueA(
                 api,
                 nullptr,
                 nullptr,
@@ -486,7 +486,7 @@ struct GetValueSubKeyAndName
         );
         RECORD(
             "W invalid handle with sub",
-            VReg_GetValueW(
+            VReg_RegGetValueW(
                 api,
                 nullptr,
                 L"Sub",
@@ -500,7 +500,7 @@ struct GetValueSubKeyAndName
         );
         RECORD(
             "A invalid handle with sub",
-            VReg_GetValueA(
+            VReg_RegGetValueA(
                 api,
                 nullptr,
                 "Sub",
@@ -592,7 +592,7 @@ struct LoadMUIStringForms
                         "muiW "
                         + label
                         + std::format(" flags {} buffer {}", dwFlags, cbBuffer),
-                        VReg_LoadMUIStringW(
+                        VReg_RegLoadMUIStringW(
                             api,
                             hRoot,
                             pszName,
@@ -610,7 +610,7 @@ struct LoadMUIStringForms
                 DWORD cbData = FILL_SIZE;
                 RECORD(
                     "muiW size " + label + std::format(" flags {}", dwFlags),
-                    VReg_LoadMUIStringW(
+                    VReg_RegLoadMUIStringW(
                         api,
                         hRoot,
                         pszName,
@@ -627,7 +627,7 @@ struct LoadMUIStringForms
                     "muiW null buffer "
                     + label
                     + std::format(" flags {}", dwFlags),
-                    VReg_LoadMUIStringW(
+                    VReg_RegLoadMUIStringW(
                         api,
                         hRoot,
                         pszName,
@@ -643,7 +643,7 @@ struct LoadMUIStringForms
                 std::memset(data.data(), FILL, sizeof(data));
                 RECORD(
                     "muiW no size " + label + std::format(" flags {}", dwFlags),
-                    VReg_LoadMUIStringW(
+                    VReg_RegLoadMUIStringW(
                         api,
                         hRoot,
                         pszName,
@@ -663,7 +663,7 @@ struct LoadMUIStringForms
             DWORD cbData = FILL_SIZE;
             RECORD(
                 "muiW directory " + label,
-                VReg_LoadMUIStringW(
+                VReg_RegLoadMUIStringW(
                     api,
                     hRoot,
                     pszName,
@@ -683,7 +683,7 @@ struct LoadMUIStringForms
             cbData = FILL_SIZE;
             RECORD(
                 "muiA " + label,
-                VReg_LoadMUIStringA(
+                VReg_RegLoadMUIStringA(
                     api,
                     hRoot,
                     narrow.c_str(),
@@ -699,7 +699,7 @@ struct LoadMUIStringForms
             cbData = FILL_SIZE;
             RECORD(
                 "muiA size " + label,
-                VReg_LoadMUIStringA(
+                VReg_RegLoadMUIStringA(
                     api,
                     hRoot,
                     narrow.c_str(),
@@ -713,7 +713,7 @@ struct LoadMUIStringForms
             );
             RECORD(
                 "muiA no size " + label,
-                VReg_LoadMUIStringA(
+                VReg_RegLoadMUIStringA(
                     api,
                     hRoot,
                     narrow.c_str(),
@@ -729,7 +729,7 @@ struct LoadMUIStringForms
         std::array<char, 8> adata;
         RECORD(
             "muiA null value",
-            VReg_LoadMUIStringA(
+            VReg_RegLoadMUIStringA(
                 api,
                 hRoot,
                 nullptr,
@@ -742,7 +742,7 @@ struct LoadMUIStringForms
         );
         RECORD(
             "muiA invalid handle",
-            VReg_LoadMUIStringA(
+            VReg_RegLoadMUIStringA(
                 api,
                 nullptr,
                 "Plain",
@@ -755,7 +755,7 @@ struct LoadMUIStringForms
         );
         RECORD(
             "muiA bad flags",
-            VReg_LoadMUIStringA(
+            VReg_RegLoadMUIStringA(
                 api,
                 hRoot,
                 "Plain",
@@ -771,7 +771,7 @@ struct LoadMUIStringForms
         DWORD cbData = FILL_SIZE;
         RECORD(
             "muiW null value",
-            VReg_LoadMUIStringW(
+            VReg_RegLoadMUIStringW(
                 api,
                 hRoot,
                 nullptr,
@@ -785,7 +785,7 @@ struct LoadMUIStringForms
         );
         RECORD(
             "muiW invalid handle",
-            VReg_LoadMUIStringW(
+            VReg_RegLoadMUIStringW(
                 api,
                 nullptr,
                 L"Plain",
@@ -799,7 +799,7 @@ struct LoadMUIStringForms
         );
         RECORD(
             "muiW bad flags",
-            VReg_LoadMUIStringW(
+            VReg_RegLoadMUIStringW(
                 api,
                 hRoot,
                 L"Plain",
@@ -823,7 +823,7 @@ LSTATUS QueryMultiple(
     LPDWORD pcbTotal
 ) noexcept
 {
-    return VReg_QueryMultipleValuesW(
+    return VReg_RegQueryMultipleValuesW(
         api,
         hKey,
         pEntries,
@@ -842,7 +842,7 @@ LSTATUS QueryMultiple(
     LPDWORD pcbTotal
 ) noexcept
 {
-    return VReg_QueryMultipleValuesA(
+    return VReg_RegQueryMultipleValuesA(
         api,
         hKey,
         pEntries,
@@ -975,7 +975,7 @@ struct QueryMultipleValuesForms
         const DWORD dword = 0x12345678;
         RECORD(
             "set a",
-            VReg_SetValueExW(
+            VReg_RegSetValueExW(
                 api,
                 hRoot,
                 L"a",
@@ -987,7 +987,7 @@ struct QueryMultipleValuesForms
         );
         RECORD(
             "set b",
-            VReg_SetValueExW(
+            VReg_RegSetValueExW(
                 api,
                 hRoot,
                 L"b",
@@ -999,7 +999,7 @@ struct QueryMultipleValuesForms
         );
         RECORD(
             "set c",
-            VReg_SetValueExW(
+            VReg_RegSetValueExW(
                 api,
                 hRoot,
                 L"c",
@@ -1011,7 +1011,7 @@ struct QueryMultipleValuesForms
         );
         RECORD(
             "set d",
-            VReg_SetValueExW(
+            VReg_RegSetValueExW(
                 api,
                 hRoot,
                 L"d",
@@ -1023,7 +1023,7 @@ struct QueryMultipleValuesForms
         );
         RECORD(
             "set e",
-            VReg_SetValueExW(
+            VReg_RegSetValueExW(
                 api,
                 hRoot,
                 L"e",
@@ -1035,7 +1035,7 @@ struct QueryMultipleValuesForms
         );
         RECORD(
             "set default",
-            VReg_SetValueExW(
+            VReg_RegSetValueExW(
                 api,
                 hRoot,
                 nullptr,
@@ -1155,7 +1155,7 @@ struct QueryMultipleValuesForms
         buffer.fill(FILL);
         RECORD(
             "W no entries",
-            VReg_QueryMultipleValuesW(
+            VReg_RegQueryMultipleValuesW(
                 api,
                 hRoot,
                 &wide,
@@ -1169,7 +1169,7 @@ struct QueryMultipleValuesForms
         cbTotal = 64;
         RECORD(
             "A no entries",
-            VReg_QueryMultipleValuesA(
+            VReg_RegQueryMultipleValuesA(
                 api,
                 hRoot,
                 &narrow,
@@ -1183,7 +1183,7 @@ struct QueryMultipleValuesForms
         cbTotal = 64;
         RECORD(
             "W invalid handle",
-            VReg_QueryMultipleValuesW(
+            VReg_RegQueryMultipleValuesW(
                 api,
                 nullptr,
                 &wide,
@@ -1196,7 +1196,7 @@ struct QueryMultipleValuesForms
         cbTotal = 64;
         RECORD(
             "A invalid handle",
-            VReg_QueryMultipleValuesA(
+            VReg_RegQueryMultipleValuesA(
                 api,
                 nullptr,
                 &narrow,

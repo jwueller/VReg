@@ -32,7 +32,7 @@ LSTATUS SetString(
     const std::wstring& text
 ) noexcept
 {
-    return VReg_SetValueExW(
+    return VReg_RegSetValueExW(
         registry,
         hKey,
         pszName,
@@ -50,7 +50,7 @@ LSTATUS SetDword(
     const DWORD dwValue
 ) noexcept
 {
-    return VReg_SetValueExW(
+    return VReg_RegSetValueExW(
         registry,
         hKey,
         pszName,
@@ -170,7 +170,7 @@ TEST_CASE("QueryValue returns the type and the bytes")
         ) == ERROR_SUCCESS
     );
     REQUIRE(
-        VReg_SetValueExW(
+        VReg_RegSetValueExW(
             registry,
             hive.Root(),
             L"Empty",
@@ -268,7 +268,7 @@ TEST_CASE("GetValue applies the flags")
     OwnedRegistry registry = MakeNativeRegistry();
 
     REQUIRE(
-        VReg_SetKeyValueW(
+        VReg_RegSetKeyValueW(
             registry,
             hive.Root(),
             L"Sub",
@@ -526,7 +526,7 @@ TEST_CASE("EnumKey walks the subkeys to the end")
     {
         HKEY hKey{};
         REQUIRE(
-            VReg_CreateKeyExW(
+            VReg_RegCreateKeyExW(
                 registry,
                 hive.Root(),
                 name.c_str(),
@@ -540,7 +540,7 @@ TEST_CASE("EnumKey walks the subkeys to the end")
             )
             == ERROR_SUCCESS
         );
-        VReg_CloseKey(
+        VReg_RegCloseKey(
             registry,
             hKey
         );

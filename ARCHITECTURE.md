@@ -56,7 +56,7 @@ Every function is declared `VREG_DECL`, which `VREG_STATIC` turns into `static`.
   that they share the flat functions' typedefs; taking the context would
   need a second typedef per form. `VReg_CreateCustom` names its kind, as
   `VReg_CreateNative` and `VReg_CreateVirtual` do: a bare `VReg_Create`
-  would read like a truncated `VReg_CreateKey`.
+  would read like a truncated `VReg_RegCreateKey`.
 - Each form of the family has one function typedef
   (`VRegOpenKeyExWFunction`) that carries its signature, annotations and
   documentation link. The flat function is declared with it, the slot
@@ -71,7 +71,7 @@ Every function is declared `VREG_DECL`, which `VREG_STATIC` turns into `static`.
   `RegEnumKeyW`, ...) and the conveniences Win32 builds from other calls
   (`RegSetKeyValue`, `RegDeleteKeyValue`, `RegQueryMultipleValues`).
 - Callers use the flat functions, `VReg` plus the Win32 name with the
-  registry first (`VReg_OpenKeyExW(pRegistry, hKey, ...)`). A flat wide
+  registry first (`VReg_RegOpenKeyExW(pRegistry, hKey, ...)`). A flat wide
   function switches on the kind. Every other flat function calls its slot
   when a custom table fills it; otherwise it derives the call from
   the wide `Ex` forms, once, in the "Derived forms" section: ANSI forms widen and
@@ -84,7 +84,7 @@ Every function is declared `VREG_DECL`, which `VREG_STATIC` turns into `static`.
   ANSI call from a wide call by filling the ANSI slot; one that leaves it
   null sees the call as the wide form it becomes.
 - Slots and flat functions carry their Win32 names, `Reg` prefix included,
-  and the `UNICODE` selector macros (`VReg_OpenKeyEx`) pick the ANSI or wide
+  and the `UNICODE` selector macros (`VReg_RegOpenKeyEx`) pick the ANSI or wide
   function as `winreg.h` picks the Win32 one. Only ANSI and wide names are
   declared: a slot with the neutral name would be renamed by the macro.
 - The table holds the `Reg*` function family and nothing else. The reads

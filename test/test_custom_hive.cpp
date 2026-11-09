@@ -272,7 +272,7 @@ DWORD QueryDword(
     DWORD dwValue = 0;
     DWORD cbValue = sizeof(dwValue);
     REQUIRE(
-        VReg_QueryValueExW(
+        VReg_RegQueryValueExW(
             registry,
             hKey,
             pszName,
@@ -302,7 +302,7 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
     {
         HKEY hDeep{};
         CHECK(
-            VReg_OpenKeyExW(
+            VReg_RegOpenKeyExW(
                 registry,
                 hRoot,
                 L"alpha\\DEEP",
@@ -313,7 +313,7 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
         );
         HKEY hMissing{};
         CHECK(
-            VReg_OpenKeyExW(
+            VReg_RegOpenKeyExW(
                 registry,
                 hRoot,
                 L"Alpha\\Missing",
@@ -337,7 +337,7 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
         DWORD cchMaxValueName = 0;
         DWORD cbMaxValue = 0;
         REQUIRE(
-            VReg_QueryInfoKeyW(
+            VReg_RegQueryInfoKeyW(
                 registry,
                 hRoot,
                 nullptr,
@@ -367,7 +367,7 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
         const auto* const pOne = reinterpret_cast<const BYTE*>(&dwOne);
         HKEY hNew{};
         CHECK(
-            VReg_CreateKeyExW(
+            VReg_RegCreateKeyExW(
                 registry,
                 hRoot,
                 L"New",
@@ -381,7 +381,7 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VReg_CreateKeyExA(
+            VReg_RegCreateKeyExA(
                 registry,
                 hRoot,
                 "New",
@@ -395,7 +395,7 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VReg_CreateKeyW(
+            VReg_RegCreateKeyW(
                 registry,
                 hRoot,
                 L"New",
@@ -403,7 +403,7 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VReg_SetValueExW(
+            VReg_RegSetValueExW(
                 registry,
                 hRoot,
                 L"Text",
@@ -414,7 +414,7 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VReg_SetValueExA(
+            VReg_RegSetValueExA(
                 registry,
                 hRoot,
                 "Text",
@@ -425,7 +425,7 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VReg_SetValueW(
+            VReg_RegSetValueW(
                 registry,
                 hRoot,
                 L"Alpha",
@@ -435,7 +435,7 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VReg_SetKeyValueW(
+            VReg_RegSetKeyValueW(
                 registry,
                 hRoot,
                 L"Alpha",
@@ -446,21 +446,21 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VReg_DeleteValueW(
+            VReg_RegDeleteValueW(
                 registry,
                 hRoot,
                 L"Text"
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VReg_DeleteValueA(
+            VReg_RegDeleteValueA(
                 registry,
                 hRoot,
                 "Text"
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VReg_DeleteKeyValueW(
+            VReg_RegDeleteKeyValueW(
                 registry,
                 hRoot,
                 L"Alpha",
@@ -468,14 +468,14 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VReg_DeleteKeyW(
+            VReg_RegDeleteKeyW(
                 registry,
                 hRoot,
                 L"Beta"
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VReg_DeleteKeyExW(
+            VReg_RegDeleteKeyExW(
                 registry,
                 hRoot,
                 L"Beta",
@@ -484,21 +484,21 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VReg_DeleteKeyA(
+            VReg_RegDeleteKeyA(
                 registry,
                 hRoot,
                 "Beta"
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VReg_DeleteTreeW(
+            VReg_RegDeleteTreeW(
                 registry,
                 hRoot,
                 L"Alpha"
             ) == ERROR_ACCESS_DENIED
         );
         CHECK(
-            VReg_DeleteTreeW(
+            VReg_RegDeleteTreeW(
                 registry,
                 hRoot,
                 nullptr
@@ -509,7 +509,7 @@ TEST_CASE("A read-only computed provider computes each read and refuses every wr
         HKEY hAlpha{};
         DWORD dwDisposition = 0;
         CHECK(
-            VReg_CreateKeyExW(
+            VReg_RegCreateKeyExW(
                 registry,
                 hRoot,
                 L"Alpha",
@@ -605,7 +605,7 @@ TEST_CASE("A custom hive keeps one handle per key and marks deleted keys")
     const HKEY hRoot = mount.Root();
     HKEY hFirst{};
     REQUIRE(
-        VReg_CreateKeyExW(
+        VReg_RegCreateKeyExW(
             mount.Registry(),
             hRoot,
             L"Key\\Sub",
@@ -621,7 +621,7 @@ TEST_CASE("A custom hive keeps one handle per key and marks deleted keys")
 
     HKEY hSecond{};
     REQUIRE(
-        VReg_OpenKeyExW(
+        VReg_RegOpenKeyExW(
             mount.Registry(),
             hRoot,
             L"KEY\\sub",
@@ -633,14 +633,14 @@ TEST_CASE("A custom hive keeps one handle per key and marks deleted keys")
     CHECK(hSecond == hFirst);
 
     REQUIRE(
-        VReg_DeleteKeyW(
+        VReg_RegDeleteKeyW(
             mount.Registry(),
             hRoot,
             L"Key\\Sub"
         ) == ERROR_SUCCESS
     );
     CHECK(
-        VReg_QueryValueExW(
+        VReg_RegQueryValueExW(
             mount.Registry(),
             hFirst,
             L"v",
@@ -653,7 +653,7 @@ TEST_CASE("A custom hive keeps one handle per key and marks deleted keys")
 
     HKEY hRecreated{};
     REQUIRE(
-        VReg_CreateKeyExW(
+        VReg_RegCreateKeyExW(
             mount.Registry(),
             hRoot,
             L"Key\\Sub",
@@ -684,7 +684,7 @@ TEST_CASE("A custom hive without DeleteTree deletes a tree as native does")
     {
         HKEY hKey{};
         REQUIRE(
-            VReg_CreateKeyExW(
+            VReg_RegCreateKeyExW(
                 registry,
                 hRoot,
                 pszPath,
@@ -699,7 +699,7 @@ TEST_CASE("A custom hive without DeleteTree deletes a tree as native does")
         );
     }
     REQUIRE(
-        VReg_SetKeyValueW(
+        VReg_RegSetKeyValueW(
             registry,
             hRoot,
             L"Tree",
@@ -713,7 +713,7 @@ TEST_CASE("A custom hive without DeleteTree deletes a tree as native does")
     const auto exists = [&](const wchar_t* const pszPath)
     {
         HKEY hKey{};
-        return VReg_OpenKeyExW(
+        return VReg_RegOpenKeyExW(
             registry,
             hRoot,
             pszPath,
@@ -726,7 +726,7 @@ TEST_CASE("A custom hive without DeleteTree deletes a tree as native does")
     {
         HKEY hTree{};
         REQUIRE(
-            VReg_OpenKeyExW(
+            VReg_RegOpenKeyExW(
                 registry,
                 hRoot,
                 L"Tree",
@@ -736,7 +736,7 @@ TEST_CASE("A custom hive without DeleteTree deletes a tree as native does")
             ) == ERROR_SUCCESS
         );
         REQUIRE(
-            VReg_QueryInfoKeyW(
+            VReg_RegQueryInfoKeyW(
                 registry,
                 hTree,
                 nullptr,
@@ -756,7 +756,7 @@ TEST_CASE("A custom hive without DeleteTree deletes a tree as native does")
 
     HKEY hB2{};
     REQUIRE(
-        VReg_OpenKeyExW(
+        VReg_RegOpenKeyExW(
             registry,
             hRoot,
             L"Tree\\B\\B1\\B2",
@@ -768,7 +768,7 @@ TEST_CASE("A custom hive without DeleteTree deletes a tree as native does")
 
     mount.Provider().RefuseDeleteOf(L"Tree\\B\\B1");
     CHECK(
-        VReg_DeleteTreeW(
+        VReg_RegDeleteTreeW(
             registry,
             hRoot,
             L"Tree"
@@ -787,7 +787,7 @@ TEST_CASE("A custom hive without DeleteTree deletes a tree as native does")
     CHECK(cSubKeys == 2);
     CHECK(cValues == 1);
     CHECK(
-        VReg_QueryInfoKeyW(
+        VReg_RegQueryInfoKeyW(
             registry,
             hB2,
             nullptr,
@@ -805,7 +805,7 @@ TEST_CASE("A custom hive without DeleteTree deletes a tree as native does")
     );
 
     CHECK(
-        VReg_DeleteTreeW(
+        VReg_RegDeleteTreeW(
             registry,
             hRoot,
             L"Tree"
@@ -815,7 +815,7 @@ TEST_CASE("A custom hive without DeleteTree deletes a tree as native does")
 
     mount.Provider().RefuseDeleteOf(L"");
     CHECK(
-        VReg_DeleteTreeW(
+        VReg_RegDeleteTreeW(
             registry,
             hRoot,
             L"Tree"
@@ -830,7 +830,7 @@ TEST_CASE("VRegHiveKey_EqualsPath compares a record with a path component by com
     CustomMount mount;
     HKEY hGamma{};
     REQUIRE(
-        VReg_CreateKeyExW(
+        VReg_RegCreateKeyExW(
             mount.Registry(),
             mount.Root(),
             L"Alpha\\Beta\\Gamma",
@@ -874,7 +874,7 @@ TEST_CASE("A frozen custom hive refuses writes and still opens its keys")
     const HKEY hRoot = mount.Root();
     const DWORD dwOne = 1;
     REQUIRE(
-        VReg_SetKeyValueW(
+        VReg_RegSetKeyValueW(
             mount.Registry(),
             hRoot,
             L"Key",
@@ -888,7 +888,7 @@ TEST_CASE("A frozen custom hive refuses writes and still opens its keys")
     VRegHive_Freeze(mount.Hive());
     HKEY hKey{};
     CHECK(
-        VReg_OpenKeyExW(
+        VReg_RegOpenKeyExW(
             mount.Registry(),
             hRoot,
             L"Key",
@@ -899,7 +899,7 @@ TEST_CASE("A frozen custom hive refuses writes and still opens its keys")
     );
     CHECK(QueryDword(mount.Registry(), hKey, L"v") == 1);
     CHECK(
-        VReg_SetValueExW(
+        VReg_RegSetValueExW(
             mount.Registry(),
             hKey,
             L"v",
@@ -910,7 +910,7 @@ TEST_CASE("A frozen custom hive refuses writes and still opens its keys")
         ) == ERROR_ACCESS_DENIED
     );
     CHECK(
-        VReg_DeleteKeyW(
+        VReg_RegDeleteKeyW(
             mount.Registry(),
             hRoot,
             L"Key"
@@ -923,7 +923,7 @@ TEST_CASE("A custom hive's delta is empty: it holds nothing itself")
     CustomMount mount;
     const DWORD dwOne = 1;
     REQUIRE(
-        VReg_SetKeyValueW(
+        VReg_RegSetKeyValueW(
             mount.Registry(),
             mount.Root(),
             L"Key",
@@ -1129,7 +1129,7 @@ void Watch(
 )
 {
     REQUIRE(
-        VReg_NotifyChangeKeyValue(
+        VReg_RegNotifyChangeKeyValue(
             registry,
             hKey,
             bWatchSubtree,
@@ -1148,7 +1148,7 @@ HKEY MustOpenKey(
 {
     HKEY hKey{};
     REQUIRE(
-        VReg_OpenKeyExW(
+        VReg_RegOpenKeyExW(
             registry,
             hParent,
             pszSubKey,
@@ -1233,7 +1233,7 @@ TEST_CASE("VRegHive_NotifyChange refuses a filter it never fires and a deleted k
     CustomMount mount;
     HKEY hKey{};
     REQUIRE(
-        VReg_CreateKeyExW(
+        VReg_RegCreateKeyExW(
             mount.Registry(),
             mount.Root(),
             L"Key",
@@ -1252,7 +1252,7 @@ TEST_CASE("VRegHive_NotifyChange refuses a filter it never fires and a deleted k
     CHECK(VRegHive_NotifyChange(mount.Hive(), pKey, REG_NOTIFY_CHANGE_ATTRIBUTES) == ERROR_INVALID_PARAMETER);
 
     REQUIRE(
-        VReg_DeleteKeyW(
+        VReg_RegDeleteKeyW(
             mount.Registry(),
             mount.Root(),
             L"Key"
@@ -1272,7 +1272,7 @@ TEST_CASE("A synchronous watch on a custom hive returns when the provider notifi
     Thread waiter(
         [&]
         {
-            status = VReg_NotifyChangeKeyValue(
+            status = VReg_RegNotifyChangeKeyValue(
                 registry,
                 hA,
                 FALSE,

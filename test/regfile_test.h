@@ -236,7 +236,7 @@ inline HKEY MustOpen(
 {
     HKEY hKey{};
     REQUIRE(
-        VReg_OpenKeyExW(
+        VReg_RegOpenKeyExW(
             registry,
             HKEY_CURRENT_USER,
             pszPath,
@@ -259,7 +259,7 @@ inline void MustSet(
 {
     HKEY hKey{};
     REQUIRE(
-        VReg_CreateKeyExW(
+        VReg_RegCreateKeyExW(
             registry,
             HKEY_CURRENT_USER,
             pszPath,
@@ -277,7 +277,7 @@ inline void MustSet(
     std::vector<std::byte> padded(data);
     padded.insert(padded.end(), 4, std::byte{0x11});
     REQUIRE(
-        VReg_SetValueExW(
+        VReg_RegSetValueExW(
             registry,
             hKey,
             pszName,
@@ -287,7 +287,7 @@ inline void MustSet(
             static_cast<DWORD>(data.size())
         ) == ERROR_SUCCESS
     );
-    VReg_CloseKey(
+    VReg_RegCloseKey(
         registry,
         hKey
     );
@@ -311,7 +311,7 @@ inline RegValue MustGet(
             value.data
         ) == ERROR_SUCCESS
     );
-    VReg_CloseKey(
+    VReg_RegCloseKey(
         registry,
         hKey
     );

@@ -23,7 +23,7 @@ HKEY CreateKey(
 {
     HKEY hKey{};
     REQUIRE(
-        VReg_CreateKeyExW(
+        VReg_RegCreateKeyExW(
             registry,
             hParent,
             pszPath,
@@ -47,7 +47,7 @@ HKEY OpenKey(
 {
     HKEY hKey{};
     REQUIRE(
-        VReg_OpenKeyExW(
+        VReg_RegOpenKeyExW(
             registry,
             hParent,
             pszPath,
@@ -66,7 +66,7 @@ LSTATUS SetDword(
     const DWORD dwValue
 ) noexcept
 {
-    return VReg_SetValueExW(
+    return VReg_RegSetValueExW(
         registry,
         hKey,
         pszName,
@@ -86,7 +86,7 @@ DWORD QueryDword(
 {
     DWORD dwValue = 0;
     DWORD cbValue = sizeof(dwValue);
-    status = VReg_QueryValueExW(
+    status = VReg_RegQueryValueExW(
         registry,
         hKey,
         pszName,
@@ -119,7 +119,7 @@ TEST_CASE("A node has one handle however it is reached")
     CHECK(hViaPath == hCreated);
     CHECK(OpenKey(registry, HKEY_CURRENT_USER, L"Test") == hRoot);
     CHECK(
-        VReg_CloseKey(
+        VReg_RegCloseKey(
             registry,
             hCreated
         ) == ERROR_SUCCESS
@@ -139,7 +139,7 @@ TEST_CASE("A deleted node and its children answer ERROR_KEY_DELETED")
     REQUIRE(SetDword(registry, hChild, L"v", 1) == ERROR_SUCCESS);
 
     REQUIRE(
-        VReg_DeleteTreeW(
+        VReg_RegDeleteTreeW(
             registry,
             hRoot,
             L"Parent"
@@ -153,7 +153,7 @@ TEST_CASE("A deleted node and its children answer ERROR_KEY_DELETED")
     CHECK(status == ERROR_KEY_DELETED);
     CHECK(SetDword(registry, hChild, L"v", 2) == ERROR_KEY_DELETED);
     CHECK(
-        VReg_FlushKey(
+        VReg_RegFlushKey(
             registry,
             hChild
         ) == ERROR_KEY_DELETED
@@ -161,7 +161,7 @@ TEST_CASE("A deleted node and its children answer ERROR_KEY_DELETED")
 
     HKEY hKey = nullptr;
     CHECK(
-        VReg_OpenKeyExW(
+        VReg_RegOpenKeyExW(
             registry,
             hParent,
             L"Child",
@@ -171,7 +171,7 @@ TEST_CASE("A deleted node and its children answer ERROR_KEY_DELETED")
         ) == ERROR_KEY_DELETED
     );
     CHECK(
-        VReg_OpenKeyExW(
+        VReg_RegOpenKeyExW(
             registry,
             hRoot,
             L"Parent",
@@ -181,7 +181,7 @@ TEST_CASE("A deleted node and its children answer ERROR_KEY_DELETED")
         ) == ERROR_FILE_NOT_FOUND
     );
     CHECK(
-        VReg_CloseKey(
+        VReg_RegCloseKey(
             registry,
             hChild
         ) == ERROR_SUCCESS
@@ -210,7 +210,7 @@ TEST_CASE("A frozen hive refuses writes and still answers reads")
     std::array<wchar_t, 8> name{};
     DWORD cchName = static_cast<DWORD>(name.size());
     CHECK(
-        VReg_EnumKeyExW(
+        VReg_RegEnumKeyExW(
             registry,
             hRoot,
             0,
@@ -227,7 +227,7 @@ TEST_CASE("A frozen hive refuses writes and still answers reads")
     HKEY hKey = nullptr;
     DWORD dwDisposition = 0;
     CHECK(
-        VReg_CreateKeyExW(
+        VReg_RegCreateKeyExW(
             registry,
             hRoot,
             L"New",
@@ -242,14 +242,14 @@ TEST_CASE("A frozen hive refuses writes and still answers reads")
     );
     CHECK(SetDword(registry, hSub, L"v", 8) == ERROR_ACCESS_DENIED);
     CHECK(
-        VReg_DeleteValueW(
+        VReg_RegDeleteValueW(
             registry,
             hSub,
             L"v"
         ) == ERROR_ACCESS_DENIED
     );
     CHECK(
-        VReg_DeleteKeyExW(
+        VReg_RegDeleteKeyExW(
             registry,
             hRoot,
             L"Sub",
@@ -258,7 +258,7 @@ TEST_CASE("A frozen hive refuses writes and still answers reads")
         ) == ERROR_ACCESS_DENIED
     );
     CHECK(
-        VReg_DeleteTreeW(
+        VReg_RegDeleteTreeW(
             registry,
             hRoot,
             L"Sub"
@@ -384,7 +384,7 @@ TEST_CASE("Pure in-memory configuration")
 
     HKEY hKey = nullptr;
     CHECK(
-        VReg_OpenKeyExW(
+        VReg_RegOpenKeyExW(
             registry,
             HKEY_LOCAL_MACHINE,
             L"Software\\Missing",
@@ -394,7 +394,7 @@ TEST_CASE("Pure in-memory configuration")
         ) == ERROR_FILE_NOT_FOUND
     );
     CHECK(
-        VReg_OpenKeyExW(
+        VReg_RegOpenKeyExW(
             registry,
             HKEY_USERS,
             L".DEFAULT",
@@ -404,7 +404,7 @@ TEST_CASE("Pure in-memory configuration")
         ) == ERROR_FILE_NOT_FOUND
     );
     CHECK(
-        VReg_OpenKeyExW(
+        VReg_RegOpenKeyExW(
             registry,
             HKEY_USERS,
             nullptr,
@@ -414,7 +414,7 @@ TEST_CASE("Pure in-memory configuration")
         ) == ERROR_FILE_NOT_FOUND
     );
     CHECK(
-        VReg_CreateKeyExW(
+        VReg_RegCreateKeyExW(
             registry,
             HKEY_USERS,
             L"S-1",
@@ -428,7 +428,7 @@ TEST_CASE("Pure in-memory configuration")
         ) == ERROR_FILE_NOT_FOUND
     );
     CHECK(
-        VReg_OpenKeyExW(
+        VReg_RegOpenKeyExW(
             registry,
             nullptr,
             L"Software",
@@ -438,7 +438,7 @@ TEST_CASE("Pure in-memory configuration")
         ) == ERROR_INVALID_HANDLE
     );
     CHECK(
-        VReg_CloseKey(
+        VReg_RegCloseKey(
             registry,
             HKEY_LOCAL_MACHINE
         ) == ERROR_SUCCESS
@@ -484,7 +484,7 @@ TEST_CASE("The longest mount prefix wins")
 
     HKEY hMissing = nullptr;
     CHECK(
-        VReg_OpenKeyExW(
+        VReg_RegOpenKeyExW(
             registry,
             hOuterRoot,
             L"Deep",
@@ -503,7 +503,7 @@ TEST_CASE("The longest mount prefix wins")
 
     HKEY hKey = nullptr;
     CHECK(
-        VReg_OpenKeyExW(
+        VReg_RegOpenKeyExW(
             registry,
             hInnerRoot,
             L"Other",
@@ -539,7 +539,7 @@ TEST_CASE("Calls outside the mounts reach the base registry")
         DWORD dwDispositionRegistry = FILL_SIZE;
         DWORD dwDispositionNative = FILL_SIZE;
         REQUIRE(
-            VReg_CreateKeyExW(
+            VReg_RegCreateKeyExW(
                 registry,
                 hApp,
                 L"A\\B",
@@ -553,7 +553,7 @@ TEST_CASE("Calls outside the mounts reach the base registry")
             ) == ERROR_SUCCESS
         );
         REQUIRE(
-            VReg_CreateKeyExW(
+            VReg_RegCreateKeyExW(
                 native,
                 hApp,
                 L"A\\B",
@@ -579,7 +579,7 @@ TEST_CASE("Calls outside the mounts reach the base registry")
         std::array<BYTE, 2> data{};
         DWORD cbViaRegistry = static_cast<DWORD>(data.size());
         DWORD cbViaNative = static_cast<DWORD>(data.size());
-        const auto statusRegistry = VReg_QueryValueExW(
+        const auto statusRegistry = VReg_RegQueryValueExW(
             registry,
             hViaRegistry,
             L"v",
@@ -588,7 +588,7 @@ TEST_CASE("Calls outside the mounts reach the base registry")
             data.data(),
             &cbViaRegistry
         );
-        const auto statusNative = VReg_QueryValueExW(
+        const auto statusNative = VReg_RegQueryValueExW(
             native,
             hViaNative,
             L"v",
@@ -603,14 +603,14 @@ TEST_CASE("Calls outside the mounts reach the base registry")
 
         HKEY hMissing = nullptr;
         CHECK(
-            VReg_OpenKeyExW(
+            VReg_RegOpenKeyExW(
                 registry,
                 hApp,
                 L"Missing",
                 0,
                 KEY_READ,
                 &hMissing
-            ) == VReg_OpenKeyExW(
+            ) == VReg_RegOpenKeyExW(
                 native,
                 hApp,
                 L"Missing",
@@ -621,13 +621,13 @@ TEST_CASE("Calls outside the mounts reach the base registry")
         );
 
         CHECK(
-            VReg_CloseKey(
+            VReg_RegCloseKey(
                 registry,
                 hViaRegistry
             ) == ERROR_SUCCESS
         );
         CHECK(
-            VReg_CloseKey(
+            VReg_RegCloseKey(
                 native,
                 hViaNative
             ) == ERROR_SUCCESS
@@ -638,7 +638,7 @@ TEST_CASE("Calls outside the mounts reach the base registry")
     {
         HKEY hReal = nullptr;
         CHECK(
-            VReg_OpenKeyExW(
+            VReg_RegOpenKeyExW(
                 registry,
                 HKEY_CURRENT_USER,
                 L"Software",
@@ -649,7 +649,7 @@ TEST_CASE("Calls outside the mounts reach the base registry")
         );
         CHECK_FALSE(VReg_IsVirtualHKey(hReal));
         CHECK(
-            VReg_CloseKey(
+            VReg_RegCloseKey(
                 registry,
                 hReal
             ) == ERROR_SUCCESS
@@ -657,7 +657,7 @@ TEST_CASE("Calls outside the mounts reach the base registry")
 
         HKEY hVirtual = nullptr;
         CHECK(
-            VReg_CreateKeyExW(
+            VReg_RegCreateKeyExW(
                 registry,
                 HKEY_CURRENT_USER,
                 L"VRegTestMount\\Key",
@@ -673,7 +673,7 @@ TEST_CASE("Calls outside the mounts reach the base registry")
         );
         CHECK(VReg_IsVirtualHKey(hVirtual));
         CHECK(
-            VReg_OpenKeyExW(
+            VReg_RegOpenKeyExW(
                 native,
                 HKEY_CURRENT_USER,
                 L"VRegTestMount",
@@ -710,7 +710,7 @@ TEST_CASE("A handle released with its hive is invalid")
     QueryDword(registry, hChild, L"v", status);
     CHECK(status == ERROR_INVALID_HANDLE);
     CHECK(
-        VReg_CloseKey(
+        VReg_RegCloseKey(
             registry,
             hChild
         ) == ERROR_INVALID_HANDLE
@@ -782,7 +782,7 @@ LSTATUS OpenVia(
 ) noexcept
 {
     hKey = nullptr;
-    return VReg_OpenKeyExW(
+    return VReg_RegOpenKeyExW(
         registry,
         hParent,
         pszPath,
@@ -860,7 +860,7 @@ TEST_CASE("A real parent handle is resolved by its native path")
         HKEY hCreated = nullptr;
         DWORD dwDisposition = 0;
         CHECK(
-            VReg_CreateKeyExW(
+            VReg_RegCreateKeyExW(
                 registry,
                 hParent,
                 L"App\\New",
@@ -877,7 +877,7 @@ TEST_CASE("A real parent handle is resolved by its native path")
         CHECK(VReg_IsVirtualHKey(hCreated));
         CHECK(dwDisposition == REG_CREATED_NEW_KEY);
         CHECK(
-            VReg_DeleteKeyExW(
+            VReg_RegDeleteKeyExW(
                 registry,
                 hParent,
                 L"App\\New",
@@ -1240,7 +1240,7 @@ TEST_CASE("A real key above a mount reaches it through the real NtQueryKey")
 
     HKEY hKey = nullptr;
     CHECK(
-        VReg_OpenKeyExW(
+        VReg_RegOpenKeyExW(
             registry,
             hCurrentUser,
             (name + L"\\x").c_str(),
@@ -1251,7 +1251,7 @@ TEST_CASE("A real key above a mount reaches it through the real NtQueryKey")
     );
     CHECK(hKey == hSub);
     CHECK(
-        VReg_OpenKeyExW(
+        VReg_RegOpenKeyExW(
             registry,
             hCurrentUser,
             name.c_str(),
@@ -1263,7 +1263,7 @@ TEST_CASE("A real key above a mount reaches it through the real NtQueryKey")
     CHECK(hKey == RootHandle(hive));
 
     CHECK(
-        VReg_OpenKeyExW(
+        VReg_RegOpenKeyExW(
             registry,
             hCurrentUser,
             L"Software",
@@ -1274,7 +1274,7 @@ TEST_CASE("A real key above a mount reaches it through the real NtQueryKey")
     );
     CHECK_FALSE(VReg_IsVirtualHKey(hKey));
     CHECK(
-        VReg_CloseKey(
+        VReg_RegCloseKey(
             registry,
             hKey
         ) == ERROR_SUCCESS

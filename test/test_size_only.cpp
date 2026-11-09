@@ -82,7 +82,7 @@ void SetBigValue(VReg* const registry, const HKEY hKey)
 {
     const std::vector<std::byte> value(VALUE_BYTES, std::byte{0x5A});
     REQUIRE(
-        VReg_SetValueExW(
+        VReg_RegSetValueExW(
             registry,
             hKey,
             L"Big",
@@ -105,7 +105,7 @@ void CheckSizeOnly(VReg* const registry, const HKEY hKey)
         std::size_t cbLargest{};
         {
             const LargestAllocation tracker;
-            status = VReg_QueryValueExW(
+            status = VReg_RegQueryValueExW(
                 registry,
                 hKey,
                 L"Big",
@@ -131,7 +131,7 @@ void CheckSizeOnly(VReg* const registry, const HKEY hKey)
         std::size_t cbLargest{};
         {
             const LargestAllocation tracker;
-            status = VReg_EnumValueW(
+            status = VReg_RegEnumValueW(
                 registry,
                 hKey,
                 0,

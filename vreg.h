@@ -56,7 +56,7 @@ extern "C" {
 
 // Raised with every change to this file; the tweak is always 0.
 #define VREG_VERSION_MAJOR 0
-#define VREG_VERSION_MINOR 14
+#define VREG_VERSION_MINOR 15
 #define VREG_VERSION_PATCH 0
 #define VREG_VERSION_TWEAK 0
 
@@ -104,7 +104,7 @@ VREG_DECL BOOL WINAPI VReg_IsVirtualHKey(
  *  @ref VReg_CreateNative and @ref VReg_CreateVirtual make the two registries
  *  VReg implements; @ref VReg_CreateCustom makes one over a @ref VRegVtbl and
  *  an object of the caller's, which a wrapper uses to sit in front of another
- *  registry. Callers go through the flat functions (`VReg_OpenKeyExW` and so
+ *  registry. Callers go through the flat functions (`VReg_RegOpenKeyExW` and so
  *  on), never through a table directly, and free every registry with
  *  @ref VReg_Destroy.
  *
@@ -662,98 +662,98 @@ struct VRegVtbl
     VRegQueryMultipleValuesWFunction* RegQueryMultipleValuesW;
 };
 
-VREG_DECL VRegOpenKeyExWFunction VReg_OpenKeyExW;
-VREG_DECL VRegCreateKeyExWFunction VReg_CreateKeyExW;
-VREG_DECL VRegCloseKeyFunction VReg_CloseKey;
-VREG_DECL VRegQueryValueExWFunction VReg_QueryValueExW;
-VREG_DECL VRegSetValueExWFunction VReg_SetValueExW;
-VREG_DECL VRegDeleteValueWFunction VReg_DeleteValueW;
-VREG_DECL VRegDeleteKeyExWFunction VReg_DeleteKeyExW;
-VREG_DECL VRegDeleteTreeWFunction VReg_DeleteTreeW;
-VREG_DECL VRegEnumKeyExWFunction VReg_EnumKeyExW;
-VREG_DECL VRegEnumValueWFunction VReg_EnumValueW;
-VREG_DECL VRegQueryInfoKeyWFunction VReg_QueryInfoKeyW;
-VREG_DECL VRegLoadMUIStringWFunction VReg_LoadMUIStringW;
-VREG_DECL VRegGetValueWFunction VReg_GetValueW;
-VREG_DECL VRegNotifyChangeKeyValueFunction VReg_NotifyChangeKeyValue;
-VREG_DECL VRegFlushKeyFunction VReg_FlushKey;
-VREG_DECL VRegOpenKeyExAFunction VReg_OpenKeyExA;
-VREG_DECL VRegCreateKeyExAFunction VReg_CreateKeyExA;
-VREG_DECL VRegQueryValueExAFunction VReg_QueryValueExA;
-VREG_DECL VRegSetValueExAFunction VReg_SetValueExA;
-VREG_DECL VRegDeleteValueAFunction VReg_DeleteValueA;
-VREG_DECL VRegDeleteKeyExAFunction VReg_DeleteKeyExA;
-VREG_DECL VRegDeleteTreeAFunction VReg_DeleteTreeA;
-VREG_DECL VRegEnumKeyExAFunction VReg_EnumKeyExA;
-VREG_DECL VRegEnumValueAFunction VReg_EnumValueA;
-VREG_DECL VRegQueryInfoKeyAFunction VReg_QueryInfoKeyA;
-VREG_DECL VRegLoadMUIStringAFunction VReg_LoadMUIStringA;
-VREG_DECL VRegGetValueAFunction VReg_GetValueA;
-VREG_DECL VRegOpenKeyAFunction VReg_OpenKeyA;
-VREG_DECL VRegOpenKeyWFunction VReg_OpenKeyW;
-VREG_DECL VRegCreateKeyAFunction VReg_CreateKeyA;
-VREG_DECL VRegCreateKeyWFunction VReg_CreateKeyW;
-VREG_DECL VRegQueryValueAFunction VReg_QueryValueA;
-VREG_DECL VRegQueryValueWFunction VReg_QueryValueW;
-VREG_DECL VRegSetValueAFunction VReg_SetValueA;
-VREG_DECL VRegSetValueWFunction VReg_SetValueW;
-VREG_DECL VRegDeleteKeyAFunction VReg_DeleteKeyA;
-VREG_DECL VRegDeleteKeyWFunction VReg_DeleteKeyW;
-VREG_DECL VRegEnumKeyAFunction VReg_EnumKeyA;
-VREG_DECL VRegEnumKeyWFunction VReg_EnumKeyW;
-VREG_DECL VRegSetKeyValueAFunction VReg_SetKeyValueA;
-VREG_DECL VRegSetKeyValueWFunction VReg_SetKeyValueW;
-VREG_DECL VRegDeleteKeyValueAFunction VReg_DeleteKeyValueA;
-VREG_DECL VRegDeleteKeyValueWFunction VReg_DeleteKeyValueW;
-VREG_DECL VRegQueryMultipleValuesAFunction VReg_QueryMultipleValuesA;
-VREG_DECL VRegQueryMultipleValuesWFunction VReg_QueryMultipleValuesW;
+VREG_DECL VRegOpenKeyExWFunction VReg_RegOpenKeyExW;
+VREG_DECL VRegCreateKeyExWFunction VReg_RegCreateKeyExW;
+VREG_DECL VRegCloseKeyFunction VReg_RegCloseKey;
+VREG_DECL VRegQueryValueExWFunction VReg_RegQueryValueExW;
+VREG_DECL VRegSetValueExWFunction VReg_RegSetValueExW;
+VREG_DECL VRegDeleteValueWFunction VReg_RegDeleteValueW;
+VREG_DECL VRegDeleteKeyExWFunction VReg_RegDeleteKeyExW;
+VREG_DECL VRegDeleteTreeWFunction VReg_RegDeleteTreeW;
+VREG_DECL VRegEnumKeyExWFunction VReg_RegEnumKeyExW;
+VREG_DECL VRegEnumValueWFunction VReg_RegEnumValueW;
+VREG_DECL VRegQueryInfoKeyWFunction VReg_RegQueryInfoKeyW;
+VREG_DECL VRegLoadMUIStringWFunction VReg_RegLoadMUIStringW;
+VREG_DECL VRegGetValueWFunction VReg_RegGetValueW;
+VREG_DECL VRegNotifyChangeKeyValueFunction VReg_RegNotifyChangeKeyValue;
+VREG_DECL VRegFlushKeyFunction VReg_RegFlushKey;
+VREG_DECL VRegOpenKeyExAFunction VReg_RegOpenKeyExA;
+VREG_DECL VRegCreateKeyExAFunction VReg_RegCreateKeyExA;
+VREG_DECL VRegQueryValueExAFunction VReg_RegQueryValueExA;
+VREG_DECL VRegSetValueExAFunction VReg_RegSetValueExA;
+VREG_DECL VRegDeleteValueAFunction VReg_RegDeleteValueA;
+VREG_DECL VRegDeleteKeyExAFunction VReg_RegDeleteKeyExA;
+VREG_DECL VRegDeleteTreeAFunction VReg_RegDeleteTreeA;
+VREG_DECL VRegEnumKeyExAFunction VReg_RegEnumKeyExA;
+VREG_DECL VRegEnumValueAFunction VReg_RegEnumValueA;
+VREG_DECL VRegQueryInfoKeyAFunction VReg_RegQueryInfoKeyA;
+VREG_DECL VRegLoadMUIStringAFunction VReg_RegLoadMUIStringA;
+VREG_DECL VRegGetValueAFunction VReg_RegGetValueA;
+VREG_DECL VRegOpenKeyAFunction VReg_RegOpenKeyA;
+VREG_DECL VRegOpenKeyWFunction VReg_RegOpenKeyW;
+VREG_DECL VRegCreateKeyAFunction VReg_RegCreateKeyA;
+VREG_DECL VRegCreateKeyWFunction VReg_RegCreateKeyW;
+VREG_DECL VRegQueryValueAFunction VReg_RegQueryValueA;
+VREG_DECL VRegQueryValueWFunction VReg_RegQueryValueW;
+VREG_DECL VRegSetValueAFunction VReg_RegSetValueA;
+VREG_DECL VRegSetValueWFunction VReg_RegSetValueW;
+VREG_DECL VRegDeleteKeyAFunction VReg_RegDeleteKeyA;
+VREG_DECL VRegDeleteKeyWFunction VReg_RegDeleteKeyW;
+VREG_DECL VRegEnumKeyAFunction VReg_RegEnumKeyA;
+VREG_DECL VRegEnumKeyWFunction VReg_RegEnumKeyW;
+VREG_DECL VRegSetKeyValueAFunction VReg_RegSetKeyValueA;
+VREG_DECL VRegSetKeyValueWFunction VReg_RegSetKeyValueW;
+VREG_DECL VRegDeleteKeyValueAFunction VReg_RegDeleteKeyValueA;
+VREG_DECL VRegDeleteKeyValueWFunction VReg_RegDeleteKeyValueW;
+VREG_DECL VRegQueryMultipleValuesAFunction VReg_RegQueryMultipleValuesA;
+VREG_DECL VRegQueryMultipleValuesWFunction VReg_RegQueryMultipleValuesW;
 
 /// The neutral names select the wide or the ANSI form by @ref UNICODE, as
 /// `winreg.h` does for the functions they mirror.
 #ifdef UNICODE
-#define VReg_CreateKey VReg_CreateKeyW
-#define VReg_CreateKeyEx VReg_CreateKeyExW
-#define VReg_DeleteKey VReg_DeleteKeyW
-#define VReg_DeleteKeyEx VReg_DeleteKeyExW
-#define VReg_DeleteKeyValue VReg_DeleteKeyValueW
-#define VReg_DeleteTree VReg_DeleteTreeW
-#define VReg_DeleteValue VReg_DeleteValueW
-#define VReg_EnumKey VReg_EnumKeyW
-#define VReg_EnumKeyEx VReg_EnumKeyExW
-#define VReg_EnumValue VReg_EnumValueW
-#define VReg_GetValue VReg_GetValueW
-#define VReg_LoadMUIString VReg_LoadMUIStringW
-#define VReg_OpenKey VReg_OpenKeyW
-#define VReg_OpenKeyEx VReg_OpenKeyExW
-#define VReg_QueryInfoKey VReg_QueryInfoKeyW
-#define VReg_QueryMultipleValues VReg_QueryMultipleValuesW
-#define VReg_QueryValue VReg_QueryValueW
-#define VReg_QueryValueEx VReg_QueryValueExW
-#define VReg_SetKeyValue VReg_SetKeyValueW
-#define VReg_SetValue VReg_SetValueW
-#define VReg_SetValueEx VReg_SetValueExW
+#define VReg_RegCreateKey VReg_RegCreateKeyW
+#define VReg_RegCreateKeyEx VReg_RegCreateKeyExW
+#define VReg_RegDeleteKey VReg_RegDeleteKeyW
+#define VReg_RegDeleteKeyEx VReg_RegDeleteKeyExW
+#define VReg_RegDeleteKeyValue VReg_RegDeleteKeyValueW
+#define VReg_RegDeleteTree VReg_RegDeleteTreeW
+#define VReg_RegDeleteValue VReg_RegDeleteValueW
+#define VReg_RegEnumKey VReg_RegEnumKeyW
+#define VReg_RegEnumKeyEx VReg_RegEnumKeyExW
+#define VReg_RegEnumValue VReg_RegEnumValueW
+#define VReg_RegGetValue VReg_RegGetValueW
+#define VReg_RegLoadMUIString VReg_RegLoadMUIStringW
+#define VReg_RegOpenKey VReg_RegOpenKeyW
+#define VReg_RegOpenKeyEx VReg_RegOpenKeyExW
+#define VReg_RegQueryInfoKey VReg_RegQueryInfoKeyW
+#define VReg_RegQueryMultipleValues VReg_RegQueryMultipleValuesW
+#define VReg_RegQueryValue VReg_RegQueryValueW
+#define VReg_RegQueryValueEx VReg_RegQueryValueExW
+#define VReg_RegSetKeyValue VReg_RegSetKeyValueW
+#define VReg_RegSetValue VReg_RegSetValueW
+#define VReg_RegSetValueEx VReg_RegSetValueExW
 #else
-#define VReg_CreateKey VReg_CreateKeyA
-#define VReg_CreateKeyEx VReg_CreateKeyExA
-#define VReg_DeleteKey VReg_DeleteKeyA
-#define VReg_DeleteKeyEx VReg_DeleteKeyExA
-#define VReg_DeleteKeyValue VReg_DeleteKeyValueA
-#define VReg_DeleteTree VReg_DeleteTreeA
-#define VReg_DeleteValue VReg_DeleteValueA
-#define VReg_EnumKey VReg_EnumKeyA
-#define VReg_EnumKeyEx VReg_EnumKeyExA
-#define VReg_EnumValue VReg_EnumValueA
-#define VReg_GetValue VReg_GetValueA
-#define VReg_LoadMUIString VReg_LoadMUIStringA
-#define VReg_OpenKey VReg_OpenKeyA
-#define VReg_OpenKeyEx VReg_OpenKeyExA
-#define VReg_QueryInfoKey VReg_QueryInfoKeyA
-#define VReg_QueryMultipleValues VReg_QueryMultipleValuesA
-#define VReg_QueryValue VReg_QueryValueA
-#define VReg_QueryValueEx VReg_QueryValueExA
-#define VReg_SetKeyValue VReg_SetKeyValueA
-#define VReg_SetValue VReg_SetValueA
-#define VReg_SetValueEx VReg_SetValueExA
+#define VReg_RegCreateKey VReg_RegCreateKeyA
+#define VReg_RegCreateKeyEx VReg_RegCreateKeyExA
+#define VReg_RegDeleteKey VReg_RegDeleteKeyA
+#define VReg_RegDeleteKeyEx VReg_RegDeleteKeyExA
+#define VReg_RegDeleteKeyValue VReg_RegDeleteKeyValueA
+#define VReg_RegDeleteTree VReg_RegDeleteTreeA
+#define VReg_RegDeleteValue VReg_RegDeleteValueA
+#define VReg_RegEnumKey VReg_RegEnumKeyA
+#define VReg_RegEnumKeyEx VReg_RegEnumKeyExA
+#define VReg_RegEnumValue VReg_RegEnumValueA
+#define VReg_RegGetValue VReg_RegGetValueA
+#define VReg_RegLoadMUIString VReg_RegLoadMUIStringA
+#define VReg_RegOpenKey VReg_RegOpenKeyA
+#define VReg_RegOpenKeyEx VReg_RegOpenKeyExA
+#define VReg_RegQueryInfoKey VReg_RegQueryInfoKeyA
+#define VReg_RegQueryMultipleValues VReg_RegQueryMultipleValuesA
+#define VReg_RegQueryValue VReg_RegQueryValueA
+#define VReg_RegQueryValueEx VReg_RegQueryValueExA
+#define VReg_RegSetKeyValue VReg_RegSetKeyValueA
+#define VReg_RegSetValue VReg_RegSetValueA
+#define VReg_RegSetValueEx VReg_RegSetValueExA
 #endif
 
 /// Makes a registry whose calls go to the slots of @p pVtbl, which MUST
@@ -2117,7 +2117,7 @@ VREG_DECL LSTATUS VRegInternal_EnumValueOwned(
     _Inout_opt_ VRegInternalBuffer* pData
 );
 
-/// @ref VReg_QueryInfoKeyW with the class read into @p pClass. When the read
+/// @ref VReg_RegQueryInfoKeyW with the class read into @p pClass. When the read
 /// fails and its last call reported a class length other than the buffer's,
 /// that length is stored at @p lpcchClassReported.
 VREG_DECL LSTATUS VRegInternal_QueryInfoKeyOwned(
@@ -3646,7 +3646,7 @@ static BOOL VRegInternal_CopyAnsiClass(
     return pText->cb < cchBuffer;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_OpenKeyExA(
+VREG_DECL LSTATUS WINAPI VReg_RegOpenKeyExA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
@@ -3674,7 +3674,7 @@ VREG_DECL LSTATUS WINAPI VReg_OpenKeyExA(
     // Deliberately reads the _Out_ parameter, to restore it below.
 #pragma warning(suppress: 6001)
     hPrevious = phkResult ? *phkResult : NULL;
-    status = VReg_OpenKeyExW(
+    status = VReg_RegOpenKeyExW(
         pRegistry,
         hKey,
         VRegInternal_WideArgText(&subKey),
@@ -3692,7 +3692,7 @@ done:
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_CreateKeyExA(
+VREG_DECL LSTATUS WINAPI VReg_RegCreateKeyExA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const LPCSTR lpSubKey,
@@ -3736,7 +3736,7 @@ VREG_DECL LSTATUS WINAPI VReg_CreateKeyExA(
     // The annotation excludes a null subkey; one that is null anyway reaches
     // the wide form unchanged, which answers for it.
 #pragma warning(suppress: 6387)
-    status = VReg_CreateKeyExW(
+    status = VReg_RegCreateKeyExW(
         pRegistry,
         hKey,
         VRegInternal_WideArgText(&subKey),
@@ -3757,7 +3757,7 @@ done:
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_QueryValueExA(
+VREG_DECL LSTATUS WINAPI VReg_RegQueryValueExA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpValueName,
@@ -3796,7 +3796,7 @@ VREG_DECL LSTATUS WINAPI VReg_QueryValueExA(
 
     if (!lpData && !lpcbData)
     {
-        status = VReg_QueryValueExW(
+        status = VReg_RegQueryValueExW(
             pRegistry,
             hKey,
             VRegInternal_WideArgText(&valueName),
@@ -3812,7 +3812,7 @@ VREG_DECL LSTATUS WINAPI VReg_QueryValueExA(
 #pragma warning(suppress: 6001)
     dwType = lpType ? *lpType : 0;
     cbSize = (!lpData && lpcbData) ? *lpcbData : 0;
-    sized = VReg_QueryValueExW(
+    sized = VReg_RegQueryValueExW(
         pRegistry,
         hKey,
         VRegInternal_WideArgText(&valueName),
@@ -3833,7 +3833,7 @@ VREG_DECL LSTATUS WINAPI VReg_QueryValueExA(
 
     if (!VRegInternal_IsStringType(dwType))
     {
-        status = VReg_QueryValueExW(
+        status = VReg_RegQueryValueExW(
             pRegistry,
             hKey,
             VRegInternal_WideArgText(&valueName),
@@ -3895,7 +3895,7 @@ done:
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_SetValueExA(
+VREG_DECL LSTATUS WINAPI VReg_RegSetValueExA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpValueName,
@@ -3924,7 +3924,7 @@ VREG_DECL LSTATUS WINAPI VReg_SetValueExA(
 
     if (!VRegInternal_IsStringType(dwType) || !lpData)
     {
-        status = VReg_SetValueExW(
+        status = VReg_RegSetValueExW(
             pRegistry,
             hKey,
             VRegInternal_WideArgText(&valueName),
@@ -3953,7 +3953,7 @@ VREG_DECL LSTATUS WINAPI VReg_SetValueExA(
         }
     }
 
-    status = VReg_SetValueExW(
+    status = VReg_RegSetValueExW(
         pRegistry,
         hKey,
         VRegInternal_WideArgText(&valueName),
@@ -3969,7 +3969,7 @@ done:
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_DeleteValueA(
+VREG_DECL LSTATUS WINAPI VReg_RegDeleteValueA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpValueName
@@ -3987,7 +3987,7 @@ VREG_DECL LSTATUS WINAPI VReg_DeleteValueA(
     if (status != ERROR_SUCCESS)
         goto done;
 
-    status = VReg_DeleteValueW(
+    status = VReg_RegDeleteValueW(
         pRegistry,
         hKey,
         VRegInternal_WideArgText(&valueName)
@@ -3998,7 +3998,7 @@ done:
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_DeleteKeyExA(
+VREG_DECL LSTATUS WINAPI VReg_RegDeleteKeyExA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const LPCSTR lpSubKey,
@@ -4023,7 +4023,7 @@ VREG_DECL LSTATUS WINAPI VReg_DeleteKeyExA(
     // The annotation excludes a null subkey; one that is null anyway reaches
     // the wide form unchanged, which answers for it.
 #pragma warning(suppress: 6387)
-    status = VReg_DeleteKeyExW(
+    status = VReg_RegDeleteKeyExW(
         pRegistry,
         hKey,
         VRegInternal_WideArgText(&subKey),
@@ -4036,7 +4036,7 @@ done:
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_DeleteTreeA(
+VREG_DECL LSTATUS WINAPI VReg_RegDeleteTreeA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey
@@ -4054,7 +4054,7 @@ VREG_DECL LSTATUS WINAPI VReg_DeleteTreeA(
     if (status != ERROR_SUCCESS)
         goto done;
 
-    status = VReg_DeleteTreeW(
+    status = VReg_RegDeleteTreeW(
         pRegistry,
         hKey,
         VRegInternal_WideArgText(&subKey)
@@ -4065,7 +4065,7 @@ done:
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_EnumKeyExA(
+VREG_DECL LSTATUS WINAPI VReg_RegEnumKeyExA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
@@ -4120,7 +4120,7 @@ VREG_DECL LSTATUS WINAPI VReg_EnumKeyExA(
 
         cchNameOut = cchName;
         cchClassOut = cchClass;
-        status = VReg_EnumKeyExW(
+        status = VReg_RegEnumKeyExW(
             pRegistry,
             hKey,
             dwIndex,
@@ -4188,7 +4188,7 @@ done:
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_EnumValueA(
+VREG_DECL LSTATUS WINAPI VReg_RegEnumValueA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
@@ -4317,7 +4317,7 @@ done:
 // Native answers success without writing lpClass when only the class length is
 // asked for, which the annotation's terminator guarantee does not allow for.
 #pragma warning(suppress: 6054)
-VREG_DECL LSTATUS WINAPI VReg_QueryInfoKeyA(
+VREG_DECL LSTATUS WINAPI VReg_RegQueryInfoKeyA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) const LPSTR lpClass,
@@ -4365,7 +4365,7 @@ VREG_DECL LSTATUS WINAPI VReg_QueryInfoKeyA(
     wantClassLength = lpClass && !wantClass && lpcbMaxClassLen;
     if (!wantClass && !wantClassLength)
     {
-        return VReg_QueryInfoKeyW(
+        return VReg_RegQueryInfoKeyW(
             pRegistry,
             hKey,
             NULL,
@@ -4425,7 +4425,7 @@ done:
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_LoadMUIStringA(
+VREG_DECL LSTATUS WINAPI VReg_RegLoadMUIStringA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR pszValue,
@@ -4461,7 +4461,7 @@ VREG_DECL LSTATUS WINAPI VReg_LoadMUIStringA(
 // The SDK's _Post_z_ holds on every return, truncated reads and failures
 // included; the analyzer cannot see the terminators written at run time.
 #pragma warning(suppress: 6054)
-VREG_DECL LSTATUS WINAPI VReg_GetValueA(
+VREG_DECL LSTATUS WINAPI VReg_RegGetValueA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hkey,
     _In_opt_ const LPCSTR lpSubKey,
@@ -4548,7 +4548,7 @@ VREG_DECL LSTATUS WINAPI VReg_GetValueA(
         | RRF_RT_ANY
         | RRF_NOEXPAND;
     dwStoredType = 0;
-    statusStoredType = VReg_GetValueW(
+    statusStoredType = VReg_RegGetValueW(
         pRegistry,
         hkey,
         VRegInternal_WideArgText(&subKey),
@@ -4569,7 +4569,7 @@ VREG_DECL LSTATUS WINAPI VReg_GetValueA(
         | RRF_RT_ANY;
     dwType = 0;
     cbQuery = 0;
-    statusSized = VReg_GetValueW(
+    statusSized = VReg_RegGetValueW(
         pRegistry,
         hkey,
         VRegInternal_WideArgText(&subKey),
@@ -4586,7 +4586,7 @@ VREG_DECL LSTATUS WINAPI VReg_GetValueA(
     dwFlagsRead = isMismatch ? dwFlagsAnyType : dwFlagsTyped;
     if (isMismatch)
     {
-        VReg_GetValueW(
+        VReg_RegGetValueW(
             pRegistry,
             hkey,
             VRegInternal_WideArgText(&subKey),
@@ -4630,7 +4630,7 @@ VREG_DECL LSTATUS WINAPI VReg_GetValueA(
         if (status != ERROR_SUCCESS)
             goto done;
 
-        VReg_GetValueW(
+        VReg_RegGetValueW(
             pRegistry,
             hkey,
             VRegInternal_WideArgText(&subKey),
@@ -4749,7 +4749,7 @@ VREG_DECL LSTATUS WINAPI VReg_GetValueA(
     goto done;
 
 forward:
-    status = VReg_GetValueW(
+    status = VReg_RegGetValueW(
         pRegistry,
         hkey,
         VRegInternal_WideArgText(&subKey),
@@ -4771,7 +4771,7 @@ done:
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_OpenKeyA(
+VREG_DECL LSTATUS WINAPI VReg_RegOpenKeyA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
@@ -4793,7 +4793,7 @@ VREG_DECL LSTATUS WINAPI VReg_OpenKeyA(
         *phkResult = hKey;
         return ERROR_SUCCESS;
     }
-    return VReg_OpenKeyExA(
+    return VReg_RegOpenKeyExA(
         pRegistry,
         hKey,
         lpSubKey,
@@ -4803,7 +4803,7 @@ VREG_DECL LSTATUS WINAPI VReg_OpenKeyA(
     );
 }
 
-VREG_DECL LSTATUS WINAPI VReg_OpenKeyW(
+VREG_DECL LSTATUS WINAPI VReg_RegOpenKeyW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
@@ -4825,7 +4825,7 @@ VREG_DECL LSTATUS WINAPI VReg_OpenKeyW(
         *phkResult = hKey;
         return ERROR_SUCCESS;
     }
-    return VReg_OpenKeyExW(
+    return VReg_RegOpenKeyExW(
         pRegistry,
         hKey,
         lpSubKey,
@@ -4835,7 +4835,7 @@ VREG_DECL LSTATUS WINAPI VReg_OpenKeyW(
     );
 }
 
-VREG_DECL LSTATUS WINAPI VReg_CreateKeyA(
+VREG_DECL LSTATUS WINAPI VReg_RegCreateKeyA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
@@ -4859,7 +4859,7 @@ VREG_DECL LSTATUS WINAPI VReg_CreateKeyA(
         *phkResult = hKey;
         return ERROR_SUCCESS;
     }
-    return VReg_CreateKeyExA(
+    return VReg_RegCreateKeyExA(
         pRegistry,
         hKey,
         lpSubKey,
@@ -4873,7 +4873,7 @@ VREG_DECL LSTATUS WINAPI VReg_CreateKeyA(
     );
 }
 
-VREG_DECL LSTATUS WINAPI VReg_CreateKeyW(
+VREG_DECL LSTATUS WINAPI VReg_RegCreateKeyW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
@@ -4897,7 +4897,7 @@ VREG_DECL LSTATUS WINAPI VReg_CreateKeyW(
         *phkResult = hKey;
         return ERROR_SUCCESS;
     }
-    return VReg_CreateKeyExW(
+    return VReg_RegCreateKeyExW(
         pRegistry,
         hKey,
         lpSubKey,
@@ -4911,7 +4911,7 @@ VREG_DECL LSTATUS WINAPI VReg_CreateKeyW(
     );
 }
 
-VREG_DECL LSTATUS WINAPI VReg_QueryValueA(
+VREG_DECL LSTATUS WINAPI VReg_RegQueryValueA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
@@ -4933,7 +4933,7 @@ VREG_DECL LSTATUS WINAPI VReg_QueryValueA(
     LSTATUS status;
     if (lpSubKey && *lpSubKey)
     {
-        status = VReg_OpenKeyA(
+        status = VReg_RegOpenKeyA(
             pRegistry,
             hKey,
             lpSubKey,
@@ -4943,7 +4943,7 @@ VREG_DECL LSTATUS WINAPI VReg_QueryValueA(
             return status;
     }
 
-    status = VReg_QueryValueExA(
+    status = VReg_RegQueryValueExA(
         pRegistry,
         hSubKey,
         NULL,
@@ -4954,7 +4954,7 @@ VREG_DECL LSTATUS WINAPI VReg_QueryValueA(
     );
     if (hSubKey != hKey)
     {
-        VReg_CloseKey(
+        VReg_RegCloseKey(
             pRegistry,
             hSubKey
         );
@@ -4973,7 +4973,7 @@ VREG_DECL LSTATUS WINAPI VReg_QueryValueA(
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_QueryValueW(
+VREG_DECL LSTATUS WINAPI VReg_RegQueryValueW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
@@ -4995,7 +4995,7 @@ VREG_DECL LSTATUS WINAPI VReg_QueryValueW(
     LSTATUS status;
     if (lpSubKey && *lpSubKey)
     {
-        status = VReg_OpenKeyW(
+        status = VReg_RegOpenKeyW(
             pRegistry,
             hKey,
             lpSubKey,
@@ -5005,7 +5005,7 @@ VREG_DECL LSTATUS WINAPI VReg_QueryValueW(
             return status;
     }
 
-    status = VReg_QueryValueExW(
+    status = VReg_RegQueryValueExW(
         pRegistry,
         hSubKey,
         NULL,
@@ -5016,7 +5016,7 @@ VREG_DECL LSTATUS WINAPI VReg_QueryValueW(
     );
     if (hSubKey != hKey)
     {
-        VReg_CloseKey(
+        VReg_RegCloseKey(
             pRegistry,
             hSubKey
         );
@@ -5035,7 +5035,7 @@ VREG_DECL LSTATUS WINAPI VReg_QueryValueW(
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_SetValueA(
+VREG_DECL LSTATUS WINAPI VReg_RegSetValueA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
@@ -5064,7 +5064,7 @@ VREG_DECL LSTATUS WINAPI VReg_SetValueA(
 
     if (lpSubKey && *lpSubKey)
     {
-        status = VReg_CreateKeyA(
+        status = VReg_RegCreateKeyA(
             pRegistry,
             hKey,
             lpSubKey,
@@ -5074,7 +5074,7 @@ VREG_DECL LSTATUS WINAPI VReg_SetValueA(
             return status;
     }
 
-    status = VReg_SetValueExA(
+    status = VReg_RegSetValueExA(
         pRegistry,
         hSubKey,
         NULL,
@@ -5085,7 +5085,7 @@ VREG_DECL LSTATUS WINAPI VReg_SetValueA(
     );
     if (hSubKey != hKey)
     {
-        VReg_CloseKey(
+        VReg_RegCloseKey(
             pRegistry,
             hSubKey
         );
@@ -5093,7 +5093,7 @@ VREG_DECL LSTATUS WINAPI VReg_SetValueA(
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_SetValueW(
+VREG_DECL LSTATUS WINAPI VReg_RegSetValueW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
@@ -5122,7 +5122,7 @@ VREG_DECL LSTATUS WINAPI VReg_SetValueW(
 
     if (lpSubKey && *lpSubKey)
     {
-        status = VReg_CreateKeyW(
+        status = VReg_RegCreateKeyW(
             pRegistry,
             hKey,
             lpSubKey,
@@ -5132,7 +5132,7 @@ VREG_DECL LSTATUS WINAPI VReg_SetValueW(
             return status;
     }
 
-    status = VReg_SetValueExW(
+    status = VReg_RegSetValueExW(
         pRegistry,
         hSubKey,
         NULL,
@@ -5143,7 +5143,7 @@ VREG_DECL LSTATUS WINAPI VReg_SetValueW(
     );
     if (hSubKey != hKey)
     {
-        VReg_CloseKey(
+        VReg_RegCloseKey(
             pRegistry,
             hSubKey
         );
@@ -5151,7 +5151,7 @@ VREG_DECL LSTATUS WINAPI VReg_SetValueW(
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_DeleteKeyA(
+VREG_DECL LSTATUS WINAPI VReg_RegDeleteKeyA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const LPCSTR lpSubKey
@@ -5164,7 +5164,7 @@ VREG_DECL LSTATUS WINAPI VReg_DeleteKeyA(
             lpSubKey
         );
 
-    return VReg_DeleteKeyExA(
+    return VReg_RegDeleteKeyExA(
         pRegistry,
         hKey,
         lpSubKey,
@@ -5173,7 +5173,7 @@ VREG_DECL LSTATUS WINAPI VReg_DeleteKeyA(
     );
 }
 
-VREG_DECL LSTATUS WINAPI VReg_DeleteKeyW(
+VREG_DECL LSTATUS WINAPI VReg_RegDeleteKeyW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const LPCWSTR lpSubKey
@@ -5186,7 +5186,7 @@ VREG_DECL LSTATUS WINAPI VReg_DeleteKeyW(
             lpSubKey
         );
 
-    return VReg_DeleteKeyExW(
+    return VReg_RegDeleteKeyExW(
         pRegistry,
         hKey,
         lpSubKey,
@@ -5195,7 +5195,7 @@ VREG_DECL LSTATUS WINAPI VReg_DeleteKeyW(
     );
 }
 
-VREG_DECL LSTATUS WINAPI VReg_EnumKeyA(
+VREG_DECL LSTATUS WINAPI VReg_RegEnumKeyA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
@@ -5213,7 +5213,7 @@ VREG_DECL LSTATUS WINAPI VReg_EnumKeyA(
         );
 
     DWORD cchNameInOut = cchName;
-    return VReg_EnumKeyExA(
+    return VReg_RegEnumKeyExA(
         pRegistry,
         hKey,
         dwIndex,
@@ -5226,7 +5226,7 @@ VREG_DECL LSTATUS WINAPI VReg_EnumKeyA(
     );
 }
 
-VREG_DECL LSTATUS WINAPI VReg_EnumKeyW(
+VREG_DECL LSTATUS WINAPI VReg_RegEnumKeyW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
@@ -5244,7 +5244,7 @@ VREG_DECL LSTATUS WINAPI VReg_EnumKeyW(
         );
 
     DWORD cchNameInOut = cchName;
-    return VReg_EnumKeyExW(
+    return VReg_RegEnumKeyExW(
         pRegistry,
         hKey,
         dwIndex,
@@ -5261,7 +5261,7 @@ VREG_DECL LSTATUS WINAPI VReg_EnumKeyW(
 // the one right the call needs; the maximum allowed access, as the pre-Ex
 // forms use, was passed over. Only a caller whose access is limited to
 // something else could tell.
-VREG_DECL LSTATUS WINAPI VReg_SetKeyValueA(
+VREG_DECL LSTATUS WINAPI VReg_RegSetKeyValueA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
@@ -5286,7 +5286,7 @@ VREG_DECL LSTATUS WINAPI VReg_SetKeyValueA(
     LSTATUS status;
     if (lpSubKey && *lpSubKey)
     {
-        status = VReg_CreateKeyExA(
+        status = VReg_RegCreateKeyExA(
             pRegistry,
             hKey,
             lpSubKey,
@@ -5302,7 +5302,7 @@ VREG_DECL LSTATUS WINAPI VReg_SetKeyValueA(
             return status;
     }
 
-    status = VReg_SetValueExA(
+    status = VReg_RegSetValueExA(
         pRegistry,
         hSubKey,
         lpValueName,
@@ -5313,7 +5313,7 @@ VREG_DECL LSTATUS WINAPI VReg_SetKeyValueA(
     );
     if (hSubKey != hKey)
     {
-        VReg_CloseKey(
+        VReg_RegCloseKey(
             pRegistry,
             hSubKey
         );
@@ -5321,7 +5321,7 @@ VREG_DECL LSTATUS WINAPI VReg_SetKeyValueA(
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_SetKeyValueW(
+VREG_DECL LSTATUS WINAPI VReg_RegSetKeyValueW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
@@ -5346,7 +5346,7 @@ VREG_DECL LSTATUS WINAPI VReg_SetKeyValueW(
     LSTATUS status;
     if (lpSubKey && *lpSubKey)
     {
-        status = VReg_CreateKeyExW(
+        status = VReg_RegCreateKeyExW(
             pRegistry,
             hKey,
             lpSubKey,
@@ -5362,7 +5362,7 @@ VREG_DECL LSTATUS WINAPI VReg_SetKeyValueW(
             return status;
     }
 
-    status = VReg_SetValueExW(
+    status = VReg_RegSetValueExW(
         pRegistry,
         hSubKey,
         lpValueName,
@@ -5373,7 +5373,7 @@ VREG_DECL LSTATUS WINAPI VReg_SetKeyValueW(
     );
     if (hSubKey != hKey)
     {
-        VReg_CloseKey(
+        VReg_RegCloseKey(
             pRegistry,
             hSubKey
         );
@@ -5381,7 +5381,7 @@ VREG_DECL LSTATUS WINAPI VReg_SetKeyValueW(
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_DeleteKeyValueA(
+VREG_DECL LSTATUS WINAPI VReg_RegDeleteKeyValueA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCSTR lpSubKey,
@@ -5400,7 +5400,7 @@ VREG_DECL LSTATUS WINAPI VReg_DeleteKeyValueA(
     LSTATUS status;
     if (lpSubKey && *lpSubKey)
     {
-        status = VReg_OpenKeyExA(
+        status = VReg_RegOpenKeyExA(
             pRegistry,
             hKey,
             lpSubKey,
@@ -5412,14 +5412,14 @@ VREG_DECL LSTATUS WINAPI VReg_DeleteKeyValueA(
             return status;
     }
 
-    status = VReg_DeleteValueA(
+    status = VReg_RegDeleteValueA(
         pRegistry,
         hSubKey,
         lpValueName
     );
     if (hSubKey != hKey)
     {
-        VReg_CloseKey(
+        VReg_RegCloseKey(
             pRegistry,
             hSubKey
         );
@@ -5427,7 +5427,7 @@ VREG_DECL LSTATUS WINAPI VReg_DeleteKeyValueA(
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_DeleteKeyValueW(
+VREG_DECL LSTATUS WINAPI VReg_RegDeleteKeyValueW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
@@ -5446,7 +5446,7 @@ VREG_DECL LSTATUS WINAPI VReg_DeleteKeyValueW(
     LSTATUS status;
     if (lpSubKey && *lpSubKey)
     {
-        status = VReg_OpenKeyExW(
+        status = VReg_RegOpenKeyExW(
             pRegistry,
             hKey,
             lpSubKey,
@@ -5458,14 +5458,14 @@ VREG_DECL LSTATUS WINAPI VReg_DeleteKeyValueW(
             return status;
     }
 
-    status = VReg_DeleteValueW(
+    status = VReg_RegDeleteValueW(
         pRegistry,
         hSubKey,
         lpValueName
     );
     if (hSubKey != hKey)
     {
-        VReg_CloseKey(
+        VReg_RegCloseKey(
             pRegistry,
             hSubKey
         );
@@ -5478,7 +5478,7 @@ VREG_DECL LSTATUS WINAPI VReg_DeleteKeyValueW(
 /// native answers the wide form's total for the stored values.
 // The SDK types lpValueBuf as a string, but it holds binary values.
 #pragma warning(suppress: 6054)
-VREG_DECL LSTATUS WINAPI VReg_QueryMultipleValuesA(
+VREG_DECL LSTATUS WINAPI VReg_RegQueryMultipleValuesA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _Out_writes_(num_vals) const PVALENTA val_list,
@@ -5524,7 +5524,7 @@ VREG_DECL LSTATUS WINAPI VReg_QueryMultipleValuesA(
 
     for (i = 0; i < num_vals; ++i)
     {
-        status = VReg_QueryValueExA(
+        status = VReg_RegQueryValueExA(
             pRegistry,
             hKey,
             val_list[i].ve_valuename,
@@ -5549,7 +5549,7 @@ VREG_DECL LSTATUS WINAPI VReg_QueryMultipleValuesA(
             status = VRegInternal_WideArgInit(val_list[i].ve_valuename, &name);
             if (status == ERROR_SUCCESS)
             {
-                status = VReg_QueryValueExW(
+                status = VReg_RegQueryValueExW(
                     pRegistry,
                     hKey,
                     VRegInternal_WideArgText(&name),
@@ -5573,7 +5573,7 @@ VREG_DECL LSTATUS WINAPI VReg_QueryMultipleValuesA(
     for (i = 0; i < num_vals; ++i)
     {
         cbRead = pPlaced[i].cbValue;
-        status = VReg_QueryValueExA(
+        status = VReg_RegQueryValueExA(
             pRegistry,
             hKey,
             val_list[i].ve_valuename,
@@ -5604,7 +5604,7 @@ done:
 
 /// Native places each value on a @ref DWORD boundary, reads the ones that fit
 /// the buffer in order, and fills the entries only when all of them did.
-VREG_DECL LSTATUS WINAPI VReg_QueryMultipleValuesW(
+VREG_DECL LSTATUS WINAPI VReg_RegQueryMultipleValuesW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _Out_writes_(num_vals) const PVALENTW val_list,
@@ -5652,7 +5652,7 @@ VREG_DECL LSTATUS WINAPI VReg_QueryMultipleValuesW(
 
     for (i = 0; i < num_vals; ++i)
     {
-        status = VReg_QueryValueExW(
+        status = VReg_RegQueryValueExW(
             pRegistry,
             hKey,
             val_list[i].ve_valuename,
@@ -5680,7 +5680,7 @@ VREG_DECL LSTATUS WINAPI VReg_QueryMultipleValuesW(
         if (ibValue + cbValue <= cbBuffer)
         {
             cbRead = cbValue;
-            status = VReg_QueryValueExW(
+            status = VReg_RegQueryValueExW(
                 pRegistry,
                 hKey,
                 val_list[i].ve_valuename,
@@ -8811,7 +8811,7 @@ VREG_DECL void VRegInternal_CloseRedirect(
 {
     // A redirect always names the registry that answers its key.
     _Analysis_assume_(pRedirect->pRegistry);
-    VReg_CloseKey(
+    VReg_RegCloseKey(
         pRedirect->pRegistry,
         pRedirect->hKey
     );
@@ -8843,7 +8843,7 @@ static LSTATUS VRegInternal_RegistryLowerOpen(
         return ERROR_OUTOFMEMORY;
     }
 
-    status = VReg_OpenKeyExW(
+    status = VReg_RegOpenKeyExW(
         pLower->pRegistry,
         pLower->hRoot,
         path.cch == 0 ? NULL : path.psz,
@@ -8861,7 +8861,7 @@ static void VRegInternal_RegistryLowerClose(
 )
 {
     const VRegInternalRegistryLower* const pLower = (const VRegInternalRegistryLower*)pHive->pvLowerContext;
-    VReg_CloseKey(
+    VReg_RegCloseKey(
         pLower->pRegistry,
         hKey
     );
@@ -8933,7 +8933,7 @@ static LSTATUS WINAPI VRegInternal_RegistryLowerQueryValue(
     {
         if (pResult->pcbData)
             *pResult->pcbData = 0;
-        status = VReg_QueryValueExW(
+        status = VReg_RegQueryValueExW(
             pRegistry,
             hKey,
             pszName,
@@ -8966,7 +8966,7 @@ static LSTATUS WINAPI VRegInternal_RegistryLowerEnumKey(
     if (status != ERROR_SUCCESS)
         return status;
 
-    status = VReg_QueryInfoKeyW(
+    status = VReg_RegQueryInfoKeyW(
         pRegistry,
         hKey,
         NULL,
@@ -8994,7 +8994,7 @@ static LSTATUS WINAPI VRegInternal_RegistryLowerEnumKey(
     ZeroMemory(&lastWrite, sizeof(lastWrite));
     cchName = (DWORD)pResult->pName->cchCapacity;
     cchClass = (DWORD)className.cchCapacity;
-    status = VReg_EnumKeyExW(
+    status = VReg_RegEnumKeyExW(
         pRegistry,
         hKey,
         dwIndex,
@@ -9060,7 +9060,7 @@ static LSTATUS WINAPI VRegInternal_RegistryLowerEnumValue(
 
     cchName = (DWORD)(pResult->pName->cch + 1);
     *pResult->pcbData = 0;
-    status = VReg_EnumValueW(
+    status = VReg_RegEnumValueW(
         pRegistry,
         hKey,
         dwIndex,
@@ -9225,7 +9225,7 @@ VREG_DECL LSTATUS VRegInternal_QueryValueOwned(
 {
     DWORD dwType = 0;
     DWORD cbData = 0;
-    const LSTATUS sized = VReg_QueryValueExW(
+    const LSTATUS sized = VReg_RegQueryValueExW(
         pRegistry,
         hKey,
         lpValueName,
@@ -9244,7 +9244,7 @@ VREG_DECL LSTATUS VRegInternal_QueryValueOwned(
         if (!VRegInternal_BufferResize(pData, cbData))
             return ERROR_OUTOFMEMORY;
 
-        status = VReg_QueryValueExW(
+        status = VReg_RegQueryValueExW(
             pRegistry,
             hKey,
             lpValueName,
@@ -9280,7 +9280,7 @@ VREG_DECL LSTATUS VRegInternal_GetValueOwned(
 {
     DWORD dwType = 0;
     DWORD cbData = 0;
-    const LSTATUS sized = VReg_GetValueW(
+    const LSTATUS sized = VReg_RegGetValueW(
         pRegistry,
         hKey,
         lpSubKey,
@@ -9300,7 +9300,7 @@ VREG_DECL LSTATUS VRegInternal_GetValueOwned(
         if (!VRegInternal_BufferResize(pData, cbData))
             return ERROR_OUTOFMEMORY;
 
-        status = VReg_GetValueW(
+        status = VReg_RegGetValueW(
             pRegistry,
             hKey,
             lpSubKey,
@@ -9340,7 +9340,7 @@ VREG_DECL LSTATUS VRegInternal_EnumKeyOwned(
         if (!VRegInternal_WStringResize(pName, cchName))
             return ERROR_OUTOFMEMORY;
 
-        status = VReg_EnumKeyExW(
+        status = VReg_RegEnumKeyExW(
             pRegistry,
             hKey,
             dwIndex,
@@ -9383,7 +9383,7 @@ VREG_DECL LSTATUS VRegInternal_EnumValueOwned(
         if (!VRegInternal_WStringResize(pName, cchName))
             return ERROR_OUTOFMEMORY;
 
-        status = VReg_EnumValueW(
+        status = VReg_RegEnumValueW(
             pRegistry,
             hKey,
             dwIndex,
@@ -9450,7 +9450,7 @@ VREG_DECL LSTATUS VRegInternal_QueryInfoKeyOwned(
         if (!VRegInternal_WStringResize(pClass, cchClass))
             return ERROR_OUTOFMEMORY;
 
-        status = VReg_QueryInfoKeyW(
+        status = VReg_RegQueryInfoKeyW(
             pRegistry,
             hKey,
             pClass->psz,
@@ -9518,7 +9518,7 @@ VREG_DECL LSTATUS VRegInternal_SplitPath(
 // The flat functions
 // ==========================================================================
 
-VREG_DECL LSTATUS WINAPI VReg_OpenKeyExW(
+VREG_DECL LSTATUS WINAPI VReg_RegOpenKeyExW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
@@ -9563,7 +9563,7 @@ VREG_DECL LSTATUS WINAPI VReg_OpenKeyExW(
     }
 }
 
-VREG_DECL LSTATUS WINAPI VReg_CreateKeyExW(
+VREG_DECL LSTATUS WINAPI VReg_RegCreateKeyExW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const LPCWSTR lpSubKey,
@@ -9624,7 +9624,7 @@ VREG_DECL LSTATUS WINAPI VReg_CreateKeyExW(
     }
 }
 
-VREG_DECL LSTATUS WINAPI VReg_CloseKey(
+VREG_DECL LSTATUS WINAPI VReg_RegCloseKey(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey
 )
@@ -9653,7 +9653,7 @@ VREG_DECL LSTATUS WINAPI VReg_CloseKey(
     }
 }
 
-VREG_DECL LSTATUS WINAPI VReg_QueryValueExW(
+VREG_DECL LSTATUS WINAPI VReg_RegQueryValueExW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpValueName,
@@ -9702,7 +9702,7 @@ VREG_DECL LSTATUS WINAPI VReg_QueryValueExW(
     }
 }
 
-VREG_DECL LSTATUS WINAPI VReg_SetValueExW(
+VREG_DECL LSTATUS WINAPI VReg_RegSetValueExW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpValueName,
@@ -9751,7 +9751,7 @@ VREG_DECL LSTATUS WINAPI VReg_SetValueExW(
     }
 }
 
-VREG_DECL LSTATUS WINAPI VReg_DeleteValueW(
+VREG_DECL LSTATUS WINAPI VReg_RegDeleteValueW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpValueName
@@ -9784,7 +9784,7 @@ VREG_DECL LSTATUS WINAPI VReg_DeleteValueW(
     }
 }
 
-VREG_DECL LSTATUS WINAPI VReg_DeleteKeyExW(
+VREG_DECL LSTATUS WINAPI VReg_RegDeleteKeyExW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const LPCWSTR lpSubKey,
@@ -9825,7 +9825,7 @@ VREG_DECL LSTATUS WINAPI VReg_DeleteKeyExW(
     }
 }
 
-VREG_DECL LSTATUS WINAPI VReg_DeleteTreeW(
+VREG_DECL LSTATUS WINAPI VReg_RegDeleteTreeW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey
@@ -9858,7 +9858,7 @@ VREG_DECL LSTATUS WINAPI VReg_DeleteTreeW(
     }
 }
 
-VREG_DECL LSTATUS WINAPI VReg_EnumKeyExW(
+VREG_DECL LSTATUS WINAPI VReg_RegEnumKeyExW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
@@ -9915,7 +9915,7 @@ VREG_DECL LSTATUS WINAPI VReg_EnumKeyExW(
     }
 }
 
-VREG_DECL LSTATUS WINAPI VReg_EnumValueW(
+VREG_DECL LSTATUS WINAPI VReg_RegEnumValueW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
@@ -9972,7 +9972,7 @@ VREG_DECL LSTATUS WINAPI VReg_EnumValueW(
     }
 }
 
-VREG_DECL LSTATUS WINAPI VReg_QueryInfoKeyW(
+VREG_DECL LSTATUS WINAPI VReg_RegQueryInfoKeyW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) const LPWSTR lpClass,
@@ -10045,7 +10045,7 @@ VREG_DECL LSTATUS WINAPI VReg_QueryInfoKeyW(
     }
 }
 
-VREG_DECL LSTATUS WINAPI VReg_LoadMUIStringW(
+VREG_DECL LSTATUS WINAPI VReg_RegLoadMUIStringW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR pszValue,
@@ -10101,7 +10101,7 @@ VREG_DECL LSTATUS WINAPI VReg_LoadMUIStringW(
 // The slot's _Post_z_ on pvData holds on every return; the analyzer does not
 // carry it through the function pointer.
 #pragma warning(suppress: 6054)
-VREG_DECL LSTATUS WINAPI VReg_GetValueW(
+VREG_DECL LSTATUS WINAPI VReg_RegGetValueW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hkey,
     _In_opt_ const LPCWSTR lpSubKey,
@@ -10167,7 +10167,7 @@ VREG_DECL LSTATUS WINAPI VReg_GetValueW(
     }
 }
 
-VREG_DECL LSTATUS WINAPI VReg_NotifyChangeKeyValue(
+VREG_DECL LSTATUS WINAPI VReg_RegNotifyChangeKeyValue(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const BOOL bWatchSubtree,
@@ -10212,7 +10212,7 @@ VREG_DECL LSTATUS WINAPI VReg_NotifyChangeKeyValue(
     }
 }
 
-VREG_DECL LSTATUS WINAPI VReg_FlushKey(
+VREG_DECL LSTATUS WINAPI VReg_RegFlushKey(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey
 )
@@ -10990,7 +10990,7 @@ static LSTATUS VRegInternal_RedirectGetValue(
 {
     const VRegInternalGetValueCall* const pCall = (const VRegInternalGetValueCall*)pContext;
     _Analysis_assume_(pCall);
-    return VReg_GetValueW(
+    return VReg_RegGetValueW(
         pRegistry,
         hKey,
         NULL,
@@ -11018,7 +11018,7 @@ VREG_DECL LSTATUS WINAPI VRegInternal_VirtualRegOpenKeyExW(
         goto done;
     if (target.isBase)
     {
-        status = VReg_OpenKeyExW(
+        status = VReg_RegOpenKeyExW(
             pRegistry->implementation.virtualRegistry.pBase,
             hKey,
             lpSubKey,
@@ -11077,7 +11077,7 @@ VREG_DECL LSTATUS WINAPI VRegInternal_VirtualRegCreateKeyExW(
         goto done;
     if (target.isBase)
     {
-        status = VReg_CreateKeyExW(
+        status = VReg_RegCreateKeyExW(
             pRegistry->implementation.virtualRegistry.pBase,
             hKey,
             lpSubKey,
@@ -11159,7 +11159,7 @@ VREG_DECL LSTATUS WINAPI VRegInternal_VirtualRegCloseKey(
     if (VRegInternal_HandleSpaceOwns(VRegInternal_ProcessHandleSpace(), hKey) || !pRegistry->implementation.virtualRegistry.pBase)
         return ERROR_INVALID_HANDLE;
 
-    return VReg_CloseKey(
+    return VReg_RegCloseKey(
         pRegistry->implementation.virtualRegistry.pBase,
         hKey
     );
@@ -11185,7 +11185,7 @@ VREG_DECL LSTATUS WINAPI VRegInternal_VirtualRegQueryValueExW(
         goto done;
     if (target.isBase)
     {
-        status = VReg_QueryValueExW(
+        status = VReg_RegQueryValueExW(
             pRegistry->implementation.virtualRegistry.pBase,
             hKey,
             lpValueName,
@@ -11266,7 +11266,7 @@ VREG_DECL LSTATUS WINAPI VRegInternal_VirtualRegSetValueExW(
         goto done;
     if (target.isBase)
     {
-        status = VReg_SetValueExW(
+        status = VReg_RegSetValueExW(
             pRegistry->implementation.virtualRegistry.pBase,
             hKey,
             lpValueName,
@@ -11320,7 +11320,7 @@ VREG_DECL LSTATUS WINAPI VRegInternal_VirtualRegDeleteValueW(
         goto done;
     if (target.isBase)
     {
-        status = VReg_DeleteValueW(
+        status = VReg_RegDeleteValueW(
             pRegistry->implementation.virtualRegistry.pBase,
             hKey,
             lpValueName
@@ -11355,7 +11355,7 @@ VREG_DECL LSTATUS WINAPI VRegInternal_VirtualRegDeleteKeyExW(
         goto done;
     if (target.isBase)
     {
-        status = VReg_DeleteKeyExW(
+        status = VReg_RegDeleteKeyExW(
             pRegistry->implementation.virtualRegistry.pBase,
             hKey,
             lpSubKey,
@@ -11396,7 +11396,7 @@ VREG_DECL LSTATUS WINAPI VRegInternal_VirtualRegDeleteTreeW(
         goto done;
     if (target.isBase)
     {
-        status = VReg_DeleteTreeW(
+        status = VReg_RegDeleteTreeW(
             pRegistry->implementation.virtualRegistry.pBase,
             hKey,
             lpSubKey
@@ -11457,7 +11457,7 @@ VREG_DECL LSTATUS WINAPI VRegInternal_VirtualRegEnumKeyExW(
         goto done;
     if (target.isBase)
     {
-        status = VReg_EnumKeyExW(
+        status = VReg_RegEnumKeyExW(
             pRegistry->implementation.virtualRegistry.pBase,
             hKey,
             dwIndex,
@@ -11544,7 +11544,7 @@ VREG_DECL LSTATUS WINAPI VRegInternal_VirtualRegEnumValueW(
         goto done;
     if (target.isBase)
     {
-        status = VReg_EnumValueW(
+        status = VReg_RegEnumValueW(
             pRegistry->implementation.virtualRegistry.pBase,
             hKey,
             dwIndex,
@@ -11650,7 +11650,7 @@ VREG_DECL LSTATUS WINAPI VRegInternal_VirtualRegQueryInfoKeyW(
         goto done;
     if (target.isBase)
     {
-        status = VReg_QueryInfoKeyW(
+        status = VReg_RegQueryInfoKeyW(
             pRegistry->implementation.virtualRegistry.pBase,
             hKey,
             lpClass,
@@ -11938,7 +11938,7 @@ VREG_DECL LSTATUS WINAPI VRegInternal_VirtualRegLoadMUIStringW(
         goto done;
     if (target.isBase)
     {
-        status = VReg_LoadMUIStringW(
+        status = VReg_RegLoadMUIStringW(
             pRegistry->implementation.virtualRegistry.pBase,
             hKey,
             pszValue,
@@ -12124,7 +12124,7 @@ VREG_DECL LSTATUS WINAPI VRegInternal_VirtualRegGetValueW(
         goto done;
     if (target.isBase)
     {
-        status = VReg_GetValueW(
+        status = VReg_RegGetValueW(
             pRegistry->implementation.virtualRegistry.pBase,
             hkey,
             lpSubKey,
@@ -12311,7 +12311,7 @@ VREG_DECL LSTATUS WINAPI VRegInternal_VirtualRegNotifyChangeKeyValue(
         goto done;
     if (target.isBase)
     {
-        status = VReg_NotifyChangeKeyValue(
+        status = VReg_RegNotifyChangeKeyValue(
             pRegistry->implementation.virtualRegistry.pBase,
             hKey,
             bWatchSubtree,
@@ -12374,7 +12374,7 @@ VREG_DECL LSTATUS WINAPI VRegInternal_VirtualRegFlushKey(
         goto done;
     if (target.isBase)
     {
-        status = VReg_FlushKey(
+        status = VReg_RegFlushKey(
             pRegistry->implementation.virtualRegistry.pBase,
             hKey
         );
@@ -12511,7 +12511,7 @@ static void VRegInternal_ApplyCloseKey(
 )
 {
     if (hKey)
-        VReg_CloseKey(
+        VReg_RegCloseKey(
             pRegistry,
             hKey
         );
@@ -12527,7 +12527,7 @@ static LSTATUS VRegInternal_PerformSetValue(
     const BOOL isString = VRegInternal_IsStringType(pOperation->dwType);
     const BOOL isTerminated = cbData >= sizeof(wchar_t) && pData[cbData - 1] == 0 && pData[cbData - 2] == 0;
     HKEY hKey = NULL;
-    LSTATUS status = VReg_OpenKeyExW(
+    LSTATUS status = VReg_RegOpenKeyExW(
         pRegistry,
         pOperation->hRoot,
         pOperation->pszPath,
@@ -12554,7 +12554,7 @@ static LSTATUS VRegInternal_PerformSetValue(
         }
         else
         {
-            status = VReg_SetValueExW(
+            status = VReg_RegSetValueExW(
                 pRegistry,
                 hKey,
                 pOperation->pszName,
@@ -12569,7 +12569,7 @@ static LSTATUS VRegInternal_PerformSetValue(
     }
     else
     {
-        status = VReg_SetValueExW(
+        status = VReg_RegSetValueExW(
             pRegistry,
             hKey,
             pOperation->pszName,
@@ -12600,7 +12600,7 @@ static LSTATUS VRegInternal_Perform(
     switch (pOperation->kind)
     {
     case VREG_OPERATION_CREATE_KEY:
-        status = VReg_CreateKeyExW(
+        status = VReg_RegCreateKeyExW(
             pRegistry,
             pOperation->hRoot,
             pOperation->pszPath,
@@ -12617,7 +12617,7 @@ static LSTATUS VRegInternal_Perform(
 
     case VREG_OPERATION_DELETE_KEY:
         status = VRegInternal_NotFoundIsFine(
-            VReg_DeleteTreeW(
+            VReg_RegDeleteTreeW(
                 pRegistry,
                 pOperation->hRoot,
                 pOperation->pszPath
@@ -12627,7 +12627,7 @@ static LSTATUS VRegInternal_Perform(
             return status;
 
         return VRegInternal_NotFoundIsFine(
-            VReg_DeleteKeyExW(
+            VReg_RegDeleteKeyExW(
                 pRegistry,
                 pOperation->hRoot,
                 pOperation->pszPath,
@@ -12640,7 +12640,7 @@ static LSTATUS VRegInternal_Perform(
         return VRegInternal_PerformSetValue(pOperation, pRegistry);
 
     case VREG_OPERATION_DELETE_VALUE:
-        status = VReg_OpenKeyExW(
+        status = VReg_RegOpenKeyExW(
             pRegistry,
             pOperation->hRoot,
             pOperation->pszPath,
@@ -12652,7 +12652,7 @@ static LSTATUS VRegInternal_Perform(
             return VRegInternal_NotFoundIsFine(status);
 
         status = VRegInternal_NotFoundIsFine(
-            VReg_DeleteValueW(
+            VReg_RegDeleteValueW(
                 pRegistry,
                 hKey,
                 pOperation->pszName
@@ -12874,7 +12874,7 @@ static LSTATUS VRegInternal_WalkKey(
 
         // A symbolic link is exported as the key it is (its SymbolicLinkValue),
         // never followed: following one can leave the subtree or loop.
-        status = VReg_OpenKeyExW(
+        status = VReg_RegOpenKeyExW(
             pRegistry,
             hKey,
             VRegInternal_WStringText(pSubkey),
@@ -12890,7 +12890,7 @@ static LSTATUS VRegInternal_WalkKey(
         else
             status = VRegInternal_WalkKey(pScript, pRegistry, hRoot, hSubkey, &childPath, depth + 1);
 
-        VReg_CloseKey(
+        VReg_RegCloseKey(
             pRegistry,
             hSubkey
         );
@@ -12927,7 +12927,7 @@ VREG_DECL LSTATUS WINAPI VRegScript_Snapshot(
     if (status != ERROR_SUCCESS)
         return status;
 
-    status = VReg_OpenKeyExW(
+    status = VReg_RegOpenKeyExW(
         pRegistry,
         hRoot,
         pszPath ? pszPath : L"",
@@ -12943,7 +12943,7 @@ VREG_DECL LSTATUS WINAPI VRegScript_Snapshot(
     else
         status = VRegInternal_WalkKey(pScript, pRegistry, hRoot, hKey, &path, 0);
 
-    VReg_CloseKey(
+    VReg_RegCloseKey(
         pRegistry,
         hKey
     );
@@ -14525,7 +14525,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegOpenKeyExW(
     _Out_ const PHKEY phkResult
 )
 {
-    return VReg_OpenKeyExW(
+    return VReg_RegOpenKeyExW(
         VRegInternal_HookRegistry(),
         hKey,
         lpSubKey,
@@ -14547,7 +14547,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegCreateKeyExW(
     _Out_opt_ const LPDWORD lpdwDisposition
 )
 {
-    return VReg_CreateKeyExW(
+    return VReg_RegCreateKeyExW(
         VRegInternal_HookRegistry(),
         hKey,
         lpSubKey,
@@ -14565,7 +14565,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegCloseKey(
     _In_ const HKEY hKey
 )
 {
-    return VReg_CloseKey(
+    return VReg_RegCloseKey(
         VRegInternal_HookRegistry(),
         hKey
     );
@@ -14580,7 +14580,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegQueryValueExW(
     _When_(lpData == NULL, _Out_opt_) _When_(lpData != NULL, _Inout_opt_) const LPDWORD lpcbData
 )
 {
-    return VReg_QueryValueExW(
+    return VReg_RegQueryValueExW(
         VRegInternal_HookRegistry(),
         hKey,
         lpValueName,
@@ -14600,7 +14600,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegSetValueExW(
     _In_ const DWORD cbData
 )
 {
-    return VReg_SetValueExW(
+    return VReg_RegSetValueExW(
         VRegInternal_HookRegistry(),
         hKey,
         lpValueName,
@@ -14616,7 +14616,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegDeleteValueW(
     _In_opt_ const LPCWSTR lpValueName
 )
 {
-    return VReg_DeleteValueW(
+    return VReg_RegDeleteValueW(
         VRegInternal_HookRegistry(),
         hKey,
         lpValueName
@@ -14630,7 +14630,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegDeleteKeyExW(
     _Reserved_ const DWORD Reserved
 )
 {
-    return VReg_DeleteKeyExW(
+    return VReg_RegDeleteKeyExW(
         VRegInternal_HookRegistry(),
         hKey,
         lpSubKey,
@@ -14644,7 +14644,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegDeleteTreeW(
     _In_opt_ const LPCWSTR lpSubKey
 )
 {
-    return VReg_DeleteTreeW(
+    return VReg_RegDeleteTreeW(
         VRegInternal_HookRegistry(),
         hKey,
         lpSubKey
@@ -14662,7 +14662,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegEnumKeyExW(
     _Out_opt_ const PFILETIME lpftLastWriteTime
 )
 {
-    return VReg_EnumKeyExW(
+    return VReg_RegEnumKeyExW(
         VRegInternal_HookRegistry(),
         hKey,
         dwIndex,
@@ -14686,7 +14686,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegEnumValueW(
     _Inout_opt_ const LPDWORD lpcbData
 )
 {
-    return VReg_EnumValueW(
+    return VReg_RegEnumValueW(
         VRegInternal_HookRegistry(),
         hKey,
         dwIndex,
@@ -14714,7 +14714,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegQueryInfoKeyW(
     _Out_opt_ const PFILETIME lpftLastWriteTime
 )
 {
-    return VReg_QueryInfoKeyW(
+    return VReg_RegQueryInfoKeyW(
         VRegInternal_HookRegistry(),
         hKey,
         lpClass,
@@ -14741,7 +14741,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegLoadMUIStringW(
     _In_opt_ const LPCWSTR pszDirectory
 )
 {
-    return VReg_LoadMUIStringW(
+    return VReg_RegLoadMUIStringW(
         VRegInternal_HookRegistry(),
         hKey,
         pszValue,
@@ -14779,7 +14779,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegGetValueW(
     _Inout_opt_ const LPDWORD pcbData
 )
 {
-    return VReg_GetValueW(
+    return VReg_RegGetValueW(
         VRegInternal_HookRegistry(),
         hkey,
         lpSubKey,
@@ -14799,7 +14799,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegNotifyChangeKeyValue(
     _In_ const BOOL fAsynchronous
 )
 {
-    return VReg_NotifyChangeKeyValue(
+    return VReg_RegNotifyChangeKeyValue(
         VRegInternal_HookRegistry(),
         hKey,
         bWatchSubtree,
@@ -14813,7 +14813,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegFlushKey(
     _In_ const HKEY hKey
 )
 {
-    return VReg_FlushKey(
+    return VReg_RegFlushKey(
         VRegInternal_HookRegistry(),
         hKey
     );
@@ -14827,7 +14827,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegOpenKeyExA(
     _Out_ const PHKEY phkResult
 )
 {
-    return VReg_OpenKeyExA(
+    return VReg_RegOpenKeyExA(
         VRegInternal_HookRegistry(),
         hKey,
         lpSubKey,
@@ -14849,7 +14849,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegCreateKeyExA(
     _Out_opt_ const LPDWORD lpdwDisposition
 )
 {
-    return VReg_CreateKeyExA(
+    return VReg_RegCreateKeyExA(
         VRegInternal_HookRegistry(),
         hKey,
         lpSubKey,
@@ -14872,7 +14872,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegQueryValueExA(
     _When_(lpData == NULL, _Out_opt_) _When_(lpData != NULL, _Inout_opt_) const LPDWORD lpcbData
 )
 {
-    return VReg_QueryValueExA(
+    return VReg_RegQueryValueExA(
         VRegInternal_HookRegistry(),
         hKey,
         lpValueName,
@@ -14892,7 +14892,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegSetValueExA(
     _In_ const DWORD cbData
 )
 {
-    return VReg_SetValueExA(
+    return VReg_RegSetValueExA(
         VRegInternal_HookRegistry(),
         hKey,
         lpValueName,
@@ -14908,7 +14908,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegDeleteValueA(
     _In_opt_ const LPCSTR lpValueName
 )
 {
-    return VReg_DeleteValueA(
+    return VReg_RegDeleteValueA(
         VRegInternal_HookRegistry(),
         hKey,
         lpValueName
@@ -14922,7 +14922,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegDeleteKeyExA(
     _Reserved_ const DWORD Reserved
 )
 {
-    return VReg_DeleteKeyExA(
+    return VReg_RegDeleteKeyExA(
         VRegInternal_HookRegistry(),
         hKey,
         lpSubKey,
@@ -14936,7 +14936,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegDeleteTreeA(
     _In_opt_ const LPCSTR lpSubKey
 )
 {
-    return VReg_DeleteTreeA(
+    return VReg_RegDeleteTreeA(
         VRegInternal_HookRegistry(),
         hKey,
         lpSubKey
@@ -14954,7 +14954,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegEnumKeyExA(
     _Out_opt_ const PFILETIME lpftLastWriteTime
 )
 {
-    return VReg_EnumKeyExA(
+    return VReg_RegEnumKeyExA(
         VRegInternal_HookRegistry(),
         hKey,
         dwIndex,
@@ -14978,7 +14978,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegEnumValueA(
     _Inout_opt_ const LPDWORD lpcbData
 )
 {
-    return VReg_EnumValueA(
+    return VReg_RegEnumValueA(
         VRegInternal_HookRegistry(),
         hKey,
         dwIndex,
@@ -15006,7 +15006,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegQueryInfoKeyA(
     _Out_opt_ const PFILETIME lpftLastWriteTime
 )
 {
-    return VReg_QueryInfoKeyA(
+    return VReg_RegQueryInfoKeyA(
         VRegInternal_HookRegistry(),
         hKey,
         lpClass,
@@ -15033,7 +15033,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegLoadMUIStringA(
     _In_opt_ const LPCSTR pszDirectory
 )
 {
-    return VReg_LoadMUIStringA(
+    return VReg_RegLoadMUIStringA(
         VRegInternal_HookRegistry(),
         hKey,
         pszValue,
@@ -15071,7 +15071,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegGetValueA(
     _Inout_opt_ const LPDWORD pcbData
 )
 {
-    return VReg_GetValueA(
+    return VReg_RegGetValueA(
         VRegInternal_HookRegistry(),
         hkey,
         lpSubKey,
@@ -15089,7 +15089,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegOpenKeyA(
     _Out_ const PHKEY phkResult
 )
 {
-    return VReg_OpenKeyA(
+    return VReg_RegOpenKeyA(
         VRegInternal_HookRegistry(),
         hKey,
         lpSubKey,
@@ -15103,7 +15103,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegOpenKeyW(
     _Out_ const PHKEY phkResult
 )
 {
-    return VReg_OpenKeyW(
+    return VReg_RegOpenKeyW(
         VRegInternal_HookRegistry(),
         hKey,
         lpSubKey,
@@ -15117,7 +15117,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegCreateKeyA(
     _Out_ const PHKEY phkResult
 )
 {
-    return VReg_CreateKeyA(
+    return VReg_RegCreateKeyA(
         VRegInternal_HookRegistry(),
         hKey,
         lpSubKey,
@@ -15131,7 +15131,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegCreateKeyW(
     _Out_ const PHKEY phkResult
 )
 {
-    return VReg_CreateKeyW(
+    return VReg_RegCreateKeyW(
         VRegInternal_HookRegistry(),
         hKey,
         lpSubKey,
@@ -15146,7 +15146,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegQueryValueA(
     _Inout_opt_ const PLONG lpcbData
 )
 {
-    return VReg_QueryValueA(
+    return VReg_RegQueryValueA(
         VRegInternal_HookRegistry(),
         hKey,
         lpSubKey,
@@ -15162,7 +15162,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegQueryValueW(
     _Inout_opt_ const PLONG lpcbData
 )
 {
-    return VReg_QueryValueW(
+    return VReg_RegQueryValueW(
         VRegInternal_HookRegistry(),
         hKey,
         lpSubKey,
@@ -15179,7 +15179,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegSetValueA(
     _In_ const DWORD cbData
 )
 {
-    return VReg_SetValueA(
+    return VReg_RegSetValueA(
         VRegInternal_HookRegistry(),
         hKey,
         lpSubKey,
@@ -15197,7 +15197,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegSetValueW(
     _In_ const DWORD cbData
 )
 {
-    return VReg_SetValueW(
+    return VReg_RegSetValueW(
         VRegInternal_HookRegistry(),
         hKey,
         lpSubKey,
@@ -15212,7 +15212,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegDeleteKeyA(
     _In_ const LPCSTR lpSubKey
 )
 {
-    return VReg_DeleteKeyA(
+    return VReg_RegDeleteKeyA(
         VRegInternal_HookRegistry(),
         hKey,
         lpSubKey
@@ -15224,7 +15224,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegDeleteKeyW(
     _In_ const LPCWSTR lpSubKey
 )
 {
-    return VReg_DeleteKeyW(
+    return VReg_RegDeleteKeyW(
         VRegInternal_HookRegistry(),
         hKey,
         lpSubKey
@@ -15238,7 +15238,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegEnumKeyA(
     _In_ const DWORD cchName
 )
 {
-    return VReg_EnumKeyA(
+    return VReg_RegEnumKeyA(
         VRegInternal_HookRegistry(),
         hKey,
         dwIndex,
@@ -15254,7 +15254,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegEnumKeyW(
     _In_ const DWORD cchName
 )
 {
-    return VReg_EnumKeyW(
+    return VReg_RegEnumKeyW(
         VRegInternal_HookRegistry(),
         hKey,
         dwIndex,
@@ -15272,7 +15272,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegSetKeyValueA(
     _In_ const DWORD cbData
 )
 {
-    return VReg_SetKeyValueA(
+    return VReg_RegSetKeyValueA(
         VRegInternal_HookRegistry(),
         hKey,
         lpSubKey,
@@ -15292,7 +15292,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegSetKeyValueW(
     _In_ const DWORD cbData
 )
 {
-    return VReg_SetKeyValueW(
+    return VReg_RegSetKeyValueW(
         VRegInternal_HookRegistry(),
         hKey,
         lpSubKey,
@@ -15309,7 +15309,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegDeleteKeyValueA(
     _In_opt_ const LPCSTR lpValueName
 )
 {
-    return VReg_DeleteKeyValueA(
+    return VReg_RegDeleteKeyValueA(
         VRegInternal_HookRegistry(),
         hKey,
         lpSubKey,
@@ -15323,7 +15323,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegDeleteKeyValueW(
     _In_opt_ const LPCWSTR lpValueName
 )
 {
-    return VReg_DeleteKeyValueW(
+    return VReg_RegDeleteKeyValueW(
         VRegInternal_HookRegistry(),
         hKey,
         lpSubKey,
@@ -15339,7 +15339,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegQueryMultipleValuesA(
     _Inout_opt_ const LPDWORD ldwTotsize
 )
 {
-    return VReg_QueryMultipleValuesA(
+    return VReg_RegQueryMultipleValuesA(
         VRegInternal_HookRegistry(),
         hKey,
         val_list,
@@ -15357,7 +15357,7 @@ static LSTATUS APIENTRY VRegInternal_HookRegQueryMultipleValuesW(
     _Inout_opt_ const LPDWORD ldwTotsize
 )
 {
-    return VReg_QueryMultipleValuesW(
+    return VReg_RegQueryMultipleValuesW(
         VRegInternal_HookRegistry(),
         hKey,
         val_list,
@@ -15676,7 +15676,7 @@ static LSTATUS VRegInternal_RefuseMountPathW(
             break;
         }
 
-        opened = VReg_OpenKeyExW(
+        opened = VReg_RegOpenKeyExW(
             pRegistry,
             hKey,
             VRegInternal_WStringText(&prefix),
@@ -15691,7 +15691,7 @@ static LSTATUS VRegInternal_RefuseMountPathW(
         // An empty path may answer hKey itself rather than a new handle.
         if (hProbe != hKey)
         {
-            VReg_CloseKey(
+            VReg_RegCloseKey(
                 pRegistry,
                 hProbe
             );
