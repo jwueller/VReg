@@ -93,7 +93,7 @@ OverlayMount::OverlayMount() :
         )
         == ERROR_SUCCESS
     );
-    m_hive = MakeLayeredHive(m_native, m_appHive.Root(), L"Lower");
+    m_hive = MakeOverlayHive(m_native, m_appHive.Root(), L"Lower");
     m_registry = MakeVirtualRegistry(m_native);
     REQUIRE(VReg_Mount(m_registry, HKEY_CURRENT_USER, L"VRegOracle", m_hive, 0) == ERROR_SUCCESS);
 }

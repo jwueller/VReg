@@ -124,17 +124,17 @@ One struct covers every kind of hive. What varies is the lower behind the
 node tree, which the hive reaches only through a `VRegHiveVtbl` and its
 context, as `fopencookie` makes a `FILE` from functions and a cookie:
 
-- `VRegHive_Create`: nothing below; in memory, starts empty. The flags that
+- `VRegHive_CreateInMemory`: nothing below; in memory, starts empty. The flags that
   describe a node's relation to the lower layer stay clear in it.
 - `VRegHive_CreateCustom(table, context)`: the caller's table, the second
   extension point beside `VRegVtbl`: data, not interception. Its writes go
   through to the slots.
-- `VRegHive_CreateLayered(lower, lower root, lower path, view)`: a registry
+- `VRegHive_CreateOverlay(lower, lower root, lower path, view)`: a registry
   subtree, through an internal implementation of the table ("Hive lowers
   over a registry" in `vreg.h`) whose context holds the lower registry,
   root, path and view. It reads its
   own upper tree first and falls through to the lower key. The lower layer
-  can be native or another virtual registry. A frozen layered hive answers
+  can be native or another virtual registry. A frozen overlay hive answers
   an untouched key with a handle of its lower registry, and the virtual
   registry it is mounted in sends later calls on that handle to its base,
   so the lower registry must be that base or answer the same handles.
@@ -172,20 +172,20 @@ The nodes are the hive's records of its keys:
   runs: look up, unlock, call the slot, lock again and insert, finding what
   another thread inserted meanwhile. A custom hive opens and creates one
   name per slot call, so every record holds the token of its own key; the
-  layered hive opens the whole rest of a path in one lower call.
-- Writes have a mode per hive, which its constructor sets: copy-up (in
-  memory and layered) keeps them in the hive's own layer; write-through
-  (custom) sends them to the slots and then updates the records: a created
+  overlay hive opens the whole rest of a path in one lower call.
+- Writes follow the hive's kind: an in-memory or overlay hive keeps them in
+  its own layer (copy-up); a custom hive sends them to the slots
+  (write-through) and then updates the records: a created
   key gets a record with its token, a deleted one is marked deleted, and
   the watches fire as for any write. A null write slot answers
   `ERROR_ACCESS_DENIED`; without `CreateKey` an existing key still opens,
   as on a frozen hive. A null `QueryInfo` is derived by enumerating keys and
   values once; a null `CheckKey` succeeds.
 - The access mask of an open and the frozen hand-out never reach a
-  provider. The layered hive opens its lower through a private variant of
+  provider. The overlay hive opens its lower through a private variant of
   `OpenKey` that takes the access and can hand the opened key out as a
   redirect ("this key is answered by registry R at key K"); a frozen
-  layered hive answers an untouched key that way, and the virtual registry
+  overlay hive answers an untouched key that way, and the virtual registry
   forwards a call on a redirect through one helper that closes the key
   after. The redirect stays private: its constraint, that later calls on
   the handle go to the mounting registry's base, is a sharp edge to
@@ -215,7 +215,7 @@ The nodes are the hive's records of its keys:
 - A custom hive's delta is empty, which is what the hive holds itself: its
   records are all transparent, so the snapshot of the upper layer has
   nothing to write.
-- The layered hive's lower reopens its key by path on every call and keeps
+- The overlay hive's lower reopens its key by path on every call and keeps
   no handle per record (the comment at "Hive lowers over a registry" in
   `vreg.h`): the reopen is transparent to the caller, and a handle per
   record would stay pinned for the hive's life.
@@ -395,7 +395,7 @@ into a mount. The last case is resolved by the parent's native path:
   case-insensitively, while the path is matched against the mount point.
   Below the mount point the name is an ordinary key, since a hive's own tree
   is not a registry view. The longest matching mount wins.
-- Each mount has a view, in the `REGSAM` vocabulary `VRegHive_CreateLayered`
+- Each mount has a view, in the `REGSAM` vocabulary `VRegHive_CreateOverlay`
   uses for its lower view too: `KEY_WOW64_64KEY`,
   `KEY_WOW64_32KEY`, or 0 (the default) for both. A call is of the view its
   `samDesired` names (`RRF_SUBKEY_WOW64*KEY` for `RegGetValue`), else of the

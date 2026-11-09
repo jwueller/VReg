@@ -332,7 +332,7 @@ TEST_CASE("A size-only query of an Hive upper value copies no data")
 {
     AppHive appHive;
     OwnedRegistry native = MakeNativeRegistry();
-    OwnedHive overlay = MakeLayeredHive(native, appHive.Root(), L"");
+    OwnedHive overlay = MakeOverlayHive(native, appHive.Root(), L"");
     OwnedRegistry registry = MakeVirtualRegistry(native);
     REQUIRE(
         VReg_Mount(registry, HKEY_CURRENT_USER, L"SizeOnly", overlay, 0) == ERROR_SUCCESS
@@ -348,7 +348,7 @@ TEST_CASE("A size-only query of an Hive lower value copies no data")
     OwnedRegistry native = MakeNativeRegistry();
     SetBigValue(native, appHive.Root());
 
-    OwnedHive overlay = MakeLayeredHive(native, appHive.Root(), L"");
+    OwnedHive overlay = MakeOverlayHive(native, appHive.Root(), L"");
     OwnedRegistry registry = MakeVirtualRegistry(native);
     REQUIRE(
         VReg_Mount(registry, HKEY_CURRENT_USER, L"SizeOnly", overlay, 0) == ERROR_SUCCESS

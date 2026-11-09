@@ -204,11 +204,11 @@ inline OwnedRegistry MakeVirtualRegistry(
 inline OwnedHive MakeHive()
 {
     OwnedHive hive;
-    REQUIRE(VRegHive_Create(hive.Receive()) == ERROR_SUCCESS);
+    REQUIRE(VRegHive_CreateInMemory(hive.Receive()) == ERROR_SUCCESS);
     return hive;
 }
 
-inline OwnedHive MakeLayeredHive(
+inline OwnedHive MakeOverlayHive(
     VReg* const pLower,
     const HKEY hLowerRoot,
     const wchar_t* const pszLowerPath,
@@ -216,7 +216,7 @@ inline OwnedHive MakeLayeredHive(
 )
 {
     OwnedHive hive;
-    const auto status = VRegHive_CreateLayered(pLower, hLowerRoot, pszLowerPath, samLowerView, hive.Receive());
+    const auto status = VRegHive_CreateOverlay(pLower, hLowerRoot, pszLowerPath, samLowerView, hive.Receive());
     REQUIRE(status == ERROR_SUCCESS);
     return hive;
 }

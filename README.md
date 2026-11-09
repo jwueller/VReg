@@ -13,7 +13,7 @@ It grew out of the virtual registry in [DirectRetrofit](https://retrofit.games).
   opaque registry handle; the flat `VReg_*` functions take it first and
   mirror every member of the family, names and signatures alike (ANSI and
   wide, `Ex` and pre-`Ex`), and the `UNICODE` macros select among them as
-  among the functions. Native, virtual and in-memory registries are
+  among the functions. Native, virtual and custom registries are
   interchangeable behind it, and `VReg_CreateCustom` makes one from a
   function table of your own (a `VRegVtbl` with a slot per form) and an
   object its slots reach through `VReg_GetContext`; a slot left null is
@@ -40,6 +40,27 @@ It grew out of the virtual registry in [DirectRetrofit](https://retrofit.games).
   works with several modules in one process that each link VReg statically.
 
 Windows only (x86, x64 and ARM64), and runs under Wine and Proton.
+
+## Registries and hives
+
+A `VReg` is behavior. It answers the whole `Reg*` API: every form, ANSI
+and wide, caller buffers and `ERROR_MORE_DATA`, predefined roots, WOW64
+views, paths and handles. It is what a caller, or the hooks, talk to.
+Three kinds: `VReg_CreateNative` is the real registry, `VReg_CreateVirtual`
+mounts hives over an optional base, and `VReg_CreateCustom` is yours, a
+table with a slot per form, for tracing or filtering.
+
+A `VRegHive` is content. It is a tree of keys and values below one root,
+with none of those rules: it knows no `HKEY_LOCAL_MACHINE`, no buffers and
+no views, and becomes visible only by mounting into a virtual registry,
+which supplies every Win32 rule on its behalf. Three kinds:
+`VRegHive_CreateInMemory` starts empty, `VRegHive_CreateOverlay` adds,
+overrides and deletes over a key of another registry, and
+`VRegHive_CreateCustom` is yours, a table of slots that answer data and
+nothing else.
+
+Supply a hive when you have data. Supply a registry when you must change
+how the API behaves.
 
 ## Using it
 
@@ -117,7 +138,7 @@ VReg* native;
 VReg* registry;
 VRegHive* overlay;
 VReg_CreateNative(&native);
-VRegHive_CreateLayered(native, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", 0, &overlay);
+VRegHive_CreateOverlay(native, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", 0, &overlay);
 VReg_CreateVirtual(native, &registry);
 VReg_Mount(registry, HKEY_CURRENT_USER, L"Software\\Vendor\\Game", overlay, 0);
 
@@ -140,8 +161,8 @@ stays the hive's own.
 VRegHive* machine;
 VRegHive* user;
 VReg* registry;
-VRegHive_Create(&machine);
-VRegHive_Create(&user);
+VRegHive_CreateInMemory(&machine);
+VRegHive_CreateInMemory(&user);
 VReg_CreateVirtual(NULL, &registry);   // no base: nothing else exists
 VReg_Mount(registry, HKEY_LOCAL_MACHINE, L"", machine, 0);
 VReg_Mount(registry, HKEY_CURRENT_USER, L"", user, 0);
@@ -233,7 +254,7 @@ VReg* registry;
 VRegHive* hive;
 VReg_CreateNative(&native);
 VReg_CreateVirtual(native, &registry);
-VRegHive_Create(&hive);
+VRegHive_CreateInMemory(&hive);
 VReg_Mount(registry, HKEY_LOCAL_MACHINE, L"Software\\Vendor\\Game", hive, 0);
 // Fill the hive through registry (or VReg_ApplyOperations), then:
 VRegHive_Freeze(hive);

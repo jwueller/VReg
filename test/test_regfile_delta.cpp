@@ -33,8 +33,8 @@ public:
             )
             == ERROR_SUCCESS
         );
-        m_modified = MakeLayeredHive(m_native, m_appHive.Root(), L"Lower");
-        m_fresh = MakeLayeredHive(m_native, m_appHive.Root(), L"Lower");
+        m_modified = MakeOverlayHive(m_native, m_appHive.Root(), L"Lower");
+        m_fresh = MakeOverlayHive(m_native, m_appHive.Root(), L"Lower");
         m_modifiedRegistry = MakeVirtualRegistry(m_native);
         m_freshRegistry = MakeVirtualRegistry(m_native);
         REQUIRE(

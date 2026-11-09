@@ -45,7 +45,7 @@ public:
             )
             == ERROR_SUCCESS
         );
-        m_overlay = MakeLayeredHive(m_lowerRegistry, m_appHive.Root(), L"Lower");
+        m_overlay = MakeOverlayHive(m_lowerRegistry, m_appHive.Root(), L"Lower");
         m_registry = MakeVirtualRegistry(m_lowerRegistry);
         REQUIRE(
             VReg_Mount(

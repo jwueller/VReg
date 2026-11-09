@@ -56,16 +56,16 @@ extern "C" {
 
 // Raised with every change to this file; the tweak is always 0.
 #define VREG_VERSION_MAJOR 0
-#define VREG_VERSION_MINOR 13
+#define VREG_VERSION_MINOR 14
 #define VREG_VERSION_PATCH 0
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
 #define VREG_VERSION (                                                         \
-    ((ULONGLONG)VREG_VERSION_MAJOR << 48)                                      \
-    | ((ULONGLONG)VREG_VERSION_MINOR << 32)                                    \
-    | ((ULONGLONG)VREG_VERSION_PATCH << 16)                                    \
-    | (ULONGLONG)VREG_VERSION_TWEAK                                            \
+    ((ULONGLONG)VREG_VERSION_MAJOR << 48) |                                    \
+    ((ULONGLONG)VREG_VERSION_MINOR << 32) |                                    \
+    ((ULONGLONG)VREG_VERSION_PATCH << 16) |                                    \
+    ((ULONGLONG)VREG_VERSION_TWEAK <<  0)                                      \
 )
 
 // ==========================================================================
@@ -784,11 +784,11 @@ VREG_DECL void WINAPI VReg_Destroy(
 /**
  * @brief Storage for one subtree of a virtual namespace: a tree with one
  *  anonymous root, mounted at a path by a virtual registry, held in memory
- *  on its own, layered over a key of another registry, or answered by the
+ *  on its own, as an overlay over a key of another registry, or answered by the
  *  slots of a @ref VRegHiveVtbl (@ref VRegHive_CreateCustom).
  *
  *  On its own, the hive starts empty and holds everything written to it.
- *  Layered over a lower key, reads fall through to that key and writes stay
+ *  As an overlay over a lower key, reads fall through to that key and writes stay
  *  in memory: the hive's own layer adds and overrides keys and values.
  *  Deleting a lower value or key leaves a tombstone that hides it; a key
  *  deleted and created again, or emptied with `RegDeleteTreeW`, becomes
@@ -803,7 +803,7 @@ VREG_DECL void WINAPI VReg_Destroy(
  *  provider's slots) is never called with the lock held, so a lower call
  *  that takes a long time cannot hold up the hive.
  *
- *  Frozen, a layered hive answers an open of a key it has nothing at or below
+ *  Frozen, an overlay hive answers an open of a key it has nothing at or below
  *  with the lower registry's own handle. A virtual registry sends later calls
  *  on such a handle to its base, so a frozen hive's lower registry MUST be
  *  that base or answer the same handles.
@@ -818,14 +818,14 @@ VREG_DECL void WINAPI VReg_Destroy(
 typedef struct VRegHive VRegHive;
 
 /// A hive held entirely in memory; starts empty.
-VREG_DECL LSTATUS WINAPI VRegHive_Create(
+VREG_DECL LSTATUS WINAPI VRegHive_CreateInMemory(
     _Outptr_ VRegHive** ppHive
 );
 
 /// A hive over the key @p pszLowerPath below @p hLowerRoot of @p pLower,
 /// which MUST outlive the hive. @p samLowerView (@ref KEY_WOW64_64KEY,
 /// @ref KEY_WOW64_32KEY or 0) is added to every lower open.
-VREG_DECL LSTATUS WINAPI VRegHive_CreateLayered(
+VREG_DECL LSTATUS WINAPI VRegHive_CreateOverlay(
     _In_ VReg* pLower,
     _In_ HKEY hLowerRoot,
     _In_opt_ LPCWSTR pszLowerPath,
@@ -994,7 +994,7 @@ typedef void WINAPI VRegHiveDestroyFunction(
  *  VReg holds no lock of its own across a slot call; the provider locks its
  *  own state. A slot never sees the access a key was opened with.
  */
-typedef struct VRegHiveVtbl
+typedef struct
 {
     VRegHiveOpenKeyFunction* OpenKey;
     VRegHiveCreateKeyFunction* CreateKey;
@@ -2324,7 +2324,7 @@ typedef struct
     HKEY hKey;
 } VRegInternalRedirect;
 
-/// Where an open landed: a node of the hive, or (for a key a frozen layered
+/// Where an open landed: a node of the hive, or (for a key a frozen overlay
 /// hive leaves untouched) a redirect to the key its lower registry opened.
 typedef struct
 {
@@ -2443,7 +2443,7 @@ VREG_DECL _Ret_notnull_ VRegHive* VRegInternal_NodeHive(
 );
 
 /// Opens the key @p cPath components below @p pParent. On a writable
-/// layered hive the nodes that stand for lower keys are added on the way,
+/// overlay hive the nodes that stand for lower keys are added on the way,
 /// which changes nothing the hive answers.
 VREG_DECL LSTATUS VRegInternal_HiveOpenKey(
     _In_ VRegHive* pHive,
@@ -2561,7 +2561,7 @@ VREG_DECL LSTATUS VRegInternal_HiveCheckKey(
  *  @p hEvent.
  *
  * @note Only writes made through the hive are seen; a change in the
- *  registry below a layered hive is not.
+ *  registry below an overlay hive is not.
  */
 VREG_DECL LSTATUS VRegInternal_HiveWatch(
     _In_ VRegHive* pHive,
@@ -2654,9 +2654,12 @@ VREG_DECL LSTATUS VRegInternal_HiveSnapshotUpper(
 
 /// The kinds of @ref VReg: one @ref VReg_CreateCustom made over a table, and
 /// the two VReg implements itself.
-#define VREG_INTERNAL_KIND_CUSTOM 0
-#define VREG_INTERNAL_KIND_NATIVE 1
-#define VREG_INTERNAL_KIND_VIRTUAL 2
+typedef enum
+{
+    VREG_INTERNAL_KIND_CUSTOM,
+    VREG_INTERNAL_KIND_NATIVE,
+    VREG_INTERNAL_KIND_VIRTUAL,
+} VRegInternalKind;
 
 /// @ref NtQueryKey, the one `ntdll` function a virtual registry uses to find
 /// the native path of a real key.
@@ -2671,11 +2674,9 @@ typedef LONG (NTAPI* VRegInternal_NtQueryKeyFunction)(
 /// A registry: its kind and what the kind needs.
 struct VReg
 {
-    /// @ref VREG_INTERNAL_KIND_CUSTOM, @ref VREG_INTERNAL_KIND_NATIVE or
-    /// @ref VREG_INTERNAL_KIND_VIRTUAL.
-    DWORD dwKind;
+    VRegInternalKind kind;
 
-    /// The member of @ref dwKind.
+    /// The member of @ref kind.
     union
     {
         /// @ref VREG_INTERNAL_KIND_CUSTOM: the table it was created with and
@@ -3570,7 +3571,7 @@ static _Ret_notnull_ const VRegVtbl* VRegInternal_SlotsOf(
     _In_ const VReg* const pRegistry
 )
 {
-    return pRegistry->dwKind == VREG_INTERNAL_KIND_CUSTOM ? pRegistry->implementation.custom.lpVtbl : &VRegInternal_NoSlots;
+    return pRegistry->kind == VREG_INTERNAL_KIND_CUSTOM ? pRegistry->implementation.custom.lpVtbl : &VRegInternal_NoSlots;
 }
 
 typedef struct
@@ -6030,10 +6031,15 @@ VREG_DECL UINT_PTR VRegInternal_IndexFromVirtualHKey(_In_opt_ const HKEY hKey)
 // Hives
 // ==========================================================================
 
-/// How a hive writes: into its own layer over the lower (copy-up), or
-/// through to the lower's slots.
-#define VREG_INTERNAL_HIVE_COPY_UP 0
-#define VREG_INTERNAL_HIVE_WRITE_THROUGH 1
+/// The kinds of @ref VRegHive. An in-memory or overlay hive keeps writes in
+/// its own layer over the lower (copy-up); a custom hive writes through to
+/// the provider's slots.
+typedef enum
+{
+    VREG_INTERNAL_HIVE_IN_MEMORY,
+    VREG_INTERNAL_HIVE_OVERLAY,
+    VREG_INTERNAL_HIVE_CUSTOM,
+} VRegInternalHiveKind;
 
 struct VRegHive
 {
@@ -6045,8 +6051,7 @@ struct VRegHive
     /// lower over a registry, which the hive then opens through it.
     VRegInternal_HiveOpenLowerFunction* pfnOpenLower;
 
-    /// @ref VREG_INTERNAL_HIVE_COPY_UP or @ref VREG_INTERNAL_HIVE_WRITE_THROUGH.
-    DWORD dwWriteMode;
+    VRegInternalHiveKind kind;
 
     SRWLOCK lock;
     volatile LONG isFrozen;
@@ -6098,7 +6103,7 @@ VREG_DECL BOOL VRegInternal_HiveIsFrozen(_In_ VRegHive* const pHive)
 /// A custom hive keeps locking once frozen, since it still adds records.
 static BOOL VRegInternal_HiveIsLockFree(_In_ VRegHive* const pHive)
 {
-    return VRegInternal_HiveIsFrozen(pHive) && pHive->dwWriteMode == VREG_INTERNAL_HIVE_COPY_UP;
+    return VRegInternal_HiveIsFrozen(pHive) && pHive->kind != VREG_INTERNAL_HIVE_CUSTOM;
 }
 
 static BOOL VRegInternal_HiveLockRead(_In_ VRegHive* const pHive)
@@ -6593,7 +6598,7 @@ static LSTATUS VRegInternal_HiveQueryLowerClass(
 static LSTATUS VRegInternal_HiveCreate(
     _In_opt_ const VRegHiveVtbl* const pLowerVtbl,
     _In_opt_ void* const pvLowerContext,
-    const DWORD dwWriteMode,
+    const VRegInternalHiveKind kind,
     _Outptr_ VRegHive** const ppHive
 )
 {
@@ -6603,7 +6608,7 @@ static LSTATUS VRegInternal_HiveCreate(
     if (!pHive)
         return ERROR_OUTOFMEMORY;
 
-    pHive->dwWriteMode = dwWriteMode;
+    pHive->kind = kind;
     InitializeSRWLock(&pHive->lock);
 
     pRoot = (VRegInternalNode*)VRegInternal_AllocZeroed(sizeof(VRegInternalNode));
@@ -6637,9 +6642,9 @@ static LSTATUS VRegInternal_HiveCreate(
     return ERROR_SUCCESS;
 }
 
-VREG_DECL LSTATUS WINAPI VRegHive_Create(_Outptr_ VRegHive** const ppHive)
+VREG_DECL LSTATUS WINAPI VRegHive_CreateInMemory(_Outptr_ VRegHive** const ppHive)
 {
-    return VRegInternal_HiveCreate(NULL, NULL, VREG_INTERNAL_HIVE_COPY_UP, ppHive);
+    return VRegInternal_HiveCreate(NULL, NULL, VREG_INTERNAL_HIVE_IN_MEMORY, ppHive);
 }
 
 VREG_DECL LSTATUS WINAPI VRegHive_CreateCustom(
@@ -6652,14 +6657,14 @@ VREG_DECL LSTATUS WINAPI VRegHive_CreateCustom(
     if (!pVtbl->OpenKey || !pVtbl->QueryValue || !pVtbl->EnumKey || !pVtbl->EnumValue)
         return ERROR_INVALID_PARAMETER;
 
-    return VRegInternal_HiveCreate(pVtbl, pvContext, VREG_INTERNAL_HIVE_WRITE_THROUGH, ppHive);
+    return VRegInternal_HiveCreate(pVtbl, pvContext, VREG_INTERNAL_HIVE_CUSTOM, ppHive);
 }
 
 VREG_DECL _Ret_maybenull_ void* WINAPI VRegHive_GetContext(
     _In_ VRegHive* const pHive
 )
 {
-    return pHive->dwWriteMode == VREG_INTERNAL_HIVE_WRITE_THROUGH ? pHive->pvLowerContext : NULL;
+    return pHive->kind == VREG_INTERNAL_HIVE_CUSTOM ? pHive->pvLowerContext : NULL;
 }
 
 VREG_DECL _Ret_maybenull_ void* WINAPI VRegHiveKey_GetToken(
@@ -6830,7 +6835,7 @@ VREG_DECL void WINAPI VRegHive_Freeze(_In_ VRegHive* const pHive)
     // that see the flag afterwards skip the lock and see all their writes.
     AcquireSRWLockExclusive(&pHive->lock);
     WriteRelease(&pHive->isFrozen, 1);
-    for (i = 0; pHive->dwWriteMode == VREG_INTERNAL_HIVE_COPY_UP && i < pHive->nodes.count; ++i)
+    for (i = 0; pHive->kind != VREG_INTERNAL_HIVE_CUSTOM && i < pHive->nodes.count; ++i)
         VRegInternal_HiveDropWatches(VREG_INTERNAL_NODE_AT(&pHive->nodes, i));
 
     ReleaseSRWLockExclusive(&pHive->lock);
@@ -7260,7 +7265,7 @@ VREG_DECL LSTATUS VRegInternal_HiveCreateKey(
     pResult->redirect.hKey = NULL;
     *pdwDisposition = REG_OPENED_EXISTING_KEY;
 
-    if (pHive->dwWriteMode == VREG_INTERNAL_HIVE_WRITE_THROUGH)
+    if (pHive->kind == VREG_INTERNAL_HIVE_CUSTOM)
     {
         return VRegInternal_HiveCreateKeyThrough(
             pHive,
@@ -7501,7 +7506,7 @@ VREG_DECL LSTATUS VRegInternal_HiveDeleteKey(
     SIZE_T i;
     LSTATUS status;
 
-    if (pHive->dwWriteMode == VREG_INTERNAL_HIVE_WRITE_THROUGH)
+    if (pHive->kind == VREG_INTERNAL_HIVE_CUSTOM)
         return VRegInternal_HiveDeleteKeyThrough(pHive, pParent, pPath, cPath);
     if (VRegInternal_HiveIsFrozen(pHive))
         return ERROR_ACCESS_DENIED;
@@ -7779,7 +7784,7 @@ VREG_DECL LSTATUS VRegInternal_HiveDeleteTree(
     _Inout_ VRegInternalNode* const pNode
 )
 {
-    if (pHive->dwWriteMode == VREG_INTERNAL_HIVE_WRITE_THROUGH)
+    if (pHive->kind == VREG_INTERNAL_HIVE_CUSTOM)
         return VRegInternal_HiveDeleteTreeThrough(pHive, pNode);
     if (!VRegInternal_HiveLockWrite(pHive))
         return ERROR_ACCESS_DENIED;
@@ -7978,7 +7983,7 @@ VREG_DECL LSTATUS VRegInternal_HiveSetValue(
 )
 {
     LSTATUS status;
-    if (pHive->dwWriteMode != VREG_INTERNAL_HIVE_WRITE_THROUGH)
+    if (pHive->kind != VREG_INTERNAL_HIVE_CUSTOM)
         return VRegInternal_HiveStoreValue(pHive, pNode, VRegInternal_ViewOf(pszName), dwType, pData, cbData);
 
     if (VRegInternal_HiveIsFrozen(pHive) || !pHive->pLowerVtbl->SetValue)
@@ -8008,7 +8013,7 @@ VREG_DECL LSTATUS VRegInternal_HiveDeleteValue(
 
     if (VRegInternal_HiveIsFrozen(pHive))
         return ERROR_ACCESS_DENIED;
-    if (pHive->dwWriteMode == VREG_INTERNAL_HIVE_WRITE_THROUGH)
+    if (pHive->kind == VREG_INTERNAL_HIVE_CUSTOM)
     {
         if (!pHive->pLowerVtbl->DeleteValue)
             return ERROR_ACCESS_DENIED;
@@ -8785,7 +8790,7 @@ VREG_DECL LSTATUS WINAPI VRegHive_NotifyChange(
 // Hive lowers over a registry
 // ==========================================================================
 
-// The lower of a layered hive: a key of another registry, reached through
+// The lower of an overlay hive: a key of another registry, reached through
 // the slots of @ref VRegHiveVtbl like any lower. Every call opens the lower
 // key by its path again (the lower key's path, then the record's path in
 // the hive) and closes it after, as the hive did before it had a table, so
@@ -9133,7 +9138,7 @@ static const VRegHiveVtbl VRegInternal_RegistryLowerVtbl = {
     &VRegInternal_RegistryLowerDestroy,
 };
 
-VREG_DECL LSTATUS WINAPI VRegHive_CreateLayered(
+VREG_DECL LSTATUS WINAPI VRegHive_CreateOverlay(
     _In_ VReg* const pLower,
     _In_ const HKEY hLowerRoot,
     _In_opt_ const LPCWSTR pszLowerPath,
@@ -9157,7 +9162,7 @@ VREG_DECL LSTATUS WINAPI VRegHive_CreateLayered(
         return ERROR_OUTOFMEMORY;
     }
 
-    status = VRegInternal_HiveCreate(&VRegInternal_RegistryLowerVtbl, pContext, VREG_INTERNAL_HIVE_COPY_UP, ppHive);
+    status = VRegInternal_HiveCreate(&VRegInternal_RegistryLowerVtbl, pContext, VREG_INTERNAL_HIVE_OVERLAY, ppHive);
     if (status != ERROR_SUCCESS)
     {
         VRegInternal_WStringFree(&pContext->path);
@@ -9182,7 +9187,7 @@ VREG_DECL LSTATUS WINAPI VReg_CreateNative(
     if (!pRegistry)
         return ERROR_OUTOFMEMORY;
 
-    pRegistry->dwKind = VREG_INTERNAL_KIND_NATIVE;
+    pRegistry->kind = VREG_INTERNAL_KIND_NATIVE;
 
     // A resolved export is a plain code address, which only a data pointer
     // cast can carry into the typed slot.
@@ -9522,7 +9527,7 @@ VREG_DECL LSTATUS WINAPI VReg_OpenKeyExW(
     _Out_ const PHKEY phkResult
 )
 {
-    switch (pRegistry->dwKind)
+    switch (pRegistry->kind)
     {
     case VREG_INTERNAL_KIND_NATIVE:
         return pRegistry->implementation.native.RegOpenKeyExW(
@@ -9571,7 +9576,7 @@ VREG_DECL LSTATUS WINAPI VReg_CreateKeyExW(
     _Out_opt_ const LPDWORD lpdwDisposition
 )
 {
-    switch (pRegistry->dwKind)
+    switch (pRegistry->kind)
     {
     case VREG_INTERNAL_KIND_NATIVE:
         return pRegistry->implementation.native.RegCreateKeyExW(
@@ -9624,7 +9629,7 @@ VREG_DECL LSTATUS WINAPI VReg_CloseKey(
     _In_ const HKEY hKey
 )
 {
-    switch (pRegistry->dwKind)
+    switch (pRegistry->kind)
     {
     case VREG_INTERNAL_KIND_NATIVE:
         return pRegistry->implementation.native.RegCloseKey(
@@ -9658,7 +9663,7 @@ VREG_DECL LSTATUS WINAPI VReg_QueryValueExW(
     _When_(lpData == NULL, _Out_opt_) _When_(lpData != NULL, _Inout_opt_) const LPDWORD lpcbData
 )
 {
-    switch (pRegistry->dwKind)
+    switch (pRegistry->kind)
     {
     case VREG_INTERNAL_KIND_NATIVE:
         return pRegistry->implementation.native.RegQueryValueExW(
@@ -9707,7 +9712,7 @@ VREG_DECL LSTATUS WINAPI VReg_SetValueExW(
     _In_ const DWORD cbData
 )
 {
-    switch (pRegistry->dwKind)
+    switch (pRegistry->kind)
     {
     case VREG_INTERNAL_KIND_NATIVE:
         return pRegistry->implementation.native.RegSetValueExW(
@@ -9752,7 +9757,7 @@ VREG_DECL LSTATUS WINAPI VReg_DeleteValueW(
     _In_opt_ const LPCWSTR lpValueName
 )
 {
-    switch (pRegistry->dwKind)
+    switch (pRegistry->kind)
     {
     case VREG_INTERNAL_KIND_NATIVE:
         return pRegistry->implementation.native.RegDeleteValueW(
@@ -9787,7 +9792,7 @@ VREG_DECL LSTATUS WINAPI VReg_DeleteKeyExW(
     _Reserved_ const DWORD Reserved
 )
 {
-    switch (pRegistry->dwKind)
+    switch (pRegistry->kind)
     {
     case VREG_INTERNAL_KIND_NATIVE:
         return pRegistry->implementation.native.RegDeleteKeyExW(
@@ -9826,7 +9831,7 @@ VREG_DECL LSTATUS WINAPI VReg_DeleteTreeW(
     _In_opt_ const LPCWSTR lpSubKey
 )
 {
-    switch (pRegistry->dwKind)
+    switch (pRegistry->kind)
     {
     case VREG_INTERNAL_KIND_NATIVE:
         return pRegistry->implementation.native.RegDeleteTreeW(
@@ -9865,7 +9870,7 @@ VREG_DECL LSTATUS WINAPI VReg_EnumKeyExW(
     _Out_opt_ const PFILETIME lpftLastWriteTime
 )
 {
-    switch (pRegistry->dwKind)
+    switch (pRegistry->kind)
     {
     case VREG_INTERNAL_KIND_NATIVE:
         return pRegistry->implementation.native.RegEnumKeyExW(
@@ -9922,7 +9927,7 @@ VREG_DECL LSTATUS WINAPI VReg_EnumValueW(
     _Inout_opt_ const LPDWORD lpcbData
 )
 {
-    switch (pRegistry->dwKind)
+    switch (pRegistry->kind)
     {
     case VREG_INTERNAL_KIND_NATIVE:
         return pRegistry->implementation.native.RegEnumValueW(
@@ -9983,7 +9988,7 @@ VREG_DECL LSTATUS WINAPI VReg_QueryInfoKeyW(
     _Out_opt_ const PFILETIME lpftLastWriteTime
 )
 {
-    switch (pRegistry->dwKind)
+    switch (pRegistry->kind)
     {
     case VREG_INTERNAL_KIND_NATIVE:
         return pRegistry->implementation.native.RegQueryInfoKeyW(
@@ -10051,7 +10056,7 @@ VREG_DECL LSTATUS WINAPI VReg_LoadMUIStringW(
     _In_opt_ const LPCWSTR pszDirectory
 )
 {
-    switch (pRegistry->dwKind)
+    switch (pRegistry->kind)
     {
     case VREG_INTERNAL_KIND_NATIVE:
         return pRegistry->implementation.native.RegLoadMUIStringW(
@@ -10120,7 +10125,7 @@ VREG_DECL LSTATUS WINAPI VReg_GetValueW(
     _Inout_opt_ const LPDWORD pcbData
 )
 {
-    switch (pRegistry->dwKind)
+    switch (pRegistry->kind)
     {
     case VREG_INTERNAL_KIND_NATIVE:
         return pRegistry->implementation.native.RegGetValueW(
@@ -10171,7 +10176,7 @@ VREG_DECL LSTATUS WINAPI VReg_NotifyChangeKeyValue(
     _In_ const BOOL fAsynchronous
 )
 {
-    switch (pRegistry->dwKind)
+    switch (pRegistry->kind)
     {
     case VREG_INTERNAL_KIND_NATIVE:
         return pRegistry->implementation.native.RegNotifyChangeKeyValue(
@@ -10212,7 +10217,7 @@ VREG_DECL LSTATUS WINAPI VReg_FlushKey(
     _In_ const HKEY hKey
 )
 {
-    switch (pRegistry->dwKind)
+    switch (pRegistry->kind)
     {
     case VREG_INTERNAL_KIND_NATIVE:
         return pRegistry->implementation.native.RegFlushKey(
@@ -10243,7 +10248,7 @@ VREG_DECL void WINAPI VReg_Destroy(
     if (!pRegistry)
         return;
 
-    switch (pRegistry->dwKind)
+    switch (pRegistry->kind)
     {
     case VREG_INTERNAL_KIND_NATIVE:
         VRegInternal_Free(pRegistry);
@@ -10272,7 +10277,7 @@ VREG_DECL LSTATUS WINAPI VReg_CreateCustom(
     if (!pRegistry)
         return ERROR_OUTOFMEMORY;
 
-    pRegistry->dwKind = VREG_INTERNAL_KIND_CUSTOM;
+    pRegistry->kind = VREG_INTERNAL_KIND_CUSTOM;
     pRegistry->implementation.custom.lpVtbl = pVtbl;
     pRegistry->implementation.custom.pvContext = pvContext;
 
@@ -10284,7 +10289,9 @@ VREG_DECL _Ret_maybenull_ void* WINAPI VReg_GetContext(
     _In_ VReg* const pRegistry
 )
 {
-    return pRegistry->dwKind == VREG_INTERNAL_KIND_CUSTOM ? pRegistry->implementation.custom.pvContext : NULL;
+    return pRegistry->kind == VREG_INTERNAL_KIND_CUSTOM
+        ? pRegistry->implementation.custom.pvContext
+        : NULL;
 }
 
 // ==========================================================================
@@ -10374,20 +10381,29 @@ typedef struct
     VRegInternalWString nativeText;
 } VRegInternalTarget;
 
-#define VREG_INTERNAL_MOUNT_AT(pArray, index) VREG_INTERNAL_AT(pArray, VRegInternalMountPoint, index)
-#define VREG_INTERNAL_STRING_AT(pArray, index) VREG_INTERNAL_AT(pArray, VRegInternalWString, index)
-#define VREG_INTERNAL_VIEW_AT(pArray, index) VREG_INTERNAL_AT(pArray, VRegInternalWStringView, index)
+#define VREG_INTERNAL_MOUNT_AT(pArray, index) \
+    VREG_INTERNAL_AT(pArray, VRegInternalMountPoint, index)
 
-/// The view of the process: what a call without a view flag asks for.
-#define VREG_INTERNAL_PROCESS_VIEW (sizeof(void*) == 8 ? KEY_WOW64_64KEY : KEY_WOW64_32KEY)
+#define VREG_INTERNAL_STRING_AT(pArray, index) \
+    VREG_INTERNAL_AT(pArray, VRegInternalWString, index)
 
-#define VREG_INTERNAL_KEY_NAME_INFORMATION_CLASS ((ULONG)3)
-#define VREG_INTERNAL_NT_STATUS_BUFFER_OVERFLOW ((LONG)0x80000005)
-#define VREG_INTERNAL_NT_STATUS_BUFFER_TOO_SMALL ((LONG)0xC0000023)
+#define VREG_INTERNAL_VIEW_AT(pArray, index) \
+    VREG_INTERNAL_AT(pArray, VRegInternalWStringView, index)
 
-#define VREG_INTERNAL_KNOWN_NOTIFY_FILTERS \
-    (REG_NOTIFY_CHANGE_NAME | REG_NOTIFY_CHANGE_ATTRIBUTES | REG_NOTIFY_CHANGE_LAST_SET | REG_NOTIFY_CHANGE_SECURITY \
-        | REG_NOTIFY_THREAD_AGNOSTIC)
+#define VREG_INTERNAL_PROCESS_VIEW \
+    (sizeof(void*) == 8 ? KEY_WOW64_64KEY : KEY_WOW64_32KEY)
+
+#define VREG_INTERNAL_KEY_NAME_INFORMATION_CLASS    ((ULONG)3)
+#define VREG_INTERNAL_NT_STATUS_BUFFER_OVERFLOW     ((LONG)0x80000005)
+#define VREG_INTERNAL_NT_STATUS_BUFFER_TOO_SMALL    ((LONG)0xC0000023)
+
+#define VREG_INTERNAL_KNOWN_NOTIFY_FILTERS (                                   \
+    REG_NOTIFY_CHANGE_NAME |                                                   \
+    REG_NOTIFY_CHANGE_ATTRIBUTES |                                             \
+    REG_NOTIFY_CHANGE_LAST_SET |                                               \
+    REG_NOTIFY_CHANGE_SECURITY |                                               \
+    REG_NOTIFY_THREAD_AGNOSTIC                                                 \
+)
 
 /// @p psz, or an empty string for null: the hive layer takes no null names.
 static LPCWSTR VRegInternal_OrEmpty(_In_opt_ const LPCWSTR psz)
@@ -12084,7 +12100,11 @@ VREG_DECL LSTATUS WINAPI VRegInternal_VirtualRegGetValueW(
     // Native copies the stored bytes first, then the string with the
     // terminators it lacks, then the expansion, each over the previous one and
     // only if it fits.
-    VRegInternalBuffer stages[3] = {{0, 0, NULL}, {0, 0, NULL}, {0, 0, NULL}};
+    VRegInternalBuffer stages[3] = {
+        {0, 0, NULL},
+        {0, 0, NULL},
+        {0, 0, NULL},
+    };
     DWORD cbReported;
     DWORD dwTypeFlag;
     BOOL isAllowed;
@@ -12409,7 +12429,7 @@ VREG_DECL LSTATUS WINAPI VReg_CreateVirtual(
     if (!pRegistry)
         return ERROR_OUTOFMEMORY;
 
-    pRegistry->dwKind = VREG_INTERNAL_KIND_VIRTUAL;
+    pRegistry->kind = VREG_INTERNAL_KIND_VIRTUAL;
     pRegistry->implementation.virtualRegistry.pBase = pBase;
     InitializeSRWLock(&pRegistry->implementation.virtualRegistry.mountLock);
     *(void**)&pRegistry->implementation.virtualRegistry.pfnNtQueryKey =
@@ -12432,7 +12452,7 @@ VREG_DECL LSTATUS WINAPI VReg_Mount(
     SIZE_T i;
     LSTATUS status;
 
-    if (pRegistry->dwKind != VREG_INTERNAL_KIND_VIRTUAL || !VRegInternal_IsPredefinedHKey(hRoot))
+    if (pRegistry->kind != VREG_INTERNAL_KIND_VIRTUAL || !VRegInternal_IsPredefinedHKey(hRoot))
         return ERROR_INVALID_HANDLE;
     if (samView != 0 && samView != KEY_WOW64_64KEY && samView != KEY_WOW64_32KEY)
         return ERROR_INVALID_PARAMETER;

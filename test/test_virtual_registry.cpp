@@ -270,7 +270,7 @@ TEST_CASE("A frozen hive refuses writes and still answers reads")
 TEST_CASE("A hive created through the C functions freezes and is destroyed")
 {
     VRegHive* pHive = nullptr;
-    REQUIRE(VRegHive_Create(&pHive) == ERROR_SUCCESS);
+    REQUIRE(VRegHive_CreateInMemory(&pHive) == ERROR_SUCCESS);
 
     CHECK_FALSE(VRegInternal_HiveIsFrozen(pHive));
     VRegHive_Freeze(pHive);

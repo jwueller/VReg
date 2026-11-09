@@ -39,7 +39,7 @@ work is done; git keeps how it got there.
 - **Lower-registry access goes only through the flat functions on the base
   registry** (after hooking: the trampolines). A direct `::Reg*` call
   inside the library re-enters the hooks and bypasses test stubs.
-- **Frozen built-in hives are immutable** (in memory or layered), and their
+- **Frozen built-in hives are immutable** (in-memory or overlay), and their
   readers take no lock; a frozen custom hive only refuses writes, and keeps
   locking to add the records of keys it opens. The mount table is replaced
   copy-on-write, and old tables are never freed.
@@ -62,7 +62,7 @@ the API it sits beside.
   as C and as C++, and the tests are C++20. `WIN32_LEAN_AND_MEAN`,
   `NOMINMAX` and `UNICODE` everywhere in the library's own build.
 - Public functions are `VReg`, the object, an underscore and the verb,
-  as COM's `IUnknown_QueryInterface` macros are: `VRegHive_Create`,
+  as COM's `IUnknown_QueryInterface` macros are: `VRegHive_CreateInMemory`,
   `VRegScript_Parse`. The registry itself is the implied object
   (`VReg_Create`, `VReg_Mount`), and so is the library for what has no
   object (`VReg_CompareNames`); the `Reg*` family is `VReg_` plus the

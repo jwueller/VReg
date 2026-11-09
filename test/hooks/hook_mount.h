@@ -27,7 +27,7 @@ inline LONG InstallMount(
     VRegHive* pHive = nullptr;
     VReg* pNative = nullptr;
     VReg* pRegistry = nullptr;
-    LONG error = VRegHive_Create(&pHive);
+    LONG error = VRegHive_CreateInMemory(&pHive);
     if (error == ERROR_SUCCESS)
         error = VReg_CreateNative(&pNative);
     if (error == ERROR_SUCCESS)
