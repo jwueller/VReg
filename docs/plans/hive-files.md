@@ -25,10 +25,9 @@ which no snapshot format can carry.
 
 ## Shape
 
-Agent's choice, open until the maintainer confirms it: hive files are a hive
-concern, not a script one. A script is a sequence of operations, deletions
-included, which `VRegScript_CreateDelta` needs; a hive file is a snapshot of a
-subtree, which is what a hive is. So:
+Hive files are a hive concern, not a script one. A script is a sequence of
+operations, deletions included, which `VRegScript_CreateDelta` needs; a hive
+file is a snapshot of a subtree, which is what a hive is. So:
 
 - `VRegHive_CreateFromFile(path, &hive)`: an in-memory hive loaded from a
   file, with class names and last write times kept.
