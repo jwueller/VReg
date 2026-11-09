@@ -50,7 +50,7 @@ public:
 private:
     static ForwardingProvider& Of(VRegHive* const pHive) noexcept
     {
-        return *static_cast<ForwardingProvider*>(VRegGetHiveDelegate(pHive));
+        return *static_cast<ForwardingProvider*>(VRegGetHiveContext(pHive));
     }
 
     static std::wstring Join(const std::wstring& path, const LPCWSTR pszSubKey)

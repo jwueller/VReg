@@ -48,12 +48,12 @@ Every function is declared `VREG_DECL`, which `VREG_STATIC` turns into `static`.
   flat functions call them directly and neither needs a function table, a
   struct of its own or a cast.
 - Any other implementation is a custom registry: `VRegCreateCustom` makes
-  one over a `VRegVtbl` and a delegate, the implementation's own object,
-  which its slots reach through `VRegGetDelegate`. A wrapper's delegate
+  one over a `VRegVtbl` and a context, the implementation's own object,
+  which its slots reach through `VRegGetContext`. A wrapper's context
   keeps the registry it wraps. The shape is `fopencookie`'s: a handle made
   from a function table and a context pointer. Agent's choice: the slots
-  take the registry rather than the delegate (as `fopencookie`'s callbacks
-  do) so that they share the flat functions' typedefs; taking the delegate
+  take the registry rather than the context (as `fopencookie`'s callbacks
+  do) so that they share the flat functions' typedefs; taking the context
   would need a second typedef per form. Agent's choice: the name
   `VRegCreateCustom`, over a bare `VRegCreate` that reads like
   `VRegCreateKey`.
@@ -122,16 +122,16 @@ stay in the virtual registry.
 
 One struct covers every kind of hive. What varies is the lower behind the
 node tree, which the hive reaches only through a `VRegHiveVtbl` and its
-delegate, as `fopencookie` makes a `FILE` from functions and a cookie:
+context, as `fopencookie` makes a `FILE` from functions and a cookie:
 
 - `VRegCreateHive`: nothing below; in memory, starts empty. The flags that
   describe a node's relation to the lower layer stay clear in it.
-- `VRegCreateCustomHive(table, delegate)`: the caller's table, the second
+- `VRegCreateCustomHive(table, context)`: the caller's table, the second
   extension point beside `VRegVtbl`: data, not interception. Its writes go
   through to the slots.
 - `VRegCreateLayeredHive(lower, lower root, lower path, view)`: a registry
   subtree, through an internal implementation of the table ("Hive lowers
-  over a registry" in `vreg.h`) whose delegate holds the lower registry,
+  over a registry" in `vreg.h`) whose context holds the lower registry,
   root, path and view. It reads its
   own upper tree first and falls through to the lower key. The lower layer
   can be native or another virtual registry. A frozen layered hive answers
@@ -204,14 +204,14 @@ The nodes are the hive's records of its keys:
 Agent's choices, open until the maintainer confirms them:
 
 - The public pair mirrors the registry's: `VRegCreateCustomHive(table,
-  delegate, &hive)` and `VRegGetHiveDelegate(hive)`, freed with
+  context, &hive)` and `VRegGetHiveContext(hive)`, freed with
   `VRegDestroyHive`, over a `VRegHiveVtbl`. Passed over: a separate opaque
   type for custom hives, which would split every mount and script function
   in two.
 - Slots take the hive, as `VRegVtbl` slots take the registry, and reach
-  their object through `VRegGetHiveDelegate`, so both tables read alike and
+  their object through `VRegGetHiveContext`, so both tables read alike and
   a slot holds what `VRegNotifyHiveChange` needs. Passed over: slots that
-  take the delegate, as `fopencookie`'s callbacks take the cookie.
+  take the context, as `fopencookie`'s callbacks take the cookie.
 - `DeleteTree` is never derived from the other slots: a partial failure
   would leave a half-deleted tree that native never shows. Passed over:
   deleting subkeys one by one through `DeleteKey`.

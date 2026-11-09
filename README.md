@@ -16,7 +16,7 @@ It grew out of the virtual registry in [DirectRetrofit](https://retrofit.games).
   among the functions. Native, virtual and in-memory registries are
   interchangeable behind it, and `VRegCreateCustom` makes one from a
   function table of your own (a `VRegVtbl` with a slot per form) and an
-  object its slots reach through `VRegGetDelegate`; a slot left null is
+  object its slots reach through `VRegGetContext`; a slot left null is
   derived from the wide `Ex` forms. Each form has a function typedef
   (`VRegOpenKeyExWFunction`) that the flat function and the slot share.
 - **Hives mounted into a virtual namespace.** A virtual registry mounts
@@ -187,7 +187,7 @@ static const VRegHiveVtbl CLOCK = {.OpenKey = OpenKey, .QueryValue = QueryValue,
 
 VRegHive* clock;
 VReg* registry;
-VRegCreateCustomHive(&CLOCK, NULL, &clock);   // the delegate: VRegGetHiveDelegate
+VRegCreateCustomHive(&CLOCK, NULL, &clock);   // the context: VRegGetHiveContext
 VRegCreateVirtual(NULL, &registry);
 VRegMount(registry, HKEY_CURRENT_USER, L"Software\\Clock", clock, 0);
 ```
@@ -205,7 +205,7 @@ which copy, so a computed value can live on the stack.
   as on a frozen hive. `DeleteTree` is never made from the other slots.
 - **Optional slots**: without `QueryInfo`, `RegQueryInfoKey` enumerates the
   key's subkeys and values once; without `CheckKey`, `RegFlushKey`
-  succeeds; `Destroy` frees what the delegate owns when the hive goes.
+  succeeds; `Destroy` frees what the context owns when the hive goes.
 - **Threads**: slots MAY run on any thread, concurrently, and under another
   module's loader lock, so they MUST NOT load a module, create a thread or
   wait on a lock a loader-lock holder could own. VReg holds no lock of its

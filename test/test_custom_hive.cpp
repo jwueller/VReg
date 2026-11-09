@@ -62,7 +62,7 @@ public:
 private:
     static ComputedProvider& Of(VRegHive* const pHive) noexcept
     {
-        return *static_cast<ComputedProvider*>(VRegGetHiveDelegate(pHive));
+        return *static_cast<ComputedProvider*>(VRegGetHiveContext(pHive));
     }
 
     const ComputedKey* KeyOf(VRegHiveKey* const pKey) noexcept
@@ -230,7 +230,7 @@ private:
         VRegHiveResult* const pResult
     )
     {
-        auto& self = *static_cast<GrowingProvider*>(VRegGetHiveDelegate(pHive));
+        auto& self = *static_cast<GrowingProvider*>(VRegGetHiveContext(pHive));
         if (VRegCompareNames(pszName, L"Grows") != 0)
             return ERROR_FILE_NOT_FOUND;
 
@@ -567,7 +567,7 @@ TEST_CASE("A custom hive needs OpenKey, QueryValue, EnumKey and EnumValue")
     OwnedHive hive;
     CHECK(VRegCreateCustomHive(&complete, nullptr, hive.Receive()) == ERROR_SUCCESS);
     CHECK(hive.Get() != nullptr);
-    CHECK(VRegGetHiveDelegate(hive) == nullptr);
+    CHECK(VRegGetHiveContext(hive) == nullptr);
 
     VRegHiveVtbl missing = complete;
     SECTION("OpenKey")
@@ -832,7 +832,7 @@ public:
 private:
     static ChangingProvider& Of(VRegHive* const pHive) noexcept
     {
-        return *static_cast<ChangingProvider*>(VRegGetHiveDelegate(pHive));
+        return *static_cast<ChangingProvider*>(VRegGetHiveContext(pHive));
     }
 
     ChangingKey* KeyOf(VRegHiveKey* const pKey) noexcept

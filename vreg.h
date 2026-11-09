@@ -57,8 +57,8 @@ extern "C" {
 
 // Raised with every change to this file; the tweak is always 0.
 #define VREG_VERSION_MAJOR 0
-#define VREG_VERSION_MINOR 8
-#define VREG_VERSION_PATCH 2
+#define VREG_VERSION_MINOR 9
+#define VREG_VERSION_PATCH 0
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -610,8 +610,8 @@ typedef LSTATUS WINAPI VRegQueryMultipleValuesWFunction(
  */
 struct VRegVtbl
 {
-    /// Frees what the delegate owns, before @ref VRegDestroy frees the
-    /// registry. Null for a delegate its creator frees some other way.
+    /// Frees what the context owns, before @ref VRegDestroy frees the
+    /// registry. Null for a context its creator frees some other way.
     void (WINAPI* Destroy)(
         _In_ VReg* pThis
     );
@@ -758,17 +758,17 @@ VREG_DECL VRegQueryMultipleValuesWFunction VRegQueryMultipleValuesW;
 #endif
 
 /// Makes a registry whose calls go to the slots of @p pVtbl, which MUST
-/// outlive it. @p pDelegate is the object of the implementation, which its
-/// slots reach through @ref VRegGetDelegate. Freed with @ref VRegDestroy.
+/// outlive it. @p pvContext is the object of the implementation, which its
+/// slots reach through @ref VRegGetContext. Freed with @ref VRegDestroy.
 VREG_DECL LSTATUS WINAPI VRegCreateCustom(
     _In_ const VRegVtbl* pVtbl,
-    _In_opt_ void* pDelegate,
+    _In_opt_ void* pvContext,
     _Outptr_ VReg** ppRegistry
 );
 
-/// The delegate a registry @ref VRegCreateCustom made was created with; null
+/// The context a registry @ref VRegCreateCustom made was created with; null
 /// for any other registry.
-VREG_DECL _Ret_maybenull_ void* WINAPI VRegGetDelegate(
+VREG_DECL _Ret_maybenull_ void* WINAPI VRegGetContext(
     _In_ VReg* pRegistry
 );
 
@@ -967,7 +967,7 @@ typedef LSTATUS WINAPI VRegHiveCheckKeyFunction(
     _In_ VRegHiveKey* pKey
 );
 
-/// Frees what the delegate owns, before VReg frees the hive.
+/// Frees what the context owns, before VReg frees the hive.
 typedef void WINAPI VRegHiveDestroyFunction(
     _In_ VRegHive* pHive
 );
@@ -2639,11 +2639,11 @@ struct VReg
     union
     {
         /// @ref VREG_INTERNAL_KIND_CUSTOM: the table it was created with and
-        /// the object its slots reach through @ref VRegGetDelegate.
+        /// the object its slots reach through @ref VRegGetContext.
         struct
         {
             const VRegVtbl* lpVtbl;
-            void* pDelegate;
+            void* pvContext;
         } custom;
 
         /// @ref VREG_INTERNAL_KIND_NATIVE: the live table, see
@@ -6530,9 +6530,9 @@ static LSTATUS VReg_HiveCreate(
         pRoot->isLowerBacked = TRUE;
     }
 
-    // Set last, so a failure above leaves the delegate to the caller.
+    // Set last, so a failure above leaves the context to the caller.
     pHive->pLowerVtbl = pLowerVtbl;
-    pHive->pLowerDelegate = pLowerDelegate;
+    pHive->pvLowerContext = pvLowerContext;
     pHive->pRoot = pRoot;
     *ppHive = pHive;
     return ERROR_SUCCESS;
@@ -6553,12 +6553,12 @@ VREG_DECL LSTATUS WINAPI VRegCreateCustomHive(
     if (!pVtbl->OpenKey || !pVtbl->QueryValue || !pVtbl->EnumKey || !pVtbl->EnumValue)
         return ERROR_INVALID_PARAMETER;
 
-    return VReg_HiveCreate(pVtbl, pDelegate, VREG_INTERNAL_HIVE_WRITE_THROUGH, ppHive);
+    return VReg_HiveCreate(pVtbl, pvContext, VREG_INTERNAL_HIVE_WRITE_THROUGH, ppHive);
 }
 
-VREG_DECL _Ret_maybenull_ void* WINAPI VRegGetHiveDelegate(_In_ VRegHive* const pHive)
+VREG_DECL _Ret_maybenull_ void* WINAPI VRegGetHiveContext(_In_ VRegHive* const pHive)
 {
-    return pHive->dwWriteMode == VREG_INTERNAL_HIVE_WRITE_THROUGH ? pHive->pLowerDelegate : NULL;
+    return pHive->dwWriteMode == VREG_INTERNAL_HIVE_WRITE_THROUGH ? pHive->pvLowerContext : NULL;
 }
 
 VREG_DECL _Ret_maybenull_ void* WINAPI VRegGetHiveKeyToken(_In_ VRegHiveKey* const pKey)
@@ -8526,7 +8526,7 @@ static LSTATUS VReg_RegistryLowerOpen(
     _Out_ PHKEY const phKey
 )
 {
-    const VReg_RegistryLower* const pLower = (const VReg_RegistryLower*)pHive->pLowerDelegate;
+    const VReg_RegistryLower* const pLower = (const VReg_RegistryLower*)pHive->pvLowerContext;
     const VReg_WStringView subKey = VReg_ViewOf(pszSubKey);
     VReg_WString path = {0, 0, NULL};
     LSTATUS status;
@@ -8556,7 +8556,7 @@ static LSTATUS VReg_RegistryLowerOpen(
 
 static void VReg_RegistryLowerClose(_In_ VRegHive* const pHive, _In_ const HKEY hKey)
 {
-    const VReg_RegistryLower* const pLower = (const VReg_RegistryLower*)pHive->pLowerDelegate;
+    const VReg_RegistryLower* const pLower = (const VReg_RegistryLower*)pHive->pvLowerContext;
     VRegCloseKey(
         pLower->pRegistry,
         hKey
@@ -8583,7 +8583,7 @@ static LSTATUS VReg_RegistryLowerOpenAs(
 
     if (isRedirect)
     {
-        pRedirect->pRegistry = ((const VReg_RegistryLower*)pHive->pLowerDelegate)->pRegistry;
+        pRedirect->pRegistry = ((const VReg_RegistryLower*)pHive->pvLowerContext)->pRegistry;
         pRedirect->hKey = hKey;
     }
     else
@@ -8613,7 +8613,7 @@ static LSTATUS WINAPI VReg_RegistryLowerQueryValue(
     _Inout_ VReg_HiveResult* const pResult
 )
 {
-    VReg* const pRegistry = ((const VReg_RegistryLower*)pHive->pLowerDelegate)->pRegistry;
+    VReg* const pRegistry = ((const VReg_RegistryLower*)pHive->pvLowerContext)->pRegistry;
     HKEY hKey;
     LSTATUS status = VReg_RegistryLowerOpen(pHive, pNode, L"", KEY_QUERY_VALUE, &hKey);
     if (status != ERROR_SUCCESS)
@@ -8651,7 +8651,7 @@ static LSTATUS WINAPI VReg_RegistryLowerEnumKey(
     _Inout_ VReg_HiveResult* const pResult
 )
 {
-    VReg* const pRegistry = ((const VReg_RegistryLower*)pHive->pLowerDelegate)->pRegistry;
+    VReg* const pRegistry = ((const VReg_RegistryLower*)pHive->pvLowerContext)->pRegistry;
     VReg_WString className = {0, 0, NULL};
     DWORD cchMaxClass = 0;
     DWORD cchName = VREG_INTERNAL_INITIAL_NAME_CHARS;
@@ -8726,7 +8726,7 @@ static LSTATUS WINAPI VReg_RegistryLowerEnumValue(
     _Inout_ VReg_HiveResult* const pResult
 )
 {
-    VReg* const pRegistry = ((const VReg_RegistryLower*)pHive->pLowerDelegate)->pRegistry;
+    VReg* const pRegistry = ((const VReg_RegistryLower*)pHive->pvLowerContext)->pRegistry;
     VReg_WString sizeName = {0, 0, NULL};
     DWORD cchName;
     HKEY hKey;
@@ -8780,7 +8780,7 @@ static LSTATUS WINAPI VReg_RegistryLowerQueryInfo(
     _Inout_ VReg_HiveResult* const pResult
 )
 {
-    VReg* const pRegistry = ((const VReg_RegistryLower*)pHive->pLowerDelegate)->pRegistry;
+    VReg* const pRegistry = ((const VReg_RegistryLower*)pHive->pvLowerContext)->pRegistry;
     VReg_KeyInfo* const pInfo = pResult->pInfo;
     HKEY hKey;
     LSTATUS status = VReg_RegistryLowerOpen(pHive, pNode, L"", KEY_QUERY_VALUE | KEY_ENUMERATE_SUB_KEYS, &hKey);
@@ -8809,7 +8809,7 @@ static LSTATUS WINAPI VReg_RegistryLowerQueryInfo(
 
 static void WINAPI VReg_RegistryLowerDestroy(_In_ VRegHive* const pHive)
 {
-    VReg_RegistryLower* const pLower = (VReg_RegistryLower*)pHive->pLowerDelegate;
+    VReg_RegistryLower* const pLower = (VReg_RegistryLower*)pHive->pvLowerContext;
     if (!pLower)
         return;
 
@@ -8843,26 +8843,26 @@ VREG_DECL LSTATUS WINAPI VRegCreateLayeredHive(
 )
 {
     const VReg_WStringView lowerPath = VReg_ViewOf(pszLowerPath);
-    VReg_RegistryLower* const pDelegate = (VReg_RegistryLower*)VReg_AllocZeroed(sizeof(VReg_RegistryLower));
+    VReg_RegistryLower* const pContext = (VReg_RegistryLower*)VReg_AllocZeroed(sizeof(VReg_RegistryLower));
     LSTATUS status;
     *ppHive = NULL;
-    if (!pDelegate)
+    if (!pContext)
         return ERROR_OUTOFMEMORY;
 
-    pDelegate->pRegistry = pLower;
-    pDelegate->hRoot = hLowerRoot;
-    pDelegate->samView = samLowerView;
-    if (!VReg_WStringAssign(&pDelegate->path, lowerPath.pch, lowerPath.cch))
+    pContext->pRegistry = pLower;
+    pContext->hRoot = hLowerRoot;
+    pContext->samView = samLowerView;
+    if (!VReg_WStringAssign(&pContext->path, lowerPath.pch, lowerPath.cch))
     {
-        VReg_Free(pDelegate);
+        VReg_Free(pContext);
         return ERROR_OUTOFMEMORY;
     }
 
-    status = VReg_HiveCreate(&VReg_RegistryLowerVtbl, pDelegate, VREG_INTERNAL_HIVE_COPY_UP, ppHive);
+    status = VReg_HiveCreate(&VReg_RegistryLowerVtbl, pContext, VREG_INTERNAL_HIVE_COPY_UP, ppHive);
     if (status != ERROR_SUCCESS)
     {
-        VReg_WStringFree(&pDelegate->path);
-        VReg_Free(pDelegate);
+        VReg_WStringFree(&pContext->path);
+        VReg_Free(pContext);
         return status;
     }
 
@@ -9962,7 +9962,7 @@ VREG_DECL void WINAPI VRegDestroy(
 
 VREG_DECL LSTATUS WINAPI VRegCreateCustom(
     _In_ const VRegVtbl* const pVtbl,
-    _In_opt_ void* const pDelegate,
+    _In_opt_ void* const pvContext,
     _Outptr_ VReg** const ppRegistry
 )
 {
@@ -9973,15 +9973,15 @@ VREG_DECL LSTATUS WINAPI VRegCreateCustom(
 
     pRegistry->dwKind = VREG_INTERNAL_KIND_CUSTOM;
     pRegistry->implementation.custom.lpVtbl = pVtbl;
-    pRegistry->implementation.custom.pDelegate = pDelegate;
+    pRegistry->implementation.custom.pvContext = pvContext;
 
     *ppRegistry = pRegistry;
     return ERROR_SUCCESS;
 }
 
-VREG_DECL _Ret_maybenull_ void* WINAPI VRegGetDelegate(_In_ VReg* const pRegistry)
+VREG_DECL _Ret_maybenull_ void* WINAPI VRegGetContext(_In_ VReg* const pRegistry)
 {
-    return pRegistry->dwKind == VREG_INTERNAL_KIND_CUSTOM ? pRegistry->implementation.custom.pDelegate : NULL;
+    return pRegistry->dwKind == VREG_INTERNAL_KIND_CUSTOM ? pRegistry->implementation.custom.pvContext : NULL;
 }
 
 // ==========================================================================

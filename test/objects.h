@@ -168,14 +168,14 @@ private:
     VRegScript* m_pScript = nullptr;
 };
 
-/// A registry over the slots of @p pVtbl, with @p pDelegate as their object.
+/// A registry over the slots of @p pVtbl, with @p pvContext as their object.
 inline OwnedRegistry MakeCustomRegistry(
     const VRegVtbl* const pVtbl,
-    void* const pDelegate
+    void* const pvContext
 )
 {
     OwnedRegistry registry;
-    REQUIRE(VRegCreateCustom(pVtbl, pDelegate, registry.Receive()) == ERROR_SUCCESS);
+    REQUIRE(VRegCreateCustom(pVtbl, pvContext, registry.Receive()) == ERROR_SUCCESS);
     return registry;
 }
 

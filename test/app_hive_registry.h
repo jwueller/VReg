@@ -37,7 +37,7 @@ public:
 private:
     static AppHiveRegistry* Self(VReg* const pThis) noexcept
     {
-        return static_cast<AppHiveRegistry*>(VRegGetDelegate(pThis));
+        return static_cast<AppHiveRegistry*>(VRegGetContext(pThis));
     }
 
     HKEY Map(const HKEY hKey) const noexcept

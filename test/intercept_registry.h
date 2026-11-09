@@ -54,7 +54,7 @@ public:
 private:
     static InterceptRegistry* Self(VReg* const pThis) noexcept
     {
-        return static_cast<InterceptRegistry*>(VRegGetDelegate(pThis));
+        return static_cast<InterceptRegistry*>(VRegGetContext(pThis));
     }
 
     std::optional<LSTATUS> Enter(const char* const pszName) const
