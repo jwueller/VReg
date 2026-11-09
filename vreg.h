@@ -14368,9 +14368,10 @@ VREG_DECL LSTATUS WINAPI VRegScript_Write(
         const VRegOperation* const pOperation = &pOperations[i];
         const BOOL isKey = pOperation->kind == VREG_OPERATION_CREATE_KEY || pOperation->kind ==
             VREG_OPERATION_DELETE_KEY;
-        if (VRegInternalWStringView_HasLineBreak(VReg_InternalViewFromText(pOperation->pszPath)) || VRegInternalWStringView_HasLineBreak(
-            VReg_InternalViewFromText(pOperation->pszName)
-        ))
+        if (
+            VRegInternalWStringView_HasLineBreak(VReg_InternalViewFromText(pOperation->pszPath))
+            || VRegInternalWStringView_HasLineBreak(VReg_InternalViewFromText(pOperation->pszName))
+        )
         {
             status = ERROR_INVALID_NAME;
             goto done;
