@@ -253,7 +253,12 @@ plain, WOW64, HKCR, HKCU, HKU, HKCC, `RegOpenCurrentUser`,
 `RegOpenUserClassesRoot`, `RegConnectRegistry`, transacted and app-hive
 routes, plus 2000 repeated opens): bit 0 was never set on a real handle.
 Bit 1 is advapi32's tag for merged `HKEY_CLASSES_ROOT` handles; the kernel
-ignores both low bits, so `NtQueryKey` resolves tagged handles. Not covered
+ignores both low bits, so `NtQueryKey` resolves tagged handles. An odd
+handle passed to the real API (a virtual handle leaked past a neutralized
+hook) answers `ERROR_INVALID_HANDLE` from every function, `RegCloseKey`
+included, also under the strict-handle-check mitigation: kernelbase rejects
+it before the kernel, so it never aliases the real handle it would name with
+bit 0 dropped. Not covered
 by the probe: true remote `RegConnectRegistry` (connecting to the own
 machine name may short-circuit to local) and Wine; the handle probe becomes
 a permanent test, run under Wine in CI.

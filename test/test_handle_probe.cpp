@@ -1,6 +1,8 @@
-// The handle encoding assumes no real key handle ever has bit 0 set. This
-// opens keys through every route that might tag a handle and checks that
-// assumption against the running system (and against Wine in CI).
+// The handle encoding assumes no real key handle ever has bit 0 set, and that
+// a virtual handle reaching the real API fails as invalid and does nothing
+// else. This opens keys through every route that might tag a handle and
+// checks both assumptions against the running system (and against Wine in
+// CI).
 
 #include <vreg.h>
 
@@ -11,6 +13,7 @@
 
 #include <bit>
 #include <filesystem>
+#include <format>
 #include <string>
 
 #pragma comment(lib, "advapi32.lib")
@@ -163,4 +166,94 @@ TEST_CASE("No route to a real key handle sets bit 0")
         REQUIRE((std::bit_cast<std::uintptr_t>(h) & 1) == 0);
         RegCloseKey(h);
     }
+}
+
+// A virtual handle reaches the real API when a hook was neutralized (the
+// module unloaded) while the caller still held it. It must fail as invalid
+// and touch no real handle: the kernel ignores the two low bits of a handle,
+// so the value could otherwise alias a real one with bit 0 set.
+TEST_CASE("A virtual handle reaching the real API is invalid and nothing else")
+{
+    HKEY hReal{};
+    REQUIRE(RegOpenKeyExW(HKEY_CURRENT_USER, L"Software", 0, KEY_READ, &hReal) == ERROR_SUCCESS);
+
+    // Handles from the top of the range downward, as the library issues
+    // them; the last lies 16M handles down, beyond any hive.
+    // @formatter:off
+    constexpr std::uintptr_t VALUES[] = {
+        0x7FFFFFFF,
+        0x7FFFFFFD,
+        0x7FFFF001,
+        0x7FFF0001,
+        0x7F000001,
+    };
+    // @formatter:on
+    for (const auto value : VALUES)
+    {
+        INFO(std::format("{:#x}", value));
+        const auto hKey = std::bit_cast<HKEY>(value);
+        REQUIRE(VRegIsVirtualHKey(hKey));
+
+        DWORD cbData{};
+        CHECK(
+            RegQueryValueExW(
+                hKey,
+                L"x",
+                nullptr,
+                nullptr,
+                nullptr,
+                &cbData
+            ) == ERROR_INVALID_HANDLE
+        );
+
+        DWORD cSubKeys{};
+        CHECK(
+            RegQueryInfoKeyW(
+                hKey,
+                nullptr,
+                nullptr,
+                nullptr,
+                &cSubKeys,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr
+            ) == ERROR_INVALID_HANDLE
+        );
+
+        HKEY hSub{};
+        CHECK(
+            RegOpenKeyExW(
+                hKey,
+                L"Software",
+                0,
+                KEY_READ,
+                &hSub
+            ) == ERROR_INVALID_HANDLE
+        );
+
+        CHECK(RegCloseKey(hKey) == ERROR_INVALID_HANDLE);
+    }
+
+    // The real key is untouched by the closes above.
+    CHECK(
+        RegQueryInfoKeyW(
+            hReal,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        ) == ERROR_SUCCESS
+    );
+    RegCloseKey(hReal);
 }
