@@ -848,17 +848,23 @@ TEST_CASE("Refused functions answer not supported on virtual handles and pass re
     REQUIRE(InstallMount(name.c_str(), L"Exe") == NO_ERROR);
     const HKEY hVirtual = OpenMount(name);
 
+    // Native RegSaveKey creates the file before it checks the backup
+    // privilege, so the pass-through below leaves an empty one to remove.
+    const auto savePath = std::filesystem::temp_directory_path()
+        / (L"VReg-hooks-" + std::to_wstring(::GetCurrentProcessId()) + L".hiv");
+    const auto savePathA = savePath.string();
+
     CHECK(
         ::RegSaveKeyW(
             hVirtual,
-            L"unused.hiv",
+            savePath.c_str(),
             nullptr
         ) == ERROR_NOT_SUPPORTED
     );
     CHECK(
         ::RegSaveKeyExA(
             hVirtual,
-            "unused.hiv",
+            savePathA.c_str(),
             nullptr,
             REG_LATEST_FORMAT
         ) == ERROR_NOT_SUPPORTED
@@ -959,10 +965,12 @@ TEST_CASE("Refused functions answer not supported on virtual handles and pass re
     CHECK(
         ::RegSaveKeyW(
             hRoot,
-            L"unused.hiv",
+            savePath.c_str(),
             nullptr
         ) != ERROR_NOT_SUPPORTED
     );
+    std::error_code ignored;
+    std::filesystem::remove(savePath, ignored);
 
     CHECK(
         ::RegCloseKey(
