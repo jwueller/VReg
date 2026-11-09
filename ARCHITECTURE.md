@@ -54,9 +54,9 @@ Every function is declared `VREG_DECL`, which `VREG_STATIC` turns into `static`.
   from a function table and a context pointer. The slots take the
   registry rather than the context (as `fopencookie`'s callbacks do) so
   that they share the flat functions' typedefs; taking the context would
-  need a second typedef per form. Agent's choice: the name
-  `VReg_CreateCustom`, over a bare `VRegCreate` that reads like
-  `VReg_CreateKey`.
+  need a second typedef per form. `VReg_CreateCustom` names its kind, as
+  `VReg_CreateNative` and `VReg_CreateVirtual` do: a bare `VReg_Create`
+  would read like a truncated `VReg_CreateKey`.
 - Each form of the family has one function typedef
   (`VRegOpenKeyExWFunction`) that carries its signature, annotations and
   documentation link. The flat function is declared with it, the slot
@@ -229,13 +229,12 @@ The nodes are the hive's records of its keys:
   read before the deletes, so a provider whose deletes do not shrink its
   enumeration cannot loop it.
 
-Agent's choices, open until the maintainer confirms them:
-
 - Results go through copying sinks, so a computed value can live on the
-  provider's stack and nothing it hands over needs a lifetime rule. Passed
-  over: caller buffers with `ERROR_MORE_DATA`, which bring back the buffer
-  rules the table exists to hide, and returned pointers valid until the
-  next call, which every concurrent caller would have to reason about.
+  provider's stack and nothing it hands over needs a lifetime rule, at the
+  cost of one copy per read. Caller buffers with `ERROR_MORE_DATA` would
+  bring back the buffer rules the table exists to hide, and pointers valid
+  until the next call would need every concurrent caller to reason about
+  that call.
 
 ## Handles, freeze and locking
 
