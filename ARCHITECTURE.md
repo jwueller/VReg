@@ -219,11 +219,17 @@ The nodes are the hive's records of its keys:
   `vreg.h`): the reopen is transparent to the caller, and a handle per
   record would stay pinned for the hive's life.
 
+- A null `DeleteTree` is derived from the other slots in the order native
+  `RegDeleteTree` was measured to use (Windows 11 26300): subkeys in
+  enumeration order, each subtree before its key, then the values of the
+  key that stays; it stops at the first failure and returns it, leaving
+  what is left for a later call, which continues from there. Native makes
+  no all-or-nothing promise, so neither does the derivation. The names are
+  read before the deletes, so a provider whose deletes do not shrink its
+  enumeration cannot loop it.
+
 Agent's choices, open until the maintainer confirms them:
 
-- `DeleteTree` is never derived from the other slots: a partial failure
-  would leave a half-deleted tree that native never shows. Passed over:
-  deleting subkeys one by one through `DeleteKey`.
 - Results go through copying sinks, so a computed value can live on the
   provider's stack and nothing it hands over needs a lifetime rule. Passed
   over: caller buffers with `ERROR_MORE_DATA`, which bring back the buffer

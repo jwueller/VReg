@@ -32,11 +32,14 @@ class ForwardingProvider
 {
 public:
     /// Forwards to @p hTargetRoot of @p pTarget, which MUST outlive the hive.
-    ForwardingProvider(VReg* const pTarget, const HKEY hTargetRoot) :
+    /// With @p isDeleteTreeDerived the table has no `DeleteTree`, so VReg
+    /// derives it from the other slots.
+    ForwardingProvider(VReg* const pTarget, const HKEY hTargetRoot, const bool isDeleteTreeDerived = false) :
         m_pTarget(pTarget),
         m_hTargetRoot(hTargetRoot)
     {
-        REQUIRE(VRegHive_CreateCustom(&VTBL, this, m_hive.Receive()) == ERROR_SUCCESS);
+        const VRegHiveVtbl* const pVtbl = isDeleteTreeDerived ? &VTBL_WITHOUT_DELETE_TREE : &VTBL;
+        REQUIRE(VRegHive_CreateCustom(pVtbl, this, m_hive.Receive()) == ERROR_SUCCESS);
     }
 
     ForwardingProvider(const ForwardingProvider&) = delete;
@@ -45,6 +48,13 @@ public:
     [[nodiscard]] VRegHive* Hive() const noexcept
     {
         return m_hive;
+    }
+
+    /// Makes `DeleteKey` answer @ref ERROR_ACCESS_DENIED for the key at
+    /// @p path below the root; empty lifts it.
+    void RefuseDeleteOf(std::wstring path)
+    {
+        m_undeletable = std::move(path);
     }
 
 private:
@@ -134,10 +144,13 @@ private:
     static LSTATUS WINAPI DeleteKey(VRegHive* const pHive, VRegHiveKey* const pKey)
     {
         const ForwardingProvider& self = Of(pHive);
+        const std::wstring path = HiveKeyPath(pKey);
+        if (!self.m_undeletable.empty() && VReg_CompareNames(path.c_str(), self.m_undeletable.c_str()) == 0)
+            return ERROR_ACCESS_DENIED;
         return VReg_DeleteKeyExW(
             self.m_pTarget,
             self.m_hTargetRoot,
-            HiveKeyPath(pKey).c_str(),
+            path.c_str(),
             0,
             0
         );
@@ -407,10 +420,23 @@ private:
         .Destroy = nullptr,
     };
 
+    static constexpr VRegHiveVtbl WithoutDeleteTree(VRegHiveVtbl vtbl) noexcept
+    {
+        vtbl.DeleteTree = nullptr;
+        return vtbl;
+    }
+
+    // Defined after the class: a constexpr member cannot call a member
+    // function of the still incomplete class.
+    static const VRegHiveVtbl VTBL_WITHOUT_DELETE_TREE;
+
     VReg* m_pTarget;
     HKEY m_hTargetRoot;
+    std::wstring m_undeletable;
     OwnedHive m_hive;
 };
+
+inline const VRegHiveVtbl ForwardingProvider::VTBL_WITHOUT_DELETE_TREE = WithoutDeleteTree(VTBL);
 
 /// A @ref ForwardingProvider over an in-memory hive, mounted below
 /// `HKEY_CURRENT_USER` in a virtual registry of its own: the custom
@@ -418,10 +444,10 @@ private:
 class CustomMount
 {
 public:
-    CustomMount() :
+    explicit CustomMount(const bool isDeleteTreeDerived = false) :
         m_target(MakeHive()),
         m_targetRegistry(MakeVirtualRegistry()),
-        m_provider(m_targetRegistry, RootHandle(m_target)),
+        m_provider(m_targetRegistry, RootHandle(m_target), isDeleteTreeDerived),
         m_registry(MakeVirtualRegistry())
     {
         REQUIRE(VReg_Mount(m_targetRegistry, HKEY_CURRENT_USER, L"VRegTarget", m_target, 0) == ERROR_SUCCESS);
@@ -444,6 +470,11 @@ public:
     [[nodiscard]] VRegHive* Hive() const noexcept
     {
         return m_provider.Hive();
+    }
+
+    [[nodiscard]] ForwardingProvider& Provider() noexcept
+    {
+        return m_provider;
     }
 
     /// The virtual handle of the custom hive's root.

@@ -669,6 +669,162 @@ TEST_CASE("A custom hive keeps one handle per key and marks deleted keys")
     CHECK(hRecreated != hFirst);
 }
 
+TEST_CASE("A custom hive without DeleteTree deletes a tree as native does")
+{
+    // Native RegDeleteTree, measured: subkeys in enumeration order, each
+    // subtree before the key itself, stopping at the first failure; the
+    // values of the key that stays go last. A second call picks up where the
+    // first stopped.
+    CustomMount mount(true);
+    VReg* const registry = mount.Registry();
+    const HKEY hRoot = mount.Root();
+    const DWORD dwOne = 1;
+
+    for (const auto* const pszPath : {L"Tree\\A\\A1", L"Tree\\B\\B1\\B2", L"Tree\\C\\C1"})
+    {
+        HKEY hKey{};
+        REQUIRE(
+            VReg_CreateKeyExW(
+                registry,
+                hRoot,
+                pszPath,
+                0,
+                nullptr,
+                0,
+                KEY_ALL_ACCESS,
+                nullptr,
+                &hKey,
+                nullptr
+            ) == ERROR_SUCCESS
+        );
+    }
+    REQUIRE(
+        VReg_SetKeyValueW(
+            registry,
+            hRoot,
+            L"Tree",
+            L"Kept",
+            REG_DWORD,
+            &dwOne,
+            sizeof(dwOne)
+        ) == ERROR_SUCCESS
+    );
+
+    const auto exists = [&](const wchar_t* const pszPath)
+    {
+        HKEY hKey{};
+        return VReg_OpenKeyExW(
+            registry,
+            hRoot,
+            pszPath,
+            0,
+            KEY_READ,
+            &hKey
+        ) == ERROR_SUCCESS;
+    };
+    const auto info = [&](DWORD& cSubKeys, DWORD& cValues)
+    {
+        HKEY hTree{};
+        REQUIRE(
+            VReg_OpenKeyExW(
+                registry,
+                hRoot,
+                L"Tree",
+                0,
+                KEY_READ,
+                &hTree
+            ) == ERROR_SUCCESS
+        );
+        REQUIRE(
+            VReg_QueryInfoKeyW(
+                registry,
+                hTree,
+                nullptr,
+                nullptr,
+                nullptr,
+                &cSubKeys,
+                nullptr,
+                nullptr,
+                &cValues,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr
+            ) == ERROR_SUCCESS
+        );
+    };
+
+    HKEY hB2{};
+    REQUIRE(
+        VReg_OpenKeyExW(
+            registry,
+            hRoot,
+            L"Tree\\B\\B1\\B2",
+            0,
+            KEY_READ,
+            &hB2
+        ) == ERROR_SUCCESS
+    );
+
+    mount.Provider().RefuseDeleteOf(L"Tree\\B\\B1");
+    CHECK(
+        VReg_DeleteTreeW(
+            registry,
+            hRoot,
+            L"Tree"
+        ) == ERROR_ACCESS_DENIED
+    );
+
+    // A went whole, B1's subtree went before B1 refused, C was never reached,
+    // and the kept key's value is still there.
+    CHECK_FALSE(exists(L"Tree\\A"));
+    CHECK_FALSE(exists(L"Tree\\B\\B1\\B2"));
+    CHECK(exists(L"Tree\\B\\B1"));
+    CHECK(exists(L"Tree\\C\\C1"));
+    DWORD cSubKeys = 0;
+    DWORD cValues = 0;
+    info(cSubKeys, cValues);
+    CHECK(cSubKeys == 2);
+    CHECK(cValues == 1);
+    CHECK(
+        VReg_QueryInfoKeyW(
+            registry,
+            hB2,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        ) == ERROR_KEY_DELETED
+    );
+
+    CHECK(
+        VReg_DeleteTreeW(
+            registry,
+            hRoot,
+            L"Tree"
+        ) == ERROR_ACCESS_DENIED
+    );
+    CHECK(exists(L"Tree\\C\\C1"));
+
+    mount.Provider().RefuseDeleteOf(L"");
+    CHECK(
+        VReg_DeleteTreeW(
+            registry,
+            hRoot,
+            L"Tree"
+        ) == ERROR_SUCCESS
+    );
+    // Named as the subkey, the key itself goes with its tree, as natively.
+    CHECK_FALSE(exists(L"Tree"));
+}
+
 TEST_CASE("A frozen custom hive refuses writes and still opens its keys")
 {
     CustomMount mount;

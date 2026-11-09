@@ -202,7 +202,10 @@ which copy, so a computed value can live on the stack.
 - **Writes** go through to `CreateKey`, `DeleteKey`, `DeleteTree`,
   `SetValue` and `DeleteValue`. One left null answers
   `ERROR_ACCESS_DENIED`; without `CreateKey`, an existing key still opens,
-  as on a frozen hive. `DeleteTree` is never made from the other slots.
+  as on a frozen hive. Without `DeleteTree`, VReg deletes the tree through
+  the other slots the way native `RegDeleteTree` does: subkey by subkey
+  in enumeration order, each subtree first, then the values, stopping at
+  the first failure, so a later call continues from what is left.
 - **Optional slots**: without `QueryInfo`, `RegQueryInfoKey` enumerates the
   key's subkeys and values once; without `CheckKey`, `RegFlushKey`
   succeeds; `Destroy` frees what the context owns when the hive goes.

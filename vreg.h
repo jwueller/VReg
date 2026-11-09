@@ -56,8 +56,8 @@ extern "C" {
 
 // Raised with every change to this file; the tweak is always 0.
 #define VREG_VERSION_MAJOR 0
-#define VREG_VERSION_MINOR 11
-#define VREG_VERSION_PATCH 1
+#define VREG_VERSION_MINOR 12
+#define VREG_VERSION_PATCH 0
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -979,10 +979,13 @@ typedef void WINAPI VRegHiveDestroyFunction(
  *  `OpenKey`, `QueryValue`, `EnumKey` and `EnumValue` are required. A null
  *  `CreateKey` opens an existing key and answers a missing one
  *  @ref ERROR_ACCESS_DENIED, as a frozen hive does; a null `DeleteKey`,
- *  `DeleteTree`, `SetValue` or `DeleteValue` answers
- *  @ref ERROR_ACCESS_DENIED. A null `QueryInfo` is derived by enumerating
- *  keys and values once; a null `CheckKey` succeeds; a null `Destroy` does
- *  nothing. VReg never derives `DeleteTree` from the other slots.
+ *  `SetValue` or `DeleteValue` answers @ref ERROR_ACCESS_DENIED. A null
+ *  `DeleteTree` is derived from `EnumKey`, `DeleteKey`, `EnumValue` and
+ *  `DeleteValue` as native `RegDeleteTree` works: subkeys in enumeration
+ *  order, each subtree before its key, then the values, stopping at the
+ *  first failure; a call after a failure continues from what is left. A
+ *  null `QueryInfo` is derived by enumerating keys and values once; a null
+ *  `CheckKey` succeeds; a null `Destroy` does nothing.
  *
  *  A slot receives names as the caller passed them and MUST compare them as
  *  the registry does (@ref VReg_CompareNames). Slots MAY run on any thread,
@@ -7576,20 +7579,145 @@ static BOOL VRegInternal_HiveIsDeleted(
     return isDeleted;
 }
 
+/// The subkeys of @p pNode deleted through the provider's `DeleteKey`, as
+/// native's `RegDeleteTree` deletes them: in enumeration order, each subtree
+/// before its key, stopping at the first failure. The names are read first,
+/// so a provider whose deletes leave its enumeration as it was cannot loop
+/// this.
+static LSTATUS VRegInternal_HiveDeleteSubkeysThrough(
+    _In_ VRegHive* const pHive,
+    _Inout_ VRegInternalNode* const pNode
+)
+{
+    VRegInternalArray names = {NULL, 0, 0};
+    VRegInternalWString name = {0, 0, NULL};
+    SIZE_T i;
+    LSTATUS status;
+
+    for (i = 0;; ++i)
+    {
+        VRegHiveResult entry;
+        VRegInternal_HiveResultInit(&entry);
+        entry.pName = &name;
+        status = pHive->pLowerVtbl->EnumKey(pHive, pNode, (DWORD)i, &entry);
+        if (status == ERROR_NO_MORE_ITEMS)
+        {
+            status = ERROR_SUCCESS;
+            break;
+        }
+        if (status != ERROR_SUCCESS)
+            goto done;
+        if (!VRegInternal_WStringArrayAppend(&names, VRegInternal_WStringViewOf(&name)))
+        {
+            status = ERROR_OUTOFMEMORY;
+            goto done;
+        }
+    }
+
+    for (i = 0; i < names.count; ++i)
+    {
+        const VRegInternalWStringView child = VRegInternal_WStringViewOf(&VREG_INTERNAL_AT(&names, VRegInternalWString, i));
+        VRegInternalOpenResult opened;
+        status = VRegInternal_HiveOpenKey(pHive, pNode, &child, 1, KEY_READ, &opened);
+        if (status != ERROR_SUCCESS)
+            goto done;
+        status = VRegInternal_HiveDeleteSubkeysThrough(pHive, opened.pNode);
+        if (status != ERROR_SUCCESS)
+            goto done;
+        status = pHive->pLowerVtbl->DeleteKey(pHive, opened.pNode);
+        if (status != ERROR_SUCCESS)
+            goto done;
+        if (VRegInternal_HiveLockRecords(pHive))
+        {
+            if (!opened.pNode->isDeleted)
+                VRegInternal_HiveRemove(opened.pNode);
+            VRegInternal_HiveUnlockWrite(pHive);
+        }
+    }
+
+done:
+    VRegInternal_WStringFree(&name);
+    VRegInternal_WStringArrayFree(&names);
+    return status;
+}
+
+/// The values of @p pNode deleted through the provider's `DeleteValue`, in
+/// enumeration order, stopping at the first failure; names first, as in
+/// @ref VRegInternal_HiveDeleteSubkeysThrough.
+static LSTATUS VRegInternal_HiveDeleteValuesThrough(
+    _In_ VRegHive* const pHive,
+    _Inout_ VRegInternalNode* const pNode
+)
+{
+    VRegInternalArray names = {NULL, 0, 0};
+    VRegInternalWString name = {0, 0, NULL};
+    SIZE_T i;
+    LSTATUS status;
+
+    for (i = 0;; ++i)
+    {
+        VRegHiveResult entry;
+        VRegInternal_HiveResultInit(&entry);
+        entry.pName = &name;
+        status = pHive->pLowerVtbl->EnumValue(pHive, pNode, (DWORD)i, &entry);
+        if (status == ERROR_NO_MORE_ITEMS)
+        {
+            status = ERROR_SUCCESS;
+            break;
+        }
+        if (status != ERROR_SUCCESS)
+            goto done;
+        if (!VRegInternal_WStringArrayAppend(&names, VRegInternal_WStringViewOf(&name)))
+        {
+            status = ERROR_OUTOFMEMORY;
+            goto done;
+        }
+    }
+
+    for (i = 0; i < names.count; ++i)
+    {
+        status = pHive->pLowerVtbl->DeleteValue(
+            pHive,
+            pNode,
+            VRegInternal_WStringText(&VREG_INTERNAL_AT(&names, VRegInternalWString, i))
+        );
+        if (status != ERROR_SUCCESS)
+            goto done;
+    }
+
+done:
+    VRegInternal_WStringFree(&name);
+    VRegInternal_WStringArrayFree(&names);
+    return status;
+}
+
 /// @ref VRegInternal_HiveDeleteTree on a custom hive: the provider empties the key,
-/// and the records below it are marked deleted.
+/// through its `DeleteTree` or, without one, key by key and value by value
+/// in native's order, and the records below it are marked deleted.
 static LSTATUS VRegInternal_HiveDeleteTreeThrough(
     _In_ VRegHive* const pHive,
     _Inout_ VRegInternalNode* const pNode
 )
 {
+    const VRegHiveVtbl* const pVtbl = pHive->pLowerVtbl;
     LSTATUS status;
-    if (VRegInternal_HiveIsFrozen(pHive) || !pHive->pLowerVtbl->DeleteTree)
+    if (VRegInternal_HiveIsFrozen(pHive))
+        return ERROR_ACCESS_DENIED;
+    if (!pVtbl->DeleteTree && (!pVtbl->DeleteKey || !pVtbl->DeleteValue))
         return ERROR_ACCESS_DENIED;
     if (VRegInternal_HiveIsDeleted(pHive, pNode))
         return ERROR_KEY_DELETED;
 
-    status = pHive->pLowerVtbl->DeleteTree(pHive, pNode);
+    if (pVtbl->DeleteTree)
+    {
+        status = pVtbl->DeleteTree(pHive, pNode);
+    }
+    else
+    {
+        status = VRegInternal_HiveDeleteSubkeysThrough(pHive, pNode);
+        if (status == ERROR_SUCCESS)
+            status = VRegInternal_HiveDeleteValuesThrough(pHive, pNode);
+    }
     if (status != ERROR_SUCCESS || !VRegInternal_HiveLockRecords(pHive))
         return status;
 
