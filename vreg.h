@@ -59,7 +59,7 @@ extern "C" {
 // Raised with every change to this file. Tweak is unused (always 0).
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 16
-#define VREG_VERSION_PATCH 0
+#define VREG_VERSION_PATCH 1
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -1693,11 +1693,6 @@ extern "C" {
 
 VREG_DECL void VReg_InternalAssertFailed(void);
 
-/// Null for @p cb of zero or when memory ran out.
-VREG_DECL _Ret_maybenull_ void* VReg_InternalAlloc(
-    SIZE_T cb
-);
-
 /// Like @ref VReg_InternalAlloc, zero-filled.
 VREG_DECL _Ret_maybenull_ void* VReg_InternalAllocZeroed(
     SIZE_T cb
@@ -1744,11 +1739,6 @@ typedef struct
     _Field_range_(0, cbCapacity) SIZE_T cb;
     _Field_size_opt_(cbCapacity) BYTE* pb;
 } VRegInternalBuffer;
-
-VREG_DECL BOOL VRegInternalBuffer_Reserve(
-    _Inout_ VRegInternalBuffer* pBuffer,
-    SIZE_T cbCapacity
-);
 
 /// Sets the size to @p cb, growing the capacity if needed; new bytes are
 /// indeterminate.
@@ -2858,7 +2848,8 @@ VREG_DECL void VReg_InternalAssertFailed(void)
         __debugbreak();
 }
 
-VREG_DECL _Ret_maybenull_ void* VReg_InternalAlloc(
+/// Null for @p cb of zero or when memory ran out.
+static _Ret_maybenull_ void* VReg_InternalAlloc(
     const SIZE_T cb
 )
 {
@@ -3079,7 +3070,7 @@ VREG_DECL VRegInternalWStringView VReg_InternalViewOf(
     return view;
 }
 
-VREG_DECL BOOL VRegInternalBuffer_Reserve(
+static BOOL VRegInternalBuffer_Reserve(
     _Inout_ VRegInternalBuffer* const pBuffer,
     const SIZE_T cbCapacity
 )
