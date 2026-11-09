@@ -59,7 +59,7 @@ extern "C" {
 // Raised with every change to this file. Tweak is unused (always 0).
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 15
-#define VREG_VERSION_PATCH 8
+#define VREG_VERSION_PATCH 9
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -2702,7 +2702,8 @@ struct VReg
 // The virtual registry
 // ==========================================================================
 
-// What the flat functions call for a registry of VREG_INTERNAL_KIND_VIRTUAL.
+// The slots of a registry of VREG_INTERNAL_KIND_VIRTUAL, which the flat
+// functions reach through its table as they reach a custom registry's.
 VREG_DECL VRegOpenKeyExWFunction VReg_InternalVirtualRegOpenKeyExW;
 VREG_DECL VRegCreateKeyExWFunction VReg_InternalVirtualRegCreateKeyExW;
 VREG_DECL VRegCloseKeyFunction VReg_InternalVirtualRegCloseKey;
@@ -2719,6 +2720,7 @@ VREG_DECL VRegGetValueWFunction VReg_InternalVirtualRegGetValueW;
 VREG_DECL VRegNotifyChangeKeyValueFunction VReg_InternalVirtualRegNotifyChangeKeyValue;
 VREG_DECL VRegFlushKeyFunction VReg_InternalVirtualRegFlushKey;
 
+/// Frees the mount tables; @ref VReg_Destroy frees the registry.
 VREG_DECL void WINAPI VReg_InternalVirtualDestroy(
     _In_ VReg* pRegistry
 );
@@ -3564,16 +3566,48 @@ VREG_DECL _Ret_maybenull_ void* VReg_InternalFindRegistryExport(
 // functions do. Every one of them answers what the native function answers
 // for the same input: status, out-sizes and bytes.
 
-/// The table a native or virtual registry derives every form from.
+/// The table a native registry derives every form from.
 static const VRegVtbl g_noSlots = {0};
 
-/// The slots a derived form calls when they are filled: a custom registry's
-/// own, and none for the kinds VReg implements.
+/// The table of a virtual registry: its wide forms, from which every other
+/// form is derived.
+static const VRegVtbl g_virtualSlots = {
+    &VReg_InternalVirtualDestroy,
+    &VReg_InternalVirtualRegOpenKeyExW,
+    &VReg_InternalVirtualRegCreateKeyExW,
+    &VReg_InternalVirtualRegCloseKey,
+    &VReg_InternalVirtualRegQueryValueExW,
+    &VReg_InternalVirtualRegSetValueExW,
+    &VReg_InternalVirtualRegDeleteValueW,
+    &VReg_InternalVirtualRegDeleteKeyExW,
+    &VReg_InternalVirtualRegDeleteTreeW,
+    &VReg_InternalVirtualRegEnumKeyExW,
+    &VReg_InternalVirtualRegEnumValueW,
+    &VReg_InternalVirtualRegQueryInfoKeyW,
+    &VReg_InternalVirtualRegLoadMUIStringW,
+    &VReg_InternalVirtualRegGetValueW,
+    &VReg_InternalVirtualRegNotifyChangeKeyValue,
+    &VReg_InternalVirtualRegFlushKey,
+};
+
+/// The slots a flat function calls when they are filled: a custom registry's
+/// own, the virtual registry's wide forms, and none for the native registry,
+/// whose table the flat wide functions call directly.
 static _Ret_notnull_ const VRegVtbl* VReg_InternalSlotsOf(
     _In_ const VReg* const pRegistry
 )
 {
-    return pRegistry->kind == VREG_INTERNAL_KIND_CUSTOM ? pRegistry->implementation.custom.lpVtbl : &g_noSlots;
+    switch (pRegistry->kind)
+    {
+    case VREG_INTERNAL_KIND_CUSTOM:
+        return pRegistry->implementation.custom.lpVtbl;
+
+    case VREG_INTERNAL_KIND_VIRTUAL:
+        return &g_virtualSlots;
+
+    default:
+        return &g_noSlots;
+    }
 }
 
 typedef struct
@@ -9520,9 +9554,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegOpenKeyExW(
     _Out_ const PHKEY phkResult
 )
 {
-    switch (pRegistry->kind)
-    {
-    case VREG_INTERNAL_KIND_NATIVE:
+    if (pRegistry->kind == VREG_INTERNAL_KIND_NATIVE)
         return pRegistry->implementation.native.RegOpenKeyExW(
             hKey,
             lpSubKey,
@@ -9531,29 +9563,17 @@ VREG_DECL LSTATUS WINAPI VReg_RegOpenKeyExW(
             phkResult
         );
 
-    case VREG_INTERNAL_KIND_VIRTUAL:
-        return VReg_InternalVirtualRegOpenKeyExW(
-            pRegistry,
-            hKey,
-            lpSubKey,
-            ulOptions,
-            samDesired,
-            phkResult
-        );
+    if (!VReg_InternalSlotsOf(pRegistry)->RegOpenKeyExW)
+        return ERROR_CALL_NOT_IMPLEMENTED;
 
-    default:
-        if (!pRegistry->implementation.custom.lpVtbl->RegOpenKeyExW)
-            return ERROR_CALL_NOT_IMPLEMENTED;
-
-        return pRegistry->implementation.custom.lpVtbl->RegOpenKeyExW(
-            pRegistry,
-            hKey,
-            lpSubKey,
-            ulOptions,
-            samDesired,
-            phkResult
-        );
-    }
+    return VReg_InternalSlotsOf(pRegistry)->RegOpenKeyExW(
+        pRegistry,
+        hKey,
+        lpSubKey,
+        ulOptions,
+        samDesired,
+        phkResult
+    );
 }
 
 VREG_DECL LSTATUS WINAPI VReg_RegCreateKeyExW(
@@ -9569,9 +9589,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegCreateKeyExW(
     _Out_opt_ const LPDWORD lpdwDisposition
 )
 {
-    switch (pRegistry->kind)
-    {
-    case VREG_INTERNAL_KIND_NATIVE:
+    if (pRegistry->kind == VREG_INTERNAL_KIND_NATIVE)
         return pRegistry->implementation.native.RegCreateKeyExW(
             hKey,
             lpSubKey,
@@ -9584,37 +9602,21 @@ VREG_DECL LSTATUS WINAPI VReg_RegCreateKeyExW(
             lpdwDisposition
         );
 
-    case VREG_INTERNAL_KIND_VIRTUAL:
-        return VReg_InternalVirtualRegCreateKeyExW(
-            pRegistry,
-            hKey,
-            lpSubKey,
-            Reserved,
-            lpClass,
-            dwOptions,
-            samDesired,
-            lpSecurityAttributes,
-            phkResult,
-            lpdwDisposition
-        );
+    if (!VReg_InternalSlotsOf(pRegistry)->RegCreateKeyExW)
+        return ERROR_CALL_NOT_IMPLEMENTED;
 
-    default:
-        if (!pRegistry->implementation.custom.lpVtbl->RegCreateKeyExW)
-            return ERROR_CALL_NOT_IMPLEMENTED;
-
-        return pRegistry->implementation.custom.lpVtbl->RegCreateKeyExW(
-            pRegistry,
-            hKey,
-            lpSubKey,
-            Reserved,
-            lpClass,
-            dwOptions,
-            samDesired,
-            lpSecurityAttributes,
-            phkResult,
-            lpdwDisposition
-        );
-    }
+    return VReg_InternalSlotsOf(pRegistry)->RegCreateKeyExW(
+        pRegistry,
+        hKey,
+        lpSubKey,
+        Reserved,
+        lpClass,
+        dwOptions,
+        samDesired,
+        lpSecurityAttributes,
+        phkResult,
+        lpdwDisposition
+    );
 }
 
 VREG_DECL LSTATUS WINAPI VReg_RegCloseKey(
@@ -9622,28 +9624,18 @@ VREG_DECL LSTATUS WINAPI VReg_RegCloseKey(
     _In_ const HKEY hKey
 )
 {
-    switch (pRegistry->kind)
-    {
-    case VREG_INTERNAL_KIND_NATIVE:
+    if (pRegistry->kind == VREG_INTERNAL_KIND_NATIVE)
         return pRegistry->implementation.native.RegCloseKey(
             hKey
         );
 
-    case VREG_INTERNAL_KIND_VIRTUAL:
-        return VReg_InternalVirtualRegCloseKey(
-            pRegistry,
-            hKey
-        );
+    if (!VReg_InternalSlotsOf(pRegistry)->RegCloseKey)
+        return ERROR_CALL_NOT_IMPLEMENTED;
 
-    default:
-        if (!pRegistry->implementation.custom.lpVtbl->RegCloseKey)
-            return ERROR_CALL_NOT_IMPLEMENTED;
-
-        return pRegistry->implementation.custom.lpVtbl->RegCloseKey(
-            pRegistry,
-            hKey
-        );
-    }
+    return VReg_InternalSlotsOf(pRegistry)->RegCloseKey(
+        pRegistry,
+        hKey
+    );
 }
 
 VREG_DECL LSTATUS WINAPI VReg_RegQueryValueExW(
@@ -9656,9 +9648,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryValueExW(
     _When_(lpData == NULL, _Out_opt_) _When_(lpData != NULL, _Inout_opt_) const LPDWORD lpcbData
 )
 {
-    switch (pRegistry->kind)
-    {
-    case VREG_INTERNAL_KIND_NATIVE:
+    if (pRegistry->kind == VREG_INTERNAL_KIND_NATIVE)
         return pRegistry->implementation.native.RegQueryValueExW(
             hKey,
             lpValueName,
@@ -9668,31 +9658,18 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryValueExW(
             lpcbData
         );
 
-    case VREG_INTERNAL_KIND_VIRTUAL:
-        return VReg_InternalVirtualRegQueryValueExW(
-            pRegistry,
-            hKey,
-            lpValueName,
-            lpReserved,
-            lpType,
-            lpData,
-            lpcbData
-        );
+    if (!VReg_InternalSlotsOf(pRegistry)->RegQueryValueExW)
+        return ERROR_CALL_NOT_IMPLEMENTED;
 
-    default:
-        if (!pRegistry->implementation.custom.lpVtbl->RegQueryValueExW)
-            return ERROR_CALL_NOT_IMPLEMENTED;
-
-        return pRegistry->implementation.custom.lpVtbl->RegQueryValueExW(
-            pRegistry,
-            hKey,
-            lpValueName,
-            lpReserved,
-            lpType,
-            lpData,
-            lpcbData
-        );
-    }
+    return VReg_InternalSlotsOf(pRegistry)->RegQueryValueExW(
+        pRegistry,
+        hKey,
+        lpValueName,
+        lpReserved,
+        lpType,
+        lpData,
+        lpcbData
+    );
 }
 
 VREG_DECL LSTATUS WINAPI VReg_RegSetValueExW(
@@ -9705,9 +9682,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegSetValueExW(
     _In_ const DWORD cbData
 )
 {
-    switch (pRegistry->kind)
-    {
-    case VREG_INTERNAL_KIND_NATIVE:
+    if (pRegistry->kind == VREG_INTERNAL_KIND_NATIVE)
         return pRegistry->implementation.native.RegSetValueExW(
             hKey,
             lpValueName,
@@ -9717,31 +9692,18 @@ VREG_DECL LSTATUS WINAPI VReg_RegSetValueExW(
             cbData
         );
 
-    case VREG_INTERNAL_KIND_VIRTUAL:
-        return VReg_InternalVirtualRegSetValueExW(
-            pRegistry,
-            hKey,
-            lpValueName,
-            Reserved,
-            dwType,
-            lpData,
-            cbData
-        );
+    if (!VReg_InternalSlotsOf(pRegistry)->RegSetValueExW)
+        return ERROR_CALL_NOT_IMPLEMENTED;
 
-    default:
-        if (!pRegistry->implementation.custom.lpVtbl->RegSetValueExW)
-            return ERROR_CALL_NOT_IMPLEMENTED;
-
-        return pRegistry->implementation.custom.lpVtbl->RegSetValueExW(
-            pRegistry,
-            hKey,
-            lpValueName,
-            Reserved,
-            dwType,
-            lpData,
-            cbData
-        );
-    }
+    return VReg_InternalSlotsOf(pRegistry)->RegSetValueExW(
+        pRegistry,
+        hKey,
+        lpValueName,
+        Reserved,
+        dwType,
+        lpData,
+        cbData
+    );
 }
 
 VREG_DECL LSTATUS WINAPI VReg_RegDeleteValueW(
@@ -9750,31 +9712,20 @@ VREG_DECL LSTATUS WINAPI VReg_RegDeleteValueW(
     _In_opt_ const LPCWSTR lpValueName
 )
 {
-    switch (pRegistry->kind)
-    {
-    case VREG_INTERNAL_KIND_NATIVE:
+    if (pRegistry->kind == VREG_INTERNAL_KIND_NATIVE)
         return pRegistry->implementation.native.RegDeleteValueW(
             hKey,
             lpValueName
         );
 
-    case VREG_INTERNAL_KIND_VIRTUAL:
-        return VReg_InternalVirtualRegDeleteValueW(
-            pRegistry,
-            hKey,
-            lpValueName
-        );
+    if (!VReg_InternalSlotsOf(pRegistry)->RegDeleteValueW)
+        return ERROR_CALL_NOT_IMPLEMENTED;
 
-    default:
-        if (!pRegistry->implementation.custom.lpVtbl->RegDeleteValueW)
-            return ERROR_CALL_NOT_IMPLEMENTED;
-
-        return pRegistry->implementation.custom.lpVtbl->RegDeleteValueW(
-            pRegistry,
-            hKey,
-            lpValueName
-        );
-    }
+    return VReg_InternalSlotsOf(pRegistry)->RegDeleteValueW(
+        pRegistry,
+        hKey,
+        lpValueName
+    );
 }
 
 VREG_DECL LSTATUS WINAPI VReg_RegDeleteKeyExW(
@@ -9785,9 +9736,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegDeleteKeyExW(
     _Reserved_ const DWORD Reserved
 )
 {
-    switch (pRegistry->kind)
-    {
-    case VREG_INTERNAL_KIND_NATIVE:
+    if (pRegistry->kind == VREG_INTERNAL_KIND_NATIVE)
         return pRegistry->implementation.native.RegDeleteKeyExW(
             hKey,
             lpSubKey,
@@ -9795,27 +9744,16 @@ VREG_DECL LSTATUS WINAPI VReg_RegDeleteKeyExW(
             Reserved
         );
 
-    case VREG_INTERNAL_KIND_VIRTUAL:
-        return VReg_InternalVirtualRegDeleteKeyExW(
-            pRegistry,
-            hKey,
-            lpSubKey,
-            samDesired,
-            Reserved
-        );
+    if (!VReg_InternalSlotsOf(pRegistry)->RegDeleteKeyExW)
+        return ERROR_CALL_NOT_IMPLEMENTED;
 
-    default:
-        if (!pRegistry->implementation.custom.lpVtbl->RegDeleteKeyExW)
-            return ERROR_CALL_NOT_IMPLEMENTED;
-
-        return pRegistry->implementation.custom.lpVtbl->RegDeleteKeyExW(
-            pRegistry,
-            hKey,
-            lpSubKey,
-            samDesired,
-            Reserved
-        );
-    }
+    return VReg_InternalSlotsOf(pRegistry)->RegDeleteKeyExW(
+        pRegistry,
+        hKey,
+        lpSubKey,
+        samDesired,
+        Reserved
+    );
 }
 
 VREG_DECL LSTATUS WINAPI VReg_RegDeleteTreeW(
@@ -9824,31 +9762,20 @@ VREG_DECL LSTATUS WINAPI VReg_RegDeleteTreeW(
     _In_opt_ const LPCWSTR lpSubKey
 )
 {
-    switch (pRegistry->kind)
-    {
-    case VREG_INTERNAL_KIND_NATIVE:
+    if (pRegistry->kind == VREG_INTERNAL_KIND_NATIVE)
         return pRegistry->implementation.native.RegDeleteTreeW(
             hKey,
             lpSubKey
         );
 
-    case VREG_INTERNAL_KIND_VIRTUAL:
-        return VReg_InternalVirtualRegDeleteTreeW(
-            pRegistry,
-            hKey,
-            lpSubKey
-        );
+    if (!VReg_InternalSlotsOf(pRegistry)->RegDeleteTreeW)
+        return ERROR_CALL_NOT_IMPLEMENTED;
 
-    default:
-        if (!pRegistry->implementation.custom.lpVtbl->RegDeleteTreeW)
-            return ERROR_CALL_NOT_IMPLEMENTED;
-
-        return pRegistry->implementation.custom.lpVtbl->RegDeleteTreeW(
-            pRegistry,
-            hKey,
-            lpSubKey
-        );
-    }
+    return VReg_InternalSlotsOf(pRegistry)->RegDeleteTreeW(
+        pRegistry,
+        hKey,
+        lpSubKey
+    );
 }
 
 VREG_DECL LSTATUS WINAPI VReg_RegEnumKeyExW(
@@ -9863,9 +9790,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegEnumKeyExW(
     _Out_opt_ const PFILETIME lpftLastWriteTime
 )
 {
-    switch (pRegistry->kind)
-    {
-    case VREG_INTERNAL_KIND_NATIVE:
+    if (pRegistry->kind == VREG_INTERNAL_KIND_NATIVE)
         return pRegistry->implementation.native.RegEnumKeyExW(
             hKey,
             dwIndex,
@@ -9877,35 +9802,20 @@ VREG_DECL LSTATUS WINAPI VReg_RegEnumKeyExW(
             lpftLastWriteTime
         );
 
-    case VREG_INTERNAL_KIND_VIRTUAL:
-        return VReg_InternalVirtualRegEnumKeyExW(
-            pRegistry,
-            hKey,
-            dwIndex,
-            lpName,
-            lpcchName,
-            lpReserved,
-            lpClass,
-            lpcchClass,
-            lpftLastWriteTime
-        );
+    if (!VReg_InternalSlotsOf(pRegistry)->RegEnumKeyExW)
+        return ERROR_CALL_NOT_IMPLEMENTED;
 
-    default:
-        if (!pRegistry->implementation.custom.lpVtbl->RegEnumKeyExW)
-            return ERROR_CALL_NOT_IMPLEMENTED;
-
-        return pRegistry->implementation.custom.lpVtbl->RegEnumKeyExW(
-            pRegistry,
-            hKey,
-            dwIndex,
-            lpName,
-            lpcchName,
-            lpReserved,
-            lpClass,
-            lpcchClass,
-            lpftLastWriteTime
-        );
-    }
+    return VReg_InternalSlotsOf(pRegistry)->RegEnumKeyExW(
+        pRegistry,
+        hKey,
+        dwIndex,
+        lpName,
+        lpcchName,
+        lpReserved,
+        lpClass,
+        lpcchClass,
+        lpftLastWriteTime
+    );
 }
 
 VREG_DECL LSTATUS WINAPI VReg_RegEnumValueW(
@@ -9920,9 +9830,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegEnumValueW(
     _Inout_opt_ const LPDWORD lpcbData
 )
 {
-    switch (pRegistry->kind)
-    {
-    case VREG_INTERNAL_KIND_NATIVE:
+    if (pRegistry->kind == VREG_INTERNAL_KIND_NATIVE)
         return pRegistry->implementation.native.RegEnumValueW(
             hKey,
             dwIndex,
@@ -9934,35 +9842,20 @@ VREG_DECL LSTATUS WINAPI VReg_RegEnumValueW(
             lpcbData
         );
 
-    case VREG_INTERNAL_KIND_VIRTUAL:
-        return VReg_InternalVirtualRegEnumValueW(
-            pRegistry,
-            hKey,
-            dwIndex,
-            lpValueName,
-            lpcchValueName,
-            lpReserved,
-            lpType,
-            lpData,
-            lpcbData
-        );
+    if (!VReg_InternalSlotsOf(pRegistry)->RegEnumValueW)
+        return ERROR_CALL_NOT_IMPLEMENTED;
 
-    default:
-        if (!pRegistry->implementation.custom.lpVtbl->RegEnumValueW)
-            return ERROR_CALL_NOT_IMPLEMENTED;
-
-        return pRegistry->implementation.custom.lpVtbl->RegEnumValueW(
-            pRegistry,
-            hKey,
-            dwIndex,
-            lpValueName,
-            lpcchValueName,
-            lpReserved,
-            lpType,
-            lpData,
-            lpcbData
-        );
-    }
+    return VReg_InternalSlotsOf(pRegistry)->RegEnumValueW(
+        pRegistry,
+        hKey,
+        dwIndex,
+        lpValueName,
+        lpcchValueName,
+        lpReserved,
+        lpType,
+        lpData,
+        lpcbData
+    );
 }
 
 VREG_DECL LSTATUS WINAPI VReg_RegQueryInfoKeyW(
@@ -9981,9 +9874,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryInfoKeyW(
     _Out_opt_ const PFILETIME lpftLastWriteTime
 )
 {
-    switch (pRegistry->kind)
-    {
-    case VREG_INTERNAL_KIND_NATIVE:
+    if (pRegistry->kind == VREG_INTERNAL_KIND_NATIVE)
         return pRegistry->implementation.native.RegQueryInfoKeyW(
             hKey,
             lpClass,
@@ -9999,43 +9890,24 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryInfoKeyW(
             lpftLastWriteTime
         );
 
-    case VREG_INTERNAL_KIND_VIRTUAL:
-        return VReg_InternalVirtualRegQueryInfoKeyW(
-            pRegistry,
-            hKey,
-            lpClass,
-            lpcchClass,
-            lpReserved,
-            lpcSubKeys,
-            lpcbMaxSubKeyLen,
-            lpcbMaxClassLen,
-            lpcValues,
-            lpcbMaxValueNameLen,
-            lpcbMaxValueLen,
-            lpcbSecurityDescriptor,
-            lpftLastWriteTime
-        );
+    if (!VReg_InternalSlotsOf(pRegistry)->RegQueryInfoKeyW)
+        return ERROR_CALL_NOT_IMPLEMENTED;
 
-    default:
-        if (!pRegistry->implementation.custom.lpVtbl->RegQueryInfoKeyW)
-            return ERROR_CALL_NOT_IMPLEMENTED;
-
-        return pRegistry->implementation.custom.lpVtbl->RegQueryInfoKeyW(
-            pRegistry,
-            hKey,
-            lpClass,
-            lpcchClass,
-            lpReserved,
-            lpcSubKeys,
-            lpcbMaxSubKeyLen,
-            lpcbMaxClassLen,
-            lpcValues,
-            lpcbMaxValueNameLen,
-            lpcbMaxValueLen,
-            lpcbSecurityDescriptor,
-            lpftLastWriteTime
-        );
-    }
+    return VReg_InternalSlotsOf(pRegistry)->RegQueryInfoKeyW(
+        pRegistry,
+        hKey,
+        lpClass,
+        lpcchClass,
+        lpReserved,
+        lpcSubKeys,
+        lpcbMaxSubKeyLen,
+        lpcbMaxClassLen,
+        lpcValues,
+        lpcbMaxValueNameLen,
+        lpcbMaxValueLen,
+        lpcbSecurityDescriptor,
+        lpftLastWriteTime
+    );
 }
 
 VREG_DECL LSTATUS WINAPI VReg_RegLoadMUIStringW(
@@ -10049,9 +9921,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegLoadMUIStringW(
     _In_opt_ const LPCWSTR pszDirectory
 )
 {
-    switch (pRegistry->kind)
-    {
-    case VREG_INTERNAL_KIND_NATIVE:
+    if (pRegistry->kind == VREG_INTERNAL_KIND_NATIVE)
         return pRegistry->implementation.native.RegLoadMUIStringW(
             hKey,
             pszValue,
@@ -10062,33 +9932,19 @@ VREG_DECL LSTATUS WINAPI VReg_RegLoadMUIStringW(
             pszDirectory
         );
 
-    case VREG_INTERNAL_KIND_VIRTUAL:
-        return VReg_InternalVirtualRegLoadMUIStringW(
-            pRegistry,
-            hKey,
-            pszValue,
-            pszOutBuf,
-            cbOutBuf,
-            pcbData,
-            Flags,
-            pszDirectory
-        );
+    if (!VReg_InternalSlotsOf(pRegistry)->RegLoadMUIStringW)
+        return ERROR_CALL_NOT_IMPLEMENTED;
 
-    default:
-        if (!pRegistry->implementation.custom.lpVtbl->RegLoadMUIStringW)
-            return ERROR_CALL_NOT_IMPLEMENTED;
-
-        return pRegistry->implementation.custom.lpVtbl->RegLoadMUIStringW(
-            pRegistry,
-            hKey,
-            pszValue,
-            pszOutBuf,
-            cbOutBuf,
-            pcbData,
-            Flags,
-            pszDirectory
-        );
-    }
+    return VReg_InternalSlotsOf(pRegistry)->RegLoadMUIStringW(
+        pRegistry,
+        hKey,
+        pszValue,
+        pszOutBuf,
+        cbOutBuf,
+        pcbData,
+        Flags,
+        pszDirectory
+    );
 }
 
 // The slot's _Post_z_ on pvData holds on every return; the analyzer does not
@@ -10120,9 +9976,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegGetValueW(
     _Inout_opt_ const LPDWORD pcbData
 )
 {
-    switch (pRegistry->kind)
-    {
-    case VREG_INTERNAL_KIND_NATIVE:
+    if (pRegistry->kind == VREG_INTERNAL_KIND_NATIVE)
         return pRegistry->implementation.native.RegGetValueW(
             hkey,
             lpSubKey,
@@ -10133,33 +9987,19 @@ VREG_DECL LSTATUS WINAPI VReg_RegGetValueW(
             pcbData
         );
 
-    case VREG_INTERNAL_KIND_VIRTUAL:
-        return VReg_InternalVirtualRegGetValueW(
-            pRegistry,
-            hkey,
-            lpSubKey,
-            lpValue,
-            dwFlags,
-            pdwType,
-            pvData,
-            pcbData
-        );
+    if (!VReg_InternalSlotsOf(pRegistry)->RegGetValueW)
+        return ERROR_CALL_NOT_IMPLEMENTED;
 
-    default:
-        if (!pRegistry->implementation.custom.lpVtbl->RegGetValueW)
-            return ERROR_CALL_NOT_IMPLEMENTED;
-
-        return pRegistry->implementation.custom.lpVtbl->RegGetValueW(
-            pRegistry,
-            hkey,
-            lpSubKey,
-            lpValue,
-            dwFlags,
-            pdwType,
-            pvData,
-            pcbData
-        );
-    }
+    return VReg_InternalSlotsOf(pRegistry)->RegGetValueW(
+        pRegistry,
+        hkey,
+        lpSubKey,
+        lpValue,
+        dwFlags,
+        pdwType,
+        pvData,
+        pcbData
+    );
 }
 
 VREG_DECL LSTATUS WINAPI VReg_RegNotifyChangeKeyValue(
@@ -10171,9 +10011,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegNotifyChangeKeyValue(
     _In_ const BOOL fAsynchronous
 )
 {
-    switch (pRegistry->kind)
-    {
-    case VREG_INTERNAL_KIND_NATIVE:
+    if (pRegistry->kind == VREG_INTERNAL_KIND_NATIVE)
         return pRegistry->implementation.native.RegNotifyChangeKeyValue(
             hKey,
             bWatchSubtree,
@@ -10182,29 +10020,17 @@ VREG_DECL LSTATUS WINAPI VReg_RegNotifyChangeKeyValue(
             fAsynchronous
         );
 
-    case VREG_INTERNAL_KIND_VIRTUAL:
-        return VReg_InternalVirtualRegNotifyChangeKeyValue(
-            pRegistry,
-            hKey,
-            bWatchSubtree,
-            dwNotifyFilter,
-            hEvent,
-            fAsynchronous
-        );
+    if (!VReg_InternalSlotsOf(pRegistry)->RegNotifyChangeKeyValue)
+        return ERROR_CALL_NOT_IMPLEMENTED;
 
-    default:
-        if (!pRegistry->implementation.custom.lpVtbl->RegNotifyChangeKeyValue)
-            return ERROR_CALL_NOT_IMPLEMENTED;
-
-        return pRegistry->implementation.custom.lpVtbl->RegNotifyChangeKeyValue(
-            pRegistry,
-            hKey,
-            bWatchSubtree,
-            dwNotifyFilter,
-            hEvent,
-            fAsynchronous
-        );
-    }
+    return VReg_InternalSlotsOf(pRegistry)->RegNotifyChangeKeyValue(
+        pRegistry,
+        hKey,
+        bWatchSubtree,
+        dwNotifyFilter,
+        hEvent,
+        fAsynchronous
+    );
 }
 
 VREG_DECL LSTATUS WINAPI VReg_RegFlushKey(
@@ -10212,28 +10038,18 @@ VREG_DECL LSTATUS WINAPI VReg_RegFlushKey(
     _In_ const HKEY hKey
 )
 {
-    switch (pRegistry->kind)
-    {
-    case VREG_INTERNAL_KIND_NATIVE:
+    if (pRegistry->kind == VREG_INTERNAL_KIND_NATIVE)
         return pRegistry->implementation.native.RegFlushKey(
             hKey
         );
 
-    case VREG_INTERNAL_KIND_VIRTUAL:
-        return VReg_InternalVirtualRegFlushKey(
-            pRegistry,
-            hKey
-        );
+    if (!VReg_InternalSlotsOf(pRegistry)->RegFlushKey)
+        return ERROR_CALL_NOT_IMPLEMENTED;
 
-    default:
-        if (!pRegistry->implementation.custom.lpVtbl->RegFlushKey)
-            return ERROR_CALL_NOT_IMPLEMENTED;
-
-        return pRegistry->implementation.custom.lpVtbl->RegFlushKey(
-            pRegistry,
-            hKey
-        );
-    }
+    return VReg_InternalSlotsOf(pRegistry)->RegFlushKey(
+        pRegistry,
+        hKey
+    );
 }
 
 VREG_DECL void WINAPI VReg_Destroy(
@@ -10243,22 +10059,9 @@ VREG_DECL void WINAPI VReg_Destroy(
     if (!pRegistry)
         return;
 
-    switch (pRegistry->kind)
-    {
-    case VREG_INTERNAL_KIND_NATIVE:
-        VReg_InternalFree(pRegistry);
-        break;
-
-    case VREG_INTERNAL_KIND_VIRTUAL:
-        VReg_InternalVirtualDestroy(pRegistry);
-        break;
-
-    default:
-        if (pRegistry->implementation.custom.lpVtbl->Destroy)
-            pRegistry->implementation.custom.lpVtbl->Destroy(pRegistry);
-        VReg_InternalFree(pRegistry);
-        break;
-    }
+    if (VReg_InternalSlotsOf(pRegistry)->Destroy)
+        VReg_InternalSlotsOf(pRegistry)->Destroy(pRegistry);
+    VReg_InternalFree(pRegistry);
 }
 
 VREG_DECL LSTATUS WINAPI VReg_CreateCustom(
@@ -12412,8 +12215,6 @@ VREG_DECL void WINAPI VReg_InternalVirtualDestroy(_In_ VReg* const pRegistry)
         pTable = pPrevious;
         isNewest = FALSE;
     }
-
-    VReg_InternalFree(pRegistry);
 }
 
 VREG_DECL LSTATUS WINAPI VReg_CreateVirtual(

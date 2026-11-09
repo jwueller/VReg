@@ -44,9 +44,12 @@ Every function is declared `VREG_DECL`, which `VREG_STATIC` turns into `static`.
 
 - A registry is an opaque handle, as a hive and a script are, so nothing
   outside the implementation depends on its layout. Inside it is one tagged
-  struct: its kind and a union with what the kind needs. The native and virtual registries are kinds of their own, so the
-  flat functions call them directly and neither needs a function table, a
-  struct of its own or a cast.
+  struct: its kind and a union with what the kind needs. The native and
+  virtual registries are kinds of their own, so neither needs a struct of
+  its own or a cast. The native registry's table has no slot to spare for
+  the object, so the flat wide functions call it directly; the virtual
+  registry's wide forms sit in a static `VRegVtbl`, so every flat function
+  reaches it as it reaches a custom registry.
 - Any other implementation is a custom registry: `VReg_CreateCustom` makes
   one over a `VRegVtbl` and a context, the implementation's own object,
   which its slots reach through `VReg_GetContext`. A wrapper's context
@@ -72,8 +75,8 @@ Every function is declared `VREG_DECL`, which `VREG_STATIC` turns into `static`.
   (`RegSetKeyValue`, `RegDeleteKeyValue`, `RegQueryMultipleValues`).
 - Callers use the flat functions, `VReg` plus the Win32 name with the
   registry first (`VReg_RegOpenKeyExW(pRegistry, hKey, ...)`). A flat wide
-  function switches on the kind. Every other flat function calls its slot
-  when a custom table fills it; otherwise it derives the call from
+  function calls the native table directly and otherwise its slot. Every
+  other flat function calls its slot when the table fills it; otherwise it derives the call from
   the wide `Ex` forms, once, in the "Derived forms" section: ANSI forms widen and
   narrow through `CP_ACP` in both directions (ANSI callers use the system
   code page; UTF-8 there corrupts non-ASCII names and data), and the
