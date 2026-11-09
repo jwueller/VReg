@@ -59,7 +59,7 @@ extern "C" {
 // Raised with every change to this file. Tweak is unused (always 0).
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 16
-#define VREG_VERSION_PATCH 3
+#define VREG_VERSION_PATCH 4
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -4934,6 +4934,19 @@ VREG_DECL LSTATUS WINAPI VReg_RegCreateKeyW(
     );
 }
 
+static void VReg_InternalCloseUnless(
+    _In_ VReg* const pRegistry,
+    _In_opt_ const HKEY hOpened,
+    _In_opt_ const HKEY hKept
+)
+{
+    if (hOpened && hOpened != hKept)
+        VReg_RegCloseKey(
+            pRegistry,
+            hOpened
+        );
+}
+
 VREG_DECL LSTATUS WINAPI VReg_RegQueryValueA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
@@ -4975,13 +4988,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryValueA(
         (LPBYTE)lpData,
         (LPDWORD)lpcbData
     );
-    if (hSubKey != hKey)
-    {
-        VReg_RegCloseKey(
-            pRegistry,
-            hSubKey
-        );
-    }
+    VReg_InternalCloseUnless(pRegistry, hSubKey, hKey);
     if (status == ERROR_SUCCESS && dwType != REG_SZ)
         status = ERROR_INVALID_DATA;
 
@@ -5037,13 +5044,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryValueW(
         (LPBYTE)lpData,
         (LPDWORD)lpcbData
     );
-    if (hSubKey != hKey)
-    {
-        VReg_RegCloseKey(
-            pRegistry,
-            hSubKey
-        );
-    }
+    VReg_InternalCloseUnless(pRegistry, hSubKey, hKey);
     if (status == ERROR_SUCCESS && dwType != REG_SZ)
         status = ERROR_INVALID_DATA;
 
@@ -5106,13 +5107,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegSetValueA(
         (const BYTE*)lpData,
         (DWORD)(VReg_InternalAnsiLength(lpData) + 1)
     );
-    if (hSubKey != hKey)
-    {
-        VReg_RegCloseKey(
-            pRegistry,
-            hSubKey
-        );
-    }
+    VReg_InternalCloseUnless(pRegistry, hSubKey, hKey);
     return status;
 }
 
@@ -5164,13 +5159,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegSetValueW(
         (const BYTE*)lpData,
         (DWORD)((VReg_InternalViewFromText(lpData).cch + 1) * sizeof(wchar_t))
     );
-    if (hSubKey != hKey)
-    {
-        VReg_RegCloseKey(
-            pRegistry,
-            hSubKey
-        );
-    }
+    VReg_InternalCloseUnless(pRegistry, hSubKey, hKey);
     return status;
 }
 
@@ -5334,13 +5323,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegSetKeyValueA(
         (const BYTE*)lpData,
         cbData
     );
-    if (hSubKey != hKey)
-    {
-        VReg_RegCloseKey(
-            pRegistry,
-            hSubKey
-        );
-    }
+    VReg_InternalCloseUnless(pRegistry, hSubKey, hKey);
     return status;
 }
 
@@ -5394,13 +5377,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegSetKeyValueW(
         (const BYTE*)lpData,
         cbData
     );
-    if (hSubKey != hKey)
-    {
-        VReg_RegCloseKey(
-            pRegistry,
-            hSubKey
-        );
-    }
+    VReg_InternalCloseUnless(pRegistry, hSubKey, hKey);
     return status;
 }
 
@@ -5440,13 +5417,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegDeleteKeyValueA(
         hSubKey,
         lpValueName
     );
-    if (hSubKey != hKey)
-    {
-        VReg_RegCloseKey(
-            pRegistry,
-            hSubKey
-        );
-    }
+    VReg_InternalCloseUnless(pRegistry, hSubKey, hKey);
     return status;
 }
 
@@ -5486,13 +5457,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegDeleteKeyValueW(
         hSubKey,
         lpValueName
     );
-    if (hSubKey != hKey)
-    {
-        VReg_RegCloseKey(
-            pRegistry,
-            hSubKey
-        );
-    }
+    VReg_InternalCloseUnless(pRegistry, hSubKey, hKey);
     return status;
 }
 
@@ -6216,7 +6181,6 @@ VREG_DECL BOOL VRegHive_InternalIsFrozen(_In_ VRegHive* const pHive)
     return ReadAcquire(&pHive->isFrozen) != 0;
 }
 
-/// Takes the lock shared, or nothing once frozen; answers whether it did.
 /// Whether readers skip the lock: a frozen hive whose tree is all its own.
 /// A custom hive keeps locking once frozen, since it still adds records.
 static BOOL VRegHive_InternalIsLockFree(_In_ VRegHive* const pHive)
@@ -6224,6 +6188,7 @@ static BOOL VRegHive_InternalIsLockFree(_In_ VRegHive* const pHive)
     return VRegHive_InternalIsFrozen(pHive) && pHive->kind != VREG_INTERNAL_HIVE_CUSTOM;
 }
 
+/// Takes the lock shared, or nothing once frozen; answers whether it did.
 static BOOL VRegHive_InternalLockRead(_In_ VRegHive* const pHive)
 {
     if (VRegHive_InternalIsLockFree(pHive))
@@ -9603,7 +9568,7 @@ VREG_DECL LSTATUS VReg_InternalQueryInfoKeyOwned(
         );
         if ((status == ERROR_MORE_DATA || status == ERROR_INSUFFICIENT_BUFFER) && cchClass < VREG_INTERNAL_MAX_CLASS_CHARS)
         {
-            cchClass = VReg_InternalMinDword(cchClass * 2, VREG_INTERNAL_MAX_CLASS_CHARS);
+            cchClass = VReg_InternalMinDword(VReg_InternalGrown(cchClass, cchRead), VREG_INTERNAL_MAX_CLASS_CHARS);
             continue;
         }
         if (status == ERROR_SUCCESS)
@@ -12459,18 +12424,6 @@ static LSTATUS VReg_InternalNotFoundIsFine(const LSTATUS status)
     return status == ERROR_FILE_NOT_FOUND || status == ERROR_PATH_NOT_FOUND ? ERROR_SUCCESS : status;
 }
 
-static void VReg_InternalApplyCloseKey(
-    _In_ VReg* const pRegistry,
-    _In_opt_ const HKEY hKey
-)
-{
-    if (hKey)
-        VReg_RegCloseKey(
-            pRegistry,
-            hKey
-        );
-}
-
 static LSTATUS VReg_InternalPerformSetValue(
     _In_ const VRegOperation* const pOperation,
     _In_ VReg* const pRegistry
@@ -12534,7 +12487,7 @@ static LSTATUS VReg_InternalPerformSetValue(
         );
     }
 
-    VReg_InternalApplyCloseKey(pRegistry, hKey);
+    VReg_InternalCloseUnless(pRegistry, hKey, NULL);
     return status;
 }
 
@@ -12566,7 +12519,7 @@ static LSTATUS VReg_InternalPerform(
             &hKey,
             NULL
         );
-        VReg_InternalApplyCloseKey(pRegistry, hKey);
+        VReg_InternalCloseUnless(pRegistry, hKey, NULL);
         return status;
 
     case VREG_OPERATION_DELETE_KEY:
@@ -12612,7 +12565,7 @@ static LSTATUS VReg_InternalPerform(
                 pOperation->pszName
             )
         );
-        VReg_InternalApplyCloseKey(pRegistry, hKey);
+        VReg_InternalCloseUnless(pRegistry, hKey, NULL);
         return status;
 
     default:
