@@ -74,12 +74,11 @@ extern "C" {
 // Linkage
 // ==========================================================================
 
-// What every VReg declaration carries: the linkage of the functions.
-// Defining @ref VREG_STATIC wherever the header is included (the
-// implementation too) makes every function `static`, so a module can
-// hold a private copy beside another module's; two copies in one module
-// behave as two copies and share nothing but the handle namespace.
-
+/// What every VReg declaration carries: the linkage of the functions.
+/// Defining @ref VREG_STATIC wherever the header is included (the
+/// implementation too) makes every function `static`, so a module can
+/// hold a private copy beside another module's; two copies in one module
+/// behave as two copies and share nothing but the handle namespace.
 #ifdef VREG_STATIC
 #define VREG_DECL static
 #else
