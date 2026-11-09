@@ -25,10 +25,9 @@ targets compile it from one-line files under `src/`:
 
 The private declarations show under `VREG_INTERNAL` without the
 implementation, for the tests, which reach into hives, the handle space and
-the export table. Agent's choice: one file rather than a tree of sources
-merged into a generated header, so what a consumer copies is what
-contributors edit; the cost is a long file, navigated by its section
-banners.
+the export table. It is one file rather than a tree of sources merged into
+a generated header, so what a consumer copies is what contributors edit;
+the cost is a long file, navigated by its section banners.
 
 One library target for the core, not one per area: nothing uses `.reg`
 support without the core, and a static library costs a consumer only the
