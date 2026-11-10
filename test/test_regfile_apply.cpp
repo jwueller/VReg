@@ -214,9 +214,9 @@ TEST_CASE("Apply deletes values and keys")
         };
         CHECK(
             VReg_ApplyOperations(
+                registry,
                 operations.data(),
                 operations.size(),
-                registry,
                 0,
                 nullptr
             ) == ERROR_SUCCESS
@@ -276,9 +276,9 @@ TEST_CASE("Apply stops at the first failing operation")
     SIZE_T failed = 99;
     CHECK(
         VReg_ApplyOperations(
+            registry,
             operations.data(),
             operations.size(),
-            registry,
             0,
             &failed
         ) == ERROR_FILE_NOT_FOUND
@@ -290,9 +290,9 @@ TEST_CASE("Apply stops at the first failing operation")
 
     CHECK(
         VReg_ApplyOperations(
+            registry,
             operations.data(),
             operations.size(),
-            registry,
             0,
             nullptr
         ) == ERROR_FILE_NOT_FOUND
@@ -320,9 +320,9 @@ TEST_CASE("Apply continues past failing operations when told to")
         SIZE_T failed = 99;
         CHECK(
             VReg_ApplyOperations(
+                registry,
                 operations.data(),
                 operations.size(),
-                registry,
                 VREG_APPLY_CONTINUE_ON_ERROR,
                 &failed
             ) == ERROR_FILE_NOT_FOUND
@@ -337,9 +337,9 @@ TEST_CASE("Apply continues past failing operations when told to")
     {
         CHECK(
             VReg_ApplyOperations(
+                registry,
                 operations.data(),
                 operations.size(),
-                registry,
                 VREG_APPLY_CONTINUE_ON_ERROR,
                 nullptr
             ) == ERROR_FILE_NOT_FOUND
@@ -356,9 +356,9 @@ TEST_CASE("Apply continues past failing operations when told to")
         SIZE_T failed = 99;
         CHECK(
             VReg_ApplyOperations(
+                registry,
                 sound.data(),
                 sound.size(),
-                registry,
                 VREG_APPLY_CONTINUE_ON_ERROR,
                 &failed
             ) == ERROR_SUCCESS
@@ -377,9 +377,9 @@ TEST_CASE("Apply refuses unknown flags before doing anything")
     SIZE_T failed = 99;
     CHECK(
         VReg_ApplyOperations(
+            registry,
             operations.data(),
             operations.size(),
-            registry,
             ~VREG_APPLY_CONTINUE_ON_ERROR,
             &failed
         ) == ERROR_INVALID_PARAMETER
@@ -401,9 +401,9 @@ TEST_CASE("Apply refuses an operation that would delete a root")
     SIZE_T failed = 99;
     CHECK(
         VReg_ApplyOperations(
+            registry,
             &operation,
             1,
-            registry,
             0,
             &failed
         ) == ERROR_INVALID_PARAMETER
@@ -419,9 +419,9 @@ TEST_CASE("An empty script applies to nothing")
     SIZE_T failed = 99;
     CHECK(
         VReg_ApplyOperations(
+            registry,
             nullptr,
             0,
-            registry,
             0,
             &failed
         ) == ERROR_SUCCESS

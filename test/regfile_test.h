@@ -105,7 +105,7 @@ inline LSTATUS Apply(
 )
 {
     const auto operations = Operations(pScript);
-    return VReg_ApplyOperations(operations.data(), operations.size(), registry, 0, pFailedIndex);
+    return VReg_ApplyOperations(registry, operations.data(), operations.size(), 0, pFailedIndex);
 }
 
 inline std::vector<std::byte> DataOf(const VRegOperation& operation)

@@ -1331,9 +1331,9 @@ VREG_DECL _Ret_notnull_ const VRegOperation* WINAPI VRegScript_GetOperations(
  */
 _Success_(return == ERROR_SUCCESS)
 VREG_DECL LSTATUS WINAPI VReg_ApplyOperations(
+    _In_ VReg* pRegistry,
     _In_reads_(cOperations) const VRegOperation* pOperations,
     _In_ SIZE_T cOperations,
-    _In_ VReg* pRegistry,
     _In_ DWORD dwFlags,
     _Pre_maybenull_ _Pre_writable_size_(1) SIZE_T* pFailedIndex
 );
@@ -12508,9 +12508,9 @@ static LSTATUS VRegScript_InternalPerform(
 
 _Success_(return == ERROR_SUCCESS)
 VREG_DECL LSTATUS WINAPI VReg_ApplyOperations(
+    _In_ VReg* const pRegistry,
     _In_reads_(cOperations) const VRegOperation* const pOperations,
     _In_ const SIZE_T cOperations,
-    _In_ VReg* const pRegistry,
     _In_ const DWORD dwFlags,
     _Pre_maybenull_ _Pre_writable_size_(1) SIZE_T* const pFailedIndex
 )
