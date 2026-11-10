@@ -14229,12 +14229,11 @@ static BOOL VRegScript_InternalAppendValue(
 }
 
 /// Appends `[key]` or `[-key]` for @p pOperation's key, preceded by a blank
-/// line unless it opens the file.
+/// line.
 static LSTATUS VRegScript_InternalAppendKeyLine(
     _Inout_ VRegInternalWString* const pOut,
     _In_ const VRegOperation* const pOperation,
-    const BOOL isDelete,
-    const BOOL isFirst
+    const BOOL isDelete
 )
 {
     const LPCWSTR pszRoot = VRegScript_InternalGetRootName(pOperation->hRoot);
@@ -14243,7 +14242,7 @@ static LSTATUS VRegScript_InternalAppendKeyLine(
         return ERROR_INVALID_HANDLE;
 
     if (
-        (!isFirst && !VRegInternalWString_OutAppend(pOut, VREG_INTERNAL_NEWLINE))
+        !VRegInternalWString_OutAppend(pOut, VREG_INTERNAL_NEWLINE)
         || !VRegInternalWString_OutAppend(pOut, isDelete ? L"[-" : L"[")
         || !VRegInternalWString_OutAppend(pOut, pszRoot)
         || (path.cch != 0 && !VRegInternalWString_AppendChar(pOut, L'\\'))
@@ -14288,7 +14287,6 @@ VREG_DECL LSTATUS WINAPI VRegScript_Write(
             format == VREG_FORMAT_REGEDIT4 ? L"REGEDIT4" : L"Windows Registry Editor Version 5.00"
         )
         || !VRegInternalWString_OutAppend(&out, VREG_INTERNAL_NEWLINE)
-        || !VRegInternalWString_OutAppend(&out, VREG_INTERNAL_NEWLINE)
     )
     {
         status = ERROR_OUTOFMEMORY;
@@ -14314,8 +14312,7 @@ VREG_DECL LSTATUS WINAPI VRegScript_Write(
             status = VRegScript_InternalAppendKeyLine(
                 &out,
                 pOperation,
-                pOperation->kind == VREG_OPERATION_DELETE_KEY,
-                i == 0
+                pOperation->kind == VREG_OPERATION_DELETE_KEY
             );
             if (status != ERROR_SUCCESS)
                 goto done;
@@ -14330,7 +14327,7 @@ VREG_DECL LSTATUS WINAPI VRegScript_Write(
         }
     }
 
-    if (cOperations != 0 && !VRegInternalWString_OutAppend(&out, VREG_INTERNAL_NEWLINE))
+    if (!VRegInternalWString_OutAppend(&out, VREG_INTERNAL_NEWLINE))
     {
         status = ERROR_OUTOFMEMORY;
         goto done;
