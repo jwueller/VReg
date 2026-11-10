@@ -396,7 +396,7 @@ private:
         return status;
     }
 
-    static LSTATUS WINAPI CheckKey(VRegHive* const pHive, VRegHiveKey* const pKey)
+    static LSTATUS WINAPI FlushKey(VRegHive* const pHive, VRegHiveKey* const pKey)
     {
         const ForwardingProvider& self = Of(pHive);
         HKEY hKey{};
@@ -423,7 +423,7 @@ private:
         .EnumKey = &EnumKey,
         .EnumValue = &EnumValue,
         .QueryInfo = &QueryInfo,
-        .CheckKey = &CheckKey,
+        .FlushKey = &FlushKey,
         .Destroy = nullptr,
     };
 

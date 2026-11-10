@@ -964,7 +964,7 @@ typedef LSTATUS WINAPI VRegHiveQueryInfoFunction(
 );
 
 /// What `RegFlushKey` on @p pKey answers.
-typedef LSTATUS WINAPI VRegHiveCheckKeyFunction(
+typedef LSTATUS WINAPI VRegHiveFlushKeyFunction(
     _In_ VRegHive* pHive,
     _In_ VRegHiveKey* pKey
 );
@@ -988,7 +988,7 @@ typedef void WINAPI VRegHiveDestroyFunction(
  *  order, each subtree before its key, then the values, stopping at the
  *  first failure; a call after a failure continues from what is left. A
  *  null `QueryInfo` is derived by enumerating keys and values once; a null
- *  `CheckKey` succeeds; a null `Destroy` does nothing.
+ *  `FlushKey` succeeds; a null `Destroy` does nothing.
  *
  *  A slot receives names as the caller passed them and MUST compare them as
  *  the registry does (@ref VReg_CompareNames). Slots MAY run on any thread,
@@ -1009,7 +1009,7 @@ typedef struct
     VRegHiveEnumKeyFunction* EnumKey;
     VRegHiveEnumValueFunction* EnumValue;
     VRegHiveQueryInfoFunction* QueryInfo;
-    VRegHiveCheckKeyFunction* CheckKey;
+    VRegHiveFlushKeyFunction* FlushKey;
     VRegHiveDestroyFunction* Destroy;
 } VRegHiveVtbl;
 
@@ -2384,7 +2384,7 @@ VREG_DECL LSTATUS VRegHive_InternalQueryInfo(
 
 /// What `RegFlushKey` on @p pNode needs from the hive: success, or
 /// @ref ERROR_KEY_DELETED.
-VREG_DECL LSTATUS VRegHive_InternalCheckKey(
+VREG_DECL LSTATUS VRegHive_InternalFlushKey(
     _In_ VRegHive* pHive,
     _In_ VRegHiveInternalNode* pNode
 );
@@ -8714,15 +8714,15 @@ VREG_DECL LSTATUS VRegHive_InternalSnapshotUpper(
     return status;
 }
 
-VREG_DECL LSTATUS VRegHive_InternalCheckKey(
+VREG_DECL LSTATUS VRegHive_InternalFlushKey(
     _In_ VRegHive* const pHive,
     _In_ VRegHiveInternalNode* const pNode
 )
 {
     if (VRegHive_InternalIsDeleted(pHive, pNode))
         return ERROR_KEY_DELETED;
-    if (pHive->pLowerVtbl && pHive->pLowerVtbl->CheckKey)
-        return pHive->pLowerVtbl->CheckKey(pHive, pNode);
+    if (pHive->pLowerVtbl && pHive->pLowerVtbl->FlushKey)
+        return pHive->pLowerVtbl->FlushKey(pHive, pNode);
 
     return ERROR_SUCCESS;
 }
@@ -12157,7 +12157,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegFlushKey(
         goto done;
     }
 
-    status = VRegHive_InternalCheckKey(target.pNode->pHive, target.pNode);
+    status = VRegHive_InternalFlushKey(target.pNode->pHive, target.pNode);
 
 done:
     VRegInternalTarget_Free(&target);
