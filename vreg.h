@@ -3087,24 +3087,6 @@ VREG_DECL VRegInternalWStringView VReg_InternalViewFromText(
     return view;
 }
 
-static BOOL VRegInternalBuffer_Reserve(
-    _Inout_ VRegInternalBuffer* const pBuffer,
-    const SIZE_T cbCapacity
-)
-{
-    BYTE* pb;
-    if (cbCapacity <= pBuffer->cbCapacity)
-        return TRUE;
-
-    pb = (BYTE*)VReg_InternalReAlloc(pBuffer->pb, cbCapacity);
-    if (!pb)
-        return FALSE;
-
-    pBuffer->pb = pb;
-    pBuffer->cbCapacity = cbCapacity;
-    return TRUE;
-}
-
 VREG_DECL BOOL VRegInternalBuffer_Resize(
     _Inout_ VRegInternalBuffer* const pBuffer,
     const SIZE_T cb
@@ -3113,8 +3095,12 @@ VREG_DECL BOOL VRegInternalBuffer_Resize(
     if (cb > pBuffer->cbCapacity)
     {
         const SIZE_T cbGrown = VReg_InternalGrowCapacity(pBuffer->cbCapacity, cb);
-        if (!VRegInternalBuffer_Reserve(pBuffer, cbGrown))
+        BYTE* const pb = (BYTE*)VReg_InternalReAlloc(pBuffer->pb, cbGrown);
+        if (!pb)
             return FALSE;
+
+        pBuffer->pb = pb;
+        pBuffer->cbCapacity = cbGrown;
     }
 
     pBuffer->cb = cb;
