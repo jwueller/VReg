@@ -1550,23 +1550,6 @@ extern "C" {
 
 VREG_DECL void VReg_InternalAssertFailed(void);
 
-/// Allocates @p cb zero-filled bytes; null when memory ran out.
-VREG_DECL _Ret_maybenull_ void* VReg_InternalAllocZeroed(
-    SIZE_T cb
-);
-
-/// Resizes @p p (null allocates) to @p cb bytes; null when memory ran out,
-/// leaving @p p as it was.
-VREG_DECL _Ret_maybenull_ void* VReg_InternalReAlloc(
-    _In_opt_ void* p,
-    SIZE_T cb
-);
-
-/// Frees @p p; null is ignored.
-VREG_DECL void VReg_InternalFree(
-    _In_opt_ void* p
-);
-
 // ==========================================================================
 // Buffers
 // ==========================================================================
@@ -1587,22 +1570,12 @@ VREG_DECL VRegInternalWStringView VReg_InternalViewFromText(
     _In_opt_ LPCWSTR psz
 );
 
-VREG_DECL DWORD VReg_InternalMinDword(DWORD a, DWORD b);
-VREG_DECL DWORD VReg_InternalMaxDword(DWORD a, DWORD b);
-
 typedef struct
 {
     SIZE_T cbCapacity;
     _Field_range_(0, cbCapacity) SIZE_T cb;
     _Field_size_opt_(cbCapacity) BYTE* pb;
 } VRegInternalBuffer;
-
-/// Sets the size to @p cb, growing the capacity if needed; new bytes are
-/// indeterminate.
-VREG_DECL BOOL VRegInternalBuffer_Resize(
-    _Inout_ VRegInternalBuffer* pBuffer,
-    SIZE_T cb
-);
 
 VREG_DECL BOOL VRegInternalBuffer_Assign(
     _Inout_ VRegInternalBuffer* pBuffer,
@@ -1634,10 +1607,6 @@ VREG_DECL _Ret_notnull_ LPCWSTR VRegInternalWString_GetText(
     _In_ const VRegInternalWString* pString
 );
 
-VREG_DECL VRegInternalWStringView VRegInternalWString_GetView(
-    _In_ const VRegInternalWString* pString
-);
-
 /// Room for @p cch characters and the terminator.
 VREG_DECL BOOL VRegInternalWString_Reserve(
     _Inout_ VRegInternalWString* pString,
@@ -1663,17 +1632,6 @@ VREG_DECL BOOL VRegInternalWString_Append(
     SIZE_T cch
 );
 
-VREG_DECL BOOL VRegInternalWString_AppendChar(
-    _Inout_ VRegInternalWString* pString,
-    wchar_t ch
-);
-
-/// Shortens the string to @p cch characters, which is at most its length.
-VREG_DECL void VRegInternalWString_Truncate(
-    _Inout_ VRegInternalWString* pString,
-    SIZE_T cch
-);
-
 VREG_DECL void VRegInternalWString_Free(
     _Inout_ VRegInternalWString* pString
 );
@@ -1695,87 +1653,19 @@ VREG_DECL BOOL VRegInternalArray_Reserve(
     SIZE_T capacity
 );
 
-/// Inserts a copy of @p pElement before @p index, which is at most the count.
-VREG_DECL BOOL VRegInternalArray_Insert(
-    _Inout_ VRegInternalArray* pArray,
-    SIZE_T cbElement,
-    SIZE_T index,
-    _In_reads_bytes_(cbElement) const void* pElement
-);
-
 VREG_DECL BOOL VRegInternalArray_Append(
     _Inout_ VRegInternalArray* pArray,
     SIZE_T cbElement,
     _In_reads_bytes_(cbElement) const void* pElement
 );
 
-/// Removes the element at @p index, moving the later ones down.
-VREG_DECL void VRegInternalArray_RemoveAt(
-    _Inout_ VRegInternalArray* pArray,
-    SIZE_T cbElement,
-    SIZE_T index
-);
-
 VREG_DECL void VRegInternalArray_Free(
-    _Inout_ VRegInternalArray* pArray
-);
-
-/// The view of the string at @p index of @p pArray, an array of
-/// @ref VRegInternalWString.
-VREG_DECL VRegInternalWStringView VRegInternalArray_WStringViewAt(
-    _In_ const VRegInternalArray* pArray,
-    SIZE_T index
-);
-
-/// Appends a copy of @p text to @p pArray, an array of @ref VRegInternalWString.
-VREG_DECL BOOL VRegInternalArray_AppendWString(
-    _Inout_ VRegInternalArray* pArray,
-    VRegInternalWStringView text
-);
-
-/// Adds a copy of @p text to @p pArray, an array of @ref VRegInternalWString sorted
-/// by @ref VRegInternalWStringView_CompareNames, unless an equal name is there already.
-VREG_DECL BOOL VRegInternalArray_InsertWStringSorted(
-    _Inout_ VRegInternalArray* pArray,
-    VRegInternalWStringView text
-);
-
-/// Whether the sorted @p pArray holds a name equal to @p text by
-/// @ref VRegInternalWStringView_CompareNames.
-VREG_DECL BOOL VRegInternalArray_ContainsWStringSorted(
-    _In_ const VRegInternalArray* pArray,
-    VRegInternalWStringView text
-);
-
-/// Frees the strings of @p pArray, an array of @ref VRegInternalWString, and the
-/// array itself.
-VREG_DECL void VRegInternalArray_FreeWStrings(
     _Inout_ VRegInternalArray* pArray
 );
 
 // ==========================================================================
 // ANSI conversion
 // ==========================================================================
-
-/// Widens @p cch bytes through @ref CP_ACP into @p pText, without a
-/// terminator beyond the one the string type keeps. Answers
-/// @ref ERROR_OUTOFMEMORY when memory ran out or the text is longer than the
-/// conversion can take.
-VREG_DECL LSTATUS VReg_InternalWideFromAnsi(
-    _In_reads_(cch) LPCCH pch,
-    SIZE_T cch,
-    _Inout_ VRegInternalWString* pText
-);
-
-/// Narrows @p cch UTF-16 units through @ref CP_ACP into @p pText, a buffer of
-/// bytes without a terminator; what the code page cannot represent becomes
-/// its default character. Answers @ref ERROR_OUTOFMEMORY as
-/// @ref VReg_InternalWideFromAnsi does.
-VREG_DECL LSTATUS VReg_InternalAnsiFromWide(
-    _In_reads_(cch) LPCWCH pch,
-    SIZE_T cch,
-    _Inout_ VRegInternalBuffer* pText
-);
 
 /// A string argument that may be null: the wide copy of an ANSI argument.
 typedef struct
@@ -1793,11 +1683,6 @@ VREG_DECL LSTATUS VRegInternalWideArg_Init(
 /// The wide text, null when the argument was null.
 VREG_DECL _Ret_maybenull_ LPCWSTR VRegInternalWideArg_GetText(
     _In_ const VRegInternalWideArg* pArg
-);
-
-/// Like @ref VRegInternalWideArg_GetText, as a buffer the callee may write to.
-VREG_DECL _Ret_maybenull_ LPWSTR VRegInternalWideArg_GetMutableText(
-    _In_ VRegInternalWideArg* pArg
 );
 
 VREG_DECL void VRegInternalWideArg_Free(
@@ -1878,13 +1763,6 @@ struct VRegHiveInternalNode
     VRegInternalArray watches;
 };
 
-/// Ordinal comparison of uppercased names, the registry's own collation:
-/// negative, zero or positive.
-VREG_DECL int VRegInternalWStringView_CompareNames(
-    VRegInternalWStringView left,
-    VRegInternalWStringView right
-);
-
 // ==========================================================================
 // Export tables
 // ==========================================================================
@@ -1908,10 +1786,6 @@ VREG_DECL _Ret_maybenull_ void* VReg_InternalFindRegistryExport(
 // Owned reads
 // ==========================================================================
 
-// Reads over a @ref VReg that size and fill owned storage
-// themselves, retrying with a larger buffer while the value grows between
-// the sizing call and the read. The storage stays the caller's to free.
-
 // Names and classes are read into a temporary buffer of 256 characters, which
 // holds the longest key name, and grow by doubling on ERROR_MORE_DATA, up to
 // the limits below. Avoids an additional sizing call for the common case.
@@ -1922,66 +1796,6 @@ VREG_DECL _Ret_maybenull_ void* VReg_InternalFindRegistryExport(
 /// The size to retry with: the one the call asked for, or more than before if
 /// it asked for no more than it was given.
 VREG_DECL DWORD VReg_InternalGrow(DWORD cbOld, DWORD cbRequired);
-
-VREG_DECL LSTATUS VReg_InternalQueryValueOwned(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_opt_ LPCWSTR lpValueName,
-    _Out_opt_ LPDWORD lpType,
-    _Inout_ VRegInternalBuffer* pData
-);
-
-VREG_DECL LSTATUS VReg_InternalGetValueOwned(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_opt_ LPCWSTR lpSubKey,
-    _In_opt_ LPCWSTR lpValue,
-    _In_ DWORD dwFlags,
-    _Out_opt_ LPDWORD pdwType,
-    _Inout_ VRegInternalBuffer* pData
-);
-
-/// @ref VReg_RegEnumKeyExW with the name read into @p pName and, when
-/// @p pClass is not null, the class into it. Both buffers grow until the read
-/// fits or none can grow further, and then the status is answered as it is.
-VREG_DECL LSTATUS VReg_InternalEnumKeyOwned(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_ DWORD dwIndex,
-    _Inout_ VRegInternalWString* pName,
-    _Inout_opt_ VRegInternalWString* pClass,
-    _Reserved_ LPDWORD lpReserved,
-    _Out_opt_ PFILETIME lpftLastWriteTime
-);
-
-/// With a null @p pData only the name and type are read.
-VREG_DECL LSTATUS VReg_InternalEnumValueOwned(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_ DWORD dwIndex,
-    _Inout_ VRegInternalWString* pName,
-    _Out_opt_ LPDWORD lpType,
-    _Inout_opt_ VRegInternalBuffer* pData
-);
-
-/// @ref VReg_RegQueryInfoKeyW with the class read into @p pClass. When the read
-/// fails and its last call reported a class length other than the buffer's,
-/// that length is stored at @p lpcchClassReported.
-VREG_DECL LSTATUS VReg_InternalQueryInfoKeyOwned(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _Inout_ VRegInternalWString* pClass,
-    _Inout_opt_ LPDWORD lpcchClassReported,
-    _Reserved_ LPDWORD lpReserved,
-    _Out_opt_ LPDWORD lpcSubKeys,
-    _Out_opt_ LPDWORD lpcbMaxSubKeyLen,
-    _Out_opt_ LPDWORD lpcbMaxClassLen,
-    _Out_opt_ LPDWORD lpcValues,
-    _Out_opt_ LPDWORD lpcbMaxValueNameLen,
-    _Out_opt_ LPDWORD lpcbMaxValueLen,
-    _Out_opt_ LPDWORD lpcbSecurityDescriptor,
-    _Out_opt_ PFILETIME lpftLastWriteTime
-);
 
 // ==========================================================================
 // RRF_* filters
@@ -2005,14 +1819,6 @@ static_assert(VREG_INTERNAL_RRF_WOW6464_SUBKEY == RRF_SUBKEY_WOW6464KEY);
 static_assert(VREG_INTERNAL_RRF_WOW6432_SUBKEY == RRF_SUBKEY_WOW6432KEY);
 #endif
 #endif
-
-// ==========================================================================
-// Value types
-// ==========================================================================
-
-/// Whether data of @p dwType is UTF-16 text: @ref REG_SZ, @ref REG_EXPAND_SZ
-/// or @ref REG_MULTI_SZ.
-VREG_DECL BOOL VReg_InternalIsStringType(DWORD dwType);
 
 // ==========================================================================
 // The handle space
@@ -2181,11 +1987,6 @@ typedef struct
     VRegInternalRedirect redirect;
 } VRegHiveInternalOpenResult;
 
-/// Closes the key of @p pRedirect through its registry.
-VREG_DECL void VRegInternalRedirect_Close(
-    _In_ const VRegInternalRedirect* pRedirect
-);
-
 /// What `RegQueryInfoKeyW` reports, as owned values. Lengths are in
 /// characters without terminators, except @ref cbMaxValue.
 typedef struct
@@ -2217,18 +2018,6 @@ struct VRegHiveResult
     /// @ref VRegHiveVtbl::QueryInfo.
     VRegInternalKeyInfo* pInfo;
 };
-
-/// The open of an overlay hive's lower, with @p samDesired; with @p isRedirect
-/// it hands the key out in @p pRedirect instead of only answering whether it
-/// exists.
-VREG_DECL LSTATUS VRegHiveInternalRegistryLower_OpenAs(
-    _In_ VRegHive* pHive,
-    _In_ VRegHiveInternalNode* pParent,
-    _In_ LPCWSTR pszSubKey,
-    REGSAM samDesired,
-    BOOL isRedirect,
-    _Out_ VRegInternalRedirect* pRedirect
-);
 
 typedef enum
 {
@@ -2287,59 +2076,6 @@ VREG_DECL _Ret_maybenull_ VRegHiveInternalNode* VRegHive_InternalFindNode(
     _In_opt_ HKEY hKey
 );
 
-/// Opens the key @p cPath components below @p pParent. On a writable
-/// overlay hive the nodes that stand for lower keys are added on the way,
-/// which changes nothing the hive answers.
-VREG_DECL LSTATUS VRegHive_InternalOpenKey(
-    _In_ VRegHive* pHive,
-    _In_ VRegHiveInternalNode* pParent,
-    _In_reads_(cPath) const VRegInternalWStringView* pPath,
-    SIZE_T cPath,
-    REGSAM samDesired,
-    _Out_ VRegHiveInternalOpenResult* pResult
-);
-
-/// On a frozen hive an existing key opens as with @ref VRegHive_InternalOpenKey, and
-/// a missing one answers @ref ERROR_ACCESS_DENIED.
-VREG_DECL LSTATUS VRegHive_InternalCreateKey(
-    _In_ VRegHive* pHive,
-    _Inout_ VRegHiveInternalNode* pParent,
-    _In_reads_(cPath) const VRegInternalWStringView* pPath,
-    SIZE_T cPath,
-    _In_ LPCWSTR pszClassName,
-    DWORD dwOptions,
-    REGSAM samDesired,
-    _Out_ VRegHiveInternalOpenResult* pResult,
-    _Out_ LPDWORD pdwDisposition
-);
-
-/// Deletes the last component of the path; a key with subkeys answers
-/// @ref ERROR_ACCESS_DENIED, as native does.
-VREG_DECL LSTATUS VRegHive_InternalDeleteKey(
-    _In_ VRegHive* pHive,
-    _Inout_ VRegHiveInternalNode* pParent,
-    _In_reads_(cPath) const VRegInternalWStringView* pPath,
-    SIZE_T cPath
-);
-
-/// Deletes every subkey and value of @p pNode, leaving the node itself.
-VREG_DECL LSTATUS VRegHive_InternalDeleteTree(
-    _In_ VRegHive* pHive,
-    _Inout_ VRegHiveInternalNode* pNode
-);
-
-/// Reads value @p pszName of @p pNode. @p pcbData receives the size of the
-/// data in bytes; @p pData receives the data itself only when it is not
-/// null, so a null @p pData copies nothing.
-VREG_DECL LSTATUS VRegHive_InternalQueryValue(
-    _In_ VRegHive* pHive,
-    _In_ VRegHiveInternalNode* pNode,
-    _In_ LPCWSTR pszName,
-    _Out_ LPDWORD pdwType,
-    _Out_ LPDWORD pcbData,
-    _Inout_opt_ VRegInternalBuffer* pData
-);
-
 VREG_DECL LSTATUS VRegHive_InternalSetValue(
     _In_ VRegHive* pHive,
     _Inout_ VRegHiveInternalNode* pNode,
@@ -2347,49 +2083,6 @@ VREG_DECL LSTATUS VRegHive_InternalSetValue(
     DWORD dwType,
     _In_reads_bytes_opt_(cbData) const BYTE* pData,
     DWORD cbData
-);
-
-VREG_DECL LSTATUS VRegHive_InternalDeleteValue(
-    _In_ VRegHive *pHive,
-    _Inout_ VRegHiveInternalNode* pNode,
-    _In_ LPCWSTR pszName
-);
-
-VREG_DECL LSTATUS VRegHive_InternalEnumKey(
-    _In_ VRegHive* pHive,
-    _In_ VRegHiveInternalNode* pNode,
-    DWORD dwIndex,
-    _Inout_ VRegInternalWString* pName,
-    _Inout_ VRegInternalWString* pClassName,
-    _Out_ FILETIME* pLastWrite
-);
-
-/// Reads the value of @p pNode at @p dwIndex. @p pcbData receives the size
-/// of the data in bytes; @p pData receives the data itself only when it
-/// is not null, so a null @p pData copies nothing.
-VREG_DECL LSTATUS VRegHive_InternalEnumValue(
-    _In_ VRegHive* pHive,
-    _In_ VRegHiveInternalNode* pNode,
-    DWORD dwIndex,
-    _Inout_ VRegInternalWString* pName,
-    _Out_ LPDWORD pdwType,
-    _Out_ LPDWORD pcbData,
-    _Inout_opt_ VRegInternalBuffer* pData
-);
-
-/// Fills @p pInfo, whose @ref VRegInternalKeyInfo::className is the caller's
-/// string.
-VREG_DECL LSTATUS VRegHive_InternalQueryInfo(
-    _In_ VRegHive* pHive,
-    _In_ VRegHiveInternalNode* pNode,
-    _Inout_ VRegInternalKeyInfo* pInfo
-);
-
-/// What `RegFlushKey` on @p pNode needs from the hive: success, or
-/// @ref ERROR_KEY_DELETED.
-VREG_DECL LSTATUS VRegHive_InternalFlushKey(
-    _In_ VRegHive* pHive,
-    _In_ VRegHiveInternalNode* pNode
 );
 
 /**
@@ -2408,14 +2101,6 @@ VREG_DECL LSTATUS VRegHive_InternalFlushKey(
  * @note Only writes made through the hive are seen; a change in the
  *  registry below an overlay hive is not.
  */
-VREG_DECL LSTATUS VRegHive_InternalWatch(
-    _In_ VRegHive* pHive,
-    _In_ VRegHiveInternalNode* pNode,
-    BOOL bWatchSubtree,
-    DWORD dwFilter,
-    _In_ HANDLE hEvent
-);
-
 /**
  * @brief Lists the hive's own layer: what it holds itself, as opposed to
  *  what shows through from below.
@@ -2426,12 +2111,6 @@ VREG_DECL LSTATUS VRegHive_InternalWatch(
  *  of its own, is not listed; the hive's own keys below it are. Reads only
  *  the hive, never the lower registry.
  */
-VREG_DECL LSTATUS VRegHive_InternalSnapshotUpper(
-    _In_ VRegHive* pHive,
-    _In_ VRegInternalUpperVisitFunction* pfnVisit,
-    _In_opt_ void* pContext
-);
-
 // ==========================================================================
 // Registries
 // ==========================================================================
@@ -2707,57 +2386,11 @@ struct VReg
 };
 
 // ==========================================================================
-// The virtual registry
-// ==========================================================================
-
-// The slots of a registry of VREG_INTERNAL_KIND_VIRTUAL, which the flat
-// functions reach through its table as they reach a custom registry's.
-VREG_DECL VRegOpenKeyExWFunction VReg_InternalVirtualRegOpenKeyExW;
-VREG_DECL VRegCreateKeyExWFunction VReg_InternalVirtualRegCreateKeyExW;
-VREG_DECL VRegCloseKeyFunction VReg_InternalVirtualRegCloseKey;
-VREG_DECL VRegQueryValueExWFunction VReg_InternalVirtualRegQueryValueExW;
-VREG_DECL VRegGetValueWFunction VReg_InternalVirtualRegGetValueW;
-VREG_DECL VRegSetValueExWFunction VReg_InternalVirtualRegSetValueExW;
-VREG_DECL VRegDeleteValueWFunction VReg_InternalVirtualRegDeleteValueW;
-VREG_DECL VRegLoadMUIStringWFunction VReg_InternalVirtualRegLoadMUIStringW;
-VREG_DECL VRegDeleteKeyExWFunction VReg_InternalVirtualRegDeleteKeyExW;
-VREG_DECL VRegDeleteTreeWFunction VReg_InternalVirtualRegDeleteTreeW;
-VREG_DECL VRegFlushKeyFunction VReg_InternalVirtualRegFlushKey;
-VREG_DECL VRegEnumKeyExWFunction VReg_InternalVirtualRegEnumKeyExW;
-VREG_DECL VRegEnumValueWFunction VReg_InternalVirtualRegEnumValueW;
-VREG_DECL VRegQueryInfoKeyWFunction VReg_InternalVirtualRegQueryInfoKeyW;
-VREG_DECL VRegNotifyChangeKeyValueFunction VReg_InternalVirtualRegNotifyChangeKeyValue;
-
-/// Frees the mount tables; @ref VReg_Destroy frees the registry.
-VREG_DECL void WINAPI VReg_InternalVirtualDestroy(
-    _In_ VReg* pRegistry
-);
-
-// ==========================================================================
 // Paths
 // ==========================================================================
 
 /// The longest key name component the registry accepts, in characters.
 #define VREG_INTERNAL_MAX_KEY_NAME_CHARS ((SIZE_T)255)
-
-/// Splits @p path at backslashes as the native registry does, appending the
-/// components (views into @p path) to @p pComponents, an array of
-/// @ref VRegInternalWStringView: empty components are skipped, a trailing backslash
-/// is ignored, a leading one answers @ref ERROR_BAD_PATHNAME and a component
-/// over @ref VREG_INTERNAL_MAX_KEY_NAME_CHARS @ref ERROR_INVALID_PARAMETER.
-VREG_DECL LSTATUS VRegInternalWStringView_SplitPath(
-    VRegInternalWStringView path,
-    _Inout_ VRegInternalArray* pComponents
-);
-
-// ==========================================================================
-// Status
-// ==========================================================================
-
-/// A status a failing path answers, which the analyzer cannot prove nonzero
-/// when it was stored by another function.
-_Post_satisfies_(return != ERROR_SUCCESS)
-VREG_DECL LSTATUS VReg_InternalFailureStatus(LSTATUS status);
 
 // ==========================================================================
 // Scripts
@@ -2789,44 +2422,6 @@ typedef struct
     HKEY hKey;
 } VRegScriptInternalRootKey;
 
-/// The long name of a root a `.reg` file can name; null for any other handle.
-VREG_DECL _Ret_maybenull_ LPCWSTR VRegScript_InternalGetRootName(
-    _In_opt_ HKEY hRoot
-);
-
-/// The root named @p name, long or short form, ignoring case.
-VREG_DECL BOOL VRegInternalWStringView_FindRoot(
-    VRegInternalWStringView name,
-    _Out_ PHKEY phRoot
-);
-
-VREG_DECL LSTATUS VRegScript_InternalCreate(
-    _Outptr_ VRegScript** ppScript
-);
-
-/// Appends an operation, copying its path, name and data into the script.
-VREG_DECL LSTATUS VRegScript_InternalAppend(
-    _Inout_ VRegScript* pScript,
-    VRegOperationKind kind,
-    _In_ HKEY hRoot,
-    VRegInternalWStringView path,
-    VRegInternalWStringView name,
-    DWORD dwType,
-    _In_reads_bytes_opt_(cbData) const BYTE* pData,
-    DWORD cbData,
-    SIZE_T line
-);
-
-/// Decodes a whole file to text without BOM. Detects the encoding as
-/// @ref VRegScript_Parse documents. Answers @ref ERROR_INVALID_DATA with
-/// @p pError (zeroed by the caller) set on bytes the encoding cannot hold.
-VREG_DECL LSTATUS VRegScript_InternalDecodeFile(
-    _In_reads_bytes_(cbFile) const void* pFile,
-    SIZE_T cbFile,
-    _Inout_ VRegInternalWString* pText,
-    _Inout_opt_ VRegParseError* pError
-);
-
 /// The bytes of @p pText in @p format, with a BOM for Unicode. Answers
 /// @ref ERROR_NO_UNICODE_TRANSLATION when the format's code page cannot hold
 /// it.
@@ -2836,12 +2431,7 @@ VREG_DECL LSTATUS VRegScript_InternalEncodeFile(
     _Inout_ VRegInternalBuffer* pFile
 );
 
-/// Reads and writes whole files; Win32 errors answer as is.
-VREG_DECL LSTATUS VRegScript_InternalReadWholeFile(
-    _In_ LPCWSTR pszPath,
-    _Inout_ VRegInternalBuffer* pFile
-);
-
+/// Writes a whole file; Win32 errors answer as is.
 VREG_DECL LSTATUS VRegScript_InternalWriteWholeFile(
     _In_ LPCWSTR pszPath,
     _In_reads_bytes_(cbFile) const void* pFile,
@@ -2882,7 +2472,8 @@ static _Ret_maybenull_ void* VReg_InternalAlloc(
     return VREG_MALLOC(cb);
 }
 
-VREG_DECL _Ret_maybenull_ void* VReg_InternalAllocZeroed(
+/// Allocates @p cb zero-filled bytes; null when memory ran out.
+static _Ret_maybenull_ void* VReg_InternalAllocZeroed(
     const SIZE_T cb
 )
 {
@@ -2893,7 +2484,9 @@ VREG_DECL _Ret_maybenull_ void* VReg_InternalAllocZeroed(
     return p;
 }
 
-VREG_DECL _Ret_maybenull_ void* VReg_InternalReAlloc(
+/// Resizes @p p (null allocates) to @p cb bytes; null when memory ran out,
+/// leaving @p p as it was.
+static _Ret_maybenull_ void* VReg_InternalReAlloc(
     _In_opt_ void* const p,
     const SIZE_T cb
 )
@@ -2909,13 +2502,25 @@ VREG_DECL _Ret_maybenull_ void* VReg_InternalReAlloc(
     return VREG_REALLOC(p, cb);
 }
 
-VREG_DECL void VReg_InternalFree(
+/// Frees @p p; null is ignored.
+static void VReg_InternalFree(
     _In_opt_ void* const p
 )
 {
     if (p)
         VREG_FREE(p);
 }
+
+// ==========================================================================
+// Buffers
+// ==========================================================================
+
+/// Sets the size to @p cb, growing the capacity if needed; new bytes are
+/// indeterminate.
+static BOOL VRegInternalBuffer_Resize(
+    _Inout_ VRegInternalBuffer* pBuffer,
+    SIZE_T cb
+);
 
 // ==========================================================================
 // ANSI conversion
@@ -2992,7 +2597,11 @@ static LSTATUS VReg_InternalMultiByteFromWide(
     return ERROR_SUCCESS;
 }
 
-VREG_DECL LSTATUS VReg_InternalWideFromAnsi(
+/// Widens @p cch bytes through @ref CP_ACP into @p pText, without a
+/// terminator beyond the one the string type keeps. Answers
+/// @ref ERROR_OUTOFMEMORY when memory ran out or the text is longer than the
+/// conversion can take.
+static LSTATUS VReg_InternalWideFromAnsi(
     _In_reads_(cch) const LPCCH pch,
     const SIZE_T cch,
     _Inout_ VRegInternalWString* const pText
@@ -3001,7 +2610,11 @@ VREG_DECL LSTATUS VReg_InternalWideFromAnsi(
     return VReg_InternalWideFromMultiByte(CP_ACP, 0, pch, cch, pText);
 }
 
-VREG_DECL LSTATUS VReg_InternalAnsiFromWide(
+/// Narrows @p cch UTF-16 units through @ref CP_ACP into @p pText, a buffer of
+/// bytes without a terminator; what the code page cannot represent becomes
+/// its default character. Answers @ref ERROR_OUTOFMEMORY as
+/// @ref VReg_InternalWideFromAnsi does.
+static LSTATUS VReg_InternalAnsiFromWide(
     _In_reads_(cch) const LPCWCH pch,
     const SIZE_T cch,
     _Inout_ VRegInternalBuffer* const pText
@@ -3030,7 +2643,8 @@ VREG_DECL _Ret_maybenull_ LPCWSTR VRegInternalWideArg_GetText(
     return pArg->isNull ? NULL : VRegInternalWString_GetText(&pArg->text);
 }
 
-VREG_DECL _Ret_maybenull_ LPWSTR VRegInternalWideArg_GetMutableText(
+/// Like @ref VRegInternalWideArg_GetText, as a buffer the callee may write to.
+static _Ret_maybenull_ LPWSTR VRegInternalWideArg_GetMutableText(
     _In_ VRegInternalWideArg* const pArg
 )
 {
@@ -3048,6 +2662,17 @@ VREG_DECL void VRegInternalWideArg_Free(_Inout_ VRegInternalWideArg* const pArg)
 {
     VRegInternalWString_Free(&pArg->text);
 }
+
+// ==========================================================================
+// Hive nodes
+// ==========================================================================
+
+/// Ordinal comparison of uppercased names, the registry's own collation:
+/// negative, zero or positive.
+static int VRegInternalWStringView_CompareNames(
+    VRegInternalWStringView left,
+    VRegInternalWStringView right
+);
 
 // ==========================================================================
 // Buffers
@@ -3070,12 +2695,12 @@ static SIZE_T VReg_InternalGrowCapacity(
     return grown < needed ? needed : grown;
 }
 
-VREG_DECL DWORD VReg_InternalMinDword(const DWORD a, const DWORD b)
+static DWORD VReg_InternalMinDword(const DWORD a, const DWORD b)
 {
     return a < b ? a : b;
 }
 
-VREG_DECL DWORD VReg_InternalMaxDword(const DWORD a, const DWORD b)
+static DWORD VReg_InternalMaxDword(const DWORD a, const DWORD b)
 {
     return a > b ? a : b;
 }
@@ -3099,7 +2724,7 @@ VREG_DECL VRegInternalWStringView VReg_InternalViewFromText(
     return view;
 }
 
-VREG_DECL BOOL VRegInternalBuffer_Resize(
+static BOOL VRegInternalBuffer_Resize(
     _Inout_ VRegInternalBuffer* const pBuffer,
     const SIZE_T cb
 )
@@ -3174,7 +2799,7 @@ VREG_DECL _Ret_notnull_ LPCWSTR VRegInternalWString_GetText(
     return pString->psz ? pString->psz : L"";
 }
 
-VREG_DECL VRegInternalWStringView VRegInternalWString_GetView(
+static VRegInternalWStringView VRegInternalWString_GetView(
     _In_ const VRegInternalWString* const pString
 )
 {
@@ -3268,7 +2893,7 @@ VREG_DECL BOOL VRegInternalWString_Append(
     return TRUE;
 }
 
-VREG_DECL BOOL VRegInternalWString_AppendChar(
+static BOOL VRegInternalWString_AppendChar(
     _Inout_ VRegInternalWString* const pString,
     const wchar_t ch
 )
@@ -3289,7 +2914,8 @@ static BOOL VRegInternalWString_AppendPathComponent(
     return VRegInternalWString_Append(pPath, pch, cch);
 }
 
-VREG_DECL void VRegInternalWString_Truncate(
+/// Shortens the string to @p cch characters, which is at most its length.
+static void VRegInternalWString_Truncate(
     _Inout_ VRegInternalWString* const pString,
     const SIZE_T cch
 )
@@ -3332,7 +2958,8 @@ VREG_DECL BOOL VRegInternalArray_Reserve(
     return TRUE;
 }
 
-VREG_DECL BOOL VRegInternalArray_Insert(
+/// Inserts a copy of @p pElement before @p index, which is at most the count.
+static BOOL VRegInternalArray_Insert(
     _Inout_ VRegInternalArray* const pArray,
     const SIZE_T cbElement,
     const SIZE_T index,
@@ -3364,7 +2991,8 @@ VREG_DECL BOOL VRegInternalArray_Append(
     return VRegInternalArray_Insert(pArray, cbElement, pArray->count, pElement);
 }
 
-VREG_DECL void VRegInternalArray_RemoveAt(
+/// Removes the element at @p index, moving the later ones down.
+static void VRegInternalArray_RemoveAt(
     _Inout_ VRegInternalArray* const pArray,
     const SIZE_T cbElement,
     const SIZE_T index
@@ -3386,7 +3014,9 @@ VREG_DECL void VRegInternalArray_Free(
     pArray->capacity = 0;
 }
 
-VREG_DECL VRegInternalWStringView VRegInternalArray_WStringViewAt(
+/// The view of the string at @p index of @p pArray, an array of
+/// @ref VRegInternalWString.
+static VRegInternalWStringView VRegInternalArray_WStringViewAt(
     _In_ const VRegInternalArray* const pArray,
     const SIZE_T index
 )
@@ -3412,7 +3042,8 @@ static BOOL VRegInternalArray_InternalInsertWString(
     return TRUE;
 }
 
-VREG_DECL BOOL VRegInternalArray_AppendWString(
+/// Appends a copy of @p text to @p pArray, an array of @ref VRegInternalWString.
+static BOOL VRegInternalArray_AppendWString(
     _Inout_ VRegInternalArray* const pArray,
     const VRegInternalWStringView text
 )
@@ -3420,7 +3051,9 @@ VREG_DECL BOOL VRegInternalArray_AppendWString(
     return VRegInternalArray_InternalInsertWString(pArray, pArray->count, text);
 }
 
-VREG_DECL void VRegInternalArray_FreeWStrings(
+/// Frees the strings of @p pArray, an array of @ref VRegInternalWString, and the
+/// array itself.
+static void VRegInternalArray_FreeWStrings(
     _Inout_ VRegInternalArray* const pArray
 )
 {
@@ -3460,7 +3093,9 @@ static BOOL VRegInternalArray_InternalFindWStringSorted(
     return FALSE;
 }
 
-VREG_DECL BOOL VRegInternalArray_InsertWStringSorted(
+/// Adds a copy of @p text to @p pArray, an array of @ref VRegInternalWString sorted
+/// by @ref VRegInternalWStringView_CompareNames, unless an equal name is there already.
+static BOOL VRegInternalArray_InsertWStringSorted(
     _Inout_ VRegInternalArray* const pList,
     const VRegInternalWStringView name
 )
@@ -3472,7 +3107,9 @@ VREG_DECL BOOL VRegInternalArray_InsertWStringSorted(
     return VRegInternalArray_InternalInsertWString(pList, index, name);
 }
 
-VREG_DECL BOOL VRegInternalArray_ContainsWStringSorted(
+/// Whether the sorted @p pArray holds a name equal to @p text by
+/// @ref VRegInternalWStringView_CompareNames.
+static BOOL VRegInternalArray_ContainsWStringSorted(
     _In_ const VRegInternalArray* const pList,
     const VRegInternalWStringView name
 )
@@ -3576,6 +3213,105 @@ VREG_DECL _Ret_maybenull_ void* VReg_InternalFindRegistryExport(
 
     return VReg_InternalFindExport(GetModuleHandleW(L"advapi32.dll"), pszName);
 }
+
+// ==========================================================================
+// Owned reads
+// ==========================================================================
+
+static LSTATUS VReg_InternalQueryValueOwned(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_opt_ LPCWSTR lpValueName,
+    _Out_opt_ LPDWORD lpType,
+    _Inout_ VRegInternalBuffer* pData
+);
+
+static LSTATUS VReg_InternalGetValueOwned(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_opt_ LPCWSTR lpSubKey,
+    _In_opt_ LPCWSTR lpValue,
+    _In_ DWORD dwFlags,
+    _Out_opt_ LPDWORD pdwType,
+    _Inout_ VRegInternalBuffer* pData
+);
+
+/// @ref VReg_RegEnumKeyExW with the name read into @p pName and, when
+/// @p pClass is not null, the class into it. Both buffers grow until the read
+/// fits or none can grow further, and then the status is answered as it is.
+static LSTATUS VReg_InternalEnumKeyOwned(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_ DWORD dwIndex,
+    _Inout_ VRegInternalWString* pName,
+    _Inout_opt_ VRegInternalWString* pClass,
+    _Reserved_ LPDWORD lpReserved,
+    _Out_opt_ PFILETIME lpftLastWriteTime
+);
+
+/// With a null @p pData only the name and type are read.
+static LSTATUS VReg_InternalEnumValueOwned(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _In_ DWORD dwIndex,
+    _Inout_ VRegInternalWString* pName,
+    _Out_opt_ LPDWORD lpType,
+    _Inout_opt_ VRegInternalBuffer* pData
+);
+
+/// @ref VReg_RegQueryInfoKeyW with the class read into @p pClass. When the read
+/// fails and its last call reported a class length other than the buffer's,
+/// that length is stored at @p lpcchClassReported.
+static LSTATUS VReg_InternalQueryInfoKeyOwned(
+    _In_ VReg* pRegistry,
+    _In_ HKEY hKey,
+    _Inout_ VRegInternalWString* pClass,
+    _Inout_opt_ LPDWORD lpcchClassReported,
+    _Reserved_ LPDWORD lpReserved,
+    _Out_opt_ LPDWORD lpcSubKeys,
+    _Out_opt_ LPDWORD lpcbMaxSubKeyLen,
+    _Out_opt_ LPDWORD lpcbMaxClassLen,
+    _Out_opt_ LPDWORD lpcValues,
+    _Out_opt_ LPDWORD lpcbMaxValueNameLen,
+    _Out_opt_ LPDWORD lpcbMaxValueLen,
+    _Out_opt_ LPDWORD lpcbSecurityDescriptor,
+    _Out_opt_ PFILETIME lpftLastWriteTime
+);
+
+// ==========================================================================
+// Value types
+// ==========================================================================
+
+/// Whether data of @p dwType is UTF-16 text: @ref REG_SZ, @ref REG_EXPAND_SZ
+/// or @ref REG_MULTI_SZ.
+static BOOL VReg_InternalIsStringType(DWORD dwType);
+
+// ==========================================================================
+// The virtual registry
+// ==========================================================================
+
+// The slots of a registry of VREG_INTERNAL_KIND_VIRTUAL, which the flat
+// functions reach through its table as they reach a custom registry's.
+static VRegOpenKeyExWFunction VReg_InternalVirtualRegOpenKeyExW;
+static VRegCreateKeyExWFunction VReg_InternalVirtualRegCreateKeyExW;
+static VRegCloseKeyFunction VReg_InternalVirtualRegCloseKey;
+static VRegQueryValueExWFunction VReg_InternalVirtualRegQueryValueExW;
+static VRegGetValueWFunction VReg_InternalVirtualRegGetValueW;
+static VRegSetValueExWFunction VReg_InternalVirtualRegSetValueExW;
+static VRegDeleteValueWFunction VReg_InternalVirtualRegDeleteValueW;
+static VRegLoadMUIStringWFunction VReg_InternalVirtualRegLoadMUIStringW;
+static VRegDeleteKeyExWFunction VReg_InternalVirtualRegDeleteKeyExW;
+static VRegDeleteTreeWFunction VReg_InternalVirtualRegDeleteTreeW;
+static VRegFlushKeyFunction VReg_InternalVirtualRegFlushKey;
+static VRegEnumKeyExWFunction VReg_InternalVirtualRegEnumKeyExW;
+static VRegEnumValueWFunction VReg_InternalVirtualRegEnumValueW;
+static VRegQueryInfoKeyWFunction VReg_InternalVirtualRegQueryInfoKeyW;
+static VRegNotifyChangeKeyValueFunction VReg_InternalVirtualRegNotifyChangeKeyValue;
+
+/// Frees the mount tables; @ref VReg_Destroy frees the registry.
+static void WINAPI VReg_InternalVirtualDestroy(
+    _In_ VReg* pRegistry
+);
 
 // ==========================================================================
 // Derived forms
@@ -6036,6 +5772,27 @@ VREG_DECL UINT_PTR VReg_InternalIndexFromVirtualHKey(_In_opt_ const HKEY hKey)
 }
 
 // ==========================================================================
+// Hive internals
+// ==========================================================================
+
+/// Closes the key of @p pRedirect through its registry.
+static void VRegInternalRedirect_Close(
+    _In_ const VRegInternalRedirect* pRedirect
+);
+
+/// The open of an overlay hive's lower, with @p samDesired; with @p isRedirect
+/// it hands the key out in @p pRedirect instead of only answering whether it
+/// exists.
+static LSTATUS VRegHiveInternalRegistryLower_OpenAs(
+    _In_ VRegHive* pHive,
+    _In_ VRegHiveInternalNode* pParent,
+    _In_ LPCWSTR pszSubKey,
+    REGSAM samDesired,
+    BOOL isRedirect,
+    _Out_ VRegInternalRedirect* pRedirect
+);
+
+// ==========================================================================
 // Hives
 // ==========================================================================
 
@@ -6131,7 +5888,7 @@ struct VRegHive
 
 static const VRegInternalWStringView VREG_INTERNAL_NO_NAME = {NULL, 0};
 
-VREG_DECL int VRegInternalWStringView_CompareNames(
+static int VRegInternalWStringView_CompareNames(
     const VRegInternalWStringView left,
     const VRegInternalWStringView right
 )
@@ -7099,7 +6856,10 @@ static void VRegHive_InternalRecordChanged(
     VRegHive_InternalUnlockWrite(pHive);
 }
 
-VREG_DECL LSTATUS VRegHive_InternalOpenKey(
+/// Opens the key @p cPath components below @p pParent. On a writable
+/// overlay hive the nodes that stand for lower keys are added on the way,
+/// which changes nothing the hive answers.
+static LSTATUS VRegHive_InternalOpenKey(
     _In_ VRegHive* const pHive,
     _In_ VRegHiveInternalNode* const pParent,
     _In_reads_(cPath) const VRegInternalWStringView* const pPath,
@@ -7277,7 +7037,9 @@ static LSTATUS VRegHive_InternalCreateKeyThrough(
     return status;
 }
 
-VREG_DECL LSTATUS VRegHive_InternalCreateKey(
+/// On a frozen hive an existing key opens as with @ref VRegHive_InternalOpenKey, and
+/// a missing one answers @ref ERROR_ACCESS_DENIED.
+static LSTATUS VRegHive_InternalCreateKey(
     _In_ VRegHive* const pHive,
     _Inout_ VRegHiveInternalNode* const pParent,
     _In_reads_(cPath) const VRegInternalWStringView* const pPath,
@@ -7526,7 +7288,9 @@ static LSTATUS VRegHive_InternalDeleteKeyThrough(
     return ERROR_SUCCESS;
 }
 
-VREG_DECL LSTATUS VRegHive_InternalDeleteKey(
+/// Deletes the last component of the path; a key with subkeys answers
+/// @ref ERROR_ACCESS_DENIED, as native does.
+static LSTATUS VRegHive_InternalDeleteKey(
     _In_ VRegHive* const pHive,
     _Inout_ VRegHiveInternalNode* const pParent,
     _In_reads_(cPath) const VRegInternalWStringView* const pPath,
@@ -7806,7 +7570,8 @@ static LSTATUS VRegHive_InternalDeleteTreeThrough(
     return ERROR_SUCCESS;
 }
 
-VREG_DECL LSTATUS VRegHive_InternalDeleteTree(
+/// Deletes every subkey and value of @p pNode, leaving the node itself.
+static LSTATUS VRegHive_InternalDeleteTree(
     _In_ VRegHive* const pHive,
     _Inout_ VRegHiveInternalNode* const pNode
 )
@@ -7918,7 +7683,10 @@ static LSTATUS VRegHive_InternalQueryUpperValue(
     return status;
 }
 
-VREG_DECL LSTATUS VRegHive_InternalQueryValue(
+/// Reads value @p pszName of @p pNode. @p pcbData receives the size of the
+/// data in bytes; @p pData receives the data itself only when it is not
+/// null, so a null @p pData copies nothing.
+static LSTATUS VRegHive_InternalQueryValue(
     _In_ VRegHive* const pHive,
     _In_ VRegHiveInternalNode* const pNode,
     _In_ const LPCWSTR pszName,
@@ -8057,7 +7825,7 @@ VREG_DECL LSTATUS VRegHive_InternalSetValue(
     return status;
 }
 
-VREG_DECL LSTATUS VRegHive_InternalDeleteValue(
+static LSTATUS VRegHive_InternalDeleteValue(
     _In_ VRegHive* const pHive,
     _Inout_ VRegHiveInternalNode* const pNode,
     _In_ const LPCWSTR pszName
@@ -8281,7 +8049,7 @@ static LSTATUS VRegHive_InternalEnumUpperKey(
     return status;
 }
 
-VREG_DECL LSTATUS VRegHive_InternalEnumKey(
+static LSTATUS VRegHive_InternalEnumKey(
     _In_ VRegHive* const pHive,
     _In_ VRegHiveInternalNode* const pNode,
     const DWORD dwIndex,
@@ -8431,7 +8199,10 @@ static LSTATUS VRegHive_InternalEnumUpperValue(
     return status;
 }
 
-VREG_DECL LSTATUS VRegHive_InternalEnumValue(
+/// Reads the value of @p pNode at @p dwIndex. @p pcbData receives the size
+/// of the data in bytes; @p pData receives the data itself only when it
+/// is not null, so a null @p pData copies nothing.
+static LSTATUS VRegHive_InternalEnumValue(
     _In_ VRegHive* const pHive,
     _In_ VRegHiveInternalNode* const pNode,
     const DWORD dwIndex,
@@ -8576,7 +8347,9 @@ static LSTATUS VRegHive_InternalQueryUpperInfo(
     return status;
 }
 
-VREG_DECL LSTATUS VRegHive_InternalQueryInfo(
+/// Fills @p pInfo, whose @ref VRegInternalKeyInfo::className is the caller's
+/// string.
+static LSTATUS VRegHive_InternalQueryInfo(
     _In_ VRegHive* const pHive,
     _In_ VRegHiveInternalNode* const pNode,
     _Inout_ VRegInternalKeyInfo* const pInfo
@@ -8756,7 +8529,7 @@ static LSTATUS VRegHive_InternalListUpper(
     return ERROR_SUCCESS;
 }
 
-VREG_DECL LSTATUS VRegHive_InternalSnapshotUpper(
+static LSTATUS VRegHive_InternalSnapshotUpper(
     _In_ VRegHive* const pHive,
     _In_ VRegInternalUpperVisitFunction* const pfnVisit,
     _In_opt_ void* const pContext
@@ -8770,7 +8543,9 @@ VREG_DECL LSTATUS VRegHive_InternalSnapshotUpper(
     return status;
 }
 
-VREG_DECL LSTATUS VRegHive_InternalFlushKey(
+/// What `RegFlushKey` on @p pNode needs from the hive: success, or
+/// @ref ERROR_KEY_DELETED.
+static LSTATUS VRegHive_InternalFlushKey(
     _In_ VRegHive* const pHive,
     _In_ VRegHiveInternalNode* const pNode
 )
@@ -8783,7 +8558,7 @@ VREG_DECL LSTATUS VRegHive_InternalFlushKey(
     return ERROR_SUCCESS;
 }
 
-VREG_DECL LSTATUS VRegHive_InternalWatch(
+static LSTATUS VRegHive_InternalWatch(
     _In_ VRegHive* const pHive,
     _In_ VRegHiveInternalNode* const pNode,
     const BOOL bWatchSubtree,
@@ -8870,7 +8645,7 @@ typedef struct
     REGSAM samView;
 } VRegHiveInternalRegistryLower;
 
-VREG_DECL void VRegInternalRedirect_Close(
+static void VRegInternalRedirect_Close(
     _In_ const VRegInternalRedirect* const pRedirect
 )
 {
@@ -8932,7 +8707,7 @@ static void VRegHiveInternalRegistryLower_Close(
     );
 }
 
-VREG_DECL LSTATUS VRegHiveInternalRegistryLower_OpenAs(
+static LSTATUS VRegHiveInternalRegistryLower_OpenAs(
     _In_ VRegHive* const pHive,
     _In_ VRegHiveInternalNode* const pParent,
     _In_ const LPCWSTR pszSubKey,
@@ -9276,12 +9051,16 @@ VREG_DECL _Ret_notnull_ VRegInternalNativeFunctions* VReg_InternalGetNativeFunct
 // Owned reads
 // ==========================================================================
 
+// Reads over a @ref VReg that size and fill owned storage
+// themselves, retrying with a larger buffer while the value grows between
+// the sizing call and the read. The storage stays the caller's to free.
+
 VREG_DECL DWORD VReg_InternalGrow(const DWORD cbOld, const DWORD cbRequired)
 {
     return cbRequired > cbOld ? cbRequired : cbOld * 2 + 16;
 }
 
-VREG_DECL LSTATUS VReg_InternalQueryValueOwned(
+static LSTATUS VReg_InternalQueryValueOwned(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpValueName,
@@ -9334,7 +9113,7 @@ VREG_DECL LSTATUS VReg_InternalQueryValueOwned(
     }
 }
 
-VREG_DECL LSTATUS VReg_InternalGetValueOwned(
+static LSTATUS VReg_InternalGetValueOwned(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
@@ -9391,7 +9170,7 @@ VREG_DECL LSTATUS VReg_InternalGetValueOwned(
     }
 }
 
-VREG_DECL LSTATUS VReg_InternalEnumKeyOwned(
+static LSTATUS VReg_InternalEnumKeyOwned(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
@@ -9439,7 +9218,7 @@ VREG_DECL LSTATUS VReg_InternalEnumKeyOwned(
     }
 }
 
-VREG_DECL LSTATUS VReg_InternalEnumValueOwned(
+static LSTATUS VReg_InternalEnumValueOwned(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
@@ -9503,7 +9282,7 @@ VREG_DECL LSTATUS VReg_InternalEnumValueOwned(
     }
 }
 
-VREG_DECL LSTATUS VReg_InternalQueryInfoKeyOwned(
+static LSTATUS VReg_InternalQueryInfoKeyOwned(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _Inout_ VRegInternalWString* const pClass,
@@ -9559,7 +9338,12 @@ VREG_DECL LSTATUS VReg_InternalQueryInfoKeyOwned(
 // Paths
 // ==========================================================================
 
-VREG_DECL LSTATUS VRegInternalWStringView_SplitPath(
+/// Splits @p path at backslashes as the native registry does, appending the
+/// components (views into @p path) to @p pComponents, an array of
+/// @ref VRegInternalWStringView: empty components are skipped, a trailing backslash
+/// is ignored, a leading one answers @ref ERROR_BAD_PATHNAME and a component
+/// over @ref VREG_INTERNAL_MAX_KEY_NAME_CHARS @ref ERROR_INVALID_PARAMETER.
+static LSTATUS VRegInternalWStringView_SplitPath(
     const VRegInternalWStringView path,
     _Inout_ VRegInternalArray* const pComponents
 )
@@ -10159,8 +9943,10 @@ VREG_DECL _Ret_maybenull_ void* WINAPI VReg_GetContext(
 // Status
 // ==========================================================================
 
+/// A status a failing path answers, which the analyzer cannot prove nonzero
+/// when it was stored by another function.
 _Post_satisfies_(return != ERROR_SUCCESS)
-VREG_DECL LSTATUS VReg_InternalFailureStatus(const LSTATUS status)
+static LSTATUS VReg_InternalFailureStatus(const LSTATUS status)
 {
     _Analysis_assume_(status != ERROR_SUCCESS);
     return status;
@@ -10170,7 +9956,7 @@ VREG_DECL LSTATUS VReg_InternalFailureStatus(const LSTATUS status)
 // Value types
 // ==========================================================================
 
-VREG_DECL BOOL VReg_InternalIsStringType(const DWORD dwType)
+static BOOL VReg_InternalIsStringType(const DWORD dwType)
 {
     return dwType == REG_SZ
         || dwType == REG_EXPAND_SZ
@@ -10845,7 +10631,7 @@ static LSTATUS VReg_InternalResolve(
 
 // --- The slots ---
 
-VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegOpenKeyExW(
+static LSTATUS WINAPI VReg_InternalVirtualRegOpenKeyExW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey,
@@ -10899,7 +10685,7 @@ done:
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegCreateKeyExW(
+static LSTATUS WINAPI VReg_InternalVirtualRegCreateKeyExW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const LPCWSTR lpSubKey,
@@ -10992,7 +10778,7 @@ done:
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegCloseKey(
+static LSTATUS WINAPI VReg_InternalVirtualRegCloseKey(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey
 )
@@ -11008,7 +10794,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegCloseKey(
     );
 }
 
-VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegQueryValueExW(
+static LSTATUS WINAPI VReg_InternalVirtualRegQueryValueExW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpValueName,
@@ -11092,7 +10878,7 @@ done:
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegSetValueExW(
+static LSTATUS WINAPI VReg_InternalVirtualRegSetValueExW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpValueName,
@@ -11150,7 +10936,7 @@ done:
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegDeleteValueW(
+static LSTATUS WINAPI VReg_InternalVirtualRegDeleteValueW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpValueName
@@ -11183,7 +10969,7 @@ done:
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegDeleteKeyExW(
+static LSTATUS WINAPI VReg_InternalVirtualRegDeleteKeyExW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const LPCWSTR lpSubKey,
@@ -11225,7 +11011,7 @@ done:
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegDeleteTreeW(
+static LSTATUS WINAPI VReg_InternalVirtualRegDeleteTreeW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR lpSubKey
@@ -11275,7 +11061,7 @@ done:
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegEnumKeyExW(
+static LSTATUS WINAPI VReg_InternalVirtualRegEnumKeyExW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
@@ -11359,7 +11145,7 @@ done:
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegEnumValueW(
+static LSTATUS WINAPI VReg_InternalVirtualRegEnumValueW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
@@ -11462,7 +11248,7 @@ done:
 // Native answers success without writing lpClass when *lpcchClass is zero,
 // which the annotation's terminator guarantee does not allow for.
 #pragma warning(suppress: 6054)
-VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegQueryInfoKeyW(
+static LSTATUS WINAPI VReg_InternalVirtualRegQueryInfoKeyW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) const LPWSTR lpClass,
@@ -11752,7 +11538,7 @@ done:
 // Native leaves pszOutBuf untouched on failure, which the terminator its
 // LPWSTR type implies does not allow for.
 #pragma warning(suppress: 6054)
-VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegLoadMUIStringW(
+static LSTATUS WINAPI VReg_InternalVirtualRegLoadMUIStringW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR pszValue,
@@ -11886,7 +11672,7 @@ static BOOL VRegInternalBuffer_IsNulAt(
 // The SDK's _Post_z_ holds on every return, truncated reads and failures
 // included; the analyzer cannot see the terminators written at run time.
 #pragma warning(suppress: 6054)
-VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegGetValueW(
+static LSTATUS WINAPI VReg_InternalVirtualRegGetValueW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hkey,
     _In_opt_ const LPCWSTR lpSubKey,
@@ -12139,7 +11925,7 @@ done:
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegNotifyChangeKeyValue(
+static LSTATUS WINAPI VReg_InternalVirtualRegNotifyChangeKeyValue(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const BOOL bWatchSubtree,
@@ -12207,7 +11993,7 @@ done:
     return status;
 }
 
-VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegFlushKey(
+static LSTATUS WINAPI VReg_InternalVirtualRegFlushKey(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey
 )
@@ -12240,7 +12026,7 @@ done:
 
 // --- Creation and destruction ---
 
-VREG_DECL void WINAPI VReg_InternalVirtualDestroy(_In_ VReg* const pRegistry)
+static void WINAPI VReg_InternalVirtualDestroy(_In_ VReg* const pRegistry)
 {
     VRegInternalMountTable* pTable = pRegistry->implementation.virtual_.pMounts;
     BOOL isNewest = TRUE;
@@ -12528,6 +12314,54 @@ VREG_DECL LSTATUS WINAPI VReg_ApplyOperations(
 
     return firstFailure;
 }
+
+// ==========================================================================
+// Scripts
+// ==========================================================================
+
+/// The long name of a root a `.reg` file can name; null for any other handle.
+static _Ret_maybenull_ LPCWSTR VRegScript_InternalGetRootName(
+    _In_opt_ HKEY hRoot
+);
+
+/// The root named @p name, long or short form, ignoring case.
+static BOOL VRegInternalWStringView_FindRoot(
+    VRegInternalWStringView name,
+    _Out_ PHKEY phRoot
+);
+
+static LSTATUS VRegScript_InternalCreate(
+    _Outptr_ VRegScript** ppScript
+);
+
+/// Appends an operation, copying its path, name and data into the script.
+static LSTATUS VRegScript_InternalAppend(
+    _Inout_ VRegScript* pScript,
+    VRegOperationKind kind,
+    _In_ HKEY hRoot,
+    VRegInternalWStringView path,
+    VRegInternalWStringView name,
+    DWORD dwType,
+    _In_reads_bytes_opt_(cbData) const BYTE* pData,
+    DWORD cbData,
+    SIZE_T line
+);
+
+/// Decodes a whole file to text without BOM. Detects the encoding as
+/// @ref VRegScript_Parse documents. Answers @ref ERROR_INVALID_DATA with
+/// @p pError (zeroed by the caller) set on bytes the encoding cannot hold.
+static LSTATUS VRegScript_InternalDecodeFile(
+    _In_reads_bytes_(cbFile) const void* pFile,
+    SIZE_T cbFile,
+    _Inout_ VRegInternalWString* pText,
+    _Inout_opt_ VRegParseError* pError
+);
+
+/// Reads a whole file; Win32 errors answer as is.
+static LSTATUS VRegScript_InternalReadWholeFile(
+    _In_ LPCWSTR pszPath,
+    _Inout_ VRegInternalBuffer* pFile
+);
 
 // ==========================================================================
 // Snapshot and delta
@@ -13693,7 +13527,7 @@ static const VRegScriptInternalRootKey VREG_INTERNAL_ROOT_KEYS[] = {
     {L"HKEY_CURRENT_CONFIG", L"HKCC", HKEY_CURRENT_CONFIG},
 };
 
-VREG_DECL _Ret_maybenull_ LPCWSTR VRegScript_InternalGetRootName(
+static _Ret_maybenull_ LPCWSTR VRegScript_InternalGetRootName(
     _In_opt_ const HKEY hRoot
 )
 {
@@ -13707,7 +13541,7 @@ VREG_DECL _Ret_maybenull_ LPCWSTR VRegScript_InternalGetRootName(
     return NULL;
 }
 
-VREG_DECL BOOL VRegInternalWStringView_FindRoot(
+static BOOL VRegInternalWStringView_FindRoot(
     const VRegInternalWStringView name,
     _Out_ PHKEY const phRoot
 )
@@ -13730,7 +13564,7 @@ VREG_DECL BOOL VRegInternalWStringView_FindRoot(
     return FALSE;
 }
 
-VREG_DECL LSTATUS VRegScript_InternalCreate(
+static LSTATUS VRegScript_InternalCreate(
     _Outptr_ VRegScript** const ppScript
 )
 {
@@ -13743,7 +13577,7 @@ VREG_DECL LSTATUS VRegScript_InternalCreate(
     return ERROR_SUCCESS;
 }
 
-VREG_DECL LSTATUS VRegScript_InternalAppend(
+static LSTATUS VRegScript_InternalAppend(
     _Inout_ VRegScript* const pScript,
     const VRegOperationKind kind,
     _In_ const HKEY hRoot,
@@ -13856,7 +13690,7 @@ static LSTATUS VReg_InternalWiden(
     return status;
 }
 
-VREG_DECL LSTATUS VRegScript_InternalDecodeFile(
+static LSTATUS VRegScript_InternalDecodeFile(
     _In_reads_bytes_(cbFile) const void* const pFile,
     const SIZE_T cbFile,
     _Inout_ VRegInternalWString* const pText,
@@ -13944,7 +13778,7 @@ VREG_DECL LSTATUS VRegScript_InternalEncodeFile(
     return ERROR_SUCCESS;
 }
 
-VREG_DECL LSTATUS VRegScript_InternalReadWholeFile(
+static LSTATUS VRegScript_InternalReadWholeFile(
     _In_ const LPCWSTR pszPath,
     _Inout_ VRegInternalBuffer* const pFile
 )

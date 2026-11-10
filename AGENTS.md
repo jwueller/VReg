@@ -72,7 +72,12 @@ the API it sits beside.
   name: the type when that is private (`VRegInternalWString_Free`), the
   verb when the object is public (`VRegHive_InternalCreate`,
   `VReg_InternalAlloc`). Its name is unique across `vreg.h`, since the
-  implementation is one translation unit. Types carry no underscore:
+  implementation is one translation unit. A private function is `static`
+  unless the hooks implementation or a test calls it; only those are
+  declared in the private declarations, with `VREG_DECL`, and every other
+  one is defined `static` in the implementation, with a `static` forward
+  declaration in the titled section of its area where definition order needs
+  one. Types carry no underscore:
   public ones are `VRegName`, private ones `VRegInternalName`. A private
   type that one public object's code alone uses carries that object's name
   before `Internal` (`VRegScriptInternalParser`, `VRegHiveInternalNode`),
