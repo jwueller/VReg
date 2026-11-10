@@ -1935,11 +1935,17 @@ VREG_DECL LSTATUS VReg_InternalGetValueOwned(
     _Inout_ VRegInternalBuffer* pData
 );
 
+/// @ref VReg_RegEnumKeyExW with the name read into @p pName and, when
+/// @p pClass is not null, the class into it. Both buffers grow until the read
+/// fits or none can grow further, and then the status is answered as it is.
 VREG_DECL LSTATUS VReg_InternalEnumKeyOwned(
     _In_ VReg* pRegistry,
     _In_ HKEY hKey,
     _In_ DWORD dwIndex,
-    _Inout_ VRegInternalWString* pName
+    _Inout_ VRegInternalWString* pName,
+    _Inout_opt_ VRegInternalWString* pClass,
+    _Reserved_ LPDWORD lpReserved,
+    _Out_opt_ PFILETIME lpftLastWriteTime
 );
 
 /// With a null @p pData only the name and type are read.
@@ -4116,57 +4122,24 @@ VREG_DECL LSTATUS WINAPI VReg_RegEnumKeyExA(
     VRegInternalBuffer nameA = {0, 0, NULL};
     VRegInternalBuffer classA = {0, 0, NULL};
     FILETIME ftLastWrite;
-    BOOL wantClass;
-    DWORD cchName;
-    DWORD cchClass;
-    DWORD cchNameOut;
-    DWORD cchClassOut;
     LSTATUS status;
 
     if (!lpcchName || (lpClass && !lpcchClass))
         return ERROR_INVALID_PARAMETER;
 
-    wantClass = lpClass || lpcchClass;
-    cchName = VREG_INTERNAL_INITIAL_NAME_CHARS;
-    cchClass = wantClass ? VREG_INTERNAL_INITIAL_NAME_CHARS : 0;
     ZeroMemory(&ftLastWrite, sizeof(ftLastWrite));
-    for (;;)
-    {
-        if (!VRegInternalWString_Resize(&name, cchName)
-            || !VRegInternalWString_Resize(&className, cchClass))
-        {
-            status = ERROR_OUTOFMEMORY;
-            goto done;
-        }
-
-        cchNameOut = cchName;
-        cchClassOut = cchClass;
-        status = VReg_RegEnumKeyExW(
-            pRegistry,
-            hKey,
-            dwIndex,
-            name.psz,
-            &cchNameOut,
-            lpReserved,
-            wantClass ? className.psz : NULL,
-            wantClass ? &cchClassOut : NULL,
-            &ftLastWrite
-        );
-        if (
-            status != ERROR_MORE_DATA
-            || (cchName >= VREG_INTERNAL_MAX_CLASS_CHARS && cchClass >= VREG_INTERNAL_MAX_CLASS_CHARS)
-        )
-            break;
-
-        cchName = VReg_InternalMinDword(cchName * 2, VREG_INTERNAL_MAX_CLASS_CHARS);
-        if (wantClass)
-            cchClass = VReg_InternalMinDword(cchClass * 2, VREG_INTERNAL_MAX_CLASS_CHARS);
-    }
+    status = VReg_InternalEnumKeyOwned(
+        pRegistry,
+        hKey,
+        dwIndex,
+        &name,
+        (lpClass || lpcchClass) ? &className : NULL,
+        lpReserved,
+        &ftLastWrite
+    );
     if (status != ERROR_SUCCESS)
         goto done;
 
-    VRegInternalWString_Truncate(&name, cchNameOut);
-    VRegInternalWString_Truncate(&className, cchClassOut);
     if (lpftLastWriteTime)
         *lpftLastWriteTime = ftLastWrite;
 
@@ -9446,15 +9419,20 @@ VREG_DECL LSTATUS VReg_InternalEnumKeyOwned(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
     _In_ const DWORD dwIndex,
-    _Inout_ VRegInternalWString* const pName
+    _Inout_ VRegInternalWString* const pName,
+    _Inout_opt_ VRegInternalWString* const pClass,
+    _Reserved_ const LPDWORD lpReserved,
+    _Out_opt_ const PFILETIME lpftLastWriteTime
 )
 {
     DWORD cchName = VREG_INTERNAL_INITIAL_NAME_CHARS;
+    DWORD cchClass = pClass ? VREG_INTERNAL_INITIAL_NAME_CHARS : 0;
     for (;;)
     {
-        DWORD cchRead = cchName;
+        DWORD cchNameRead = cchName;
+        DWORD cchClassRead = cchClass;
         LSTATUS status;
-        if (!VRegInternalWString_Resize(pName, cchName))
+        if (!VRegInternalWString_Resize(pName, cchName) || (pClass && !VRegInternalWString_Resize(pClass, cchClass)))
             return ERROR_OUTOFMEMORY;
 
         status = VReg_RegEnumKeyExW(
@@ -9462,19 +9440,25 @@ VREG_DECL LSTATUS VReg_InternalEnumKeyOwned(
             hKey,
             dwIndex,
             pName->psz,
-            &cchRead,
-            NULL,
-            NULL,
-            NULL,
-            NULL
+            &cchNameRead,
+            lpReserved,
+            pClass ? pClass->psz : NULL,
+            pClass ? &cchClassRead : NULL,
+            lpftLastWriteTime
         );
-        if (status == ERROR_MORE_DATA && cchName < VREG_INTERNAL_MAX_CLASS_CHARS)
+        if (status == ERROR_MORE_DATA && (cchName < VREG_INTERNAL_MAX_CLASS_CHARS || (pClass && cchClass < VREG_INTERNAL_MAX_CLASS_CHARS)))
         {
-            cchName = VReg_InternalMinDword(VReg_InternalGrow(cchName, cchRead), VREG_INTERNAL_MAX_CLASS_CHARS);
+            cchName = VReg_InternalMinDword(VReg_InternalGrow(cchName, cchNameRead), VREG_INTERNAL_MAX_CLASS_CHARS);
+            if (pClass)
+                cchClass = VReg_InternalMinDword(VReg_InternalGrow(cchClass, cchClassRead), VREG_INTERNAL_MAX_CLASS_CHARS);
             continue;
         }
         if (status == ERROR_SUCCESS)
-            VRegInternalWString_Truncate(pName, cchRead);
+        {
+            VRegInternalWString_Truncate(pName, cchNameRead);
+            if (pClass)
+                VRegInternalWString_Truncate(pClass, cchClassRead);
+        }
         return status;
     }
 }
@@ -12801,7 +12785,7 @@ static LSTATUS VRegScript_InternalWalkKey(
 
     for (dwIndex = 0;; ++dwIndex)
     {
-        status = VReg_InternalEnumKeyOwned(pRegistry, hKey, dwIndex, &name);
+        status = VReg_InternalEnumKeyOwned(pRegistry, hKey, dwIndex, &name, NULL, NULL, NULL);
         if (status == ERROR_NO_MORE_ITEMS)
         {
             status = ERROR_SUCCESS;

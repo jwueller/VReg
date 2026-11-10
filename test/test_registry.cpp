@@ -3,6 +3,7 @@
 
 #include <vreg.h>
 
+#include "objects.h"
 #include "oracle.h"
 #include "owned_values.h"
 
@@ -744,5 +745,56 @@ TEST_CASE("LoadMUIString resolves a resource reference")
             nullptr,
             text
         ) == ERROR_FILE_NOT_FOUND
+    );
+}
+
+namespace
+{
+LSTATUS WINAPI EnumKeyAlwaysMoreData(
+    VReg* const pRegistry,
+    const HKEY hKey,
+    const DWORD dwIndex,
+    const LPWSTR lpName,
+    const LPDWORD lpcchName,
+    const LPDWORD lpReserved,
+    const LPWSTR lpClass,
+    const LPDWORD lpcchClass,
+    const PFILETIME lpftLastWriteTime
+)
+{
+    (void)pRegistry;
+    (void)hKey;
+    (void)dwIndex;
+    (void)lpName;
+    (void)lpcchName;
+    (void)lpReserved;
+    (void)lpClass;
+    (void)lpcchClass;
+    (void)lpftLastWriteTime;
+    return ERROR_MORE_DATA;
+}
+}
+
+TEST_CASE("EnumKeyExA gives up when a registry always answers ERROR_MORE_DATA")
+{
+    static const VRegVtbl VTBL = {
+        .RegEnumKeyExW = EnumKeyAlwaysMoreData,
+    };
+    const OwnedRegistry registry = MakeCustomRegistry(&VTBL, nullptr);
+
+    char szName[4];
+    DWORD cchName = static_cast<DWORD>(std::size(szName));
+    CHECK(
+        VReg_RegEnumKeyExA(
+            registry,
+            HKEY_CURRENT_USER,
+            0,
+            szName,
+            &cchName,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr
+        ) == ERROR_MORE_DATA
     );
 }
