@@ -1269,6 +1269,199 @@ TEST_CASE("A mount answers only the calls of its view")
     }
 }
 
+TEST_CASE("A path is mounted again only for another view")
+{
+    OwnedHive hive64 = MakeHive();
+    OwnedHive hive32 = MakeHive();
+    OwnedHive hiveBoth = MakeHive();
+    const auto mount = [&](
+        VReg* const registry,
+        VRegHive* const hive,
+        const REGSAM sam
+    )
+    {
+        return VReg_Mount(registry, HKEY_LOCAL_MACHINE, L"Software\\Views", hive, sam);
+    };
+
+    SECTION("Both views are mounted, in either order")
+    {
+        OwnedRegistry registry = MakeVirtualRegistry();
+        CHECK(mount(registry, hive64, KEY_WOW64_64KEY) == ERROR_SUCCESS);
+        CHECK(mount(registry, hive32, KEY_WOW64_32KEY) == ERROR_SUCCESS);
+
+        OwnedRegistry reversed = MakeVirtualRegistry();
+        CHECK(mount(reversed, hive32, KEY_WOW64_32KEY) == ERROR_SUCCESS);
+        CHECK(mount(reversed, hive64, KEY_WOW64_64KEY) == ERROR_SUCCESS);
+    }
+
+    SECTION("A mount for both views excludes every other, in either order")
+    {
+        OwnedRegistry registry = MakeVirtualRegistry();
+        CHECK(mount(registry, hiveBoth, 0) == ERROR_SUCCESS);
+        CHECK(mount(registry, hive64, KEY_WOW64_64KEY) == ERROR_ALREADY_EXISTS);
+        CHECK(mount(registry, hive32, KEY_WOW64_32KEY) == ERROR_ALREADY_EXISTS);
+        CHECK(mount(registry, hive64, 0) == ERROR_ALREADY_EXISTS);
+
+        OwnedRegistry single64 = MakeVirtualRegistry();
+        CHECK(mount(single64, hive64, KEY_WOW64_64KEY) == ERROR_SUCCESS);
+        CHECK(mount(single64, hiveBoth, 0) == ERROR_ALREADY_EXISTS);
+
+        OwnedRegistry single32 = MakeVirtualRegistry();
+        CHECK(mount(single32, hive32, KEY_WOW64_32KEY) == ERROR_SUCCESS);
+        CHECK(mount(single32, hiveBoth, 0) == ERROR_ALREADY_EXISTS);
+    }
+
+    SECTION("One view twice is refused")
+    {
+        OwnedRegistry registry = MakeVirtualRegistry();
+        CHECK(mount(registry, hive64, KEY_WOW64_64KEY) == ERROR_SUCCESS);
+        CHECK(mount(registry, hive32, KEY_WOW64_64KEY) == ERROR_ALREADY_EXISTS);
+        CHECK(mount(registry, hive32, KEY_WOW64_32KEY) == ERROR_SUCCESS);
+        CHECK(mount(registry, hiveBoth, KEY_WOW64_32KEY) == ERROR_ALREADY_EXISTS);
+    }
+}
+
+TEST_CASE("Two hives mounted at one path answer by view")
+{
+    OwnedHive hive64 = MakeHive();
+    OwnedHive hive32 = MakeHive();
+    OwnedRegistry registry = MakeVirtualRegistry();
+    REQUIRE(
+        VReg_Mount(
+            registry,
+            HKEY_LOCAL_MACHINE,
+            L"Software\\ViewPair",
+            hive64,
+            KEY_WOW64_64KEY
+        ) == ERROR_SUCCESS
+    );
+    REQUIRE(
+        VReg_Mount(
+            registry,
+            HKEY_LOCAL_MACHINE,
+            L"Software\\ViewPair",
+            hive32,
+            KEY_WOW64_32KEY
+        ) == ERROR_SUCCESS
+    );
+    REQUIRE(SetDword(registry, RootHandle(hive64), L"v", 64) == ERROR_SUCCESS);
+    REQUIRE(SetDword(registry, RootHandle(hive32), L"v", 32) == ERROR_SUCCESS);
+
+    const DWORD ownView = sizeof(void*) == 8 ? 64 : 32;
+    const auto open = [&](const REGSAM sam)
+    {
+        HKEY hKey{};
+        REQUIRE(
+            VReg_RegOpenKeyExW(
+                registry,
+                HKEY_LOCAL_MACHINE,
+                L"Software\\ViewPair",
+                0,
+                sam,
+                &hKey
+            ) == ERROR_SUCCESS
+        );
+        return hKey;
+    };
+    const auto read = [&](const HKEY hKey)
+    {
+        LSTATUS status = ERROR_SUCCESS;
+        const DWORD dwValue = QueryDword(registry, hKey, L"v", status);
+        REQUIRE(status == ERROR_SUCCESS);
+        return dwValue;
+    };
+
+    SECTION("An open reaches the hive of its view")
+    {
+        CHECK(read(open(KEY_READ | KEY_WOW64_64KEY)) == 64);
+        CHECK(read(open(KEY_READ | KEY_WOW64_32KEY)) == 32);
+        CHECK(read(open(KEY_READ)) == ownView);
+    }
+
+    SECTION("A handle keeps reaching its own hive")
+    {
+        const HKEY h64 = open(KEY_READ | KEY_WOW64_64KEY);
+        const HKEY h32 = open(KEY_READ | KEY_WOW64_32KEY);
+        CHECK(h64 == RootHandle(hive64));
+        CHECK(h32 == RootHandle(hive32));
+        CHECK(read(h32) == 32);
+        CHECK(read(h64) == 64);
+        CHECK(read(h32) == 32);
+    }
+
+    SECTION("Creating, enumerating and deleting below each stays in its hive")
+    {
+        HKEY hKey{};
+        REQUIRE(
+            VReg_RegCreateKeyExW(
+                registry,
+                HKEY_LOCAL_MACHINE,
+                L"Software\\ViewPair\\Only64",
+                0,
+                nullptr,
+                0,
+                KEY_ALL_ACCESS | KEY_WOW64_64KEY,
+                nullptr,
+                &hKey,
+                nullptr
+            ) == ERROR_SUCCESS
+        );
+        REQUIRE(
+            VReg_RegCreateKeyExW(
+                registry,
+                HKEY_LOCAL_MACHINE,
+                L"Software\\ViewPair\\Only32",
+                0,
+                nullptr,
+                0,
+                KEY_ALL_ACCESS | KEY_WOW64_32KEY,
+                nullptr,
+                &hKey,
+                nullptr
+            ) == ERROR_SUCCESS
+        );
+
+        const HKEY h64 = open(KEY_READ | KEY_WOW64_64KEY);
+        const HKEY h32 = open(KEY_READ | KEY_WOW64_32KEY);
+        wchar_t name[32]{};
+        DWORD cchName = 32;
+        CHECK(VReg_RegEnumKeyExW(registry, h64, 0, name, &cchName, nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS);
+        CHECK(std::wstring(name) == L"Only64");
+        cchName = 32;
+        CHECK(VReg_RegEnumKeyExW(registry, h64, 1, name, &cchName, nullptr, nullptr, nullptr, nullptr) == ERROR_NO_MORE_ITEMS);
+
+        cchName = 32;
+        CHECK(VReg_RegEnumKeyExW(registry, h32, 0, name, &cchName, nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS);
+        CHECK(std::wstring(name) == L"Only32");
+        cchName = 32;
+        CHECK(VReg_RegEnumKeyExW(registry, h32, 1, name, &cchName, nullptr, nullptr, nullptr, nullptr) == ERROR_NO_MORE_ITEMS);
+
+        CHECK(
+            VReg_RegDeleteKeyExW(
+                registry,
+                HKEY_LOCAL_MACHINE,
+                L"Software\\ViewPair\\Only64",
+                KEY_WOW64_32KEY,
+                0
+            ) == ERROR_FILE_NOT_FOUND
+        );
+        CHECK(
+            VReg_RegDeleteKeyExW(
+                registry,
+                HKEY_LOCAL_MACHINE,
+                L"Software\\ViewPair\\Only64",
+                KEY_WOW64_64KEY,
+                0
+            ) == ERROR_SUCCESS
+        );
+        cchName = 32;
+        CHECK(VReg_RegEnumKeyExW(registry, h64, 0, name, &cchName, nullptr, nullptr, nullptr, nullptr) == ERROR_NO_MORE_ITEMS);
+        cchName = 32;
+        CHECK(VReg_RegEnumKeyExW(registry, h32, 0, name, &cchName, nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS);
+        CHECK(std::wstring(name) == L"Only32");
+    }
+}
+
 TEST_CASE("A real key above a mount reaches it through the real NtQueryKey")
 {
     OwnedRegistry native = MakeNativeRegistry();

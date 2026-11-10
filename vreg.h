@@ -1187,8 +1187,10 @@ VREG_DECL LSTATUS WINAPI VReg_CreateVirtual(
 /// and @ref ERROR_ALREADY_EXISTS for a path already mounted. @p samView limits
 /// the calls the mount answers to those of one registry view:
 /// @ref KEY_WOW64_64KEY or @ref KEY_WOW64_32KEY, or 0 for both; anything else
-/// answers @ref ERROR_INVALID_PARAMETER. Safe while calls are in flight,
-/// hooked ones included.
+/// answers @ref ERROR_INVALID_PARAMETER. A path is mounted again only for the
+/// other view: two mounts of one path may not share a view, so a mount for
+/// both excludes every other. Safe while calls are in flight, hooked ones
+/// included.
 VREG_DECL LSTATUS WINAPI VReg_Mount(
     _In_ VReg* pRegistry,
     _In_ HKEY hRoot,
@@ -10445,16 +10447,20 @@ static void VRegInternalMountPoint_Free(
     VRegInternalArray_FreeWStrings(&pMount->nativePath);
 }
 
-/// Whether the mount @p pMount is of @p hRoot at the path @p pPath, by the
-/// registry's own name comparison.
-static BOOL VRegInternalMountPoint_IsAt(
+/// Whether the mount @p pMount and a mount of @p hRoot at the path @p pPath
+/// limited to @p samView would answer a call alike: the same root and path,
+/// by the registry's own name comparison, and views that share one.
+static BOOL VRegInternalMountPoint_ConflictsWith(
     _In_ const VRegInternalMountPoint* const pMount,
     const HKEY hRoot,
-    _In_ const VRegInternalArray* const pPath
+    _In_ const VRegInternalArray* const pPath,
+    const REGSAM samView
 )
 {
     SIZE_T i;
     if (pMount->hRoot != hRoot || pMount->path.count != pPath->count)
+        return FALSE;
+    if (pMount->samView != 0 && samView != 0 && pMount->samView != samView)
         return FALSE;
 
     for (i = 0; i < pPath->count; ++i)
@@ -10484,7 +10490,7 @@ static LSTATUS VReg_InternalPublishMount(
     for (i = 0; pOld && i < pOld->mounts.count; ++i)
     {
         const VRegInternalMountPoint* const pExisting = &VREG_INTERNAL_AT(&pOld->mounts, VRegInternalMountPoint, i);
-        if (VRegInternalMountPoint_IsAt(pExisting, pMount->hRoot, &pMount->path))
+        if (VRegInternalMountPoint_ConflictsWith(pExisting, pMount->hRoot, &pMount->path, pMount->samView))
         {
             VRegInternalArray_Free(&pNew->mounts);
             VReg_InternalFree(pNew);
