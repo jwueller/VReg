@@ -21,6 +21,7 @@ set(VREG_TEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/owned_values.h
     ${CMAKE_CURRENT_SOURCE_DIR}/regfile_test.h
     ${CMAKE_CURRENT_SOURCE_DIR}/scenario.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_buffers.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_concurrency.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_custom_hive.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/test_handle.cpp

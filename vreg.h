@@ -3053,6 +3053,12 @@ VREG_DECL void VRegInternalWideArg_Free(_Inout_ VRegInternalWideArg* const pArg)
 // Buffers
 // ==========================================================================
 
+#define VREG_INTERNAL_MAX_SIZE (~(SIZE_T)0)
+
+/// The most characters a string holds, so that its terminated byte size still
+/// fits in a @ref SIZE_T.
+#define VREG_INTERNAL_MAX_STRING_CHARS (VREG_INTERNAL_MAX_SIZE / sizeof(wchar_t) - 1)
+
 /// The capacity to grow to for @p needed elements: at least double the old
 /// one, so repeated appends stay linear.
 static SIZE_T VReg_InternalGrowCapacity(
@@ -3060,7 +3066,7 @@ static SIZE_T VReg_InternalGrowCapacity(
     const SIZE_T needed
 )
 {
-    SIZE_T grown = capacity < 8 ? 8 : capacity * 2;
+    SIZE_T grown = capacity < 8 ? 8 : capacity > VREG_INTERNAL_MAX_SIZE / 2 ? capacity : capacity * 2;
     return grown < needed ? needed : grown;
 }
 
@@ -3139,6 +3145,9 @@ VREG_DECL BOOL VRegInternalBuffer_Append(
 )
 {
     const SIZE_T cbOld = pBuffer->cb;
+    if (cb > VREG_INTERNAL_MAX_SIZE - cbOld)
+        return FALSE;
+
     if (!VRegInternalBuffer_Resize(pBuffer, cbOld + cb))
         return FALSE;
 
@@ -3184,6 +3193,9 @@ VREG_DECL BOOL VRegInternalWString_Reserve(
     if (cch < pString->cchCapacity)
         return TRUE;
 
+    if (cch > VREG_INTERNAL_MAX_STRING_CHARS)
+        return FALSE;
+
     psz = (wchar_t*)VReg_InternalReAlloc(pString->psz, (cch + 1) * sizeof(wchar_t));
     if (!psz)
         return FALSE;
@@ -3203,6 +3215,9 @@ VREG_DECL BOOL VRegInternalWString_Resize(
 {
     if (cch >= pString->cchCapacity)
     {
+        if (cch > VREG_INTERNAL_MAX_STRING_CHARS)
+            return FALSE;
+
         const SIZE_T cchGrown = VReg_InternalGrowCapacity(pString->cchCapacity, cch + 1) - 1;
         if (!VRegInternalWString_Reserve(pString, cchGrown))
             return FALSE;
@@ -3241,6 +3256,9 @@ VREG_DECL BOOL VRegInternalWString_Append(
 )
 {
     const SIZE_T cchOld = pString->cch;
+    if (cch > VREG_INTERNAL_MAX_STRING_CHARS - cchOld)
+        return FALSE;
+
     if (!VRegInternalWString_Resize(pString, cchOld + cch))
         return FALSE;
 
@@ -3301,6 +3319,9 @@ VREG_DECL BOOL VRegInternalArray_Reserve(
     void* p;
     if (capacity <= pArray->capacity)
         return TRUE;
+
+    if (capacity > VREG_INTERNAL_MAX_SIZE / cbElement)
+        return FALSE;
 
     p = VReg_InternalReAlloc(pArray->p, capacity * cbElement);
     if (!p)
