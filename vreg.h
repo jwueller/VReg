@@ -1667,26 +1667,15 @@ VREG_DECL void VRegInternalArray_Free(
 // ANSI conversion
 // ==========================================================================
 
-/// A string argument that may be null: the wide copy of an ANSI argument.
-typedef struct
-{
-    BOOL isNull;
-    VRegInternalWString text;
-} VRegInternalWideArg;
-
-/// Fills @p pArg from @p psz; a zero-filled @p pArg stands for a null one.
-VREG_DECL LSTATUS VRegInternalWideArg_Init(
+/// Widens the ANSI argument @p psz, which may be null, into @p pText, which
+/// the caller frees. Unlike everywhere else, a null `psz` member of @p pText
+/// means a null argument, not an empty string: it is null exactly when
+/// @p psz is, and any other argument, an empty one included, leaves an
+/// allocated, terminated string. Answers @ref ERROR_OUTOFMEMORY or
+/// @ref ERROR_NO_UNICODE_TRANSLATION as @ref VReg_InternalWideFromAnsi does.
+VREG_DECL LSTATUS VReg_InternalWideFromOptionalAnsi(
     _In_opt_ LPCSTR psz,
-    _Out_ VRegInternalWideArg* pArg
-);
-
-/// The wide text, null when the argument was null.
-VREG_DECL _Ret_maybenull_ LPCWSTR VRegInternalWideArg_GetText(
-    _In_ const VRegInternalWideArg* pArg
-);
-
-VREG_DECL void VRegInternalWideArg_Free(
-    _Inout_ VRegInternalWideArg* pArg
+    _Out_ VRegInternalWString* pText
 );
 
 // ==========================================================================
@@ -2623,44 +2612,16 @@ static LSTATUS VReg_InternalAnsiFromWide(
     return VReg_InternalMultiByteFromWide(CP_ACP, 0, NULL, pch, cch, pText);
 }
 
-VREG_DECL LSTATUS VRegInternalWideArg_Init(
+VREG_DECL LSTATUS VReg_InternalWideFromOptionalAnsi(
     _In_opt_ const LPCSTR psz,
-    _Out_ VRegInternalWideArg* const pArg
+    _Out_ VRegInternalWString* const pText
 )
 {
-    ZeroMemory(pArg, sizeof(*pArg));
-    pArg->isNull = psz == NULL;
+    ZeroMemory(pText, sizeof(*pText));
     if (!psz)
         return ERROR_SUCCESS;
 
-    return VReg_InternalWideFromAnsi(psz, VReg_InternalAnsiLength(psz), &pArg->text);
-}
-
-VREG_DECL _Ret_maybenull_ LPCWSTR VRegInternalWideArg_GetText(
-    _In_ const VRegInternalWideArg* const pArg
-)
-{
-    return pArg->isNull ? NULL : VRegInternalWString_GetText(&pArg->text);
-}
-
-/// Like @ref VRegInternalWideArg_GetText, as a buffer the callee may write to.
-static _Ret_maybenull_ LPWSTR VRegInternalWideArg_GetMutableText(
-    _In_ VRegInternalWideArg* const pArg
-)
-{
-    if (pArg->isNull)
-        return NULL;
-
-    // An unallocated empty string has no storage to hand out.
-    if (!pArg->text.psz && !VRegInternalWString_Reserve(&pArg->text, 0))
-        return NULL;
-
-    return pArg->text.psz;
-}
-
-VREG_DECL void VRegInternalWideArg_Free(_Inout_ VRegInternalWideArg* const pArg)
-{
-    VRegInternalWString_Free(&pArg->text);
+    return VReg_InternalWideFromAnsi(psz, VReg_InternalAnsiLength(psz), pText);
 }
 
 // ==========================================================================
@@ -3447,9 +3408,9 @@ VREG_DECL LSTATUS WINAPI VReg_RegOpenKeyExA(
             phkResult
         );
 
-    VRegInternalWideArg subKey = {FALSE, {0, 0, NULL}};
+    VRegInternalWString subKey = {0, 0, NULL};
     HKEY hPrevious;
-    LSTATUS status = VRegInternalWideArg_Init(lpSubKey, &subKey);
+    LSTATUS status = VReg_InternalWideFromOptionalAnsi(lpSubKey, &subKey);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -3459,7 +3420,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegOpenKeyExA(
     status = VReg_RegOpenKeyExW(
         pRegistry,
         hKey,
-        VRegInternalWideArg_GetText(&subKey),
+        subKey.psz,
         ulOptions,
         samDesired,
         phkResult
@@ -3470,7 +3431,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegOpenKeyExA(
         *phkResult = hPrevious;
 
 done:
-    VRegInternalWideArg_Free(&subKey);
+    VRegInternalWString_Free(&subKey);
     return status;
 }
 
@@ -3501,14 +3462,14 @@ VREG_DECL LSTATUS WINAPI VReg_RegCreateKeyExA(
             lpdwDisposition
         );
 
-    VRegInternalWideArg subKey = {FALSE, {0, 0, NULL}};
-    VRegInternalWideArg className = {FALSE, {0, 0, NULL}};
+    VRegInternalWString subKey = {0, 0, NULL};
+    VRegInternalWString className = {0, 0, NULL};
     HKEY hPrevious;
-    LSTATUS status = VRegInternalWideArg_Init(lpSubKey, &subKey);
+    LSTATUS status = VReg_InternalWideFromOptionalAnsi(lpSubKey, &subKey);
     if (status != ERROR_SUCCESS)
         goto done;
 
-    status = VRegInternalWideArg_Init(lpClass, &className);
+    status = VReg_InternalWideFromOptionalAnsi(lpClass, &className);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -3521,9 +3482,9 @@ VREG_DECL LSTATUS WINAPI VReg_RegCreateKeyExA(
     status = VReg_RegCreateKeyExW(
         pRegistry,
         hKey,
-        VRegInternalWideArg_GetText(&subKey),
+        subKey.psz,
         Reserved,
-        VRegInternalWideArg_GetMutableText(&className),
+        className.psz,
         dwOptions,
         samDesired,
         lpSecurityAttributes,
@@ -3534,8 +3495,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegCreateKeyExA(
         *phkResult = hPrevious;
 
 done:
-    VRegInternalWideArg_Free(&className);
-    VRegInternalWideArg_Free(&subKey);
+    VRegInternalWString_Free(&className);
+    VRegInternalWString_Free(&subKey);
     return status;
 }
 
@@ -3560,7 +3521,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryValueExA(
             lpcbData
         );
 
-    VRegInternalWideArg valueName = {FALSE, {0, 0, NULL}};
+    VRegInternalWString valueName = {0, 0, NULL};
     VRegInternalBuffer value = {0, 0, NULL};
     VRegInternalBuffer text = {0, 0, NULL};
     DWORD dwType;
@@ -3572,7 +3533,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryValueExA(
     if ((lpData && !lpcbData) || lpReserved)
         return ERROR_INVALID_PARAMETER;
 
-    status = VRegInternalWideArg_Init(lpValueName, &valueName);
+    status = VReg_InternalWideFromOptionalAnsi(lpValueName, &valueName);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -3581,7 +3542,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryValueExA(
         status = VReg_RegQueryValueExW(
             pRegistry,
             hKey,
-            VRegInternalWideArg_GetText(&valueName),
+            valueName.psz,
             NULL,
             lpType,
             NULL,
@@ -3597,7 +3558,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryValueExA(
     sized = VReg_RegQueryValueExW(
         pRegistry,
         hKey,
-        VRegInternalWideArg_GetText(&valueName),
+        valueName.psz,
         NULL,
         &dwType,
         NULL,
@@ -3618,7 +3579,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryValueExA(
         status = VReg_RegQueryValueExW(
             pRegistry,
             hKey,
-            VRegInternalWideArg_GetText(&valueName),
+            valueName.psz,
             NULL,
             lpType,
             lpData,
@@ -3630,7 +3591,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryValueExA(
     status = VReg_InternalQueryValueOwned(
         pRegistry,
         hKey,
-        VRegInternalWideArg_GetText(&valueName),
+        valueName.psz,
         &dwType,
         &value
     );
@@ -3673,7 +3634,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryValueExA(
 done:
     VRegInternalBuffer_Free(&text);
     VRegInternalBuffer_Free(&value);
-    VRegInternalWideArg_Free(&valueName);
+    VRegInternalWString_Free(&valueName);
     return status;
 }
 
@@ -3698,9 +3659,9 @@ VREG_DECL LSTATUS WINAPI VReg_RegSetValueExA(
             cbData
         );
 
-    VRegInternalWideArg valueName = {FALSE, {0, 0, NULL}};
+    VRegInternalWString valueName = {0, 0, NULL};
     VRegInternalWString text = {0, 0, NULL};
-    LSTATUS status = VRegInternalWideArg_Init(lpValueName, &valueName);
+    LSTATUS status = VReg_InternalWideFromOptionalAnsi(lpValueName, &valueName);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -3709,7 +3670,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegSetValueExA(
         status = VReg_RegSetValueExW(
             pRegistry,
             hKey,
-            VRegInternalWideArg_GetText(&valueName),
+            valueName.psz,
             Reserved,
             dwType,
             lpData,
@@ -3738,7 +3699,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegSetValueExA(
     status = VReg_RegSetValueExW(
         pRegistry,
         hKey,
-        VRegInternalWideArg_GetText(&valueName),
+        valueName.psz,
         Reserved,
         dwType,
         (const BYTE*)VRegInternalWString_GetText(&text),
@@ -3747,7 +3708,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegSetValueExA(
 
 done:
     VRegInternalWString_Free(&text);
-    VRegInternalWideArg_Free(&valueName);
+    VRegInternalWString_Free(&valueName);
     return status;
 }
 
@@ -3764,19 +3725,19 @@ VREG_DECL LSTATUS WINAPI VReg_RegDeleteValueA(
             lpValueName
         );
 
-    VRegInternalWideArg valueName = {FALSE, {0, 0, NULL}};
-    LSTATUS status = VRegInternalWideArg_Init(lpValueName, &valueName);
+    VRegInternalWString valueName = {0, 0, NULL};
+    LSTATUS status = VReg_InternalWideFromOptionalAnsi(lpValueName, &valueName);
     if (status != ERROR_SUCCESS)
         goto done;
 
     status = VReg_RegDeleteValueW(
         pRegistry,
         hKey,
-        VRegInternalWideArg_GetText(&valueName)
+        valueName.psz
     );
 
 done:
-    VRegInternalWideArg_Free(&valueName);
+    VRegInternalWString_Free(&valueName);
     return status;
 }
 
@@ -3797,8 +3758,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegDeleteKeyExA(
             Reserved
         );
 
-    VRegInternalWideArg subKey = {FALSE, {0, 0, NULL}};
-    LSTATUS status = VRegInternalWideArg_Init(lpSubKey, &subKey);
+    VRegInternalWString subKey = {0, 0, NULL};
+    LSTATUS status = VReg_InternalWideFromOptionalAnsi(lpSubKey, &subKey);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -3808,13 +3769,13 @@ VREG_DECL LSTATUS WINAPI VReg_RegDeleteKeyExA(
     status = VReg_RegDeleteKeyExW(
         pRegistry,
         hKey,
-        VRegInternalWideArg_GetText(&subKey),
+        subKey.psz,
         samDesired,
         Reserved
     );
 
 done:
-    VRegInternalWideArg_Free(&subKey);
+    VRegInternalWString_Free(&subKey);
     return status;
 }
 
@@ -3831,19 +3792,19 @@ VREG_DECL LSTATUS WINAPI VReg_RegDeleteTreeA(
             lpSubKey
         );
 
-    VRegInternalWideArg subKey = {FALSE, {0, 0, NULL}};
-    LSTATUS status = VRegInternalWideArg_Init(lpSubKey, &subKey);
+    VRegInternalWString subKey = {0, 0, NULL};
+    LSTATUS status = VReg_InternalWideFromOptionalAnsi(lpSubKey, &subKey);
     if (status != ERROR_SUCCESS)
         goto done;
 
     status = VReg_RegDeleteTreeW(
         pRegistry,
         hKey,
-        VRegInternalWideArg_GetText(&subKey)
+        subKey.psz
     );
 
 done:
-    VRegInternalWideArg_Free(&subKey);
+    VRegInternalWString_Free(&subKey);
     return status;
 }
 
@@ -4248,8 +4209,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegGetValueA(
             pcbData
         );
 
-    VRegInternalWideArg subKey = {FALSE, {0, 0, NULL}};
-    VRegInternalWideArg value = {FALSE, {0, 0, NULL}};
+    VRegInternalWString subKey = {0, 0, NULL};
+    VRegInternalWString value = {0, 0, NULL};
     VRegInternalBuffer data = {0, 0, NULL};
     VRegInternalBuffer stored = {0, 0, NULL};
     VRegInternalBuffer text = {0, 0, NULL};
@@ -4284,11 +4245,11 @@ VREG_DECL LSTATUS WINAPI VReg_RegGetValueA(
     if (pvData && !pcbData)
         return ERROR_INVALID_PARAMETER;
 
-    status = VRegInternalWideArg_Init(lpSubKey, &subKey);
+    status = VReg_InternalWideFromOptionalAnsi(lpSubKey, &subKey);
     if (status != ERROR_SUCCESS)
         goto done;
 
-    status = VRegInternalWideArg_Init(lpValue, &value);
+    status = VReg_InternalWideFromOptionalAnsi(lpValue, &value);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -4302,8 +4263,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegGetValueA(
     statusStoredType = VReg_RegGetValueW(
         pRegistry,
         hkey,
-        VRegInternalWideArg_GetText(&subKey),
-        VRegInternalWideArg_GetText(&value),
+        subKey.psz,
+        value.psz,
         dwFlagsStored,
         &dwStoredType,
         NULL,
@@ -4323,8 +4284,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegGetValueA(
     statusSized = VReg_RegGetValueW(
         pRegistry,
         hkey,
-        VRegInternalWideArg_GetText(&subKey),
-        VRegInternalWideArg_GetText(&value),
+        subKey.psz,
+        value.psz,
         dwFlagsTyped,
         &dwType,
         NULL,
@@ -4340,8 +4301,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegGetValueA(
         VReg_RegGetValueW(
             pRegistry,
             hkey,
-            VRegInternalWideArg_GetText(&subKey),
-            VRegInternalWideArg_GetText(&value),
+            subKey.psz,
+            value.psz,
             dwFlagsAnyType,
             &dwType,
             NULL,
@@ -4352,8 +4313,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegGetValueA(
     status = VReg_InternalGetValueOwned(
         pRegistry,
         hkey,
-        VRegInternalWideArg_GetText(&subKey),
-        VRegInternalWideArg_GetText(&value),
+        subKey.psz,
+        value.psz,
         dwFlagsRead,
         &dwType,
         &data
@@ -4372,8 +4333,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegGetValueA(
         status = VReg_InternalGetValueOwned(
             pRegistry,
             hkey,
-            VRegInternalWideArg_GetText(&subKey),
-            VRegInternalWideArg_GetText(&value),
+            subKey.psz,
+            value.psz,
             dwFlagsStored,
             &dwReadType,
             &stored
@@ -4384,8 +4345,8 @@ VREG_DECL LSTATUS WINAPI VReg_RegGetValueA(
         VReg_RegGetValueW(
             pRegistry,
             hkey,
-            VRegInternalWideArg_GetText(&subKey),
-            VRegInternalWideArg_GetText(&value),
+            subKey.psz,
+            value.psz,
             dwFlagsStored,
             &dwReadType,
             NULL,
@@ -4503,8 +4464,8 @@ forward:
     status = VReg_RegGetValueW(
         pRegistry,
         hkey,
-        VRegInternalWideArg_GetText(&subKey),
-        VRegInternalWideArg_GetText(&value),
+        subKey.psz,
+        value.psz,
         dwFlags,
         pdwType,
         pvData,
@@ -4517,8 +4478,8 @@ done:
     VRegInternalBuffer_Free(&text);
     VRegInternalBuffer_Free(&stored);
     VRegInternalBuffer_Free(&data);
-    VRegInternalWideArg_Free(&value);
-    VRegInternalWideArg_Free(&subKey);
+    VRegInternalWString_Free(&value);
+    VRegInternalWString_Free(&subKey);
     return status;
 }
 
@@ -5216,7 +5177,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryMultipleValuesA(
         );
 
     VRegInternalPlacedValue* pPlaced = NULL;
-    VRegInternalWideArg name = {FALSE, {0, 0, NULL}};
+    VRegInternalWString name = {0, 0, NULL};
     BYTE* pbBuffer;
     DWORD cbBuffer;
     DWORD cbEnd = 0;
@@ -5264,20 +5225,20 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryMultipleValuesA(
         for (i = 0; i < num_vals; ++i)
         {
             cbWide = 0;
-            status = VRegInternalWideArg_Init(val_list[i].ve_valuename, &name);
+            status = VReg_InternalWideFromOptionalAnsi(val_list[i].ve_valuename, &name);
             if (status == ERROR_SUCCESS)
             {
                 status = VReg_RegQueryValueExW(
                     pRegistry,
                     hKey,
-                    VRegInternalWideArg_GetText(&name),
+                    name.psz,
                     NULL,
                     NULL,
                     NULL,
                     &cbWide
                 );
             }
-            VRegInternalWideArg_Free(&name);
+            VRegInternalWString_Free(&name);
             if (status != ERROR_SUCCESS)
                 goto done;
 
@@ -15267,12 +15228,12 @@ static LSTATUS VRegHooks_InternalRefuseMountPathA(
     const REGSAM samDesired
 )
 {
-    VRegInternalWideArg subKey;
-    LSTATUS status = VRegInternalWideArg_Init(pszSubKey, &subKey);
+    VRegInternalWString subKey;
+    LSTATUS status = VReg_InternalWideFromOptionalAnsi(pszSubKey, &subKey);
     if (status == ERROR_SUCCESS)
-        status = VRegHooks_InternalRefuseMountPathW(hKey, VRegInternalWideArg_GetText(&subKey), samDesired);
+        status = VRegHooks_InternalRefuseMountPathW(hKey, subKey.psz, samDesired);
 
-    VRegInternalWideArg_Free(&subKey);
+    VRegInternalWString_Free(&subKey);
     return status;
 }
 
