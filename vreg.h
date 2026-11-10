@@ -6373,6 +6373,15 @@ static _Ret_maybenull_ VRegHiveInternalValue* VRegHive_InternalFindValue(
     return NULL;
 }
 
+/// Marks @p pNode as standing for a lower key that no upper content shadows.
+static void VRegHive_InternalMarkLowerBacked(
+    _Inout_ VRegHiveInternalNode* const pNode
+)
+{
+    pNode->isTransparent = TRUE;
+    pNode->isLowerBacked = TRUE;
+}
+
 /// A new child of @p pParent, with its handle. The write lock must be held.
 static LSTATUS VRegHive_InternalAddChild(
     _In_ VRegHive* const pHive,
@@ -6695,10 +6704,7 @@ static LSTATUS VRegHive_InternalCreate(
 
     VRegHive_InternalTouch(pRoot);
     if (pLowerVtbl)
-    {
-        pRoot->isTransparent = TRUE;
-        pRoot->isLowerBacked = TRUE;
-    }
+        VRegHive_InternalMarkLowerBacked(pRoot);
 
     // Set last, so a failure above leaves the context to the caller.
     pHive->pLowerVtbl = pLowerVtbl;
@@ -7010,8 +7016,7 @@ static LSTATUS VRegHive_InternalAddRecord(
             status = VRegHive_InternalAddChild(pHive, pParent, name, VREG_INTERNAL_NO_NAME, FALSE, &pRecord);
             if (status == ERROR_SUCCESS)
             {
-                pRecord->isTransparent = TRUE;
-                pRecord->isLowerBacked = TRUE;
+                VRegHive_InternalMarkLowerBacked(pRecord);
                 pRecord->pToken = pToken;
             }
         }
@@ -7162,8 +7167,7 @@ VREG_DECL LSTATUS VRegHive_InternalOpenKey(
             if (status != ERROR_SUCCESS)
                 break;
 
-            pChild->isTransparent = TRUE;
-            pChild->isLowerBacked = TRUE;
+            VRegHive_InternalMarkLowerBacked(pChild);
             pCurrent = pChild;
         }
 
@@ -7396,8 +7400,7 @@ VREG_DECL LSTATUS VRegHive_InternalCreateKey(
 
             if (isInLower)
             {
-                pNew->isTransparent = TRUE;
-                pNew->isLowerBacked = TRUE;
+                VRegHive_InternalMarkLowerBacked(pNew);
             }
             else
             {
@@ -7455,12 +7458,9 @@ static LSTATUS VRegHive_InternalInspectForDelete(
 
     if (status == ERROR_SUCCESS)
     {
+        const VRegInternalWStringView keyName = VRegInternalWString_GetView(&pNode->name);
         *pIsVisible = VRegHive_InternalIsVisible(pHive, pNode);
         *pIsParentVisible = VRegHive_InternalIsVisible(pHive, pNode->pParent);
-    }
-    if (status == ERROR_SUCCESS)
-    {
-        const VRegInternalWStringView keyName = VRegInternalWString_GetView(&pNode->name);
         if (!VRegInternalWString_Assign(pKeyName, keyName.pch, keyName.cch))
             status = ERROR_OUTOFMEMORY;
     }
@@ -7637,6 +7637,43 @@ static BOOL VRegHive_InternalIsDeleted(
     return isDeleted;
 }
 
+/// The names of the subkeys (or, without @p isKeys, the values) of @p pNode
+/// in the provider's enumeration order, appended to @p pNames.
+static LSTATUS VRegHive_InternalCollectNames(
+    _In_ VRegHive* const pHive,
+    _Inout_ VRegHiveInternalNode* const pNode,
+    const BOOL isKeys,
+    _Inout_ VRegInternalArray* const pNames
+)
+{
+    VRegInternalWString name = {0, 0, NULL};
+    LSTATUS status;
+    SIZE_T i;
+
+    for (i = 0;; ++i)
+    {
+        VRegHiveResult entry;
+        VRegHiveResult_InternalInit(&entry);
+        entry.pName = &name;
+        status = isKeys ? pHive->pLowerVtbl->EnumKey(pHive, pNode, (DWORD)i, &entry) : pHive->pLowerVtbl->EnumValue(pHive, pNode, (DWORD)i, &entry);
+        if (status == ERROR_NO_MORE_ITEMS)
+        {
+            status = ERROR_SUCCESS;
+            break;
+        }
+        if (status != ERROR_SUCCESS)
+            break;
+        if (!VRegInternalArray_AppendWString(pNames, VRegInternalWString_GetView(&name)))
+        {
+            status = ERROR_OUTOFMEMORY;
+            break;
+        }
+    }
+
+    VRegInternalWString_Free(&name);
+    return status;
+}
+
 /// The subkeys of @p pNode deleted through the provider's `DeleteKey`, as
 /// native's `RegDeleteTree` deletes them: in enumeration order, each subtree
 /// before its key, stopping at the first failure. The names are read first,
@@ -7648,43 +7685,22 @@ static LSTATUS VRegHive_InternalDeleteSubkeysThrough(
 )
 {
     VRegInternalArray names = {NULL, 0, 0};
-    VRegInternalWString name = {0, 0, NULL};
     SIZE_T i;
-    LSTATUS status;
+    LSTATUS status = VRegHive_InternalCollectNames(pHive, pNode, TRUE, &names);
 
-    for (i = 0;; ++i)
-    {
-        VRegHiveResult entry;
-        VRegHiveResult_InternalInit(&entry);
-        entry.pName = &name;
-        status = pHive->pLowerVtbl->EnumKey(pHive, pNode, (DWORD)i, &entry);
-        if (status == ERROR_NO_MORE_ITEMS)
-        {
-            status = ERROR_SUCCESS;
-            break;
-        }
-        if (status != ERROR_SUCCESS)
-            goto done;
-        if (!VRegInternalArray_AppendWString(&names, VRegInternalWString_GetView(&name)))
-        {
-            status = ERROR_OUTOFMEMORY;
-            goto done;
-        }
-    }
-
-    for (i = 0; i < names.count; ++i)
+    for (i = 0; status == ERROR_SUCCESS && i < names.count; ++i)
     {
         const VRegInternalWStringView child = VRegInternalArray_WStringViewAt(&names, i);
         VRegHiveInternalOpenResult opened;
         status = VRegHive_InternalOpenKey(pHive, pNode, &child, 1, KEY_READ, &opened);
         if (status != ERROR_SUCCESS)
-            goto done;
+            break;
         status = VRegHive_InternalDeleteSubkeysThrough(pHive, opened.pNode);
         if (status != ERROR_SUCCESS)
-            goto done;
+            break;
         status = pHive->pLowerVtbl->DeleteKey(pHive, opened.pNode);
         if (status != ERROR_SUCCESS)
-            goto done;
+            break;
         if (VRegHive_InternalLockRecords(pHive))
         {
             if (!opened.pNode->isDeleted)
@@ -7693,8 +7709,6 @@ static LSTATUS VRegHive_InternalDeleteSubkeysThrough(
         }
     }
 
-done:
-    VRegInternalWString_Free(&name);
     VRegInternalArray_FreeWStrings(&names);
     return status;
 }
@@ -7708,43 +7722,18 @@ static LSTATUS VRegHive_InternalDeleteValuesThrough(
 )
 {
     VRegInternalArray names = {NULL, 0, 0};
-    VRegInternalWString name = {0, 0, NULL};
     SIZE_T i;
-    LSTATUS status;
+    LSTATUS status = VRegHive_InternalCollectNames(pHive, pNode, FALSE, &names);
 
-    for (i = 0;; ++i)
-    {
-        VRegHiveResult entry;
-        VRegHiveResult_InternalInit(&entry);
-        entry.pName = &name;
-        status = pHive->pLowerVtbl->EnumValue(pHive, pNode, (DWORD)i, &entry);
-        if (status == ERROR_NO_MORE_ITEMS)
-        {
-            status = ERROR_SUCCESS;
-            break;
-        }
-        if (status != ERROR_SUCCESS)
-            goto done;
-        if (!VRegInternalArray_AppendWString(&names, VRegInternalWString_GetView(&name)))
-        {
-            status = ERROR_OUTOFMEMORY;
-            goto done;
-        }
-    }
-
-    for (i = 0; i < names.count; ++i)
+    for (i = 0; status == ERROR_SUCCESS && i < names.count; ++i)
     {
         status = pHive->pLowerVtbl->DeleteValue(
             pHive,
             pNode,
             VRegInternalWString_GetText(&VREG_INTERNAL_AT(&names, VRegInternalWString, i))
         );
-        if (status != ERROR_SUCCESS)
-            goto done;
     }
 
-done:
-    VRegInternalWString_Free(&name);
     VRegInternalArray_FreeWStrings(&names);
     return status;
 }
@@ -7844,14 +7833,19 @@ static LSTATUS VRegHive_InternalQueryUpperValue(
     *pIsVisible = FALSE;
     *pdwType = REG_NONE;
     *pcbData = 0;
-    pValue = pNode->isDeleted ? NULL : VRegHive_InternalFindValue(pNode, name);
     if (pNode->isDeleted)
     {
         status = ERROR_KEY_DELETED;
     }
-    else if (pValue)
+    else
     {
-        if (pValue->isTombstone)
+        pValue = VRegHive_InternalFindValue(pNode, name);
+        if (!pValue)
+        {
+            *pIsFound = FALSE;
+            *pIsVisible = VRegHive_InternalIsVisible(pHive, pNode);
+        }
+        else if (pValue->isTombstone)
         {
             status = ERROR_FILE_NOT_FOUND;
         }
@@ -7862,11 +7856,6 @@ static LSTATUS VRegHive_InternalQueryUpperValue(
             if (pData && !VRegInternalBuffer_Assign(pData, pValue->data.pb, pValue->data.cb))
                 status = ERROR_OUTOFMEMORY;
         }
-    }
-    else
-    {
-        *pIsFound = FALSE;
-        *pIsVisible = VRegHive_InternalIsVisible(pHive, pNode);
     }
 
     VRegHive_InternalUnlockRead(pHive, isLocked);
@@ -7935,40 +7924,43 @@ static LSTATUS VRegHive_InternalStoreValue(
         return ERROR_ACCESS_DENIED;
     }
 
-    pValue = pNode->isDeleted ? NULL : VRegHive_InternalFindValue(pNode, name);
     if (pNode->isDeleted)
     {
         status = ERROR_KEY_DELETED;
     }
-    else if (pValue)
-    {
-        VRegInternalBuffer_Free(&pValue->data);
-        pValue->dwType = dwType;
-        pValue->data = bytes;
-        pValue->isTombstone = FALSE;
-        bytes.pb = NULL;
-    }
     else
     {
-        VRegHiveInternalValue value;
-        value.name.psz = NULL;
-        value.name.cch = 0;
-        value.name.cchCapacity = 0;
-        value.dwType = dwType;
-        value.data = bytes;
-        value.isTombstone = FALSE;
-        if (!VRegInternalWString_Assign(&value.name, name.pch, name.cch))
+        pValue = VRegHive_InternalFindValue(pNode, name);
+        if (pValue)
         {
-            status = ERROR_OUTOFMEMORY;
-        }
-        else if (!VRegInternalArray_Append(&pNode->values, sizeof(value), &value))
-        {
-            VRegInternalWString_Free(&value.name);
-            status = ERROR_OUTOFMEMORY;
+            VRegInternalBuffer_Free(&pValue->data);
+            pValue->dwType = dwType;
+            pValue->data = bytes;
+            pValue->isTombstone = FALSE;
+            bytes.pb = NULL;
         }
         else
         {
-            bytes.pb = NULL;
+            VRegHiveInternalValue value;
+            value.name.psz = NULL;
+            value.name.cch = 0;
+            value.name.cchCapacity = 0;
+            value.dwType = dwType;
+            value.data = bytes;
+            value.isTombstone = FALSE;
+            if (!VRegInternalWString_Assign(&value.name, name.pch, name.cch))
+            {
+                status = ERROR_OUTOFMEMORY;
+            }
+            else if (!VRegInternalArray_Append(&pNode->values, sizeof(value), &value))
+            {
+                VRegInternalWString_Free(&value.name);
+                status = ERROR_OUTOFMEMORY;
+            }
+            else
+            {
+                bytes.pb = NULL;
+            }
         }
     }
 
@@ -8039,15 +8031,20 @@ VREG_DECL LSTATUS VRegHive_InternalDeleteValue(
     }
 
     isLocked = VRegHive_InternalLockRead(pHive);
-    pValue = pNode->isDeleted ? NULL : VRegHive_InternalFindValue(pNode, name);
     if (pNode->isDeleted)
+    {
         status = ERROR_KEY_DELETED;
-    else if (pValue && pValue->isTombstone)
-        status = ERROR_FILE_NOT_FOUND;
+    }
     else
-        isInUpper = pValue != NULL;
-    if (status == ERROR_SUCCESS)
-        isVisible = VRegHive_InternalIsVisible(pHive, pNode);
+    {
+        pValue = VRegHive_InternalFindValue(pNode, name);
+        if (pValue && pValue->isTombstone)
+            status = ERROR_FILE_NOT_FOUND;
+        else
+            isInUpper = pValue != NULL;
+        if (status == ERROR_SUCCESS)
+            isVisible = VRegHive_InternalIsVisible(pHive, pNode);
+    }
     VRegHive_InternalUnlockRead(pHive, isLocked);
     if (status != ERROR_SUCCESS)
         goto done;
