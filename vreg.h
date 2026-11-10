@@ -15939,9 +15939,9 @@ VREG_INTERNAL_REFUSED_HOOK(
  *  any module image so they outlive the module that made them.
  *
  *  Code and slots sit on two pages of one allocation, so an x64 or ARM64
- *  thunk can reach its slot PC-relative. The memory is leaked on purpose:
- *  another hooker's trampoline may jump into a thunk after this module is
- *  gone.
+ *  thunk can reach its slot PC-relative. Once the hooks are live, the
+ *  memory is leaked on purpose: another hooker's trampoline may jump into a
+ *  thunk after this module is gone.
  */
 #define VREG_INTERNAL_THUNK_CODE_SIZE ((SIZE_T)16)
 #define VREG_INTERNAL_THUNK_PAGE_SIZE ((SIZE_T)4096)
@@ -16000,6 +16000,8 @@ static void* VReg_InternalWriteThunk(
 /// Where Detours keeps each hooked entry point and, once committed, its
 /// trampoline.
 static void** g_VRegHooks_ppTargets[VREG_INTERNAL_THUNK_CAPACITY];
+
+/// The hooks that went live: zero until the commit succeeds.
 static volatile LONG g_VRegHooks_cHooks;
 
 typedef struct
@@ -16013,25 +16015,23 @@ VREG_DECL LONG WINAPI VRegHooks_Install(
     _In_ VReg* const pNative
 )
 {
-    static volatile LONG s_isAttached;
     VRegInternalNativeFunctions* functions;
     VRegInternalHook hooks[VREG_INTERNAL_THUNK_CAPACITY];
     void* thunks[VREG_INTERNAL_THUNK_CAPACITY];
     SIZE_T cHooks = 0;
     SIZE_T i;
     DWORD dwOld = 0;
-    LONG error = DetourTransactionBegin();
-    if (error != NO_ERROR)
-        return error;
+    LONG error;
+    BYTE* const pbThunks = (BYTE*)VirtualAlloc(NULL, 2 * VREG_INTERNAL_THUNK_PAGE_SIZE, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+    if (!pbThunks)
+        return ERROR_NOT_ENOUGH_MEMORY;
 
-    error = DetourUpdateThread(GetCurrentThread());
-    if (error != NO_ERROR)
-        goto done;
-
-    if (InterlockedExchange(&s_isAttached, 1))
+    // Publishing the pages claims the install; a failed install withdraws
+    // them, so a later call can start over.
+    if (InterlockedCompareExchangePointer((PVOID volatile*)&g_VRegHooks_pbThunks, pbThunks, NULL))
     {
-        error = ERROR_ALREADY_INITIALIZED;
-        goto done;
+        VirtualFree(pbThunks, 0, MEM_RELEASE);
+        return ERROR_ALREADY_INITIALIZED;
     }
 
     WritePointerRelease((PVOID volatile*)&g_VRegHooks_pRegistry, pRegistry);
@@ -16068,15 +16068,6 @@ VREG_DECL LONG WINAPI VRegHooks_Install(
     VREG_INTERNAL_REFUSED_HOOKS(VREG_HOOK_REFUSED)
 #undef VREG_HOOK_REFUSED
 
-    g_VRegHooks_pbThunks =
-        (BYTE*)VirtualAlloc(NULL, 2 * VREG_INTERNAL_THUNK_PAGE_SIZE, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-    if (!g_VRegHooks_pbThunks)
-    {
-        InterlockedExchange(&s_isAttached, 0);
-        error = ERROR_NOT_ENOUGH_MEMORY;
-        goto done;
-    }
-
     for (i = 0; i < cHooks; ++i)
     {
         g_VRegHooks_ppTargets[i] = hooks[i].ppTarget;
@@ -16084,42 +16075,47 @@ VREG_DECL LONG WINAPI VRegHooks_Install(
     }
 
     // The code page becomes executable and read-only.
-    if (!VirtualProtect(g_VRegHooks_pbThunks, VREG_INTERNAL_THUNK_PAGE_SIZE, PAGE_EXECUTE_READ, &dwOld))
+    if (!VirtualProtect(pbThunks, VREG_INTERNAL_THUNK_PAGE_SIZE, PAGE_EXECUTE_READ, &dwOld))
     {
-        InterlockedExchange(&s_isAttached, 0);
         error = (LONG)GetLastError();
         goto done;
     }
-    FlushInstructionCache(GetCurrentProcess(), g_VRegHooks_pbThunks, VREG_INTERNAL_THUNK_PAGE_SIZE);
+    FlushInstructionCache(GetCurrentProcess(), pbThunks, VREG_INTERNAL_THUNK_PAGE_SIZE);
 
-    WriteRelease(&g_VRegHooks_cHooks, (LONG)cHooks);
-    for (i = 0; i < cHooks; ++i)
-    {
-        // The transaction is aborted on failure, so nothing is hooked and a
-        // later attempt may start over (with fresh thunks).
+    error = DetourTransactionBegin();
+    if (error != NO_ERROR)
+        goto done;
+
+    error = DetourUpdateThread(GetCurrentThread());
+    for (i = 0; error == NO_ERROR && i < cHooks; ++i)
         error = DetourAttach(hooks[i].ppTarget, thunks[i]);
-        if (error != NO_ERROR)
-        {
-            WriteRelease(&g_VRegHooks_cHooks, 0);
-            InterlockedExchange(&s_isAttached, 0);
-            goto done;
-        }
-    }
+
+    // A commit that fails has aborted before writing anything; one that
+    // gets to write cannot fail.
+    if (error == NO_ERROR)
+        error = DetourTransactionCommit();
+    else
+        DetourTransactionAbort();
 
 done:
     if (error != NO_ERROR)
     {
-        DetourTransactionAbort();
+        // No thunk is reachable, so the pages can go; the claim goes last.
+        WritePointerRelease((PVOID volatile*)&g_VRegHooks_pRegistry, NULL);
+        VirtualFree(pbThunks, 0, MEM_RELEASE);
+        WritePointerRelease((PVOID volatile*)&g_VRegHooks_pbThunks, NULL);
         return error;
     }
 
-    return DetourTransactionCommit();
+    WriteRelease(&g_VRegHooks_cHooks, (LONG)cHooks);
+    return NO_ERROR;
 }
 
 VREG_DECL void WINAPI VRegHooks_Neutralize(void)
 {
-    // Whatever the target field holds is what lies below this layer: the
-    // trampoline once committed, the function itself before.
+    // The count covers committed hooks alone, so each target field holds
+    // the trampoline to what lies below this layer. A slot pointed at the
+    // hooked function itself would loop through its own thunk.
     const LONG cHooks = ReadAcquire(&g_VRegHooks_cHooks);
     LONG i;
     for (i = 0; i < cHooks; ++i)
