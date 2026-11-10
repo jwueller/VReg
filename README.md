@@ -154,8 +154,8 @@ VReg* registry;
 VRegHive_CreateInMemory(&machine);
 VRegHive_CreateInMemory(&user);
 VReg_CreateVirtual(NULL, &registry);   // no base: nothing else exists
-VReg_Mount(registry, HKEY_LOCAL_MACHINE, L"", machine, 0);
-VReg_Mount(registry, HKEY_CURRENT_USER, L"", user, 0);
+VReg_Mount(registry, HKEY_LOCAL_MACHINE, NULL, machine, 0);
+VReg_Mount(registry, HKEY_CURRENT_USER, NULL, user, 0);
 ```
 
 ### Supplying a hive

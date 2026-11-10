@@ -309,6 +309,15 @@ TEST_CASE("Mount rejects what cannot be mounted")
         VReg_Mount(
             registry,
             HKEY_CURRENT_USER,
+            L"\\",
+            hive,
+            0
+        ) == ERROR_BAD_PATHNAME
+    );
+    CHECK(
+        VReg_Mount(
+            registry,
+            HKEY_CURRENT_USER,
             std::wstring(300, L'k').c_str(),
             hive,
             0
@@ -342,6 +351,49 @@ TEST_CASE("Mount rejects what cannot be mounted")
             0
         ) == ERROR_SUCCESS
     );
+}
+
+TEST_CASE("A null path below a predefined root is the root itself")
+{
+    OwnedHive hive = MakeHive();
+    OwnedRegistry registry = MakeVirtualRegistry();
+    REQUIRE(VReg_Mount(registry, HKEY_CURRENT_USER, nullptr, hive, 0) == ERROR_SUCCESS);
+    const HKEY hCreated = CreateKey(registry, HKEY_CURRENT_USER, L"A");
+    CHECK(OpenKey(registry, HKEY_CURRENT_USER, nullptr) == RootHandle(hive));
+    CHECK(OpenKey(registry, HKEY_CURRENT_USER, L"") == RootHandle(hive));
+    CHECK(OpenKey(registry, RootHandle(hive), L"A") == hCreated);
+
+    OwnedScript snapshot;
+    CHECK(VRegScript_CreateSnapshot(registry, HKEY_CURRENT_USER, nullptr, snapshot.Receive()) == ERROR_SUCCESS);
+    OwnedScript delta;
+    CHECK(VRegScript_CreateDelta(hive, HKEY_CURRENT_USER, nullptr, delta.Receive()) == ERROR_SUCCESS);
+
+    OwnedRegistry upper = MakeVirtualRegistry(registry);
+    OwnedHive overlay = MakeOverlayHive(registry, HKEY_CURRENT_USER, nullptr);
+    REQUIRE(VReg_Mount(upper, HKEY_LOCAL_MACHINE, nullptr, overlay, 0) == ERROR_SUCCESS);
+    CHECK(OpenKey(upper, HKEY_LOCAL_MACHINE, L"A") != nullptr);
+}
+
+TEST_CASE("A lone backslash is not the root")
+{
+    OwnedHive hive = MakeHive();
+    OwnedRegistry registry = MakeVirtualRegistry();
+    REQUIRE(VReg_Mount(registry, HKEY_CURRENT_USER, L"Test", hive, 0) == ERROR_SUCCESS);
+
+    for (const wchar_t* const pszPath : {L"\\", L"\\\\", L"\\Test"})
+    {
+        HKEY hKey{};
+        CHECK(
+            VReg_RegOpenKeyExW(
+                registry,
+                HKEY_CURRENT_USER,
+                pszPath,
+                0,
+                KEY_READ,
+                &hKey
+            ) == ERROR_BAD_PATHNAME
+        );
+    }
 }
 
 TEST_CASE("Pure in-memory configuration")
