@@ -2215,10 +2215,10 @@ struct VRegHiveResult
     VRegInternalKeyInfo* pInfo;
 };
 
-/// The open of a hive's lower over a registry, which the public slot leaves
-/// out: it opens with @p samDesired, and with @p isRedirect hands the key out
-/// in @p pRedirect instead of only answering whether it exists.
-typedef LSTATUS VRegHive_InternalOpenLowerFunction(
+/// The open of an overlay hive's lower, with @p samDesired; with @p isRedirect
+/// it hands the key out in @p pRedirect instead of only answering whether it
+/// exists.
+VREG_DECL LSTATUS VRegHiveInternalRegistryLower_OpenAs(
     _In_ VRegHive* pHive,
     _In_ VRegHiveInternalNode* pParent,
     _In_ LPCWSTR pszSubKey,
@@ -6054,7 +6054,7 @@ VREG_DECL UINT_PTR VReg_InternalIndexFromVirtualHKey(_In_opt_ const HKEY hKey)
 //
 // The access mask of an open and the frozen hand-out never reach a
 // provider. The overlay hive opens its lower through
-// @ref VRegHive::pfnOpenLower, which takes the access and can hand the
+// @ref VRegHiveInternalRegistryLower_OpenAs, which takes the access and can hand the
 // opened key out as a redirect ("this key is answered by registry R at key
 // K"): a frozen overlay hive answers an untouched key that way, and the
 // virtual registry forwards a call on a redirect through one helper that
@@ -6092,10 +6092,6 @@ struct VRegHive
     /// Null for a hive held entirely in memory.
     const VRegHiveVtbl* pLowerVtbl;
     void* pvLowerContext;
-
-    /// The lower's open with an access mask and redirects; set only for a
-    /// lower over a registry, which the hive then opens through it.
-    VRegHive_InternalOpenLowerFunction* pfnOpenLower;
 
     VRegHiveInternalKind kind;
 
@@ -6520,7 +6516,7 @@ static void VRegHiveResult_InternalInit(_Out_ VRegHiveResult* const pResult)
 
 /// Opens the lower key at @p cPath components below @p pParent: through the
 /// registry lower's own open, with @p samDesired and (when @p isRedirect) the
-/// key handed out in @p pRedirect, or through the provider's `OpenKey`, which
+/// key handed out in @p pRedirect, or through a custom hive's `OpenKey`, which
 /// answers @p ppToken.
 static LSTATUS VRegHive_InternalOpenLower(
     _In_ VRegHive* const pHive,
@@ -6545,8 +6541,8 @@ static LSTATUS VRegHive_InternalOpenLower(
         return ERROR_OUTOFMEMORY;
     }
 
-    if (pHive->pfnOpenLower)
-        status = pHive->pfnOpenLower(pHive, pParent, VRegInternalWString_GetText(&subKey), samDesired, isRedirect, pRedirect);
+    if (pHive->kind == VREG_INTERNAL_HIVE_OVERLAY)
+        status = VRegHiveInternalRegistryLower_OpenAs(pHive, pParent, VRegInternalWString_GetText(&subKey), samDesired, isRedirect, pRedirect);
     else
         status = pHive->pLowerVtbl->OpenKey(pHive, pParent, VRegInternalWString_GetText(&subKey), ppToken);
 
@@ -7110,7 +7106,7 @@ VREG_DECL LSTATUS VRegHive_InternalOpenKey(
         goto done;
     }
 
-    if (!pHive->pfnOpenLower)
+    if (pHive->kind != VREG_INTERNAL_HIVE_OVERLAY)
     {
         status = VRegHive_InternalOpenRecords(pHive, pCurrent, pPath + cMatched, cPath - cMatched, pResult);
         goto done;
@@ -8938,9 +8934,7 @@ static void VRegHiveInternalRegistryLower_Close(
     );
 }
 
-/// The hive's own open of the lower, with the access and redirect the
-/// public slot leaves out (@ref VRegHive_InternalOpenLowerFunction).
-static LSTATUS VRegHiveInternalRegistryLower_OpenAs(
+VREG_DECL LSTATUS VRegHiveInternalRegistryLower_OpenAs(
     _In_ VRegHive* const pHive,
     _In_ VRegHiveInternalNode* const pParent,
     _In_ const LPCWSTR pszSubKey,
@@ -8967,18 +8961,6 @@ static LSTATUS VRegHiveInternalRegistryLower_OpenAs(
     }
 
     return ERROR_SUCCESS;
-}
-
-static LSTATUS WINAPI VRegHiveInternalRegistryLower_OpenKey(
-    _In_ VRegHive* const pHive,
-    _In_ VRegHiveKey* const pParent,
-    _In_ const LPCWSTR pszSubKey,
-    _Outptr_result_maybenull_ void** const ppToken
-)
-{
-    VRegInternalRedirect redirect;
-    *ppToken = NULL;
-    return VRegHiveInternalRegistryLower_OpenAs(pHive, pParent, pszSubKey, KEY_QUERY_VALUE, FALSE, &redirect);
 }
 
 static LSTATUS WINAPI VRegHiveInternalRegistryLower_QueryValue(
@@ -9195,9 +9177,10 @@ static void WINAPI VRegHiveInternalRegistryLower_Destroy(
 }
 
 // Copy-up never writes through to the lower, and nothing asks the lower to
-// check a key, so those slots stay null.
+// check a key, so those slots stay null; the hive opens its lower through
+// @ref VRegHiveInternalRegistryLower_OpenAs, so the open slot does too.
 static const VRegHiveVtbl g_VRegHiveVtbl_RegistryLower = {
-    &VRegHiveInternalRegistryLower_OpenKey,
+    NULL,
     NULL,
     NULL,
     NULL,
@@ -9243,7 +9226,6 @@ VREG_DECL LSTATUS WINAPI VRegHive_CreateOverlay(
         return status;
     }
 
-    (*ppHive)->pfnOpenLower = &VRegHiveInternalRegistryLower_OpenAs;
     return ERROR_SUCCESS;
 }
 
