@@ -429,6 +429,114 @@ TEST_CASE("Delta of an emptied root needs a mount path to name it")
     // @formatter:on
 }
 
+TEST_CASE("Delta of an emptied root stays refused after new content")
+{
+    DeltaFixture f;
+    f.LowerSet(L"Old", L"a", REG_DWORD, DwordBytes(1));
+    f.EmptyKey(L"");
+    f.Set(L"", L"n", REG_DWORD, DwordBytes(2));
+
+    std::vector<std::byte> file;
+    // @formatter:off
+    CHECK(TryExportDelta(f.Modified(), HKEY_USERS, nullptr, VREG_FORMAT_UNICODE, file) == ERROR_NOT_SUPPORTED);
+    CHECK(TryExportDelta(f.Modified(), HKEY_USERS, L"",     VREG_FORMAT_UNICODE, file) == ERROR_NOT_SUPPORTED);
+    // @formatter:on
+
+    CHECK(
+        f.Delta()
+        == Text(
+            L"[-HKEY_CURRENT_USER\\VRegDelta]\r\n"
+            L"\r\n"
+            L"[HKEY_CURRENT_USER\\VRegDelta]\r\n"
+            L"\"n\"=dword:00000002\r\n"
+            L"\r\n"
+        )
+    );
+}
+
+TEST_CASE("Delta at an empty mount path names the bare root")
+{
+    DeltaFixture f;
+    f.LowerSet(L"Old", L"a", REG_DWORD, DwordBytes(1));
+    f.Set(L"", L"v", REG_DWORD, DwordBytes(1));
+    f.Set(L"Sub", L"w", REG_DWORD, DwordBytes(2));
+
+    const auto expected = Text(
+        L"[HKEY_USERS]\r\n"
+        L"\"v\"=dword:00000001\r\n"
+        L"\r\n"
+        L"[HKEY_USERS\\Sub]\r\n"
+        L"\"w\"=dword:00000002\r\n"
+        L"\r\n"
+    );
+    // @formatter:off
+    CHECK(ExportDelta(f.Modified(), HKEY_USERS, nullptr, VREG_FORMAT_UNICODE) == expected);
+    CHECK(ExportDelta(f.Modified(), HKEY_USERS, L"",     VREG_FORMAT_UNICODE) == expected);
+    // @formatter:on
+}
+
+TEST_CASE("Delta at an empty mount path writes an emptied subkey")
+{
+    DeltaFixture f;
+    f.LowerSet(L"E", L"lower", REG_DWORD, DwordBytes(1));
+    f.LowerSet(L"E\\Sub", L"deep", REG_DWORD, DwordBytes(2));
+    f.EmptyKey(L"E");
+    f.Set(L"E", L"upper", REG_DWORD, DwordBytes(3));
+
+    const auto expected = Text(
+        L"[-HKEY_USERS\\E]\r\n"
+        L"\r\n"
+        L"[HKEY_USERS\\E]\r\n"
+        L"\"upper\"=dword:00000003\r\n"
+        L"\r\n"
+    );
+    // @formatter:off
+    CHECK(ExportDelta(f.Modified(), HKEY_USERS, nullptr, VREG_FORMAT_UNICODE) == expected);
+    CHECK(ExportDelta(f.Modified(), HKEY_USERS, L"",     VREG_FORMAT_UNICODE) == expected);
+    // @formatter:on
+}
+
+TEST_CASE("Delta of an emptied in-memory root needs no mount path")
+{
+    OwnedRegistry native = MakeNativeRegistry();
+    OwnedHive hive = MakeHive();
+    OwnedRegistry registry = MakeVirtualRegistry(native);
+    REQUIRE(
+        VReg_Mount(
+            registry,
+            HKEY_CURRENT_USER,
+            MOUNT,
+            hive,
+            0
+        ) == ERROR_SUCCESS
+    );
+    MustSet(registry, MOUNT, L"gone", REG_DWORD, DwordBytes(1));
+
+    const HKEY hRoot = MustOpen(registry, MOUNT, KEY_ALL_ACCESS);
+    REQUIRE(
+        VReg_RegDeleteTreeW(
+            registry,
+            hRoot,
+            nullptr
+        ) == ERROR_SUCCESS
+    );
+    VReg_RegCloseKey(
+        registry,
+        hRoot
+    );
+    MustSet(registry, MOUNT, L"v", REG_DWORD, DwordBytes(2));
+
+    const auto expected = Text(
+        L"[HKEY_USERS]\r\n"
+        L"\"v\"=dword:00000002\r\n"
+        L"\r\n"
+    );
+    // @formatter:off
+    CHECK(ExportDelta(hive, HKEY_USERS, nullptr, VREG_FORMAT_UNICODE) == expected);
+    CHECK(ExportDelta(hive, HKEY_USERS, L"",     VREG_FORMAT_UNICODE) == expected);
+    // @formatter:on
+}
+
 TEST_CASE("A key deleted and created again hides the lower key")
 {
     DeltaFixture f;
