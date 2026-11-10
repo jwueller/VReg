@@ -521,6 +521,12 @@ an in-memory hive; the scenarios skip exactly these calls for the virtual run
 - Only calls on a real handle that name a mount point's last component are
   resolved by native path; a mount below `HKEY_CLASSES_ROOT` and the other
   roots without a native path is not reachable through a real parent handle.
+- A call by predefined root and path finds a mount by comparing path
+  components literally, so opening `Software\WOW6432Node\X` does not reach a
+  32-bit mount at `Software\X`; only a real handle's native path does. A mount
+  at a `WOW6432Node` path is reached by native path through the 32-bit view
+  only, and `VReg_Mount` refuses two mounts of one real key for the same view
+  however they are spelled.
 
 ### Transactions
 

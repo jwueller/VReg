@@ -4,12 +4,16 @@
 
 #include <vreg.h>
 
+#include <sddl.h>
+
 #include <catch2/catch_test_macros.hpp>
 
 #include <array>
 #include <cstring>
 #include <format>
 #include <map>
+#include <string>
+#include <vector>
 
 using namespace VRegTest;
 
@@ -1165,7 +1169,7 @@ TEST_CASE("WOW6432Node components are stripped whole and ordinal case-insensitiv
     );
 }
 
-TEST_CASE("A mount path ending in WOW6432Node is reached without that component")
+TEST_CASE("A mount path ending in WOW6432Node is reached without that component by the 32-bit view")
 {
     FakeNtQueryKey::Reset();
     OwnedRegistry native = MakeNativeRegistry();
@@ -1183,8 +1187,50 @@ TEST_CASE("A mount path ending in WOW6432Node is reached without that component"
 
     HKEY hKey = nullptr;
     const HKEY hSoftware = FakeKey(1, L"\\REGISTRY\\MACHINE\\SOFTWARE");
-    CHECK(OpenVia(registry, hSoftware, L"VRegWowLast", KEY_READ, hKey) == ERROR_SUCCESS);
+    CHECK(OpenVia(registry, hSoftware, L"VRegWowLast", KEY_READ | KEY_WOW64_32KEY, hKey) == ERROR_SUCCESS);
     CHECK(hKey == RootHandle(hive));
+
+    hKey = nullptr;
+    OpenVia(registry, hSoftware, L"VRegWowLast", KEY_READ | KEY_WOW64_64KEY, hKey);
+    CHECK(hKey != RootHandle(hive));
+}
+
+TEST_CASE("A real key reaches the mount of its view, whatever the mount order")
+{
+    FakeNtQueryKey::Reset();
+    OwnedRegistry native = MakeNativeRegistry();
+    OwnedHive hive64 = MakeHive();
+    OwnedHive hive32 = MakeHive();
+    const HKEY hSoftware = FakeKey(1, L"\\REGISTRY\\MACHINE\\SOFTWARE");
+
+    for (const bool is32First : {false, true})
+    {
+        OwnedRegistry registry = MakeVirtualRegistry(native, &FakeNtQueryKey::Query);
+        const auto mount64 = [&]
+        {
+            REQUIRE(VReg_Mount(registry, HKEY_LOCAL_MACHINE, L"Software\\VRegTie", hive64, KEY_WOW64_64KEY) == ERROR_SUCCESS);
+        };
+        const auto mount32 = [&]
+        {
+            REQUIRE(VReg_Mount(registry, HKEY_LOCAL_MACHINE, L"Software\\Wow6432Node\\VRegTie", hive32, 0) == ERROR_SUCCESS);
+        };
+        if (is32First)
+        {
+            mount32();
+            mount64();
+        }
+        else
+        {
+            mount64();
+            mount32();
+        }
+
+        HKEY hKey = nullptr;
+        CHECK(OpenVia(registry, hSoftware, L"VRegTie", KEY_READ | KEY_WOW64_64KEY, hKey) == ERROR_SUCCESS);
+        CHECK(hKey == RootHandle(hive64));
+        CHECK(OpenVia(registry, hSoftware, L"VRegTie", KEY_READ | KEY_WOW64_32KEY, hKey) == ERROR_SUCCESS);
+        CHECK(hKey == RootHandle(hive32));
+    }
 }
 
 TEST_CASE("A mount answers only the calls of its view")
@@ -1340,6 +1386,114 @@ TEST_CASE("A path is mounted again only for another view")
         CHECK(mount(registry, hive32, KEY_WOW64_64KEY) == ERROR_ALREADY_EXISTS);
         CHECK(mount(registry, hive32, KEY_WOW64_32KEY) == ERROR_SUCCESS);
         CHECK(mount(registry, hiveBoth, KEY_WOW64_32KEY) == ERROR_ALREADY_EXISTS);
+    }
+}
+
+TEST_CASE("Two spellings of one real key are mounted again only for another view")
+{
+    OwnedHive hiveFirst = MakeHive();
+    OwnedHive hiveSecond = MakeHive();
+    const auto mount = [&](
+        VReg* const registry,
+        VRegHive* const hive,
+        const HKEY hRoot,
+        const std::wstring& path,
+        const REGSAM sam
+    )
+    {
+        return VReg_Mount(registry, hRoot, path.c_str(), hive, sam);
+    };
+    const auto mountBoth = [&](
+        const HKEY hRootFirst,
+        const std::wstring& pathFirst,
+        const REGSAM samFirst,
+        const HKEY hRootSecond,
+        const std::wstring& pathSecond,
+        const REGSAM samSecond
+    )
+    {
+        // Both orders answer alike.
+        OwnedRegistry forward = MakeVirtualRegistry();
+        REQUIRE(mount(forward, hiveFirst, hRootFirst, pathFirst, samFirst) == ERROR_SUCCESS);
+        const LSTATUS statusForward = mount(forward, hiveSecond, hRootSecond, pathSecond, samSecond);
+
+        OwnedRegistry reversed = MakeVirtualRegistry();
+        REQUIRE(mount(reversed, hiveSecond, hRootSecond, pathSecond, samSecond) == ERROR_SUCCESS);
+        const LSTATUS statusReversed = mount(reversed, hiveFirst, hRootFirst, pathFirst, samFirst);
+
+        CHECK(statusForward == statusReversed);
+        return statusForward;
+    };
+    const std::wstring plain = L"Software\\B";
+    const std::wstring wow = L"Software\\WOW6432Node\\B";
+
+    SECTION("WOW6432Node is the 32-bit view of the same key")
+    {
+        CHECK(mountBoth(HKEY_LOCAL_MACHINE, plain, 0, HKEY_LOCAL_MACHINE, wow, 0) == ERROR_ALREADY_EXISTS);
+        CHECK(mountBoth(HKEY_LOCAL_MACHINE, plain, KEY_WOW64_32KEY, HKEY_LOCAL_MACHINE, wow, 0) == ERROR_ALREADY_EXISTS);
+        CHECK(mountBoth(HKEY_LOCAL_MACHINE, plain, KEY_WOW64_32KEY, HKEY_LOCAL_MACHINE, wow, KEY_WOW64_32KEY) == ERROR_ALREADY_EXISTS);
+        CHECK(mountBoth(HKEY_LOCAL_MACHINE, plain, KEY_WOW64_64KEY, HKEY_LOCAL_MACHINE, wow, 0) == ERROR_SUCCESS);
+        CHECK(mountBoth(HKEY_LOCAL_MACHINE, plain, KEY_WOW64_64KEY, HKEY_LOCAL_MACHINE, wow, KEY_WOW64_32KEY) == ERROR_SUCCESS);
+    }
+
+    SECTION("A 64-bit mount at a WOW6432Node path reaches no view")
+    {
+        CHECK(mountBoth(HKEY_LOCAL_MACHINE, plain, 0, HKEY_LOCAL_MACHINE, wow, KEY_WOW64_64KEY) == ERROR_SUCCESS);
+        CHECK(mountBoth(HKEY_LOCAL_MACHINE, plain, KEY_WOW64_32KEY, HKEY_LOCAL_MACHINE, wow, KEY_WOW64_64KEY) == ERROR_SUCCESS);
+    }
+
+    SECTION("The same spelling is still refused for a shared view")
+    {
+        CHECK(mountBoth(HKEY_LOCAL_MACHINE, wow, 0, HKEY_LOCAL_MACHINE, wow, KEY_WOW64_32KEY) == ERROR_ALREADY_EXISTS);
+        CHECK(mountBoth(HKEY_LOCAL_MACHINE, wow, KEY_WOW64_64KEY, HKEY_LOCAL_MACHINE, wow, KEY_WOW64_64KEY) == ERROR_ALREADY_EXISTS);
+    }
+
+    SECTION("Names are compared as registry names are")
+    {
+        CHECK(mountBoth(HKEY_LOCAL_MACHINE, L"software\\b", 0, HKEY_LOCAL_MACHINE, L"Software\\wow6432node\\B", 0) == ERROR_ALREADY_EXISTS);
+    }
+
+    SECTION("Another root or another key is a different key")
+    {
+        CHECK(mountBoth(HKEY_LOCAL_MACHINE, plain, 0, HKEY_USERS, wow, 0) == ERROR_SUCCESS);
+        CHECK(mountBoth(HKEY_LOCAL_MACHINE, plain, 0, HKEY_LOCAL_MACHINE, L"Software\\WOW6432Node\\C", 0) == ERROR_SUCCESS);
+    }
+
+    SECTION("HKEY_CURRENT_USER is a key below HKEY_USERS")
+    {
+        std::wstring sid;
+        HANDLE hToken = nullptr;
+        if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
+        {
+            DWORD cbUser = 0;
+            GetTokenInformation(hToken, TokenUser, nullptr, 0, &cbUser);
+            std::vector<BYTE> user(cbUser);
+            LPWSTR pszSid = nullptr;
+            if (
+                cbUser != 0
+                && GetTokenInformation(hToken, TokenUser, user.data(), cbUser, &cbUser)
+                && ConvertSidToStringSidW(reinterpret_cast<const TOKEN_USER*>(user.data())->User.Sid, &pszSid)
+            )
+            {
+                sid = pszSid;
+                LocalFree(pszSid);
+            }
+            CloseHandle(hToken);
+        }
+
+        const std::wstring underUsers = sid + L"\\X";
+        if (sid.empty())
+        {
+            // Without a SID the mount has no native path, so it is a different key.
+            CHECK(mountBoth(HKEY_CURRENT_USER, L"X", 0, HKEY_USERS, underUsers, 0) == ERROR_SUCCESS);
+        }
+        else
+        {
+            CHECK(mountBoth(HKEY_CURRENT_USER, L"X", 0, HKEY_USERS, underUsers, 0) == ERROR_ALREADY_EXISTS);
+            CHECK(mountBoth(HKEY_CURRENT_USER, L"X", KEY_WOW64_32KEY, HKEY_USERS, underUsers, 0) == ERROR_ALREADY_EXISTS);
+            CHECK(mountBoth(HKEY_CURRENT_USER, L"X", KEY_WOW64_64KEY, HKEY_USERS, underUsers, KEY_WOW64_32KEY) == ERROR_SUCCESS);
+            CHECK(mountBoth(HKEY_CURRENT_USER, L"X", KEY_WOW64_32KEY, HKEY_USERS, underUsers, KEY_WOW64_64KEY) == ERROR_SUCCESS);
+        }
     }
 }
 

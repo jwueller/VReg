@@ -1189,8 +1189,13 @@ VREG_DECL LSTATUS WINAPI VReg_CreateVirtual(
 /// @ref KEY_WOW64_64KEY or @ref KEY_WOW64_32KEY, or 0 for both; anything else
 /// answers @ref ERROR_INVALID_PARAMETER. A path is mounted again only for the
 /// other view: two mounts of one path may not share a view, so a mount for
-/// both excludes every other. Safe while calls are in flight, hooked ones
-/// included.
+/// both excludes every other. Mounts that name one real key conflict alike:
+/// below @ref HKEY_LOCAL_MACHINE, @ref HKEY_USERS and
+/// @ref HKEY_CURRENT_USER, paths equal once their `WOW6432Node` components
+/// are dropped (and @ref HKEY_CURRENT_USER is `HKEY_USERS\<SID>`) share a
+/// view where both have one, and a path with a `WOW6432Node` component has
+/// the 32-bit view only (none, for a @ref KEY_WOW64_64KEY mount). Safe while
+/// calls are in flight, hooked ones included.
 VREG_DECL LSTATUS WINAPI VReg_Mount(
     _In_ VReg* pRegistry,
     _In_ HKEY hRoot,
@@ -9951,6 +9956,11 @@ typedef struct
     /// The native key path as `VRegInternalWString` components without
     /// `WOW6432Node`; empty when the mount has none.
     VRegInternalArray nativePath;
+
+    /// The views a real key's native path reaches the mount through: the
+    /// @ref samView ones, only @ref KEY_WOW64_32KEY when the path holds a
+    /// `WOW6432Node` component (so none for a 64-bit mount there).
+    REGSAM samNative;
 } VRegInternalMountPoint;
 
 /// A mount table is replaced, never changed: a new one copies the mount points
@@ -10216,31 +10226,46 @@ static void VRegInternalMountPoint_Free(
     VRegInternalArray_FreeWStrings(&pMount->nativePath);
 }
 
-/// Whether the mount @p pMount and a mount of @p hRoot at the path @p pPath
-/// limited to @p samView would answer a call alike: the same root and path,
-/// by the registry's own name comparison, and views that share one.
-static BOOL VRegInternalMountPoint_ConflictsWith(
-    _In_ const VRegInternalMountPoint* const pMount,
-    const HKEY hRoot,
-    _In_ const VRegInternalArray* const pPath,
-    const REGSAM samView
+static BOOL VRegInternalArray_AreNamesEqual(
+    _In_ const VRegInternalArray* const pLeft,
+    _In_ const VRegInternalArray* const pRight
 )
 {
     SIZE_T i;
-    if (pMount->hRoot != hRoot || pMount->path.count != pPath->count)
-        return FALSE;
-    if (pMount->samView != 0 && samView != 0 && pMount->samView != samView)
+    if (pLeft->count != pRight->count)
         return FALSE;
 
-    for (i = 0; i < pPath->count; ++i)
+    for (i = 0; i < pLeft->count; ++i)
     {
-        const VRegInternalWStringView left = VRegInternalArray_WStringViewAt(&pMount->path, i);
-        const VRegInternalWStringView right = VRegInternalArray_WStringViewAt(pPath, i);
+        const VRegInternalWStringView left = VRegInternalArray_WStringViewAt(pLeft, i);
+        const VRegInternalWStringView right = VRegInternalArray_WStringViewAt(pRight, i);
         if (VRegInternalWStringView_CompareNames(left, right) != 0)
             return FALSE;
     }
 
     return TRUE;
+}
+
+/// Whether the mounts @p pMount and @p pOther would answer a call alike: the
+/// same root and path by the registry's own name comparison with views that
+/// share one, or the same native path without its `WOW6432Node` components
+/// with native views that share one.
+static BOOL VRegInternalMountPoint_ConflictsWith(
+    _In_ const VRegInternalMountPoint* const pMount,
+    _In_ const VRegInternalMountPoint* const pOther
+)
+{
+    const BOOL isSameView = pMount->samView == 0 || pOther->samView == 0 || pMount->samView == pOther->samView;
+    if (
+        isSameView
+        && pMount->hRoot == pOther->hRoot
+        && VRegInternalArray_AreNamesEqual(&pMount->path, &pOther->path)
+    )
+        return TRUE;
+
+    return pMount->nativePath.count != 0
+        && (pMount->samNative & pOther->samNative) != 0
+        && VRegInternalArray_AreNamesEqual(&pMount->nativePath, &pOther->nativePath);
 }
 
 /// The last component of the mount's path that is not `WOW6432Node`, which is
@@ -10276,7 +10301,7 @@ static LSTATUS VReg_InternalPublishMount(
     for (i = 0; pOld && i < pOld->mounts.count; ++i)
     {
         const VRegInternalMountPoint* const pExisting = &VREG_INTERNAL_AT(&pOld->mounts, VRegInternalMountPoint, i);
-        if (VRegInternalMountPoint_ConflictsWith(pExisting, pMount->hRoot, &pMount->path, pMount->samView))
+        if (VRegInternalMountPoint_ConflictsWith(pExisting, pMount))
         {
             VRegInternalArray_Free(&pNew->mounts);
             VReg_InternalFree(pNew);
@@ -10318,7 +10343,8 @@ static LSTATUS VReg_InternalPublishMount(
 // below it, since a hive's own tree is not a registry view; the longest
 // matching mount wins. A call is of the view its `samDesired` names
 // (`RRF_SUBKEY_WOW64*KEY` for `RegGetValueW`), else of the process bitness,
-// and a native path that contained `WOW6432Node` is always the 32-bit view.
+// and a native path that contained `WOW6432Node` is always the 32-bit view;
+// likewise a mount whose path holds one is reached only by that view.
 // Known gap: a real handle opened before the hooks committed that points at
 // or inside a mount keeps reaching the lower registry for calls made on it
 // directly; closing it would cost an @ref NtQueryKey on every call on a
@@ -10453,7 +10479,7 @@ static LSTATUS VReg_InternalResolveNative(
         if (
             pMount->nativePath.count == 0
             || !VRegInternalArray_MatchesNative(&pMount->nativePath, &pTarget->full, &isWow, &iRest)
-            || !VReg_InternalAdmits(pMount->samView, isWow ? KEY_WOW64_32KEY : samCall)
+            || (pMount->samNative & (isWow ? KEY_WOW64_32KEY : samCall)) == 0
         )
             continue;
 
@@ -12038,6 +12064,7 @@ VREG_DECL LSTATUS WINAPI VReg_Mount(
 {
     VRegInternalArray components = {NULL, 0, 0};
     VRegInternalMountPoint mount;
+    BOOL isWow = FALSE;
     SIZE_T i;
     LSTATUS status;
 
@@ -12068,9 +12095,14 @@ VREG_DECL LSTATUS WINAPI VReg_Mount(
     for (i = 0; status == ERROR_SUCCESS && mount.nativePath.count != 0 && i < components.count; ++i)
     {
         const VRegInternalWStringView component = VREG_INTERNAL_AT(&components, VRegInternalWStringView, i);
-        if (!VRegInternalWStringView_IsWow6432Node(component) && !VRegInternalArray_AppendWString(&mount.nativePath, component))
+        if (VRegInternalWStringView_IsWow6432Node(component))
+            isWow = TRUE;
+        else if (!VRegInternalArray_AppendWString(&mount.nativePath, component))
             status = ERROR_OUTOFMEMORY;
     }
+    mount.samNative = samView != 0 ? samView : KEY_WOW64_64KEY | KEY_WOW64_32KEY;
+    if (isWow)
+        mount.samNative &= KEY_WOW64_32KEY;
     VRegInternalArray_Free(&components);
 
     if (status == ERROR_SUCCESS)
