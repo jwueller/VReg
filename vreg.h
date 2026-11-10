@@ -5235,9 +5235,9 @@ VREG_DECL LSTATUS WINAPI VReg_RegEnumKeyW(
 }
 
 // The subkey of SetKeyValue and DeleteKeyValue is opened with KEY_SET_VALUE,
-// the one right the call needs; the maximum allowed access, as the pre-Ex
-// forms use, was passed over. Only a caller whose access is limited to
-// something else could tell.
+// the one right the call needs, not with the maximum allowed access the
+// pre-Ex forms use. Only a caller whose access is limited to something else
+// could tell.
 VREG_DECL LSTATUS WINAPI VReg_RegSetKeyValueA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
