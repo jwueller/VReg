@@ -6663,8 +6663,9 @@ static LSTATUS VRegHive_InternalQueryLowerClass(
 
 // --- Creation and destruction ---
 
-/// A hive over @p pLowerVtbl (null for one held entirely in memory), which
-/// owns @p pvLowerContext from now on, failure included.
+/// A hive over @p pLowerVtbl (null for one held entirely in memory). On
+/// success it owns @p pvLowerContext; on failure the context stays with the
+/// caller.
 static LSTATUS VRegHive_InternalCreate(
     _In_opt_ const VRegHiveVtbl* const pLowerVtbl,
     _In_opt_ void* const pvLowerContext,
@@ -8806,12 +8807,12 @@ VREG_DECL LSTATUS WINAPI VRegHive_NotifyChange(
 // ==========================================================================
 
 // The lower of an overlay hive: a key of another registry, reached through
-// the slots of @ref VRegHiveVtbl like any lower. Every call opens the lower
+// the slots of @ref VRegHiveVtbl (the open aside, see
+// @ref VRegHiveInternalRegistryLower_OpenAs). Every call opens the lower
 // key by its path again (the lower key's path, then the record's path in
-// the hive) and closes it after, as the hive did before it had a table, so
-// a record holds no handle: one lower handle per record would save the
-// opens but stay pinned for the hive's life. The lower registry may itself
-// be virtual.
+// the hive) and closes it after, so a record holds no handle: one lower
+// handle per record would save the opens but stay pinned for the hive's
+// life. The lower registry may itself be virtual.
 
 typedef struct
 {
