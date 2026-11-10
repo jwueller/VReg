@@ -12987,9 +12987,6 @@ typedef struct
     /// physical lines the text came from.
     VRegInternalArray segments;
 
-    /// The physical line the logical line starts on, 1-based.
-    SIZE_T line;
-
     VRegScriptInternalKeyState state;
     HKEY hRoot;
     VRegInternalWString path;
@@ -13131,6 +13128,14 @@ static void VRegScriptInternalParser_GetPosition(
     *pColumn = pSegment->column + (offset - pSegment->start);
 }
 
+/// The physical line the logical line starts on, 1-based.
+static SIZE_T VRegScriptInternalParser_GetLine(
+    _In_ const VRegScriptInternalParser* const pParser
+)
+{
+    return VREG_INTERNAL_AT(&pParser->segments, VRegScriptInternalLineSegment, 0).line;
+}
+
 static BOOL VRegScriptInternalParser_IsAtEnd(
     _In_ const VRegScriptInternalParser* const pParser
 )
@@ -13181,6 +13186,29 @@ static BOOL VRegScriptInternalParser_Consume(
     return TRUE;
 }
 
+/// Starts a segment of the logical line at @p start for physical line @p line,
+/// whose text @p pPhysical is advanced past its leading blanks.
+static BOOL VRegScriptInternalParser_AddSegment(
+    _Inout_ VRegScriptInternalParser* const pParser,
+    const SIZE_T start,
+    const SIZE_T line,
+    _Inout_ VRegInternalWStringView* const pPhysical
+)
+{
+    VRegScriptInternalLineSegment segment;
+    segment.start = start;
+    segment.line = line;
+    segment.column = 1;
+    while (pPhysical->cch != 0 && VRegScript_InternalIsBlank(pPhysical->pch[0]))
+    {
+        ++pPhysical->pch;
+        --pPhysical->cch;
+        ++segment.column;
+    }
+
+    return VRegInternalArray_Append(&pParser->segments, sizeof(segment), &segment);
+}
+
 /// Reads the logical line starting at physical line @p index of @p pLines
 /// (empty for blank and comment lines) and answers the index of its last
 /// physical line in @p pLast.
@@ -13192,23 +13220,13 @@ static LSTATUS VRegScriptInternalParser_ReadLogicalLine(
 )
 {
     VRegInternalWStringView physical = VREG_INTERNAL_AT(pLines, VRegInternalWStringView, index);
-    VRegScriptInternalLineSegment segment;
     SIZE_T current = index;
 
     pParser->segments.count = 0;
     if (!VRegInternalWString_Resize(&pParser->text, 0))
         return ERROR_OUTOFMEMORY;
 
-    segment.start = 0;
-    segment.line = index + 1;
-    segment.column = 1;
-    while (physical.cch != 0 && VRegScript_InternalIsBlank(physical.pch[0]))
-    {
-        ++physical.pch;
-        --physical.cch;
-        ++segment.column;
-    }
-    if (!VRegInternalArray_Append(&pParser->segments, sizeof(segment), &segment))
+    if (!VRegScriptInternalParser_AddSegment(pParser, 0, index + 1, &physical))
         return ERROR_OUTOFMEMORY;
 
     *pLast = index;
@@ -13233,17 +13251,8 @@ static LSTATUS VRegScriptInternalParser_ReadLogicalLine(
 
         ++current;
         next = VREG_INTERNAL_AT(pLines, VRegInternalWStringView, current);
-        segment.start = pParser->text.cch;
-        segment.line = current + 1;
-        segment.column = 1;
-        while (next.cch != 0 && VRegScript_InternalIsBlank(next.pch[0]))
-        {
-            ++next.pch;
-            --next.cch;
-            ++segment.column;
-        }
         if (
-            !VRegInternalArray_Append(&pParser->segments, sizeof(segment), &segment)
+            !VRegScriptInternalParser_AddSegment(pParser, pParser->text.cch, current + 1, &next)
             || !VRegInternalWString_Append(&pParser->text, next.pch, next.cch)
         )
             return ERROR_OUTOFMEMORY;
@@ -13304,7 +13313,7 @@ static LSTATUS VRegScriptInternalParser_ParseKey(
         0,
         NULL,
         0,
-        pParser->line
+        VRegScriptInternalParser_GetLine(pParser)
     );
     if (status != ERROR_SUCCESS)
         return status;
@@ -13525,7 +13534,7 @@ static LSTATUS VRegScriptInternalParser_ParseValue(
         dwType,
         data.pb,
         (DWORD)data.cb,
-        pParser->line
+        VRegScriptInternalParser_GetLine(pParser)
     );
 
 done:
@@ -13594,7 +13603,6 @@ static LSTATUS VRegScriptInternalParser_ParseText(
     for (i = 1; i < lines.count; ++i)
     {
         SIZE_T last = i;
-        pParser->line = i + 1;
         status = VRegScriptInternalParser_ReadLogicalLine(pParser, &lines, i, &last);
         if (status == ERROR_SUCCESS && pParser->text.cch != 0)
             status = VRegScriptInternalParser_ParseLogicalLine(pParser);
