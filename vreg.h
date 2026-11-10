@@ -12943,6 +12943,21 @@ VREG_DECL LSTATUS WINAPI VRegScript_CreateDelta(
 // Parsing scripts
 // ==========================================================================
 
+static LSTATUS VRegScript_InternalDecodeFail(
+    _Inout_opt_ VRegParseError* const pError,
+    _In_ const LPCSTR pszMessage
+)
+{
+    if (pError)
+    {
+        pError->line = 1;
+        pError->column = 1;
+        pError->pszMessage = pszMessage;
+    }
+
+    return ERROR_INVALID_DATA;
+}
+
 /// Where a logical line's text came from: the physical line and column its
 /// characters from @ref start on were read at.
 typedef struct
@@ -13572,14 +13587,7 @@ static LSTATUS VRegScriptInternalParser_ParseText(
         && !VRegInternalWStringView_Equals(header, VReg_InternalViewFromText(L"REGEDIT4"))
     )
     {
-        if (pError)
-        {
-            pError->line = 1;
-            pError->column = 1;
-            pError->pszMessage = "missing or unknown registry editor header";
-        }
-
-        status = ERROR_INVALID_DATA;
+        status = VRegScript_InternalDecodeFail(pError, "missing or unknown registry editor header");
         goto done;
     }
 
@@ -13591,9 +13599,10 @@ static LSTATUS VRegScriptInternalParser_ParseText(
         if (status == ERROR_SUCCESS && pParser->text.cch != 0)
             status = VRegScriptInternalParser_ParseLogicalLine(pParser);
         if (status == ERROR_INVALID_DATA && pError)
+        {
             VRegScriptInternalParser_GetPosition(pParser, pParser->errorOffset, &pError->line, &pError->column);
-        if (status == ERROR_INVALID_DATA && pError)
             pError->pszMessage = pParser->pszError;
+        }
         if (status != ERROR_SUCCESS)
             goto done;
 
@@ -13809,21 +13818,6 @@ VREG_DECL void WINAPI VReg_Free(_In_opt_ void* const p)
 // ==========================================================================
 // Script text
 // ==========================================================================
-
-static LSTATUS VRegScript_InternalDecodeFail(
-    _Inout_opt_ VRegParseError* const pError,
-    _In_ const LPCSTR pszMessage
-)
-{
-    if (pError)
-    {
-        pError->line = 1;
-        pError->column = 1;
-        pError->pszMessage = pszMessage;
-    }
-
-    return ERROR_INVALID_DATA;
-}
 
 static BOOL VReg_InternalStartsWithAscii(
     _In_reads_bytes_(cb) const BYTE* const pb,
