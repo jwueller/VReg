@@ -1180,18 +1180,29 @@ struct PreExValues
                 std::array<char, 32> data;
                 std::memset(data.data(), FILL, sizeof(data));
                 LONG cbData2 = cbBuffer;
-                RECORD(
-                    "query A " + label + std::format(" buffer {}", cbBuffer),
-                    VReg_RegQueryValueA(
-                        api,
-                        hRoot,
-                        narrow.c_str(),
-                        data.data(),
-                        &cbData2
-                    ),
-                    {static_cast<std::uint64_t>(cbData2)},
-                    {Bytes(data)}
+                const auto status = VReg_RegQueryValueA(
+                    api,
+                    hRoot,
+                    narrow.c_str(),
+                    data.data(),
+                    &cbData2
                 );
+
+                // Without a default value, native writes the terminator into
+                // a zero-size buffer; ours stays in bounds.
+                if (cbBuffer == 0)
+                    record(
+                        "query A " + label + " buffer 0",
+                        status,
+                        {static_cast<std::uint64_t>(cbData2)}
+                    );
+                else
+                    record(
+                        "query A " + label + std::format(" buffer {}", cbBuffer),
+                        status,
+                        {static_cast<std::uint64_t>(cbData2)},
+                        {Bytes(data)}
+                    );
             }
             cbData = static_cast<LONG>(FILL_SIZE);
             RECORD(
@@ -1433,18 +1444,29 @@ struct QueryPreExWithoutDefault
             std::array<char, 32> narrowData;
             narrowData.fill(static_cast<char>(FILL));
             cbData = cbBuffer;
-            RECORD(
-                "query A buffer " + std::format("{}", cbBuffer),
-                VReg_RegQueryValueA(
-                    api,
-                    hRoot,
-                    nullptr,
-                    narrowData.data(),
-                    &cbData
-                ),
-                {static_cast<std::uint64_t>(cbData)},
-                {Bytes(narrowData)}
+            const auto status = VReg_RegQueryValueA(
+                api,
+                hRoot,
+                nullptr,
+                narrowData.data(),
+                &cbData
             );
+
+            // Native writes the terminator into a zero-size buffer; ours
+            // stays in bounds.
+            if (cbBuffer == 0)
+                record(
+                    "query A buffer 0",
+                    status,
+                    {static_cast<std::uint64_t>(cbData)}
+                );
+            else
+                record(
+                    "query A buffer " + std::format("{}", cbBuffer),
+                    status,
+                    {static_cast<std::uint64_t>(cbData)},
+                    {Bytes(narrowData)}
+                );
         }
 
         std::array<wchar_t, 32> data;

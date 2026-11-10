@@ -489,6 +489,9 @@ Measured by the oracle; each is an input no sane caller relies on.
   answers `ERROR_MORE_DATA`.
 - `RegEnumValueA` with a too-small name buffer: native may write a
   terminator past `cbData`; ours stays in bounds.
+- `RegQueryValueA` on a key without a default value and a zero-size buffer:
+  native writes the terminator into the buffer; ours stays in bounds and
+  still answers success with a size of 1.
 - Null pointers on which native faults (`RegEnumKeyExA` and `RegEnumValueA`
   names, `RegQueryMultipleValues` lists and buffers) answer an error code.
 

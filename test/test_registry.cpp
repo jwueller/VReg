@@ -798,3 +798,55 @@ TEST_CASE("EnumKeyExA gives up when a registry always answers ERROR_MORE_DATA")
         ) == ERROR_MORE_DATA
     );
 }
+
+TEST_CASE("QueryValueA without a default value leaves a zero-size buffer untouched")
+{
+    VirtualHive hive;
+    HKEY hKey = nullptr;
+    REQUIRE(
+        VReg_RegCreateKeyExW(
+            hive.Registry(),
+            hive.Root(),
+            L"NoDefault",
+            0,
+            nullptr,
+            0,
+            KEY_ALL_ACCESS,
+            nullptr,
+            &hKey,
+            nullptr
+        ) == ERROR_SUCCESS
+    );
+
+    char data = 'x';
+    LONG cbData = 0;
+    CHECK(
+        VReg_RegQueryValueA(
+            hive.Registry(),
+            hKey,
+            nullptr,
+            &data,
+            &cbData
+        ) == ERROR_SUCCESS
+    );
+    CHECK(cbData == 1);
+    CHECK(data == 'x');
+
+    cbData = 1;
+    CHECK(
+        VReg_RegQueryValueA(
+            hive.Registry(),
+            hKey,
+            nullptr,
+            &data,
+            &cbData
+        ) == ERROR_SUCCESS
+    );
+    CHECK(cbData == 1);
+    CHECK(data == '\0');
+
+    VReg_RegCloseKey(
+        hive.Registry(),
+        hKey
+    );
+}
