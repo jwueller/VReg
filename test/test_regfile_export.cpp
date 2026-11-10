@@ -495,3 +495,34 @@ TEST_CASE("A snapshot script written to a file has the same bytes and keeps a fi
 
     std::filesystem::remove_all(directory);
 }
+
+TEST_CASE("A file that exceeds the size limit is refused before it is encoded or written")
+{
+    // The text is never read: the size check comes first, and a real text
+    // this long does not fit in a test.
+    const VRegInternalWString text = {0, static_cast<SIZE_T>(MAXINT32), nullptr};
+    VRegInternalBuffer file = {0, 0, nullptr};
+    CHECK(
+        VRegScript_InternalEncodeFile(
+            &text,
+            VREG_FORMAT_UNICODE,
+            &file
+        ) == ERROR_NOT_ENOUGH_MEMORY
+    );
+    CHECK(file.cb == 0);
+    VRegInternalBuffer_Free(&file);
+
+    if constexpr (sizeof(SIZE_T) > sizeof(DWORD))
+    {
+        const auto path = std::filesystem::temp_directory_path() / L"VRegWriteLimitTest.reg";
+        std::filesystem::remove(path);
+        CHECK(
+            VRegScript_InternalWriteWholeFile(
+                path.c_str(),
+                nullptr,
+                static_cast<SIZE_T>(MAXINT32) + 1
+            ) == ERROR_FILE_TOO_LARGE
+        );
+        CHECK_FALSE(std::filesystem::exists(path));
+    }
+}

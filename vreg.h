@@ -13887,6 +13887,8 @@ VREG_DECL LSTATUS VRegScript_InternalEncodeFile(
     if (format == VREG_FORMAT_UNICODE)
     {
         static const BYTE BOM[2] = {0xFF, 0xFE};
+        if (pText->cch > ((SIZE_T)MAXINT32 - sizeof(BOM)) / sizeof(wchar_t))
+            return ERROR_NOT_ENOUGH_MEMORY;
         if (
             !VRegInternalBuffer_Append(pFile, BOM, sizeof(BOM))
             || !VRegInternalBuffer_Append(pFile, VRegInternalWString_GetText(pText), pText->cch * sizeof(wchar_t))
@@ -13974,12 +13976,18 @@ VREG_DECL LSTATUS VRegScript_InternalWriteWholeFile(
 {
     LSTATUS status = ERROR_SUCCESS;
     DWORD cbWritten = 0;
-    const HANDLE hFile = CreateFileW(pszPath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE hFile;
+    if (cbFile > (SIZE_T)MAXINT32)
+        return ERROR_FILE_TOO_LARGE;
+
+    hFile = CreateFileW(pszPath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE)
         return (LSTATUS)GetLastError();
 
     if (!WriteFile(hFile, pFile, (DWORD)cbFile, &cbWritten, NULL))
         status = (LSTATUS)GetLastError();
+    else if (cbWritten != cbFile)
+        status = ERROR_WRITE_FAULT;
     if (!CloseHandle(hFile) && status == ERROR_SUCCESS)
         status = (LSTATUS)GetLastError();
     return status;
