@@ -2223,6 +2223,95 @@ struct DeleteTrees
             )
         );
 
+        {
+            wchar_t szClass[] = L"KeptClass";
+            HKEY hClassed{};
+            RECORD(
+                "create classed",
+                VReg_RegCreateKeyExW(
+                    api,
+                    hRoot,
+                    L"Classed",
+                    0,
+                    szClass,
+                    0,
+                    KEY_ALL_ACCESS,
+                    nullptr,
+                    &hClassed,
+                    nullptr
+                )
+            );
+            RECORD(
+                "set classed value",
+                VReg_RegSetValueExW(
+                    api,
+                    hClassed,
+                    L"v",
+                    0,
+                    REG_BINARY,
+                    data,
+                    4
+                )
+            );
+            RECORD(
+                "set classed subkey",
+                VReg_RegSetKeyValueW(
+                    api,
+                    hClassed,
+                    L"Sub",
+                    L"v",
+                    REG_BINARY,
+                    data,
+                    4
+                )
+            );
+            RECORD(
+                "tree classed itself",
+                VReg_RegDeleteTreeW(
+                    api,
+                    hClassed,
+                    nullptr
+                )
+            );
+
+            wchar_t szBuffer[16];
+            std::fill(std::begin(szBuffer), std::end(szBuffer), L'\xCCCC');
+            DWORD cchClass = 16;
+            DWORD cSubKeysClassed = FILL_SIZE;
+            DWORD cValuesClassed = FILL_SIZE;
+            RECORD(
+                "classed info",
+                VReg_RegQueryInfoKeyW(
+                    api,
+                    hClassed,
+                    szBuffer,
+                    &cchClass,
+                    nullptr,
+                    &cSubKeysClassed,
+                    nullptr,
+                    nullptr,
+                    &cValuesClassed,
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    nullptr
+                ),
+                {
+                    cchClass,
+                    cSubKeysClassed,
+                    cValuesClassed,
+                },
+                {Bytes(szBuffer)}
+            );
+            RECORD(
+                "close classed",
+                VReg_RegCloseKey(
+                    api,
+                    hClassed
+                )
+            );
+        }
+
         RECORD(
             "tree root",
             VReg_RegDeleteTreeW(

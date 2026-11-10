@@ -7789,14 +7789,44 @@ VREG_DECL LSTATUS VRegHive_InternalDeleteTree(
 {
     if (pHive->kind == VREG_INTERNAL_HIVE_CUSTOM)
         return VRegHive_InternalDeleteTreeThrough(pHive, pNode);
+
+    VRegInternalWString className = {0, 0, NULL};
+    const BOOL isLocked = VRegHive_InternalLockRead(pHive);
+    const BOOL isLowerBacked = pNode->isLowerBacked && !pNode->isDeleted;
+    VRegHive_InternalUnlockRead(pHive, isLocked);
+
+    // The emptied key stays, so its class must outlive the lower key that
+    // shows it through; the lower is asked outside the lock.
+    if (isLowerBacked)
+    {
+        const LSTATUS status = VRegHive_InternalQueryLowerClass(pHive, pNode, &className);
+        if (status != ERROR_SUCCESS)
+        {
+            VRegInternalWString_Free(&className);
+            return status;
+        }
+    }
+
     if (!VRegHive_InternalLockWrite(pHive))
+    {
+        VRegInternalWString_Free(&className);
         return ERROR_ACCESS_DENIED;
+    }
     if (pNode->isDeleted)
     {
         VRegHive_InternalUnlockWrite(pHive);
+        VRegInternalWString_Free(&className);
         return ERROR_KEY_DELETED;
     }
 
+    if (pNode->isLowerBacked && !VRegInternalWString_Assign(&pNode->className, VRegInternalWString_GetText(&className), className.cch))
+    {
+        VRegHive_InternalUnlockWrite(pHive);
+        VRegInternalWString_Free(&className);
+        return ERROR_OUTOFMEMORY;
+    }
+
+    VRegInternalWString_Free(&className);
     while (pNode->children.count != 0)
         VRegHive_InternalRemove(VREG_INTERNAL_AT(&pNode->children, VRegHiveInternalNode*, pNode->children.count - 1));
 

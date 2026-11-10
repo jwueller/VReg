@@ -799,6 +799,37 @@ TEST_CASE("Opaque keys hide everything below them")
     );
 }
 
+TEST_CASE("RegDeleteTree on the key itself keeps its class")
+{
+    Fixture fx;
+    VReg* const native = fx.Native();
+    VReg* const reg = fx.Registry();
+    const HKEY hLowerK = Create(native, fx.LowerRoot(), L"K", L"KeptClass");
+    REQUIRE(SetDword(native, hLowerK, L"a", 1) == ERROR_SUCCESS);
+    VReg_RegCloseKey(
+        native,
+        Create(native, hLowerK, L"S")
+    );
+    VReg_RegCloseKey(
+        native,
+        hLowerK
+    );
+
+    const HKEY hK = MustOpen(reg, fx.Root(), L"K");
+    REQUIRE(
+        VReg_RegDeleteTreeW(
+            reg,
+            hK,
+            nullptr
+        ) == ERROR_SUCCESS
+    );
+    const auto info = QueryInfo(reg, hK);
+    CHECK(info.status == ERROR_SUCCESS);
+    CHECK(info.className == L"KeptClass");
+    CHECK(info.cSubKeys == 0);
+    CHECK(info.cValues == 0);
+}
+
 TEST_CASE("Enumeration merges both layers")
 {
     Fixture fx;
