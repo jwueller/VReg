@@ -622,6 +622,75 @@ TEST_CASE("Key tombstones hide lower keys")
     }
 }
 
+TEST_CASE("A key created again over a lower key keeps the requested volatility")
+{
+    Fixture fx;
+    VReg* const native = fx.Native();
+    VReg* const reg = fx.Registry();
+    VReg_RegCloseKey(
+        native,
+        Create(native, fx.LowerRoot(), L"Key")
+    );
+    REQUIRE(
+        VReg_RegDeleteKeyExW(
+            reg,
+            fx.Root(),
+            L"Key",
+            0,
+            0
+        ) == ERROR_SUCCESS
+    );
+
+    SECTION("A volatile key refuses a non-volatile child")
+    {
+        HKEY hKey{};
+        REQUIRE(
+            VReg_RegCreateKeyExW(
+                reg,
+                fx.Root(),
+                L"Key",
+                0,
+                nullptr,
+                REG_OPTION_VOLATILE,
+                KEY_ALL_ACCESS,
+                nullptr,
+                &hKey,
+                nullptr
+            ) == ERROR_SUCCESS
+        );
+
+        HKEY hChild{};
+        CHECK(
+            VReg_RegCreateKeyExW(
+                reg,
+                hKey,
+                L"Child",
+                0,
+                nullptr,
+                REG_OPTION_NON_VOLATILE,
+                KEY_ALL_ACCESS,
+                nullptr,
+                &hChild,
+                nullptr
+            ) == ERROR_CHILD_MUST_BE_VOLATILE
+        );
+        REQUIRE(
+            VReg_RegCreateKeyExW(
+                reg,
+                hKey,
+                L"Child",
+                0,
+                nullptr,
+                REG_OPTION_VOLATILE,
+                KEY_ALL_ACCESS,
+                nullptr,
+                &hChild,
+                nullptr
+            ) == ERROR_SUCCESS
+        );
+    }
+}
+
 TEST_CASE("Opaque keys hide everything below them")
 {
     Fixture fx;

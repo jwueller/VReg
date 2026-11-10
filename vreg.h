@@ -7425,6 +7425,7 @@ VREG_DECL LSTATUS VRegHive_InternalCreateKey(
 
                 pChild->isTombstone = FALSE;
                 pChild->isOpaque = TRUE;
+                pChild->isVolatile = isVolatile;
                 VRegHive_InternalTouch(pChild);
                 VRegHive_InternalMaterialize(pCurrent);
                 VRegHive_InternalNotify(pCurrent, REG_NOTIFY_CHANGE_NAME);
