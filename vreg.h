@@ -1139,169 +1139,12 @@ VREG_DECL LSTATUS WINAPI VRegHive_NotifyChange(
 #error "VReg needs _WIN32_WINNT 0x0600 (Windows Vista) or later."
 #endif
 
-/// The entry points the native registry calls and the hooks attach to: the
-/// wide `Ex` forms and the functions with one form only. The ANSI, pre-`Ex`
-/// and convenience forms are derived from these, as everywhere.
-typedef struct
-{
-    LSTATUS (WINAPI* RegOpenKeyExW)(
-        _In_ HKEY hKey,
-        _In_opt_ LPCWSTR lpSubKey,
-        _In_ DWORD ulOptions,
-        _In_ REGSAM samDesired,
-        _Out_ PHKEY phkResult
-    );
-
-    LSTATUS (WINAPI* RegCreateKeyExW)(
-        _In_ HKEY hKey,
-        _In_ LPCWSTR lpSubKey,
-        _Reserved_ DWORD Reserved,
-        _In_opt_ LPWSTR lpClass,
-        _In_ DWORD dwOptions,
-        _In_ REGSAM samDesired,
-        _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes,
-        _Out_ PHKEY phkResult,
-        _Out_opt_ LPDWORD lpdwDisposition
-    );
-
-    LSTATUS (WINAPI* RegCloseKey)(
-        _In_ HKEY hKey
-    );
-
-    LSTATUS (WINAPI* RegQueryValueExW)(
-        _In_ HKEY hKey,
-        _In_opt_ LPCWSTR lpValueName,
-        _Reserved_ LPDWORD lpReserved,
-        _Out_opt_ LPDWORD lpType,
-        _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPBYTE lpData,
-        _When_(lpData == NULL, _Out_opt_) _When_(lpData != NULL, _Inout_opt_) LPDWORD lpcbData
-    );
-
-    LSTATUS (WINAPI* RegGetValueW)(
-        _In_ HKEY hkey,
-        _In_opt_ LPCWSTR lpSubKey,
-        _In_opt_ LPCWSTR lpValue,
-        _In_ DWORD dwFlags,
-        _Out_opt_ LPDWORD pdwType,
-
-        _When_(
-            (dwFlags & 0x7F) == RRF_RT_REG_SZ
-            || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
-            || (dwFlags & 0x7F) == (RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ)
-            || *pdwType == REG_SZ
-            || *pdwType == REG_EXPAND_SZ,
-            _Post_z_
-        )
-        _When_(
-            (dwFlags & 0x7F) == RRF_RT_REG_MULTI_SZ
-            || *pdwType == REG_MULTI_SZ,
-            _Post_ _NullNull_terminated_
-        )
-        _Out_writes_bytes_to_opt_(*pcbData, *pcbData) PVOID pvData,
-
-        _Inout_opt_ LPDWORD pcbData
-    );
-
-    LSTATUS (WINAPI* RegSetValueExW)(
-        _In_ HKEY hKey,
-        _In_opt_ LPCWSTR lpValueName,
-        _Reserved_ DWORD Reserved,
-        _In_ DWORD dwType,
-        _In_reads_bytes_opt_(cbData) const BYTE* lpData,
-        _In_ DWORD cbData
-    );
-
-    LSTATUS (WINAPI* RegDeleteValueW)(
-        _In_ HKEY hKey,
-        _In_opt_ LPCWSTR lpValueName
-    );
-
-    LSTATUS (WINAPI* RegLoadMUIStringW)(
-        _In_ HKEY hKey,
-        _In_opt_ LPCWSTR pszValue,
-        _Out_writes_bytes_opt_(cbOutBuf) LPWSTR pszOutBuf,
-        _In_ DWORD cbOutBuf,
-        _Out_opt_ LPDWORD pcbData,
-        _In_ DWORD Flags,
-        _In_opt_ LPCWSTR pszDirectory
-    );
-
-    LSTATUS (WINAPI* RegDeleteKeyExW)(
-        _In_ HKEY hKey,
-        _In_ LPCWSTR lpSubKey,
-        _In_ REGSAM samDesired,
-        _Reserved_ DWORD Reserved
-    );
-
-    LSTATUS (WINAPI* RegDeleteTreeW)(
-        _In_ HKEY hKey,
-        _In_opt_ LPCWSTR lpSubKey
-    );
-
-    LSTATUS (WINAPI* RegFlushKey)(
-        _In_ HKEY hKey
-    );
-
-    LSTATUS (WINAPI* RegEnumKeyExW)(
-        _In_ HKEY hKey,
-        _In_ DWORD dwIndex,
-        _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) LPWSTR lpName,
-        _Inout_ LPDWORD lpcchName,
-        _Reserved_ LPDWORD lpReserved,
-        _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) LPWSTR lpClass,
-        _Inout_opt_ LPDWORD lpcchClass,
-        _Out_opt_ PFILETIME lpftLastWriteTime
-    );
-
-    LSTATUS (WINAPI* RegEnumValueW)(
-        _In_ HKEY hKey,
-        _In_ DWORD dwIndex,
-        _Out_writes_to_opt_(*lpcchValueName, *lpcchValueName + 1) LPWSTR lpValueName,
-        _Inout_ LPDWORD lpcchValueName,
-        _Reserved_ LPDWORD lpReserved,
-        _Out_opt_ LPDWORD lpType,
-        _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPBYTE lpData,
-        _Inout_opt_ LPDWORD lpcbData
-    );
-
-    LSTATUS (WINAPI* RegQueryInfoKeyW)(
-        _In_ HKEY hKey,
-        _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) LPWSTR lpClass,
-        _Inout_opt_ LPDWORD lpcchClass,
-        _Reserved_ LPDWORD lpReserved,
-        _Out_opt_ LPDWORD lpcSubKeys,
-        _Out_opt_ LPDWORD lpcbMaxSubKeyLen,
-        _Out_opt_ LPDWORD lpcbMaxClassLen,
-        _Out_opt_ LPDWORD lpcValues,
-        _Out_opt_ LPDWORD lpcbMaxValueNameLen,
-        _Out_opt_ LPDWORD lpcbMaxValueLen,
-        _Out_opt_ LPDWORD lpcbSecurityDescriptor,
-        _Out_opt_ PFILETIME lpftLastWriteTime
-    );
-
-    LSTATUS (WINAPI* RegNotifyChangeKeyValue)(
-        _In_ HKEY hKey,
-        _In_ BOOL bWatchSubtree,
-        _In_ DWORD dwNotifyFilter,
-        _In_opt_ HANDLE hEvent,
-        _In_ BOOL fAsynchronous
-    );
-} VRegNativeFunctions;
-
 /// The real registry, through a table resolved from the export tables of
 /// `KernelBase.dll` and `advapi32.dll` without loading a module, so it can be
 /// made under the loader lock. A function neither module exports stays null.
 /// Freed with @ref VReg_Destroy.
 VREG_DECL LSTATUS WINAPI VReg_CreateNative(
     _Outptr_ VReg** ppRegistry
-);
-
-/// The live table of a registry @ref VReg_CreateNative made: once the
-/// hooks are committed it holds the trampolines, and the registry is the one
-/// below them. An entry replaced before anything uses the registry is the
-/// one it calls.
-VREG_DECL _Ret_notnull_ VRegNativeFunctions* WINAPI VReg_GetNativeFunctions(
-    _In_ VReg* pRegistry
 );
 
 // ==========================================================================
@@ -2583,7 +2426,7 @@ VREG_DECL LSTATUS VRegHive_InternalSnapshotUpper(
 
 /// Applies `X` to the name of every wide `Ex` form and every function with
 /// one form only: the wide surface of @ref VRegVtbl, and the fields
-/// of @ref VRegNativeFunctions.
+/// of @ref VRegInternalNativeFunctions.
 #define VREG_INTERNAL_REGISTRY_VIRTUALS(X)                                     \
     X(RegOpenKeyExW)                                                           \
     X(RegCreateKeyExW)                                                         \
@@ -2661,6 +2504,163 @@ typedef LONG NTAPI VRegInternalNtQueryKeyFunction(
     PULONG pcbResult
 );
 
+/// The entry points the native registry calls and the hooks attach to: the
+/// wide `Ex` forms and the functions with one form only. The ANSI, pre-`Ex`
+/// and convenience forms are derived from these, as everywhere.
+typedef struct
+{
+    LSTATUS (WINAPI* RegOpenKeyExW)(
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR lpSubKey,
+        _In_ DWORD ulOptions,
+        _In_ REGSAM samDesired,
+        _Out_ PHKEY phkResult
+    );
+
+    LSTATUS (WINAPI* RegCreateKeyExW)(
+        _In_ HKEY hKey,
+        _In_ LPCWSTR lpSubKey,
+        _Reserved_ DWORD Reserved,
+        _In_opt_ LPWSTR lpClass,
+        _In_ DWORD dwOptions,
+        _In_ REGSAM samDesired,
+        _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+        _Out_ PHKEY phkResult,
+        _Out_opt_ LPDWORD lpdwDisposition
+    );
+
+    LSTATUS (WINAPI* RegCloseKey)(
+        _In_ HKEY hKey
+    );
+
+    LSTATUS (WINAPI* RegQueryValueExW)(
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR lpValueName,
+        _Reserved_ LPDWORD lpReserved,
+        _Out_opt_ LPDWORD lpType,
+        _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPBYTE lpData,
+        _When_(lpData == NULL, _Out_opt_) _When_(lpData != NULL, _Inout_opt_) LPDWORD lpcbData
+    );
+
+    LSTATUS (WINAPI* RegGetValueW)(
+        _In_ HKEY hkey,
+        _In_opt_ LPCWSTR lpSubKey,
+        _In_opt_ LPCWSTR lpValue,
+        _In_ DWORD dwFlags,
+        _Out_opt_ LPDWORD pdwType,
+
+        _When_(
+            (dwFlags & 0x7F) == RRF_RT_REG_SZ
+            || (dwFlags & 0x7F) == RRF_RT_REG_EXPAND_SZ
+            || (dwFlags & 0x7F) == (RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ)
+            || *pdwType == REG_SZ
+            || *pdwType == REG_EXPAND_SZ,
+            _Post_z_
+        )
+        _When_(
+            (dwFlags & 0x7F) == RRF_RT_REG_MULTI_SZ
+            || *pdwType == REG_MULTI_SZ,
+            _Post_ _NullNull_terminated_
+        )
+        _Out_writes_bytes_to_opt_(*pcbData, *pcbData) PVOID pvData,
+
+        _Inout_opt_ LPDWORD pcbData
+    );
+
+    LSTATUS (WINAPI* RegSetValueExW)(
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR lpValueName,
+        _Reserved_ DWORD Reserved,
+        _In_ DWORD dwType,
+        _In_reads_bytes_opt_(cbData) const BYTE* lpData,
+        _In_ DWORD cbData
+    );
+
+    LSTATUS (WINAPI* RegDeleteValueW)(
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR lpValueName
+    );
+
+    LSTATUS (WINAPI* RegLoadMUIStringW)(
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR pszValue,
+        _Out_writes_bytes_opt_(cbOutBuf) LPWSTR pszOutBuf,
+        _In_ DWORD cbOutBuf,
+        _Out_opt_ LPDWORD pcbData,
+        _In_ DWORD Flags,
+        _In_opt_ LPCWSTR pszDirectory
+    );
+
+    LSTATUS (WINAPI* RegDeleteKeyExW)(
+        _In_ HKEY hKey,
+        _In_ LPCWSTR lpSubKey,
+        _In_ REGSAM samDesired,
+        _Reserved_ DWORD Reserved
+    );
+
+    LSTATUS (WINAPI* RegDeleteTreeW)(
+        _In_ HKEY hKey,
+        _In_opt_ LPCWSTR lpSubKey
+    );
+
+    LSTATUS (WINAPI* RegFlushKey)(
+        _In_ HKEY hKey
+    );
+
+    LSTATUS (WINAPI* RegEnumKeyExW)(
+        _In_ HKEY hKey,
+        _In_ DWORD dwIndex,
+        _Out_writes_to_opt_(*lpcchName, *lpcchName + 1) LPWSTR lpName,
+        _Inout_ LPDWORD lpcchName,
+        _Reserved_ LPDWORD lpReserved,
+        _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) LPWSTR lpClass,
+        _Inout_opt_ LPDWORD lpcchClass,
+        _Out_opt_ PFILETIME lpftLastWriteTime
+    );
+
+    LSTATUS (WINAPI* RegEnumValueW)(
+        _In_ HKEY hKey,
+        _In_ DWORD dwIndex,
+        _Out_writes_to_opt_(*lpcchValueName, *lpcchValueName + 1) LPWSTR lpValueName,
+        _Inout_ LPDWORD lpcchValueName,
+        _Reserved_ LPDWORD lpReserved,
+        _Out_opt_ LPDWORD lpType,
+        _Out_writes_bytes_to_opt_(*lpcbData, *lpcbData) __out_data_source(REGISTRY) LPBYTE lpData,
+        _Inout_opt_ LPDWORD lpcbData
+    );
+
+    LSTATUS (WINAPI* RegQueryInfoKeyW)(
+        _In_ HKEY hKey,
+        _Out_writes_to_opt_(*lpcchClass, *lpcchClass + 1) LPWSTR lpClass,
+        _Inout_opt_ LPDWORD lpcchClass,
+        _Reserved_ LPDWORD lpReserved,
+        _Out_opt_ LPDWORD lpcSubKeys,
+        _Out_opt_ LPDWORD lpcbMaxSubKeyLen,
+        _Out_opt_ LPDWORD lpcbMaxClassLen,
+        _Out_opt_ LPDWORD lpcValues,
+        _Out_opt_ LPDWORD lpcbMaxValueNameLen,
+        _Out_opt_ LPDWORD lpcbMaxValueLen,
+        _Out_opt_ LPDWORD lpcbSecurityDescriptor,
+        _Out_opt_ PFILETIME lpftLastWriteTime
+    );
+
+    LSTATUS (WINAPI* RegNotifyChangeKeyValue)(
+        _In_ HKEY hKey,
+        _In_ BOOL bWatchSubtree,
+        _In_ DWORD dwNotifyFilter,
+        _In_opt_ HANDLE hEvent,
+        _In_ BOOL fAsynchronous
+    );
+} VRegInternalNativeFunctions;
+
+/// The live table of a registry @ref VReg_CreateNative made: once the
+/// hooks are committed it holds the trampolines, and the registry is the one
+/// below them. An entry replaced before anything uses the registry is the
+/// one it calls.
+VREG_DECL _Ret_notnull_ VRegInternalNativeFunctions* VReg_InternalGetNativeFunctions(
+    _In_ VReg* pRegistry
+);
+
 /// A registry: its kind and what the kind needs.
 struct VReg
 {
@@ -2678,8 +2678,8 @@ struct VReg
         } custom;
 
         /// @ref VREG_INTERNAL_KIND_NATIVE: the live table, see
-        /// @ref VReg_GetNativeFunctions.
-        VRegNativeFunctions native;
+        /// @ref VReg_InternalGetNativeFunctions.
+        VRegInternalNativeFunctions native;
 
         /// @ref VREG_INTERNAL_KIND_VIRTUAL.
         struct
@@ -9316,7 +9316,7 @@ VREG_DECL LSTATUS WINAPI VReg_CreateNative(
     return ERROR_SUCCESS;
 }
 
-VREG_DECL _Ret_notnull_ VRegNativeFunctions* WINAPI VReg_GetNativeFunctions(
+VREG_DECL _Ret_notnull_ VRegInternalNativeFunctions* VReg_InternalGetNativeFunctions(
     _In_ VReg* const pRegistry
 )
 {
@@ -16104,7 +16104,7 @@ VREG_DECL LONG WINAPI VRegHooks_Install(
 )
 {
     static volatile LONG s_isAttached;
-    VRegNativeFunctions* functions;
+    VRegInternalNativeFunctions* functions;
     VRegInternalHook hooks[VREG_INTERNAL_THUNK_CAPACITY];
     void* thunks[VREG_INTERNAL_THUNK_CAPACITY];
     SIZE_T cHooks = 0;
@@ -16125,7 +16125,7 @@ VREG_DECL LONG WINAPI VRegHooks_Install(
     }
 
     WritePointerRelease((PVOID volatile*)&g_VRegHooks_pRegistry, pRegistry);
-    functions = VReg_GetNativeFunctions(pNative);
+    functions = VReg_InternalGetNativeFunctions(pNative);
 
 #define VREG_HOOK_EMULATED(name) \
     hooks[cHooks].ppTarget = (void**)&functions->name; \
