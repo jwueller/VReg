@@ -10474,6 +10474,23 @@ static BOOL VRegInternalMountPoint_ConflictsWith(
     return TRUE;
 }
 
+/// The last component of the mount's path that is not `WOW6432Node`, which is
+/// the last of its native path; empty when there is none.
+static VRegInternalWStringView VRegInternalMountPoint_GetLastNativeName(
+    _In_ const VRegInternalMountPoint* const pMount
+)
+{
+    SIZE_T i;
+    for (i = pMount->path.count; i > 0; --i)
+    {
+        const VRegInternalWStringView name = VRegInternalArray_WStringViewAt(&pMount->path, i - 1);
+        if (!VRegInternalWStringView_IsWow6432Node(name))
+            return name;
+    }
+
+    return VReg_InternalViewFromText(L"");
+}
+
 /// Publishes a table holding the current mounts plus @p pMount, whose strings
 /// it then owns. Under the mount lock.
 static LSTATUS VReg_InternalPublishMount(
@@ -10570,13 +10587,10 @@ static LSTATUS VReg_InternalResolveNative(
     for (i = 0; pTable && !isGated && i < pTable->mounts.count; ++i)
     {
         const VRegInternalMountPoint* const pMount = &VREG_INTERNAL_AT(&pTable->mounts, VRegInternalMountPoint, i);
+        const VRegInternalWStringView last = VRegInternalMountPoint_GetLastNativeName(pMount);
         SIZE_T j;
-        if (pMount->path.count == 0)
-            continue;
-
         for (j = 0; !isGated && j < pTarget->components.count; ++j)
         {
-            const VRegInternalWStringView last = VRegInternalArray_WStringViewAt(&pMount->path, pMount->path.count - 1);
             isGated =
                 VRegInternalWStringView_CompareNames(VREG_INTERNAL_AT(&pTarget->components, VRegInternalWStringView, j), last)
                 == 0;

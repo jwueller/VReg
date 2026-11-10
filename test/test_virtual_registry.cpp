@@ -1165,6 +1165,28 @@ TEST_CASE("WOW6432Node components are stripped whole and ordinal case-insensitiv
     );
 }
 
+TEST_CASE("A mount path ending in WOW6432Node is reached without that component")
+{
+    FakeNtQueryKey::Reset();
+    OwnedRegistry native = MakeNativeRegistry();
+    OwnedRegistry registry = MakeVirtualRegistry(native, &FakeNtQueryKey::Query);
+    OwnedHive hive = MakeHive();
+    REQUIRE(
+        VReg_Mount(
+            registry,
+            HKEY_LOCAL_MACHINE,
+            L"Software\\VRegWowLast\\Wow6432Node",
+            hive,
+            0
+        ) == ERROR_SUCCESS
+    );
+
+    HKEY hKey = nullptr;
+    const HKEY hSoftware = FakeKey(1, L"\\REGISTRY\\MACHINE\\SOFTWARE");
+    CHECK(OpenVia(registry, hSoftware, L"VRegWowLast", KEY_READ, hKey) == ERROR_SUCCESS);
+    CHECK(hKey == RootHandle(hive));
+}
+
 TEST_CASE("A mount answers only the calls of its view")
 {
     FakeNtQueryKey::Reset();
