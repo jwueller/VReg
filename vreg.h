@@ -13238,8 +13238,8 @@ static LSTATUS VRegScriptInternalParser_ReadLogicalLine(
     if (physical.pch[0] == L'[')
         return ERROR_SUCCESS;
 
-    // A value that continues ends its line in a backslash; a closing quote
-    // ends every complete one.
+    // A line that ends in a backslash (ignoring trailing blanks) continues on
+    // the next one; a complete quoted string ends in its closing quote.
     while (current + 1 < pLines->count)
     {
         VRegInternalWStringView joined = VRegInternalWStringView_TrimEnd(VRegInternalWString_GetView(&pParser->text));
