@@ -1544,7 +1544,7 @@ extern "C" {
 
 VREG_DECL void VReg_InternalAssertFailed(void);
 
-/// Like @ref VReg_InternalAlloc, zero-filled.
+/// Allocates @p cb zero-filled bytes; null when memory ran out.
 VREG_DECL _Ret_maybenull_ void* VReg_InternalAllocZeroed(
     SIZE_T cb
 );
@@ -2140,7 +2140,7 @@ VREG_DECL UINT_PTR VReg_InternalIndexFromVirtualHKey(
 // ==========================================================================
 
 // The node-level interface of a hive, with owned values, as
-// `virtual_registry` uses it: caller buffers, ANSI and wide, and handles
+// the virtual registry's slots use it: caller buffers, ANSI and wide, and handles
 // stay there, once for every hive. Every function answers the @ref LSTATUS
 // the native registry answers for the same operation; a call on a deleted
 // node answers @ref ERROR_KEY_DELETED, and a write to a frozen hive
@@ -2480,7 +2480,7 @@ VREG_DECL LSTATUS VRegHive_InternalSnapshotUpper(
     X(RegEnumValueA)                                                           \
     X(RegQueryInfoKeyA)
 
-/// Both lists: every function the @ref VReg::Registry surface mirrors.
+/// Both lists: every function of @ref VRegVtbl, wide `Ex` forms and others.
 #define VREG_INTERNAL_REGISTRY_FUNCTIONS(X)                                    \
     VREG_INTERNAL_REGISTRY_VIRTUALS(X)                                         \
     VREG_INTERNAL_REGISTRY_FORMS(X)
