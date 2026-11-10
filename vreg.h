@@ -1373,7 +1373,10 @@ VREG_DECL LSTATUS WINAPI VRegScript_CreateSnapshot(
  *  kept, and does nothing when applied. Freed with @ref VRegScript_Destroy.
  *
  * @return As @ref VRegScript_CreateSnapshot, except that the hive is read
- *  instead of a registry.
+ *  instead of a registry, and that @ref ERROR_NOT_SUPPORTED answers a hive
+ *  whose root is deleted or hides its lower counterpart while @p pszPath is
+ *  null or empty: the operation would delete a predefined root, which a
+ *  script cannot hold. No script is created.
  */
 VREG_DECL LSTATUS WINAPI VRegScript_CreateDelta(
     _In_ VRegHive* pHive,
@@ -12871,6 +12874,13 @@ static LSTATUS VRegScript_InternalVisitUpper(
 
     if (pRecord->isTombstone || pRecord->isOpaque)
     {
+        // Agent's choice: a root deletion is refused here, because no `.reg`
+        // file can express it and Parse and Apply reject it. The alternative
+        // passed over is defining it as emptying the root in Parse, Apply and
+        // Write.
+        if (VRegInternalWString_GetView(&pWalk->keyPath).cch == 0)
+            return ERROR_NOT_SUPPORTED;
+
         status = VRegScript_InternalAppend(
             pWalk->pScript,
             VREG_OPERATION_DELETE_KEY,

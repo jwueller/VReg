@@ -406,6 +406,29 @@ TEST_CASE("Delta writes an opaque key as a delete followed by a create")
     f.CheckRoundTrip();
 }
 
+TEST_CASE("Delta of an emptied root needs a mount path to name it")
+{
+    DeltaFixture f;
+    f.LowerSet(L"Old", L"a", REG_DWORD, DwordBytes(1));
+    f.EmptyKey(L"");
+
+    CHECK(
+        f.Delta()
+        == Text(
+            L"[-HKEY_CURRENT_USER\\VRegDelta]\r\n"
+            L"\r\n"
+            L"[HKEY_CURRENT_USER\\VRegDelta]\r\n"
+            L"\r\n"
+        )
+    );
+
+    std::vector<std::byte> file;
+    // @formatter:off
+    CHECK(TryExportDelta(f.Modified(), HKEY_USERS, nullptr, VREG_FORMAT_UNICODE, file) == ERROR_NOT_SUPPORTED);
+    CHECK(TryExportDelta(f.Modified(), HKEY_USERS, L"",     VREG_FORMAT_UNICODE, file) == ERROR_NOT_SUPPORTED);
+    // @formatter:on
+}
+
 TEST_CASE("A key deleted and created again hides the lower key")
 {
     DeltaFixture f;
