@@ -5793,11 +5793,10 @@ VREG_DECL void VRegInternalHandleSpace_Init(
     pSpace->pShared = pShared;
 }
 
-/// Writes @p value in decimal at @p pszOut, which has room for @p cchOut
-/// characters including the terminator, and answers the characters written.
-static SIZE_T VReg_InternalWriteDecimal(
-    _Out_writes_z_(cchOut) const LPWSTR pszOut,
-    const SIZE_T cchOut,
+/// Writes @p value in decimal at @p pszOut, which has room for the 10 digits
+/// of a @ref DWORD and the terminator.
+static void VReg_InternalWriteDecimal(
+    _Out_writes_z_(11) const LPWSTR pszOut,
     DWORD value
 )
 {
@@ -5810,16 +5809,12 @@ static SIZE_T VReg_InternalWriteDecimal(
         wszDigits[cchDigits++] = (wchar_t)(L'0' + value % 10);
         value /= 10;
     }
-    while (value != 0 && cchDigits < 10);
-
-    if (cchDigits >= cchOut)
-        cchDigits = cchOut - 1;
+    while (value != 0);
 
     for (i = 0; i < cchDigits; ++i)
         pszOut[i] = wszDigits[cchDigits - 1 - i];
 
     pszOut[cchDigits] = L'\0';
-    return cchDigits;
 }
 
 static BOOL CALLBACK VReg_InternalInitProcessHandleSpace(
@@ -5841,7 +5836,7 @@ static BOOL CALLBACK VReg_InternalInitProcessHandleSpace(
         *ppContext = NULL;
 
     CopyMemory(wszName, wszPrefix, cchPrefix * sizeof(wchar_t));
-    VReg_InternalWriteDecimal(wszName + cchPrefix, sizeof(wszName) / sizeof(wszName[0]) - cchPrefix, GetCurrentProcessId());
+    VReg_InternalWriteDecimal(wszName + cchPrefix, GetCurrentProcessId());
     VRegInternalHandleSpace_Init(&g_VRegInternalHandleSpace_Process, wszName);
     return TRUE;
 }
