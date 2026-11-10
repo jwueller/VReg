@@ -12369,6 +12369,8 @@ static LSTATUS VRegScript_InternalPerformSetValue(
     const DWORD cbData = pOperation->cbData;
     const BOOL isString = VReg_InternalIsStringType(pOperation->dwType);
     const BOOL isTerminated = cbData >= sizeof(wchar_t) && pData[cbData - 1] == 0 && pData[cbData - 2] == 0;
+    const BYTE* pSource = pData;
+    VRegInternalBuffer padded = {0, 0, NULL};
     HKEY hKey = NULL;
     LSTATUS status = VReg_RegOpenKeyExW(
         pRegistry,
@@ -12387,7 +12389,6 @@ static LSTATUS VRegScript_InternalPerformSetValue(
     if (isString && !isTerminated)
     {
         static const BYTE PADDING[4] = {0x11, 0x11, 0x11, 0x11};
-        VRegInternalBuffer padded = {0, 0, NULL};
         if (
             !VRegInternalBuffer_Assign(&padded, pData, cbData)
             || !VRegInternalBuffer_Append(&padded, PADDING, sizeof(PADDING))
@@ -12395,22 +12396,10 @@ static LSTATUS VRegScript_InternalPerformSetValue(
         {
             status = ERROR_OUTOFMEMORY;
         }
-        else
-        {
-            status = VReg_RegSetValueExW(
-                pRegistry,
-                hKey,
-                pOperation->pszName,
-                0,
-                pOperation->dwType,
-                padded.pb,
-                cbData
-            );
-        }
-
-        VRegInternalBuffer_Free(&padded);
+        pSource = padded.pb;
     }
-    else
+
+    if (status == ERROR_SUCCESS)
     {
         status = VReg_RegSetValueExW(
             pRegistry,
@@ -12418,11 +12407,12 @@ static LSTATUS VRegScript_InternalPerformSetValue(
             pOperation->pszName,
             0,
             pOperation->dwType,
-            pData,
+            pSource,
             cbData
         );
     }
 
+    VRegInternalBuffer_Free(&padded);
     VReg_InternalCloseUnless(pRegistry, hKey, NULL);
     return status;
 }
