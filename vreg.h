@@ -10851,62 +10851,6 @@ static LSTATUS VReg_InternalResolve(
 
 // --- The slots ---
 
-/// A call forwarded to a redirect: the flat function, on @p hKey of
-/// @p pRegistry, with the arguments in @p pContext.
-typedef LSTATUS VRegInternalRedirectedCallFunction(
-    _In_ VReg* pRegistry,
-    _In_ HKEY hKey,
-    _In_opt_ void* pContext
-);
-
-/// Answers a call whose open landed on a redirect: @p pfnCall on the
-/// redirect's registry and key, or @ref ERROR_ACCESS_DENIED for a write when
-/// it is null (only a frozen hive redirects, and it refuses every write).
-/// Closes the key either way.
-static LSTATUS VRegInternalRedirect_Call(
-    _In_ const VRegInternalRedirect* const pRedirect,
-    _In_opt_ VRegInternalRedirectedCallFunction* const pfnCall,
-    _In_opt_ void* const pContext
-)
-{
-    // A redirect always names the registry that answers its key.
-    _Analysis_assume_(pRedirect->pRegistry);
-    const LSTATUS status = pfnCall ? pfnCall(pRedirect->pRegistry, pRedirect->hKey, pContext) : ERROR_ACCESS_DENIED;
-    VRegInternalRedirect_Close(pRedirect);
-    return status;
-}
-
-/// The arguments of a @ref RegGetValueW forwarded to a redirect, which
-/// answers the value of the redirect's key itself.
-typedef struct
-{
-    LPCWSTR lpValue;
-    DWORD dwFlags;
-    LPDWORD pdwType;
-    PVOID pvData;
-    LPDWORD pcbData;
-} VRegInternalGetValueCall;
-
-static LSTATUS VRegInternalRedirect_GetValue(
-    _In_ VReg* const pRegistry,
-    const HKEY hKey,
-    _In_opt_ void* const pContext
-)
-{
-    const VRegInternalGetValueCall* const pCall = (const VRegInternalGetValueCall*)pContext;
-    _Analysis_assume_(pCall);
-    return VReg_RegGetValueW(
-        pRegistry,
-        hKey,
-        NULL,
-        pCall->lpValue,
-        pCall->dwFlags,
-        pCall->pdwType,
-        pCall->pvData,
-        pCall->pcbData
-    );
-}
-
 VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegOpenKeyExW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
@@ -11322,7 +11266,8 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegDeleteTreeW(
     // Only a frozen hive redirects, and it refuses every write.
     if (result.redirect.hKey)
     {
-        status = VRegInternalRedirect_Call(&result.redirect, NULL, NULL);
+        VRegInternalRedirect_Close(&result.redirect);
+        status = ERROR_ACCESS_DENIED;
         goto done;
     }
 
@@ -12074,13 +12019,19 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegGetValueW(
 
         if (result.redirect.hKey)
         {
-            VRegInternalGetValueCall call;
-            call.lpValue = lpValue;
-            call.dwFlags = dwFlags;
-            call.pdwType = pdwType;
-            call.pvData = pvData;
-            call.pcbData = pcbData;
-            status = VRegInternalRedirect_Call(&result.redirect, &VRegInternalRedirect_GetValue, &call);
+            // A redirect always names the registry that answers its key.
+            _Analysis_assume_(result.redirect.pRegistry);
+            status = VReg_RegGetValueW(
+                result.redirect.pRegistry,
+                result.redirect.hKey,
+                NULL,
+                lpValue,
+                dwFlags,
+                pdwType,
+                pvData,
+                pcbData
+            );
+            VRegInternalRedirect_Close(&result.redirect);
             goto done;
         }
 
