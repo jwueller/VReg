@@ -8637,7 +8637,6 @@ done:
 /// it has upper keys below it). @p pPath is the node's path, extended and
 /// restored for each child.
 static LSTATUS VRegHive_InternalListUpper(
-    _In_ VRegHive* const pHive,
     _In_ const VRegHiveInternalNode* const pNode,
     _Inout_ VRegInternalWString* const pPath,
     _In_ VRegInternalUpperVisitFunction* const pfnVisit,
@@ -8696,7 +8695,7 @@ static LSTATUS VRegHive_InternalListUpper(
         }
         else
         {
-            status = VRegHive_InternalListUpper(pHive, pChild, pPath, pfnVisit, pContext);
+            status = VRegHive_InternalListUpper(pChild, pPath, pfnVisit, pContext);
         }
 
         if (status != ERROR_SUCCESS)
@@ -8716,7 +8715,7 @@ VREG_DECL LSTATUS VRegHive_InternalSnapshotUpper(
 {
     VRegInternalWString path = {0, 0, NULL};
     const BOOL isLocked = VRegHive_InternalLockRead(pHive);
-    const LSTATUS status = VRegHive_InternalListUpper(pHive, pHive->pRoot, &path, pfnVisit, pContext);
+    const LSTATUS status = VRegHive_InternalListUpper(pHive->pRoot, &path, pfnVisit, pContext);
     VRegHive_InternalUnlockRead(pHive, isLocked);
     VRegInternalWString_Free(&path);
     return status;
