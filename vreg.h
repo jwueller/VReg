@@ -3367,21 +3367,30 @@ VREG_DECL VRegInternalWStringView VRegInternalArray_WStringViewAt(
     return VRegInternalWString_GetView(&VREG_INTERNAL_AT(pArray, VRegInternalWString, index));
 }
 
-VREG_DECL BOOL VRegInternalArray_AppendWString(
+static BOOL VRegInternalArray_InternalInsertWString(
     _Inout_ VRegInternalArray* const pArray,
+    const SIZE_T index,
     const VRegInternalWStringView text
 )
 {
     VRegInternalWString copy = {0, 0, NULL};
     if (!VRegInternalWString_Assign(&copy, text.pch, text.cch))
         return FALSE;
-    if (!VRegInternalArray_Append(pArray, sizeof(copy), &copy))
+    if (!VRegInternalArray_Insert(pArray, sizeof(copy), index, &copy))
     {
         VRegInternalWString_Free(&copy);
         return FALSE;
     }
 
     return TRUE;
+}
+
+VREG_DECL BOOL VRegInternalArray_AppendWString(
+    _Inout_ VRegInternalArray* const pArray,
+    const VRegInternalWStringView text
+)
+{
+    return VRegInternalArray_InternalInsertWString(pArray, pArray->count, text);
 }
 
 VREG_DECL void VRegInternalArray_FreeWStrings(
@@ -3395,35 +3404,45 @@ VREG_DECL void VRegInternalArray_FreeWStrings(
     VRegInternalArray_Free(pArray);
 }
 
-VREG_DECL BOOL VRegInternalArray_InsertWStringSorted(
-    _Inout_ VRegInternalArray* const pList,
-    const VRegInternalWStringView name
+/// Answers whether @p name is in @p pList, and stores the index it is at or
+/// would be inserted at in @p pIndex.
+static BOOL VRegInternalArray_InternalFindWStringSorted(
+    _In_ const VRegInternalArray* const pList,
+    const VRegInternalWStringView name,
+    _Out_ SIZE_T* const pIndex
 )
 {
     SIZE_T lo = 0;
     SIZE_T hi = pList->count;
-    VRegInternalWString copy = {0, 0, NULL};
     while (lo < hi)
     {
         const SIZE_T mid = lo + (hi - lo) / 2;
         const int order = VRegInternalWStringView_CompareNames(VRegInternalArray_WStringViewAt(pList, mid), name);
         if (order == 0)
+        {
+            *pIndex = mid;
             return TRUE;
+        }
         if (order < 0)
             lo = mid + 1;
         else
             hi = mid;
     }
 
-    if (!VRegInternalWString_Assign(&copy, name.pch, name.cch))
-        return FALSE;
-    if (!VRegInternalArray_Insert(pList, sizeof(copy), lo, &copy))
-    {
-        VRegInternalWString_Free(&copy);
-        return FALSE;
-    }
+    *pIndex = lo;
+    return FALSE;
+}
 
-    return TRUE;
+VREG_DECL BOOL VRegInternalArray_InsertWStringSorted(
+    _Inout_ VRegInternalArray* const pList,
+    const VRegInternalWStringView name
+)
+{
+    SIZE_T index;
+    if (VRegInternalArray_InternalFindWStringSorted(pList, name, &index))
+        return TRUE;
+
+    return VRegInternalArray_InternalInsertWString(pList, index, name);
 }
 
 VREG_DECL BOOL VRegInternalArray_ContainsWStringSorted(
@@ -3431,21 +3450,8 @@ VREG_DECL BOOL VRegInternalArray_ContainsWStringSorted(
     const VRegInternalWStringView name
 )
 {
-    SIZE_T lo = 0;
-    SIZE_T hi = pList->count;
-    while (lo < hi)
-    {
-        const SIZE_T mid = lo + (hi - lo) / 2;
-        const int order = VRegInternalWStringView_CompareNames(VRegInternalArray_WStringViewAt(pList, mid), name);
-        if (order == 0)
-            return TRUE;
-        if (order < 0)
-            lo = mid + 1;
-        else
-            hi = mid;
-    }
-
-    return FALSE;
+    SIZE_T index;
+    return VRegInternalArray_InternalFindWStringSorted(pList, name, &index);
 }
 
 // ==========================================================================
