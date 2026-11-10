@@ -1465,7 +1465,8 @@ VREG_DECL LSTATUS WINAPI VRegScript_WriteFile(
 /// @ref VReg_CreateNative made, and the commit turns its function table into
 /// the trampolines. Both MUST outlive the process, as MUST every module a
 /// hook can reach (see the note above). Answers the first Detours error, or
-/// @ref ERROR_ALREADY_INITIALIZED when this copy installed before.
+/// @ref ERROR_ALREADY_INITIALIZED when this copy installed before or is
+/// installing.
 VREG_DECL LONG WINAPI VRegHooks_Install(
     _In_ VReg* pRegistry,
     _In_ VReg* pNative
@@ -12789,10 +12790,8 @@ static LSTATUS VRegScript_InternalVisitUpper(
 
     if (pRecord->isTombstone || pRecord->isOpaque)
     {
-        // Agent's choice: a root deletion is refused here, because no `.reg`
-        // file can express it and Parse and Apply reject it. The alternative
-        // passed over is defining it as emptying the root in Parse, Apply and
-        // Write.
+        // A root deletion is refused: no `.reg` file can express it, and
+        // Parse and Apply reject it.
         if (VRegInternalWString_GetView(&pWalk->keyPath).cch == 0)
             return ERROR_NOT_SUPPORTED;
 
