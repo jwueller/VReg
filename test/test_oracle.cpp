@@ -927,7 +927,10 @@ struct OpenKeyForms
                 L"A",
                 L"a\\b",
                 L"A\\",
+                L"\\",
+                L"\\\\",
                 L"\\A",
+                L"\\A\\B",
                 L"A\\\\B",
                 L"A\\Missing",
                 L"Missing\\B"
