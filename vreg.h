@@ -10242,9 +10242,6 @@ typedef struct
     /// The node, when the key is inside a mount.
     VRegHiveInternalNode* pNode;
 
-    /// The hive of @ref pNode.
-    VRegHive* pHive;
-
     /// The components below @ref pNode still to walk.
     const VRegInternalWStringView* pRest;
     SIZE_T cRest;
@@ -10460,8 +10457,8 @@ static _Ret_maybenull_ const VRegInternalMountTable* VReg_InternalGetMounts(
     return (const VRegInternalMountTable*)ReadPointerAcquire((PVOID volatile*)&pThis->implementation.virtual_.pMounts);
 }
 
-/// A mount of @p pHive here; null when it is not mounted.
-static _Ret_maybenull_ const VRegInternalMountPoint* VReg_InternalFindMount(
+/// Whether @p pHive is mounted here.
+static BOOL VReg_InternalHasMount(
     _In_ const VReg* const pThis,
     _In_ const VRegHive* const pHive
 )
@@ -10469,16 +10466,15 @@ static _Ret_maybenull_ const VRegInternalMountPoint* VReg_InternalFindMount(
     const VRegInternalMountTable* const pTable = VReg_InternalGetMounts(pThis);
     SIZE_T i;
     if (!pTable)
-        return NULL;
+        return FALSE;
 
     for (i = 0; i < pTable->mounts.count; ++i)
     {
-        const VRegInternalMountPoint* const pMount = &VREG_INTERNAL_AT(&pTable->mounts, VRegInternalMountPoint, i);
-        if (pMount->pHive == pHive)
-            return pMount;
+        if (VREG_INTERNAL_AT(&pTable->mounts, VRegInternalMountPoint, i).pHive == pHive)
+            return TRUE;
     }
 
-    return NULL;
+    return FALSE;
 }
 
 static void VRegInternalMountPoint_Free(
@@ -10722,7 +10718,6 @@ static LSTATUS VReg_InternalResolveNative(
     if (pBest)
     {
         pTarget->pNode = VRegHive_InternalGetRoot(pBest->pHive);
-        pTarget->pHive = pBest->pHive;
         pTarget->pRest = (const VRegInternalWStringView*)pTarget->full.p + iBestRest;
         pTarget->cRest = pTarget->full.count - iBestRest;
         *pIsResolved = TRUE;
@@ -10758,13 +10753,11 @@ static LSTATUS VReg_InternalResolve(
     pNode = VRegHive_InternalFindNode(hKey);
     if (pNode)
     {
-        const VRegInternalMountPoint* const pMount = VReg_InternalFindMount(pThis, pNode->pHive);
-        if (pMount)
+        if (VReg_InternalHasMount(pThis, pNode->pHive))
         {
             if (isSplit)
             {
                 pTarget->pNode = pNode;
-                pTarget->pHive = pMount->pHive;
                 pTarget->pRest = (const VRegInternalWStringView*)pTarget->components.p;
                 pTarget->cRest = pTarget->components.count;
             }
@@ -10816,7 +10809,6 @@ static LSTATUS VReg_InternalResolve(
         if (pBest)
         {
             pTarget->pNode = VRegHive_InternalGetRoot(pBest->pHive);
-            pTarget->pHive = pBest->pHive;
             pTarget->pRest = (const VRegInternalWStringView*)pTarget->components.p + pBest->path.count;
             pTarget->cRest = pTarget->components.count - pBest->path.count;
             return ERROR_SUCCESS;
@@ -10896,7 +10888,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegOpenKeyExW(
         goto done;
     }
 
-    status = VRegHive_InternalOpenKey(target.pHive, target.pNode, target.pRest, target.cRest, samDesired, &result);
+    status = VRegHive_InternalOpenKey(target.pNode->pHive, target.pNode, target.pRest, target.cRest, samDesired, &result);
     if (status == ERROR_SUCCESS)
         *phkResult = result.redirect.hKey ? result.redirect.hKey : VRegHiveInternalNode_GetHandle(result.pNode);
 
@@ -10973,7 +10965,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegCreateKeyExW(
     }
 
     status = VRegHive_InternalCreateKey(
-        target.pHive,
+        target.pNode->pHive,
         target.pNode,
         target.pRest,
         target.cRest,
@@ -11063,7 +11055,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegQueryValueExW(
         *lpcbData = 0;
 
     status = VRegHive_InternalQueryValue(
-        target.pHive,
+        target.pNode->pHive,
         target.pNode,
         VReg_InternalOrEmpty(lpValueName),
         &dwType,
@@ -11143,7 +11135,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegSetValueExW(
     }
 
     status = VRegHive_InternalSetValue(
-        target.pHive,
+        target.pNode->pHive,
         target.pNode,
         VReg_InternalOrEmpty(lpValueName),
         dwType,
@@ -11182,7 +11174,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegDeleteValueW(
         goto done;
     }
 
-    status = VRegHive_InternalDeleteValue(target.pHive, target.pNode, VReg_InternalOrEmpty(lpValueName));
+    status = VRegHive_InternalDeleteValue(target.pNode->pHive, target.pNode, VReg_InternalOrEmpty(lpValueName));
 
 done:
     VRegInternalTarget_Free(&target);
@@ -11224,7 +11216,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegDeleteKeyExW(
         goto done;
     }
 
-    status = VRegHive_InternalDeleteKey(target.pHive, target.pNode, target.pRest, target.cRest);
+    status = VRegHive_InternalDeleteKey(target.pNode->pHive, target.pNode, target.pRest, target.cRest);
 
 done:
     VRegInternalTarget_Free(&target);
@@ -11258,7 +11250,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegDeleteTreeW(
         goto done;
     }
 
-    status = VRegHive_InternalOpenKey(target.pHive, target.pNode, target.pRest, target.cRest, KEY_ALL_ACCESS, &result);
+    status = VRegHive_InternalOpenKey(target.pNode->pHive, target.pNode, target.pRest, target.cRest, KEY_ALL_ACCESS, &result);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -11270,11 +11262,11 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegDeleteTreeW(
         goto done;
     }
 
-    status = VRegHive_InternalDeleteTree(target.pHive, result.pNode);
+    status = VRegHive_InternalDeleteTree(target.pNode->pHive, result.pNode);
     if (status != ERROR_SUCCESS || target.cRest == 0)
         goto done;
 
-    status = VRegHive_InternalDeleteKey(target.pHive, target.pNode, target.pRest, target.cRest);
+    status = VRegHive_InternalDeleteKey(target.pNode->pHive, target.pNode, target.pRest, target.cRest);
 
 done:
     VRegInternalTarget_Free(&target);
@@ -11335,7 +11327,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegEnumKeyExW(
     if (lpcchClass)
         *lpcchClass = 0;
 
-    status = VRegHive_InternalEnumKey(target.pHive, target.pNode, dwIndex, &name, &className, &lastWrite);
+    status = VRegHive_InternalEnumKey(target.pNode->pHive, target.pNode, dwIndex, &name, &className, &lastWrite);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -11421,7 +11413,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegEnumValueW(
         *lpcbData = 0;
 
     status = VRegHive_InternalEnumValue(
-        target.pHive,
+        target.pNode->pHive,
         target.pNode,
         dwIndex,
         &name,
@@ -11522,7 +11514,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegQueryInfoKeyW(
         goto done;
     }
 
-    status = VRegHive_InternalQueryInfo(target.pHive, target.pNode, &info);
+    status = VRegHive_InternalQueryInfo(target.pNode->pHive, target.pNode, &info);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -11816,7 +11808,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegLoadMUIStringW(
 
     // The merged read answers an owned copy, so no lock of the hive is held
     // while the string resolves.
-    status = VRegHive_InternalQueryValue(target.pHive, target.pNode, VReg_InternalOrEmpty(pszValue), &dwType, &cbData, &data);
+    status = VRegHive_InternalQueryValue(target.pNode->pHive, target.pNode, VReg_InternalOrEmpty(pszValue), &dwType, &cbData, &data);
     if (status != ERROR_SUCCESS)
         goto done;
 
@@ -12002,7 +11994,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegGetValueW(
     pNode = target.pNode;
     if (target.cRest != 0)
     {
-        status = VRegHive_InternalOpenKey(target.pHive, target.pNode, target.pRest, target.cRest, KEY_QUERY_VALUE, &result);
+        status = VRegHive_InternalOpenKey(target.pNode->pHive, target.pNode, target.pRest, target.cRest, KEY_QUERY_VALUE, &result);
         if (status != ERROR_SUCCESS)
         {
             status = VReg_InternalFailGetValue(pvData, cbBuffer, dwFlags, status);
@@ -12035,7 +12027,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegGetValueW(
     if (pcbData && !pvData)
         *pcbData = 0;
 
-    status = VRegHive_InternalQueryValue(target.pHive, pNode, VReg_InternalOrEmpty(lpValue), &dwType, &cbQueried, &stages[0]);
+    status = VRegHive_InternalQueryValue(target.pNode->pHive, pNode, VReg_InternalOrEmpty(lpValue), &dwType, &cbQueried, &stages[0]);
     if (status != ERROR_SUCCESS)
     {
         status = VReg_InternalFailGetValue(pvData, cbBuffer, dwFlags, status);
@@ -12188,7 +12180,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegNotifyChangeKeyValue(
 
     if (fAsynchronous)
     {
-        status = VRegHive_InternalWatch(target.pHive, target.pNode, bWatchSubtree != FALSE, dwNotifyFilter, hEvent);
+        status = VRegHive_InternalWatch(target.pNode->pHive, target.pNode, bWatchSubtree != FALSE, dwNotifyFilter, hEvent);
         goto done;
     }
 
@@ -12202,7 +12194,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegNotifyChangeKeyValue(
         goto done;
     }
 
-    status = VRegHive_InternalWatch(target.pHive, target.pNode, bWatchSubtree != FALSE, dwNotifyFilter, hOwn);
+    status = VRegHive_InternalWatch(target.pNode->pHive, target.pNode, bWatchSubtree != FALSE, dwNotifyFilter, hOwn);
     if (status == ERROR_SUCCESS)
         WaitForSingleObject(hOwn, INFINITE);
 
@@ -12237,7 +12229,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegFlushKey(
         goto done;
     }
 
-    status = VRegHive_InternalCheckKey(target.pHive, target.pNode);
+    status = VRegHive_InternalCheckKey(target.pNode->pHive, target.pNode);
 
 done:
     VRegInternalTarget_Free(&target);
