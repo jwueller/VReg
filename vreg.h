@@ -11093,8 +11093,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegQueryValueExW(
     VReg_InternalCopyValue(lpData, cbBuffer, dwType, value.pb, (DWORD)value.cb);
 
 done:
-    if (target.pHive)
-        VRegInternalBuffer_Free(&value);
+    VRegInternalBuffer_Free(&value);
     VRegInternalTarget_Free(&target);
     return status;
 }
@@ -11360,11 +11359,8 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegEnumKeyExW(
     }
 
 done:
-    if (target.pHive)
-    {
-        VRegInternalWString_Free(&name);
-        VRegInternalWString_Free(&className);
-    }
+    VRegInternalWString_Free(&name);
+    VRegInternalWString_Free(&className);
     VRegInternalTarget_Free(&target);
     return status;
 }
@@ -11463,11 +11459,8 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegEnumValueW(
         VReg_InternalCopyValue(lpData, cbDataBuffer, dwType, value.pb, (DWORD)value.cb);
 
 done:
-    if (target.pHive)
-    {
-        VRegInternalWString_Free(&name);
-        VRegInternalBuffer_Free(&value);
-    }
+    VRegInternalWString_Free(&name);
+    VRegInternalBuffer_Free(&value);
     VRegInternalTarget_Free(&target);
     return status;
 }
@@ -11575,8 +11568,7 @@ VREG_DECL LSTATUS WINAPI VReg_InternalVirtualRegQueryInfoKeyW(
         *lpcchClass = 0;
 
 done:
-    if (target.pHive)
-        VRegInternalWString_Free(&info.className);
+    VRegInternalWString_Free(&info.className);
     VRegInternalTarget_Free(&target);
     return status;
 }
