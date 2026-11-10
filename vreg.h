@@ -4992,6 +4992,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryValueW(
     HKEY hSubKey = hKey;
     DWORD dwType = 0;
     LSTATUS status;
+    const BOOL isTerminatorFitting = lpcbData && (DWORD)*lpcbData >= sizeof(wchar_t);
     if (lpSubKey && *lpSubKey)
     {
         status = VReg_RegOpenKeyW(
@@ -5019,7 +5020,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryValueW(
 
     if (status == ERROR_FILE_NOT_FOUND)
     {
-        if (lpData)
+        if (lpData && isTerminatorFitting)
             *lpData = L'\0';
         if (lpcbData)
             *lpcbData = sizeof(wchar_t);

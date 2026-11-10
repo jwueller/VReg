@@ -1390,6 +1390,118 @@ struct PreExValues
     }
 };
 
+struct QueryPreExWithoutDefault
+{
+    void operator()(
+        const Api& api,
+        const HKEY hRoot,
+        Recorder& record
+    ) const
+    {
+        const DWORD dwValue = 7;
+        RECORD(
+            "set other value",
+            VReg_RegSetValueExW(
+                api,
+                hRoot,
+                L"Other",
+                0,
+                REG_DWORD,
+                Raw(&dwValue),
+                4
+            )
+        );
+
+        for (const LONG cbBuffer : {-1l, 0l, 1l, 2l, 3l, 64l})
+        {
+            std::array<wchar_t, 32> data;
+            std::memset(data.data(), FILL, sizeof(data));
+            LONG cbData = cbBuffer;
+            RECORD(
+                "query W buffer " + std::format("{}", cbBuffer),
+                VReg_RegQueryValueW(
+                    api,
+                    hRoot,
+                    nullptr,
+                    data.data(),
+                    &cbData
+                ),
+                {static_cast<std::uint64_t>(cbData)},
+                {Bytes(data)}
+            );
+
+            std::array<char, 32> narrowData;
+            narrowData.fill(static_cast<char>(FILL));
+            cbData = cbBuffer;
+            RECORD(
+                "query A buffer " + std::format("{}", cbBuffer),
+                VReg_RegQueryValueA(
+                    api,
+                    hRoot,
+                    nullptr,
+                    narrowData.data(),
+                    &cbData
+                ),
+                {static_cast<std::uint64_t>(cbData)},
+                {Bytes(narrowData)}
+            );
+        }
+
+        std::array<wchar_t, 32> data;
+        std::memset(data.data(), FILL, sizeof(data));
+        std::array<char, 32> narrowData;
+        narrowData.fill(static_cast<char>(FILL));
+        LONG cbData = 64;
+        RECORD(
+            "query W null data",
+            VReg_RegQueryValueW(
+                api,
+                hRoot,
+                nullptr,
+                nullptr,
+                &cbData
+            ),
+            {static_cast<std::uint64_t>(cbData)}
+        );
+        cbData = 64;
+        RECORD(
+            "query A null data",
+            VReg_RegQueryValueA(
+                api,
+                hRoot,
+                nullptr,
+                nullptr,
+                &cbData
+            ),
+            {static_cast<std::uint64_t>(cbData)}
+        );
+        RECORD(
+            "query W data without size",
+            VReg_RegQueryValueW(
+                api,
+                hRoot,
+                nullptr,
+                data.data(),
+                nullptr
+            ),
+            {},
+            {Bytes(data)}
+        );
+        RECORD(
+            "query A data without size",
+            VReg_RegQueryValueA(
+                api,
+                hRoot,
+                nullptr,
+                narrowData.data(),
+                nullptr
+            ),
+            {},
+            {Bytes(narrowData)}
+        );
+    }
+};
+
 struct SetKeyValueForms
 {
     void operator()(
@@ -1940,6 +2052,7 @@ using Scenarios = std::tuple<
     NonAsciiNames,
     DeleteValues,
     PreExValues,
+    QueryPreExWithoutDefault,
     SetKeyValueForms,
     DeleteKeyValueForms>;
 } // namespace
