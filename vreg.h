@@ -15949,19 +15949,23 @@ VREG_INTERNAL_REFUSED_HOOK(
 
 static BYTE* g_VRegHooks_pbThunks;
 
+static BYTE* VReg_InternalGetThunk(const SIZE_T index)
+{
+    return g_VRegHooks_pbThunks + index * VREG_INTERNAL_THUNK_CODE_SIZE;
+}
+
 static void** VReg_InternalGetThunkSlot(const SIZE_T index)
 {
     return (void**)(g_VRegHooks_pbThunks + VREG_INTERNAL_THUNK_PAGE_SIZE) + index;
 }
 
-/// Writes thunk @p index, initially jumping to @p pTarget, and answers its
-/// address.
-static void* VReg_InternalWriteThunk(
+/// Writes thunk @p index, initially jumping to @p pTarget.
+static void VReg_InternalWriteThunk(
     const SIZE_T index,
     _In_ void* const pTarget
 )
 {
-    BYTE* const pbCode = g_VRegHooks_pbThunks + index * VREG_INTERNAL_THUNK_CODE_SIZE;
+    BYTE* const pbCode = VReg_InternalGetThunk(index);
     void** const ppSlot = VReg_InternalGetThunkSlot(index);
     *ppSlot = pTarget;
 
@@ -15994,7 +15998,6 @@ static void* VReg_InternalWriteThunk(
     }
 #endif
 #endif
-    return pbCode;
 }
 
 /// Where Detours keeps each hooked entry point and, once committed, its
@@ -16004,11 +16007,20 @@ static void** g_VRegHooks_ppTargets[VREG_INTERNAL_THUNK_CAPACITY];
 /// The hooks that went live: zero until the commit succeeds.
 static volatile LONG g_VRegHooks_cHooks;
 
-typedef struct
+/// Records hook @p *pcHooks on @p ppTarget, writes its thunk to @p pBody
+/// and counts it.
+static void VRegHooks_InternalAdd(
+    _Inout_ SIZE_T* const pcHooks,
+    _In_ void** const ppTarget,
+    _In_ void* const pBody
+)
 {
-    void** ppTarget;
-    void* pBody;
-} VRegInternalHook;
+    VREG_ASSERT(*pcHooks < VREG_INTERNAL_THUNK_CAPACITY);
+    _Analysis_assume_(*pcHooks < VREG_INTERNAL_THUNK_CAPACITY);
+    g_VRegHooks_ppTargets[*pcHooks] = ppTarget;
+    VReg_InternalWriteThunk(*pcHooks, pBody);
+    ++*pcHooks;
+}
 
 VREG_DECL LONG WINAPI VRegHooks_Install(
     _In_ VReg* const pRegistry,
@@ -16016,8 +16028,6 @@ VREG_DECL LONG WINAPI VRegHooks_Install(
 )
 {
     VRegInternalNativeFunctions* functions;
-    VRegInternalHook hooks[VREG_INTERNAL_THUNK_CAPACITY];
-    void* thunks[VREG_INTERNAL_THUNK_CAPACITY];
     SIZE_T cHooks = 0;
     SIZE_T i;
     DWORD dwOld = 0;
@@ -16038,9 +16048,7 @@ VREG_DECL LONG WINAPI VRegHooks_Install(
     functions = VReg_InternalGetNativeFunctions(pNative);
 
 #define VREG_HOOK_EMULATED(name) \
-    hooks[cHooks].ppTarget = (void**)&functions->name; \
-    hooks[cHooks].pBody = (void*)&VRegHooks_Internal##name; \
-    ++cHooks;
+    VRegHooks_InternalAdd(&cHooks, (void**)&functions->name, (void*)&VRegHooks_Internal##name);
     VREG_INTERNAL_REGISTRY_VIRTUALS(VREG_HOOK_EMULATED)
 #undef VREG_HOOK_EMULATED
 
@@ -16048,11 +16056,7 @@ VREG_DECL LONG WINAPI VRegHooks_Install(
 #define VREG_HOOK_FORM(name) \
     g_VRegHooks_FormTargets[VREG_INTERNAL_FORM_##name] = VReg_InternalFindRegistryExport(#name); \
     if (g_VRegHooks_FormTargets[VREG_INTERNAL_FORM_##name]) \
-    { \
-        hooks[cHooks].ppTarget = &g_VRegHooks_FormTargets[VREG_INTERNAL_FORM_##name]; \
-        hooks[cHooks].pBody = (void*)&VRegHooks_Internal##name; \
-        ++cHooks; \
-    }
+        VRegHooks_InternalAdd(&cHooks, &g_VRegHooks_FormTargets[VREG_INTERNAL_FORM_##name], (void*)&VRegHooks_Internal##name);
     VREG_INTERNAL_REGISTRY_FORMS(VREG_HOOK_FORM)
 #undef VREG_HOOK_FORM
 
@@ -16060,19 +16064,9 @@ VREG_DECL LONG WINAPI VRegHooks_Install(
 #define VREG_HOOK_REFUSED(name) \
     g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_##name] = VReg_InternalFindRegistryExport(#name); \
     if (g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_##name]) \
-    { \
-        hooks[cHooks].ppTarget = &g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_##name]; \
-        hooks[cHooks].pBody = (void*)&VRegHooks_InternalRefuse##name; \
-        ++cHooks; \
-    }
+        VRegHooks_InternalAdd(&cHooks, &g_VRegHooks_RefusedTargets[VREG_INTERNAL_REFUSED_##name], (void*)&VRegHooks_InternalRefuse##name);
     VREG_INTERNAL_REFUSED_HOOKS(VREG_HOOK_REFUSED)
 #undef VREG_HOOK_REFUSED
-
-    for (i = 0; i < cHooks; ++i)
-    {
-        g_VRegHooks_ppTargets[i] = hooks[i].ppTarget;
-        thunks[i] = VReg_InternalWriteThunk(i, hooks[i].pBody);
-    }
 
     // The code page becomes executable and read-only.
     if (!VirtualProtect(pbThunks, VREG_INTERNAL_THUNK_PAGE_SIZE, PAGE_EXECUTE_READ, &dwOld))
@@ -16088,7 +16082,7 @@ VREG_DECL LONG WINAPI VRegHooks_Install(
 
     error = DetourUpdateThread(GetCurrentThread());
     for (i = 0; error == NO_ERROR && i < cHooks; ++i)
-        error = DetourAttach(hooks[i].ppTarget, thunks[i]);
+        error = DetourAttach(g_VRegHooks_ppTargets[i], VReg_InternalGetThunk(i));
 
     // A commit that fails has aborted before writing anything; one that
     // gets to write cannot fail.
