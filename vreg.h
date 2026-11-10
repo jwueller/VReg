@@ -6936,7 +6936,8 @@ VREG_DECL _Ret_maybenull_ VRegHiveInternalNode* VRegHive_InternalFindNode(
 
 /// Follows @p pPath through the upper layer from @p pParent as far as it
 /// goes. @p pcMatched receives how many components were found and
-/// @p ppCurrent the node they led to; when the path goes on from there,
+/// @p ppCurrent the node they led to, also when a tombstone stops the walk
+/// with @ref ERROR_FILE_NOT_FOUND; when the path goes on from there,
 /// @p pIsVisible says whether that node's lower key shows through.
 static LSTATUS VRegHive_InternalWalkUpper(
     _In_ VRegHive* const pHive,
@@ -7180,58 +7181,6 @@ done:
     return status;
 }
 
-/// How far @p pPath exists in the upper layer below @p pParent, for
-/// @ref VRegHive_InternalCreateKey: @p pcUpper components, ending at @p ppLast;
-/// @p pIsBehindTombstone when a tombstone stopped the walk; otherwise whether
-/// the lower key of @p ppLast shows through, when the path goes on.
-static LSTATUS VRegHive_InternalMeasureUpper(
-    _In_ VRegHive* const pHive,
-    _In_ VRegHiveInternalNode* const pParent,
-    _In_reads_(cPath) const VRegInternalWStringView* const pPath,
-    const SIZE_T cPath,
-    _Out_ SIZE_T* const pcUpper,
-    _Outptr_ VRegHiveInternalNode** const ppLast,
-    _Out_ BOOL* const pIsBehindTombstone,
-    _Out_ BOOL* const pIsVisible
-)
-{
-    const BOOL isLocked = VRegHive_InternalLockRead(pHive);
-    LSTATUS status = ERROR_SUCCESS;
-    VRegHiveInternalNode* pCurrent = pParent;
-    SIZE_T cUpper = 0;
-
-    *pIsBehindTombstone = FALSE;
-    *pIsVisible = FALSE;
-    if (pParent->isDeleted)
-    {
-        status = ERROR_KEY_DELETED;
-    }
-    else
-    {
-        for (; cUpper < cPath; ++cUpper)
-        {
-            VRegHiveInternalNode* const pChild = VRegHive_InternalFindChild(pCurrent, pPath[cUpper], NULL);
-            if (!pChild)
-                break;
-            if (pChild->isTombstone)
-            {
-                *pIsBehindTombstone = TRUE;
-                break;
-            }
-
-            pCurrent = pChild;
-        }
-
-        if (cUpper < cPath && !*pIsBehindTombstone)
-            *pIsVisible = VRegHive_InternalIsVisible(pHive, pCurrent);
-    }
-
-    VRegHive_InternalUnlockRead(pHive, isLocked);
-    *pcUpper = cUpper;
-    *ppLast = pCurrent;
-    return status;
-}
-
 /// @ref VRegHive_InternalCreateKey on a custom hive: an existing key opens, and each
 /// missing key is created through the provider, one at a time, the class
 /// going to the last.
@@ -7319,7 +7268,6 @@ VREG_DECL LSTATUS VRegHive_InternalCreateKey(
     SIZE_T cUpper = 0;
     SIZE_T cLower;
     VRegHiveInternalNode* pLast = pParent;
-    BOOL isBehindTombstone = FALSE;
     BOOL isVisible = FALSE;
     VRegHiveInternalNode* pCurrent;
     SIZE_T i;
@@ -7352,7 +7300,9 @@ VREG_DECL LSTATUS VRegHive_InternalCreateKey(
     }
 
     // How far the path exists: in the upper layer first, then below it.
-    status = VRegHive_InternalMeasureUpper(pHive, pParent, pPath, cPath, &cUpper, &pLast, &isBehindTombstone, &isVisible);
+    status = VRegHive_InternalWalkUpper(pHive, pParent, pPath, cPath, &pLast, &cUpper, &isVisible);
+    if (status == ERROR_FILE_NOT_FOUND)
+        status = ERROR_SUCCESS;
     if (status != ERROR_SUCCESS)
         goto done;
 
