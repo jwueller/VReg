@@ -179,7 +179,7 @@ the API it sits beside.
   keeps that layout. A multiline statement is set off by blank lines, with
   its comment attached.
 - Neither `min` nor `max` is called: the library uses `VReg_InternalMinDword` and
-  `VReg_InternalMaxDword` or a comparison, so the `windows.h` macros never apply,
+  `VReg_InternalMaxDword` or a comparison, so the `Windows.h` macros never apply,
   even in a consumer that includes it without `NOMINMAX`. A C++ test calls
   them parenthesized, `(std::max)(a, b)`.
 - Macros are tested with `#ifdef` or `#ifndef` in simple cases, and with
