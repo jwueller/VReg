@@ -83,7 +83,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Build and test
+      - name: Build
         shell: bash
         run: |
           export PATH="/c/mingw64/bin:$PATH"
@@ -92,8 +92,15 @@ jobs:
             gcc "$optimization" -std=c99 -fno-builtin \
               -Wall -Wextra -Werror -pedantic \
               -I. test/nocrt/main.c test/nocrt/support.c test/nocrt/vreg_impl.c \
-              -o nocrt.exe -nostdlib -Wl,-e,NoCrtMain -lkernel32 -ladvapi32
-            ./nocrt.exe
+              -o "nocrt$optimization.exe" -nostdlib -Wl,-e,NoCrtMain -lkernel32 -ladvapi32
+          done
+
+      # The exit code is the result: nocrt.exe has no C runtime to print with.
+      - name: Smoke test
+        shell: bash
+        run: |
+          for optimization in -O0 -O2; do
+            ./"nocrt$optimization.exe"
           done
 
   # vreg.h owns the version; these are the copies that must agree with it
