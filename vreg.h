@@ -2663,11 +2663,9 @@ static int VRegInternalWStringView_CompareNames(
 // Buffers
 // ==========================================================================
 
-#define VREG_INTERNAL_MAX_SIZE (~(SIZE_T)0)
-
 /// The most characters a string holds, so that its terminated byte size still
 /// fits in a @ref SIZE_T.
-#define VREG_INTERNAL_MAX_STRING_CHARS (VREG_INTERNAL_MAX_SIZE / sizeof(wchar_t) - 1)
+#define VREG_INTERNAL_MAX_STRING_CHARS (MAXSIZE_T / sizeof(wchar_t) - 1)
 
 /// The capacity to grow to for @p needed elements: at least double the old
 /// one, so repeated appends stay linear.
@@ -2676,7 +2674,7 @@ static SIZE_T VReg_InternalGrowCapacity(
     const SIZE_T needed
 )
 {
-    SIZE_T grown = capacity < 8 ? 8 : capacity > VREG_INTERNAL_MAX_SIZE / 2 ? capacity : capacity * 2;
+    const SIZE_T grown = capacity < 8 ? 8 : capacity > MAXSIZE_T / 2 ? capacity : capacity * 2;
     return grown < needed ? needed : grown;
 }
 
@@ -2755,7 +2753,7 @@ VREG_INTERNAL_DECL BOOL VRegInternalBuffer_Append(
 )
 {
     const SIZE_T cbOld = pBuffer->cb;
-    if (cb > VREG_INTERNAL_MAX_SIZE - cbOld)
+    if (cb > MAXSIZE_T - cbOld)
         return FALSE;
 
     if (!VRegInternalBuffer_Resize(pBuffer, cbOld + cb))
@@ -2931,7 +2929,7 @@ VREG_INTERNAL_DECL BOOL VRegInternalArray_Reserve(
     if (capacity <= pArray->capacity)
         return TRUE;
 
-    if (capacity > VREG_INTERNAL_MAX_SIZE / cbElement)
+    if (capacity > MAXSIZE_T / cbElement)
         return FALSE;
 
     p = VReg_InternalReAlloc(pArray->p, capacity * cbElement);
