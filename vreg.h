@@ -1925,9 +1925,7 @@ VREG_INTERNAL_DECL void VRegInternalHandleSpace_Init(
 
 /// This copy's instance over this process's section, created on first use
 /// and never destroyed.
-VREG_INTERNAL_DECL _Ret_notnull_ VRegInternalHandleSpace* VReg_InternalGetProcessHandleSpace(
-    void
-);
+VREG_INTERNAL_DECL _Ret_notnull_ VRegInternalHandleSpace* VReg_InternalGetProcessHandleSpace(void);
 
 /// A fresh handle owned by @p pSpace and bound to @p pTarget, or null when
 /// the section is unusable, the namespace is exhausted or memory ran out.
@@ -5519,9 +5517,7 @@ static BOOL CALLBACK VReg_InternalInitProcessHandleSpace(
     return TRUE;
 }
 
-VREG_INTERNAL_DECL _Ret_notnull_ VRegInternalHandleSpace* VReg_InternalGetProcessHandleSpace(
-    void
-)
+VREG_INTERNAL_DECL _Ret_notnull_ VRegInternalHandleSpace* VReg_InternalGetProcessHandleSpace(void)
 {
     // Handles issued from it outlive every teardown, so the instance is never
     // destroyed.

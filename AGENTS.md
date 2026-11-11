@@ -166,7 +166,8 @@ the API it sits beside.
   per line, with blank lines between multi-line declarations. Any other
   signature does the same once it would run its line past column 80, the
   first ruler in `.editorconfig`; a call stays on one line where that reads
-  better.
+  better. A `(void)` signature stays on one line however long: it has no
+  parameters to scan down.
 - A braced list that spans lines opens with `{` alone, puts each item on a
   line of its own one level deeper with a trailing comma, and closes with
   `}` at the opening indent; never `{a,` continued as `b}`.
