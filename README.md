@@ -56,8 +56,9 @@ how the API behaves.
 
 Needs a C99 compiler (MSVC 2013 or later, or clang-cl; the headers compile
 as C++ too) and `_WIN32_WINNT` at `0x0600` (Windows Vista) or later. Its
-one dependency is `windows.h`: no C runtime beyond what the compiler needs,
-and `VREG_MALLOC`, `VREG_REALLOC` and `VREG_FREE` replace the allocator (the
+one dependency is `windows.h`: no C runtime beyond the `memcpy`, `memmove`
+and `memset` the compiler calls (`test/nocrt` links without one), and
+`VREG_MALLOC`, `VREG_REALLOC` and `VREG_FREE` replace the allocator (the
 defaults use the process heap). The whole library is one file,
 [`vreg.h`](./vreg.h): copy it [as a single header](#as-a-single-header) and
 no build system is needed. The CMake targets need CMake 3.25 or later.

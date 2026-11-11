@@ -91,3 +91,4 @@ if(TARGET VReg_Detours)
 endif()
 
 add_subdirectory(headers)
+add_subdirectory(nocrt)

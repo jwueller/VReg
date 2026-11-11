@@ -47,6 +47,9 @@ chaining and a pin outliving `FreeLibrary`. `test/headers` compiles the
 implementation as C and the declarations as C++ after a plain
 `#include <Windows.h>`, under every combination of `WIN32_LEAN_AND_MEAN`,
 `UNICODE` and `NOMINMAX`, and for Vista and Windows 7 as `_WIN32_WINNT`.
+`test/nocrt` links the core without the C runtime and runs a round trip,
+which proves that `support.c` lists everything the library needs besides
+Windows.
 
 CI builds {x86, x64, ARM64} x {MSVC, clang-cl} and runs every test on
 Windows, and the x86 and x64 binaries under Wine on Ubuntu, where the
