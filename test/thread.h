@@ -7,13 +7,11 @@
 
 namespace VRegTest
 {
-/**
- * @brief Runs a function on a thread of its own; the destructor joins it.
- *
- *  A Win32 thread rather than `std::async` or `std::promise`: under Wine,
- *  whose `msvcp140.dll` predates the current headers, a `std::future` loses
- *  its wakeup or aborts the process.
- */
+/// @brief Runs a function on a thread of its own; the destructor joins it.
+///
+///  A Win32 thread rather than `std::async` or `std::promise`: under Wine,
+///  whose `msvcp140.dll` predates the current headers, a `std::future` loses
+///  its wakeup or aborts the process.
 class Thread
 {
 public:

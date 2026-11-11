@@ -8,16 +8,14 @@
 #include <string>
 #include <vector>
 
-/**
- * @file
- * @brief Reads over any @ref VReg that size and fill a
- *  @ref std::wstring or `std::vector<std::byte>` themselves, retrying with a
- *  larger buffer while the value grows between the sizing call and the read.
- *
- *  They have no Win32 counterpart, so they stay out of the library and carry
- *  no `Reg` prefix (which would also collide with the Win32 macros
- *  @ref RegQueryValue, @ref RegEnumKey, ...); the tests are what needs them.
- */
+/// @file
+/// @brief Reads over any @ref VReg that size and fill a
+///  @ref std::wstring or `std::vector<std::byte>` themselves, retrying with a
+///  larger buffer while the value grows between the sizing call and the read.
+///
+///  They have no Win32 counterpart, so they stay out of the library and carry
+///  no `Reg` prefix (which would also collide with the Win32 macros
+///  @ref RegQueryValue, @ref RegEnumKey, ...); the tests are what needs them.
 namespace VRegTest
 {
 LSTATUS QueryValue(

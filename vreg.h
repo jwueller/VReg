@@ -127,20 +127,18 @@ VREG_DECL BOOL WINAPI VReg_IsVirtualHKey(
 // The registry function table
 // ==========================================================================
 
-/**
- * @brief A registry: the Win32 `Reg*` family behind one opaque handle.
- *
- *  @ref VReg_CreateNative and @ref VReg_CreateVirtual make the two registries
- *  VReg implements; @ref VReg_CreateCustom makes one over a @ref VRegVtbl and
- *  an object of the caller's, which a wrapper uses to sit in front of another
- *  registry. Callers go through the flat functions (`VReg_RegOpenKeyExW` and so
- *  on), never through a table directly, and free every registry with
- *  @ref VReg_Destroy.
- *
- * @note Once hooked, every slot may run under a foreign loader lock: an
- *  implementation MUST NOT load a module, create a thread or wait on a lock a
- *  loader-lock holder could own.
- */
+/// @brief A registry: the Win32 `Reg*` family behind one opaque handle.
+///
+///  @ref VReg_CreateNative and @ref VReg_CreateVirtual make the two registries
+///  VReg implements; @ref VReg_CreateCustom makes one over a @ref VRegVtbl and
+///  an object of the caller's, which a wrapper uses to sit in front of another
+///  registry. Callers go through the flat functions (`VReg_RegOpenKeyExW` and so
+///  on), never through a table directly, and free every registry with
+///  @ref VReg_Destroy.
+///
+/// @note Once hooked, every slot may run under a foreign loader lock: an
+///  implementation MUST NOT load a module, create a thread or wait on a lock a
+///  loader-lock holder could own.
 typedef struct VReg VReg;
 
 typedef struct VRegVtbl VRegVtbl;
@@ -629,17 +627,15 @@ typedef LSTATUS WINAPI VRegNotifyChangeKeyValueFunction(
     _In_ BOOL fAsynchronous
 );
 
-/**
- * @brief One slot per form of the `Reg*` family, with the object first.
- *
- *  The wide `Ex` forms are the surface every implementation fills; the flat
- *  function of one that is null answers @ref ERROR_CALL_NOT_IMPLEMENTED. Every
- *  other slot (the ANSI forms, the pre-`Ex` forms and the conveniences Win32
- *  builds from other calls) MAY be null, in which case its flat function
- *  derives the call from the wide `Ex` forms: ANSI forms widen and narrow
- *  through @ref CP_ACP as the native ones do. A wrapper that fills such a slot
- *  sees the form its caller used, which is what a tracing wrapper needs.
- */
+/// @brief One slot per form of the `Reg*` family, with the object first.
+///
+///  The wide `Ex` forms are the surface every implementation fills; the flat
+///  function of one that is null answers @ref ERROR_CALL_NOT_IMPLEMENTED. Every
+///  other slot (the ANSI forms, the pre-`Ex` forms and the conveniences Win32
+///  builds from other calls) MAY be null, in which case its flat function
+///  derives the call from the wide `Ex` forms: ANSI forms widen and narrow
+///  through @ref CP_ACP as the native ones do. A wrapper that fills such a slot
+///  sees the form its caller used, which is what a tracing wrapper needs.
 struct VRegVtbl
 {
     /// Frees what the context owns, before @ref VReg_Destroy frees the
@@ -814,38 +810,36 @@ VREG_DECL void WINAPI VReg_Destroy(
 // Hives
 // ==========================================================================
 
-/**
- * @brief Storage for one subtree of a virtual namespace: a tree with one
- *  anonymous root, mounted at a path by a virtual registry, held in memory
- *  on its own, as an overlay over a key of another registry, or answered by the
- *  slots of a @ref VRegHiveVtbl (@ref VRegHive_CreateCustom).
- *
- *  On its own, the hive starts empty and holds everything written to it.
- *  As an overlay over a lower key, reads fall through to that key and writes stay
- *  in memory: the hive's own layer adds and overrides keys and values.
- *  Deleting a lower value or key leaves a tombstone that hides it; a key
- *  deleted and created again, or emptied with `RegDeleteTreeW`, becomes
- *  opaque and hides everything below it in the lower layer. Enumeration
- *  lists the hive's own entries first, then the lower ones no entry shadows;
- *  counts cover both.
- *
- *  Each key has exactly one virtual handle, issued when VReg first creates
- *  or opens it. Readers take the hive's lock shared and writers exclusive,
- *  until @ref VRegHive_Freeze; after that nothing writes and the readers of a
- *  hive VReg holds itself take no lock at all. The lower (a registry or a
- *  provider's slots) is never called with the lock held, so a lower call
- *  that takes a long time cannot hold up the hive.
- *
- *  Frozen, an overlay hive answers an open of a key it has nothing at or below
- *  with the lower registry's own handle. A virtual registry sends later calls
- *  on such a handle to its base, so a frozen hive's lower registry MUST be
- *  that base or answer the same handles.
- *
- * @note A hive MUST outlive every registry it is mounted in. Destroying it
- *  turns its handles into invalid ones.
- *
- * @note The loader-lock rule of @ref VReg binds every call on a hive.
- */
+/// @brief Storage for one subtree of a virtual namespace: a tree with one
+///  anonymous root, mounted at a path by a virtual registry, held in memory
+///  on its own, as an overlay over a key of another registry, or answered by the
+///  slots of a @ref VRegHiveVtbl (@ref VRegHive_CreateCustom).
+///
+///  On its own, the hive starts empty and holds everything written to it.
+///  As an overlay over a lower key, reads fall through to that key and writes stay
+///  in memory: the hive's own layer adds and overrides keys and values.
+///  Deleting a lower value or key leaves a tombstone that hides it; a key
+///  deleted and created again, or emptied with `RegDeleteTreeW`, becomes
+///  opaque and hides everything below it in the lower layer. Enumeration
+///  lists the hive's own entries first, then the lower ones no entry shadows;
+///  counts cover both.
+///
+///  Each key has exactly one virtual handle, issued when VReg first creates
+///  or opens it. Readers take the hive's lock shared and writers exclusive,
+///  until @ref VRegHive_Freeze; after that nothing writes and the readers of a
+///  hive VReg holds itself take no lock at all. The lower (a registry or a
+///  provider's slots) is never called with the lock held, so a lower call
+///  that takes a long time cannot hold up the hive.
+///
+///  Frozen, an overlay hive answers an open of a key it has nothing at or below
+///  with the lower registry's own handle. A virtual registry sends later calls
+///  on such a handle to its base, so a frozen hive's lower registry MUST be
+///  that base or answer the same handles.
+///
+/// @note A hive MUST outlive every registry it is mounted in. Destroying it
+///  turns its handles into invalid ones.
+///
+/// @note The loader-lock rule of @ref VReg binds every call on a hive.
 typedef struct VRegHive VRegHive;
 
 /// A hive held entirely in memory; starts empty.
@@ -883,15 +877,13 @@ VREG_DECL void WINAPI VRegHive_Freeze(
 // Custom hives
 // ==========================================================================
 
-/**
- * @brief A key of a hive: the record VReg keeps for it, as a slot of a
- *  @ref VRegHiveVtbl receives it.
- *
- *  Opaque, and valid for the life of the hive: VReg adds a record the first
- *  time it opens or creates a key, keeps it until the hive is destroyed, and
- *  answers every later call on that path with it. A provider over an
- *  unbounded key space grows by one record per distinct key opened.
- */
+/// @brief A key of a hive: the record VReg keeps for it, as a slot of a
+///  @ref VRegHiveVtbl receives it.
+///
+///  Opaque, and valid for the life of the hive: VReg adds a record the first
+///  time it opens or creates a key, keeps it until the hive is destroyed, and
+///  answers every later call on that path with it. A provider over an
+///  unbounded key space grows by one record per distinct key opened.
 typedef struct VRegHiveInternalNode VRegHiveKey;
 
 /// Where a slot hands VReg what it answers, through the
@@ -1002,29 +994,27 @@ typedef void WINAPI VRegHiveDestroyFunction(
     _In_ VRegHive* pHive
 );
 
-/**
- * @brief The slots of a hive @ref VRegHive_CreateCustom makes: what the hive
- *  holds, answered on demand, while VReg keeps every Win32 rule (handles,
- *  caller buffers, ANSI and wide, views, mounts).
- *
- *  `OpenKey`, `QueryValue`, `EnumKey` and `EnumValue` are required. A null
- *  `CreateKey` opens an existing key and answers a missing one
- *  @ref ERROR_ACCESS_DENIED, as a frozen hive does; a null `DeleteKey`,
- *  `SetValue` or `DeleteValue` answers @ref ERROR_ACCESS_DENIED. A null
- *  `DeleteTree` is derived from `EnumKey`, `DeleteKey`, `EnumValue` and
- *  `DeleteValue` as native `RegDeleteTree` works: subkeys in enumeration
- *  order, each subtree before its key, then the values, stopping at the
- *  first failure; a call after a failure continues from what is left. A
- *  null `QueryInfo` is derived by enumerating keys and values once; a null
- *  `FlushKey` succeeds; a null `Destroy` does nothing.
- *
- *  A slot receives names as the caller passed them and MUST compare them as
- *  the registry does (@ref VReg_CompareNames). Slots MAY run on any thread,
- *  concurrently, and under a foreign loader lock, so the rule of @ref VReg
- *  binds them. VReg holds no lock of its own across a slot call; the
- *  provider locks its own state. A slot never sees the access a key was
- *  opened with.
- */
+/// @brief The slots of a hive @ref VRegHive_CreateCustom makes: what the hive
+///  holds, answered on demand, while VReg keeps every Win32 rule (handles,
+///  caller buffers, ANSI and wide, views, mounts).
+///
+///  `OpenKey`, `QueryValue`, `EnumKey` and `EnumValue` are required. A null
+///  `CreateKey` opens an existing key and answers a missing one
+///  @ref ERROR_ACCESS_DENIED, as a frozen hive does; a null `DeleteKey`,
+///  `SetValue` or `DeleteValue` answers @ref ERROR_ACCESS_DENIED. A null
+///  `DeleteTree` is derived from `EnumKey`, `DeleteKey`, `EnumValue` and
+///  `DeleteValue` as native `RegDeleteTree` works: subkeys in enumeration
+///  order, each subtree before its key, then the values, stopping at the
+///  first failure; a call after a failure continues from what is left. A
+///  null `QueryInfo` is derived by enumerating keys and values once; a null
+///  `FlushKey` succeeds; a null `Destroy` does nothing.
+///
+///  A slot receives names as the caller passed them and MUST compare them as
+///  the registry does (@ref VReg_CompareNames). Slots MAY run on any thread,
+///  concurrently, and under a foreign loader lock, so the rule of @ref VReg
+///  binds them. VReg holds no lock of its own across a slot call; the
+///  provider locks its own state. A slot never sees the access a key was
+///  opened with.
 typedef struct
 {
     VRegHiveOpenKeyFunction* OpenKey;
@@ -1132,25 +1122,23 @@ VREG_DECL int WINAPI VReg_CompareNames(
     _In_ LPCWSTR pszRight
 );
 
-/**
- * @brief Tells VReg that the provider's data changed on its own, so the
- *  watches @p dwFilter selects fire as for a write through the hive.
- *
- *  @ref REG_NOTIFY_CHANGE_NAME is for a subkey of @p pKey added or deleted,
- *  @ref REG_NOTIFY_CHANGE_LAST_SET for a value of @p pKey set or deleted. The
- *  watches on @p pKey that the filter selects fire, and so do the subtree
- *  watches on the keys above it; each watch fires once and is gone. A key the
- *  provider deletes on its own is not marked deleted: the provider notifies
- *  its parent, and the key's record answers whatever the provider answers
- *  from then on.
- *
- *  Loads nothing and waits on nothing but the hive's own lock, so the
- *  provider MAY call it from any thread after its change; it MUST NOT call it
- *  from inside a slot, where VReg may hold that lock.
- *
- * @return @ref ERROR_SUCCESS; @ref ERROR_INVALID_PARAMETER when @p dwFilter
- *  holds neither bit; @ref ERROR_KEY_DELETED for a key deleted through VReg.
- */
+/// @brief Tells VReg that the provider's data changed on its own, so the
+///  watches @p dwFilter selects fire as for a write through the hive.
+///
+///  @ref REG_NOTIFY_CHANGE_NAME is for a subkey of @p pKey added or deleted,
+///  @ref REG_NOTIFY_CHANGE_LAST_SET for a value of @p pKey set or deleted. The
+///  watches on @p pKey that the filter selects fire, and so do the subtree
+///  watches on the keys above it; each watch fires once and is gone. A key the
+///  provider deletes on its own is not marked deleted: the provider notifies
+///  its parent, and the key's record answers whatever the provider answers
+///  from then on.
+///
+///  Loads nothing and waits on nothing but the hive's own lock, so the
+///  provider MAY call it from any thread after its change; it MUST NOT call it
+///  from inside a slot, where VReg may hold that lock.
+///
+/// @return @ref ERROR_SUCCESS; @ref ERROR_INVALID_PARAMETER when @p dwFilter
+///  holds neither bit; @ref ERROR_KEY_DELETED for a key deleted through VReg.
 VREG_DECL LSTATUS WINAPI VRegHive_NotifyChange(
     _In_ VRegHive* pHive,
     _In_ VRegHiveKey* pKey,
@@ -1179,29 +1167,27 @@ VREG_DECL LSTATUS WINAPI VReg_CreateNative(
 // The virtual registry
 // ==========================================================================
 
-/**
- * @brief A namespace of hives mounted at registry paths over an optional base
- *  registry.
- *
- *  A call lands in a hive when it passes a virtual handle of a mounted hive,
- *  or a predefined root plus a path at or below a mount point. Everything
- *  else goes to the base registry; with no base it answers
- *  @ref ERROR_FILE_NOT_FOUND (or @ref ERROR_INVALID_HANDLE for a handle that
- *  was never valid).
- *
- *  With a base, a call on a real key handle whose subkey path names a mount
- *  point's last component is resolved by the key's native path
- *  (@ref NtQueryKey), so a handle opened above a mount reaches it. Only
- *  mounts below @ref HKEY_LOCAL_MACHINE, @ref HKEY_USERS and
- *  @ref HKEY_CURRENT_USER have a native path.
- *
- *  The virtual registry owns the caller-buffer rules (sizes in characters or
- *  bytes, terminators, @ref ERROR_MORE_DATA) for every hive.
- *
- *  @p pBase answers everything outside the mounts; null for a registry held
- *  entirely in memory. Creating, mounting and resolving a path load no
- *  module. Freed with @ref VReg_Destroy.
- */
+/// @brief A namespace of hives mounted at registry paths over an optional base
+///  registry.
+///
+///  A call lands in a hive when it passes a virtual handle of a mounted hive,
+///  or a predefined root plus a path at or below a mount point. Everything
+///  else goes to the base registry; with no base it answers
+///  @ref ERROR_FILE_NOT_FOUND (or @ref ERROR_INVALID_HANDLE for a handle that
+///  was never valid).
+///
+///  With a base, a call on a real key handle whose subkey path names a mount
+///  point's last component is resolved by the key's native path
+///  (@ref NtQueryKey), so a handle opened above a mount reaches it. Only
+///  mounts below @ref HKEY_LOCAL_MACHINE, @ref HKEY_USERS and
+///  @ref HKEY_CURRENT_USER have a native path.
+///
+///  The virtual registry owns the caller-buffer rules (sizes in characters or
+///  bytes, terminators, @ref ERROR_MORE_DATA) for every hive.
+///
+///  @p pBase answers everything outside the mounts; null for a registry held
+///  entirely in memory. Creating, mounting and resolving a path load no
+///  module. Freed with @ref VReg_Destroy.
 VREG_DECL LSTATUS WINAPI VReg_CreateVirtual(
     _In_opt_ VReg* pBase,
     _Outptr_ VReg** ppRegistry
@@ -1303,23 +1289,21 @@ typedef struct
     LPCSTR pszMessage;
 } VRegParseError;
 
-/**
- * @brief Parses a whole file into a new script.
- *
- *  The encoding is taken from a BOM (UTF-16LE, UTF-8); without one, a
- *  `REGEDIT4` header means @ref CP_ACP and anything else UTF-8. `[path]`
- *  creates a key and `[-path]` deletes it with its subtree, the root by full
- *  name or as `HKLM`, `HKCU`, `HKCR`, `HKU` or `HKCC`; `"name"=` and `@=` set
- *  a value as a string with `\\` and `\"` escapes, `dword:`, `hex:` or
- *  `hex(n):` for any type, and `=-` deletes it; trailing-backslash
- *  continuations, `;` comments and blank lines are accepted. The script is
- *  only created when the whole file parses, and is freed with
- *  @ref VRegScript_Destroy.
- *
- * @return @ref ERROR_SUCCESS, @ref ERROR_INVALID_DATA on a syntax or encoding
- *  error (described by @p pError, which MAY be null and is zeroed for any
- *  other outcome), or @ref ERROR_OUTOFMEMORY.
- */
+/// @brief Parses a whole file into a new script.
+///
+///  The encoding is taken from a BOM (UTF-16LE, UTF-8); without one, a
+///  `REGEDIT4` header means @ref CP_ACP and anything else UTF-8. `[path]`
+///  creates a key and `[-path]` deletes it with its subtree, the root by full
+///  name or as `HKLM`, `HKCU`, `HKCR`, `HKU` or `HKCC`; `"name"=` and `@=` set
+///  a value as a string with `\\` and `\"` escapes, `dword:`, `hex:` or
+///  `hex(n):` for any type, and `=-` deletes it; trailing-backslash
+///  continuations, `;` comments and blank lines are accepted. The script is
+///  only created when the whole file parses, and is freed with
+///  @ref VRegScript_Destroy.
+///
+/// @return @ref ERROR_SUCCESS, @ref ERROR_INVALID_DATA on a syntax or encoding
+///  error (described by @p pError, which MAY be null and is zeroed for any
+///  other outcome), or @ref ERROR_OUTOFMEMORY.
 VREG_DECL LSTATUS WINAPI VRegScript_Parse(
     _In_reads_bytes_(cbFile) const void* pFile,
     _In_ SIZE_T cbFile,
@@ -1351,19 +1335,17 @@ VREG_DECL _Ret_notnull_ const VRegOperation* WINAPI VRegScript_GetOperations(
 /// `reg import` do, instead of stopping at the first that fails.
 #define VREG_APPLY_CONTINUE_ON_ERROR ((DWORD)0x1)
 
-/**
- * @brief Performs @p cOperations operations through @p pRegistry, in order.
- *
- *  Stops at the first operation that fails, stores its index in
- *  @p pFailedIndex (MAY be null) and returns its status; earlier operations
- *  stay applied, and nothing is rolled back. With
- *  @ref VREG_APPLY_CONTINUE_ON_ERROR in @p dwFlags the later operations run
- *  too, and the first failure is still the one stored and returned. Deleting
- *  a key or value that does not exist is not a failure. An operation that
- *  would delete a whole root (a key deletion with an empty path) answers
- *  @ref ERROR_INVALID_PARAMETER, as does a flag that is not defined, before
- *  anything is applied.
- */
+/// @brief Performs @p cOperations operations through @p pRegistry, in order.
+///
+///  Stops at the first operation that fails, stores its index in
+///  @p pFailedIndex (MAY be null) and returns its status; earlier operations
+///  stay applied, and nothing is rolled back. With
+///  @ref VREG_APPLY_CONTINUE_ON_ERROR in @p dwFlags the later operations run
+///  too, and the first failure is still the one stored and returned. Deleting
+///  a key or value that does not exist is not a failure. An operation that
+///  would delete a whole root (a key deletion with an empty path) answers
+///  @ref ERROR_INVALID_PARAMETER, as does a flag that is not defined, before
+///  anything is applied.
 _Success_(return == ERROR_SUCCESS)
 VREG_DECL LSTATUS WINAPI VReg_ApplyOperations(
     _In_ VReg* pRegistry,
@@ -1373,19 +1355,17 @@ VREG_DECL LSTATUS WINAPI VReg_ApplyOperations(
     _Pre_maybenull_ _Pre_writable_size_(1) SIZE_T* pFailedIndex
 );
 
-/**
- * @brief A script that recreates the key @p pszPath below the predefined root
- *  @p hRoot and everything below it: each key, then its values, then its
- *  subkeys, keys and values sorted ordinal case-insensitive.
- *
- *  Written and applied, the script reproduces every value's bytes. Freed with
- *  @ref VRegScript_Destroy.
- *
- * @return @ref ERROR_INVALID_HANDLE when @p hRoot is not a root a `.reg` file
- *  can name, @ref ERROR_CANTREAD for a key nested deeper than the registry
- *  allows (a cycle through some other registry), otherwise the status of the
- *  registry calls.
- */
+/// @brief A script that recreates the key @p pszPath below the predefined root
+///  @p hRoot and everything below it: each key, then its values, then its
+///  subkeys, keys and values sorted ordinal case-insensitive.
+///
+///  Written and applied, the script reproduces every value's bytes. Freed with
+///  @ref VRegScript_Destroy.
+///
+/// @return @ref ERROR_INVALID_HANDLE when @p hRoot is not a root a `.reg` file
+///  can name, @ref ERROR_CANTREAD for a key nested deeper than the registry
+///  allows (a cycle through some other registry), otherwise the status of the
+///  registry calls.
 VREG_DECL LSTATUS WINAPI VRegScript_CreateSnapshot(
     _In_ VReg* pRegistry,
     _In_ HKEY hRoot,
@@ -1393,26 +1373,24 @@ VREG_DECL LSTATUS WINAPI VRegScript_CreateSnapshot(
     _Outptr_ VRegScript** ppScript
 );
 
-/**
- * @brief A script of what @p pHive holds itself, which reproduces the hive's
- *  merged view when applied over the same lower registry (or, for a hive
- *  held entirely in memory, its contents).
- *
- *  @p hRoot and @p pszPath name where the hive is mounted: the operations'
- *  paths are that prefix plus the key's path in the hive. The hive's own
- *  keys are created with their own values, a deleted lower value is a value
- *  deletion, a deleted lower key a key deletion, and a key that hides its
- *  lower counterpart a deletion followed by its creation and contents. A key
- *  that only shows a lower key through is left out. Order is that of
- *  @ref VRegScript_CreateSnapshot. A tombstone with no lower counterpart is
- *  kept, and does nothing when applied. Freed with @ref VRegScript_Destroy.
- *
- * @return As @ref VRegScript_CreateSnapshot, except that the hive is read
- *  instead of a registry, and that @ref ERROR_NOT_SUPPORTED answers a hive
- *  whose root is deleted or hides its lower counterpart while @p pszPath is
- *  null or empty: the operation would delete a predefined root, which a
- *  script cannot hold. No script is created.
- */
+/// @brief A script of what @p pHive holds itself, which reproduces the hive's
+///  merged view when applied over the same lower registry (or, for a hive
+///  held entirely in memory, its contents).
+///
+///  @p hRoot and @p pszPath name where the hive is mounted: the operations'
+///  paths are that prefix plus the key's path in the hive. The hive's own
+///  keys are created with their own values, a deleted lower value is a value
+///  deletion, a deleted lower key a key deletion, and a key that hides its
+///  lower counterpart a deletion followed by its creation and contents. A key
+///  that only shows a lower key through is left out. Order is that of
+///  @ref VRegScript_CreateSnapshot. A tombstone with no lower counterpart is
+///  kept, and does nothing when applied. Freed with @ref VRegScript_Destroy.
+///
+/// @return As @ref VRegScript_CreateSnapshot, except that the hive is read
+///  instead of a registry, and that @ref ERROR_NOT_SUPPORTED answers a hive
+///  whose root is deleted or hides its lower counterpart while @p pszPath is
+///  null or empty: the operation would delete a predefined root, which a
+///  script cannot hold. No script is created.
 VREG_DECL LSTATUS WINAPI VRegScript_CreateDelta(
     _In_ VRegHive* pHive,
     _In_ HKEY hRoot,
@@ -1420,20 +1398,18 @@ VREG_DECL LSTATUS WINAPI VRegScript_CreateDelta(
     _Outptr_ VRegScript** ppScript
 );
 
-/**
- * @brief Lays @p cOperations operations out as a regedit-style file in
- *  @p format, into bytes freed with @ref VReg_Free.
- *
- *  Each key operation is a `[key]` or `[-key]` line and each value operation
- *  a `"name"=...` line under it; a value whose key differs from the last key
- *  line gets a `[key]` line of its own first, so operations built by hand
- *  without key operations lay out as a file that sets those values.
- *
- * @return @ref ERROR_NO_UNICODE_TRANSLATION when @p format cannot represent a
- *  name or string, @ref ERROR_INVALID_NAME for a name that holds a line break
- *  (no format can write one), @ref ERROR_INVALID_HANDLE for a root a `.reg`
- *  file cannot name.
- */
+/// @brief Lays @p cOperations operations out as a regedit-style file in
+///  @p format, into bytes freed with @ref VReg_Free.
+///
+///  Each key operation is a `[key]` or `[-key]` line and each value operation
+///  a `"name"=...` line under it; a value whose key differs from the last key
+///  line gets a `[key]` line of its own first, so operations built by hand
+///  without key operations lay out as a file that sets those values.
+///
+/// @return @ref ERROR_NO_UNICODE_TRANSLATION when @p format cannot represent a
+///  name or string, @ref ERROR_INVALID_NAME for a name that holds a line break
+///  (no format can write one), @ref ERROR_INVALID_HANDLE for a root a `.reg`
+///  file cannot name.
 VREG_DECL LSTATUS WINAPI VRegScript_Write(
     _In_reads_(cOperations) const VRegOperation* pOperations,
     _In_ SIZE_T cOperations,
@@ -1912,23 +1888,21 @@ VREG_STATIC_ASSERT(sizeof(VRegInternalHandleSpaceShared) == 2 * sizeof(LONG));
 
 typedef struct VRegInternalHandleDirectory VRegInternalHandleDirectory;
 
-/**
- * @brief Hands out virtual handles from the process-wide namespace that every
- *  copy of VReg in the process shares.
- *
- *  Each statically linked copy has its own instance, and all instances in a
- *  process meet in one named section that holds the next free block of
- *  handle values. An instance reserves whole blocks from it and hands out
- *  values from its own blocks without further shared traffic; it owns a
- *  handle exactly when the handle falls in one of its blocks.
- *
- *  Initialized by @ref VRegInternalHandleSpace_Init; the members are private to
- *  the implementation's "The handle space" section.
- *
- * @note The section is mapped once and never unmapped or closed, so an
- *  instance must outlive every handle it issued: in practice, it is never
- *  destroyed (@ref VReg_InternalGetProcessHandleSpace).
- */
+/// @brief Hands out virtual handles from the process-wide namespace that every
+///  copy of VReg in the process shares.
+///
+///  Each statically linked copy has its own instance, and all instances in a
+///  process meet in one named section that holds the next free block of
+///  handle values. An instance reserves whole blocks from it and hands out
+///  values from its own blocks without further shared traffic; it owns a
+///  handle exactly when the handle falls in one of its blocks.
+///
+///  Initialized by @ref VRegInternalHandleSpace_Init; the members are private to
+///  the implementation's "The handle space" section.
+///
+/// @note The section is mapped once and never unmapped or closed, so an
+///  instance must outlive every handle it issued: in practice, it is never
+///  destroyed (@ref VReg_InternalGetProcessHandleSpace).
 typedef struct
 {
     VRegInternalHandleSpaceShared* pShared;
@@ -2127,32 +2101,28 @@ VREG_INTERNAL_DECL LSTATUS VRegHive_InternalSetValue(
     DWORD cbData
 );
 
-/**
- * @brief Registers a one-shot change notification on @p pNode.
- *
- *  @p hEvent is signaled once, by the first write that @p dwFilter selects
- *  (@ref REG_NOTIFY_CHANGE_NAME for a subkey added or deleted,
- *  @ref REG_NOTIFY_CHANGE_LAST_SET for a value set or deleted; the other
- *  bits never fire) on the key, or below it when @p bWatchSubtree.
- *  Deleting a watched key fires its watches too. The hive duplicates
- *  @p hEvent, so the caller MAY close its own handle. A frozen hive
- *  accepts the registration and never signals. Answers
- *  @ref ERROR_KEY_DELETED for a deleted key, or the error of duplicating
- *  @p hEvent.
- *
- * @note Only writes made through the hive are seen; a change in the
- *  registry below an overlay hive is not.
- */
-/**
- * @brief Lists the hive's own layer: what it holds itself, as opposed to
- *  what shows through from below.
- *
- *  This is the seam `.reg` export reads. A key comes before its values,
- *  which come before its subkeys, which are in name order; values are in
- *  creation order. A key that only stands for a lower key, with no values
- *  of its own, is not listed; the hive's own keys below it are. Reads only
- *  the hive, never the lower registry.
- */
+/// @brief Registers a one-shot change notification on @p pNode.
+///
+///  @p hEvent is signaled once, by the first write that @p dwFilter selects
+///  (@ref REG_NOTIFY_CHANGE_NAME for a subkey added or deleted,
+///  @ref REG_NOTIFY_CHANGE_LAST_SET for a value set or deleted; the other
+///  bits never fire) on the key, or below it when @p bWatchSubtree.
+///  Deleting a watched key fires its watches too. The hive duplicates
+///  @p hEvent, so the caller MAY close its own handle. A frozen hive
+///  accepts the registration and never signals. Answers
+///  @ref ERROR_KEY_DELETED for a deleted key, or the error of duplicating
+///  @p hEvent.
+///
+/// @note Only writes made through the hive are seen; a change in the
+///  registry below an overlay hive is not.
+/// @brief Lists the hive's own layer: what it holds itself, as opposed to
+///  what shows through from below.
+///
+///  This is the seam `.reg` export reads. A key comes before its values,
+///  which come before its subkeys, which are in name order; values are in
+///  creation order. A key that only stands for a lower key, with no values
+///  of its own, is not listed; the hive's own keys below it are. Reads only
+///  the hive, never the lower registry.
 // ==========================================================================
 // Registries
 // ==========================================================================
@@ -15208,22 +15178,20 @@ static BOOL VReg_InternalIsUntransacted(
     return !pExtendedParemeter && (!hTransaction || hTransaction == INVALID_HANDLE_VALUE);
 }
 
-/**
- * @brief @ref ERROR_NOT_SUPPORTED when @p hKey plus @p pszSubKey lies in a
- *  mount of the hooked registry, as a transacted call on a virtual handle
- *  answers; @ref ERROR_SUCCESS to pass the call on.
- *
- *  The registry is asked only through its `Reg*` slots, so a wrapper in front
- *  of it needs nothing more: each prefix of the path, the key itself
- *  included, is opened, and the path is in a mount when one of them opens as
- *  a virtual handle of this copy. Every prefix is tried because the real keys
- *  above a mount point need not exist.
- *
- *  It probes by opening rather than through a query beside the `Reg*` slots,
- *  which a wrapper would have to forward and which would add a slot outside
- *  the Win32 family. Opening is read-only, and a deprecated API can afford
- *  one open per path component.
- */
+/// @brief @ref ERROR_NOT_SUPPORTED when @p hKey plus @p pszSubKey lies in a
+///  mount of the hooked registry, as a transacted call on a virtual handle
+///  answers; @ref ERROR_SUCCESS to pass the call on.
+///
+///  The registry is asked only through its `Reg*` slots, so a wrapper in front
+///  of it needs nothing more: each prefix of the path, the key itself
+///  included, is opened, and the path is in a mount when one of them opens as
+///  a virtual handle of this copy. Every prefix is tried because the real keys
+///  above a mount point need not exist.
+///
+///  It probes by opening rather than through a query beside the `Reg*` slots,
+///  which a wrapper would have to forward and which would add a slot outside
+///  the Win32 family. Opening is read-only, and a deprecated API can afford
+///  one open per path component.
 static LSTATUS VRegHooks_InternalRefuseMountPathW(
     _In_ const HKEY hKey,
     _In_opt_ const LPCWSTR pszSubKey,
@@ -15792,15 +15760,13 @@ VREG_INTERNAL_REFUSED_HOOK(
 
 // --- The thunks ---
 
-/**
- * @brief The thunks every hook detours to: `jmp [slot]`, in memory outside
- *  any module image so they outlive the module that made them.
- *
- *  Code and slots sit on two pages of one allocation, so an x64 or ARM64
- *  thunk can reach its slot PC-relative. Once the hooks are live, the
- *  memory is leaked on purpose: another hooker's trampoline may jump into a
- *  thunk after this module is gone.
- */
+/// @brief The thunks every hook detours to: `jmp [slot]`, in memory outside
+///  any module image so they outlive the module that made them.
+///
+///  Code and slots sit on two pages of one allocation, so an x64 or ARM64
+///  thunk can reach its slot PC-relative. Once the hooks are live, the
+///  memory is leaked on purpose: another hooker's trampoline may jump into a
+///  thunk after this module is gone.
 #define VREG_INTERNAL_THUNK_CODE_SIZE ((SIZE_T)16)
 #define VREG_INTERNAL_THUNK_PAGE_SIZE ((SIZE_T)4096)
 #define VREG_INTERNAL_THUNK_CAPACITY (VREG_INTERNAL_THUNK_PAGE_SIZE / VREG_INTERNAL_THUNK_CODE_SIZE)
