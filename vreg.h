@@ -2101,28 +2101,6 @@ VREG_INTERNAL_DECL LSTATUS VRegHive_InternalSetValue(
     DWORD cbData
 );
 
-/// @brief Registers a one-shot change notification on @p pNode.
-///
-///  @p hEvent is signaled once, by the first write that @p dwFilter selects
-///  (@ref REG_NOTIFY_CHANGE_NAME for a subkey added or deleted,
-///  @ref REG_NOTIFY_CHANGE_LAST_SET for a value set or deleted; the other
-///  bits never fire) on the key, or below it when @p bWatchSubtree.
-///  Deleting a watched key fires its watches too. The hive duplicates
-///  @p hEvent, so the caller MAY close its own handle. A frozen hive
-///  accepts the registration and never signals. Answers
-///  @ref ERROR_KEY_DELETED for a deleted key, or the error of duplicating
-///  @p hEvent.
-///
-/// @note Only writes made through the hive are seen; a change in the
-///  registry below an overlay hive is not.
-/// @brief Lists the hive's own layer: what it holds itself, as opposed to
-///  what shows through from below.
-///
-///  This is the seam `.reg` export reads. A key comes before its values,
-///  which come before its subkeys, which are in name order; values are in
-///  creation order. A key that only stands for a lower key, with no values
-///  of its own, is not listed; the hive's own keys below it are. Reads only
-///  the hive, never the lower registry.
 // ==========================================================================
 // Registries
 // ==========================================================================
@@ -8494,6 +8472,14 @@ static LSTATUS VRegHive_InternalListUpper(
     return ERROR_SUCCESS;
 }
 
+/// @brief Lists the hive's own layer: what it holds itself, as opposed to
+///  what shows through from below.
+///
+///  This is the seam `.reg` export reads. A key comes before its values,
+///  which come before its subkeys, which are in name order; values are in
+///  creation order. A key that only stands for a lower key, with no values
+///  of its own, is not listed; the hive's own keys below it are. Reads only
+///  the hive, never the lower registry.
 static LSTATUS VRegHive_InternalSnapshotUpper(
     _In_ VRegHive* const pHive,
     _In_ VRegInternalUpperVisitFunction* const pfnVisit,
@@ -8523,6 +8509,21 @@ static LSTATUS VRegHive_InternalFlushKey(
     return ERROR_SUCCESS;
 }
 
+/// @brief Registers a one-shot change notification on @p pNode.
+///
+///  @p hEvent is signaled once, by the first write that @p dwFilter selects
+///  (@ref REG_NOTIFY_CHANGE_NAME for a subkey added or deleted,
+///  @ref REG_NOTIFY_CHANGE_LAST_SET for a value set or deleted; the other
+///  bits never fire) on the key, or below it when @p bWatchSubtree.
+///  Deleting a watched key fires its watches too. The hive duplicates
+///  @p hEvent, so the caller MAY close its own handle. A frozen built-in
+///  hive accepts the registration and never signals. Answers
+///  @ref ERROR_KEY_DELETED for a deleted key, or the error of duplicating
+///  @p hEvent.
+///
+/// @note Only writes made through the hive and changes announced with
+///  @ref VRegHive_NotifyChange are seen; a change in the registry below an
+///  overlay hive is not.
 static LSTATUS VRegHive_InternalWatch(
     _In_ VRegHive* const pHive,
     _In_ VRegHiveInternalNode* const pNode,
