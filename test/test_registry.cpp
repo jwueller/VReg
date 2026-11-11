@@ -146,7 +146,7 @@ LSTATUS WINAPI GrowingGetValueW(
 OwnedRegistry GrowingRegistry()
 {
     OwnedRegistry registry = MakeNativeRegistry();
-    VRegInternalNativeFunctions* const pFunctions = VReg_InternalGetNativeFunctions(registry);
+    VRegInternalNativeFunctions* const pFunctions = &static_cast<VReg*>(registry)->implementation.native;
     pFunctions->RegQueryValueExW = &GrowingQueryValueExW;
     pFunctions->RegGetValueW = &GrowingGetValueW;
     return registry;
@@ -690,7 +690,7 @@ LSTATUS WINAPI StubLoadMUIStringW(
 TEST_CASE("LoadMUIString grows its buffer to the size it is told")
 {
     OwnedRegistry registry = MakeNativeRegistry();
-    VReg_InternalGetNativeFunctions(registry)->RegLoadMUIStringW = &StubLoadMUIStringW;
+    static_cast<VReg*>(registry)->implementation.native.RegLoadMUIStringW = &StubLoadMUIStringW;
 
     std::wstring text;
     CHECK(

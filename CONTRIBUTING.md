@@ -7,8 +7,8 @@ declarations, private declarations, the implementation and the hooks'
 implementation, each split into titled sections. The comment that opens an
 implementation section owns the design of what it holds: the mechanism and
 why it was chosen over the alternatives. The CMake targets compile the file
-from the one-line sources under `src/`; the private declarations show under
-`VREG_INTERNAL` for the tests and for the hooks built apart. What is missing
+from the one-line sources under `src/`; they and the tests define
+`VREG_INTERNAL`, which links the private functions they share. What is missing
 and where VReg knowingly differs from native Windows are in the
 [README](./README.md).
 

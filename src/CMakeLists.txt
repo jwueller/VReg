@@ -14,6 +14,11 @@ target_link_libraries(VReg_VReg PUBLIC
     advapi32
 )
 
+# The tests and the hooks compiled apart link the private functions.
+target_compile_definitions(VReg_VReg PRIVATE
+    VREG_INTERNAL
+)
+
 if(VREG_WITH_DETOURS)
     add_subdirectory(detours)
 endif()

@@ -96,7 +96,7 @@ TEST_CASE("Forwarded exports are not resolved")
 TEST_CASE("Every native registry function resolves")
 {
     VRegTest::OwnedRegistry registry = VRegTest::MakeNativeRegistry();
-    const VRegInternalNativeFunctions functions = *VReg_InternalGetNativeFunctions(registry);
+    const VRegInternalNativeFunctions functions = static_cast<VReg*>(registry)->implementation.native;
     const auto pointers =
         std::bit_cast<std::array<void*, sizeof(functions) / sizeof(void*)>>(
             functions

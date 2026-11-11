@@ -18,7 +18,8 @@
 ///  The file holds, in order: the public declarations, the hooks'
 ///  declarations, the private declarations, the implementation, and the
 ///  hooks' implementation. Names starting `VRegInternal` or `VREG_INTERNAL_`
-///  are private.
+///  are private, and `static` in a translation unit that does not define
+///  `VREG_INTERNAL`.
 ///
 /// @copyright MIT License.
 /// @verbatim
@@ -74,7 +75,8 @@ extern "C" {
 // Linkage
 // ==========================================================================
 
-/// What every VReg declaration carries: the linkage of the functions.
+/// The linkage of the public functions, the only ones a consumer of the single
+/// header gets with external linkage.
 /// Defining @ref VREG_STATIC wherever the header is included (the
 /// implementation too) makes every function `static`, so a module can
 /// hold a private copy beside another module's; two copies in one module
@@ -1490,15 +1492,7 @@ VREG_DECL void WINAPI VRegHooks_Neutralize(void);
 
 #endif // VREG_H_INCLUDED
 
-/// The private declarations come with the implementation. @ref VREG_INTERNAL
-/// shows them alone, for code built beside the library that reaches into it:
-/// its own tests, and the hooks compiled apart from the rest
-/// (@ref VREG_INTERNAL_HOOKS_IMPLEMENTATION, as the CMake build's
-/// `VReg::Detours` does).
 #ifdef VREG_IMPLEMENTATION
-#ifndef VREG_INTERNAL
-#define VREG_INTERNAL
-#endif
 #ifdef VREG_WITH_DETOURS
 #ifndef VREG_INTERNAL_HOOKS_IMPLEMENTATION
 #define VREG_INTERNAL_HOOKS_IMPLEMENTATION
@@ -1506,15 +1500,24 @@ VREG_DECL void WINAPI VRegHooks_Neutralize(void);
 #endif
 #endif
 
-#ifdef VREG_INTERNAL_HOOKS_IMPLEMENTATION
-#ifndef VREG_INTERNAL
-#define VREG_INTERNAL
-#endif
-#endif
-
-#ifdef VREG_INTERNAL
+/// The private declarations come with the implementation and the hooks'
+/// implementation. Code built beside the library that reaches into it (its
+/// tests, the hooks compiled apart from the rest) defines @ref VREG_INTERNAL
+/// to see them and to link the functions another translation unit calls,
+/// and so does the library's own build. A consumer of the single header
+/// defines nothing and gets them all `static`.
+#if defined(VREG_INTERNAL) || defined(VREG_IMPLEMENTATION) || defined(VREG_INTERNAL_HOOKS_IMPLEMENTATION)
 #ifndef VREG_INTERNAL_INCLUDED
 #define VREG_INTERNAL_INCLUDED
+
+/// The linkage of the private functions another translation unit calls:
+/// `extern` under @ref VREG_INTERNAL, `static` otherwise and always under
+/// @ref VREG_STATIC.
+#if defined(VREG_INTERNAL) && !defined(VREG_STATIC)
+#define VREG_INTERNAL_DECL extern
+#else
+#define VREG_INTERNAL_DECL static
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -1547,13 +1550,11 @@ extern "C" {
 /// Breaks into an attached debugger in a `_DEBUG` build; nothing otherwise.
 #ifndef VREG_ASSERT
 #ifdef _DEBUG
-#define VREG_ASSERT(x) ((x) ? (void)0 : VReg_InternalAssertFailed())
+#define VREG_ASSERT(x) ((x) ? (void)0 : IsDebuggerPresent() ? __debugbreak() : (void)0)
 #else
 #define VREG_ASSERT(x) ((void)0)
 #endif
 #endif
-
-VREG_DECL void VReg_InternalAssertFailed(void);
 
 // ==========================================================================
 // Buffers
@@ -1571,7 +1572,7 @@ typedef struct
     SIZE_T cch;
 } VRegInternalWStringView;
 
-VREG_DECL VRegInternalWStringView VReg_InternalViewFromText(
+VREG_INTERNAL_DECL VRegInternalWStringView VReg_InternalViewFromText(
     _In_opt_ LPCWSTR psz
 );
 
@@ -1582,19 +1583,19 @@ typedef struct
     _Field_size_opt_(cbCapacity) BYTE* pb;
 } VRegInternalBuffer;
 
-VREG_DECL BOOL VRegInternalBuffer_Assign(
+VREG_INTERNAL_DECL BOOL VRegInternalBuffer_Assign(
     _Inout_ VRegInternalBuffer* pBuffer,
     _In_reads_bytes_opt_(cb) const void* p,
     SIZE_T cb
 );
 
-VREG_DECL BOOL VRegInternalBuffer_Append(
+VREG_INTERNAL_DECL BOOL VRegInternalBuffer_Append(
     _Inout_ VRegInternalBuffer* pBuffer,
     _In_reads_bytes_(cb) const void* p,
     SIZE_T cb
 );
 
-VREG_DECL void VRegInternalBuffer_Free(
+VREG_INTERNAL_DECL void VRegInternalBuffer_Free(
     _Inout_ VRegInternalBuffer* pBuffer
 );
 
@@ -1608,36 +1609,36 @@ typedef struct
 } VRegInternalWString;
 
 /// The text, `L""` for an unallocated string.
-VREG_DECL _Ret_notnull_ LPCWSTR VRegInternalWString_GetText(
+VREG_INTERNAL_DECL _Ret_notnull_ LPCWSTR VRegInternalWString_GetText(
     _In_ const VRegInternalWString* pString
 );
 
 /// Room for @p cch characters and the terminator.
-VREG_DECL BOOL VRegInternalWString_Reserve(
+VREG_INTERNAL_DECL BOOL VRegInternalWString_Reserve(
     _Inout_ VRegInternalWString* pString,
     SIZE_T cch
 );
 
 /// Sets the length to @p cch, growing if needed, and terminates; new
 /// characters are indeterminate.
-VREG_DECL BOOL VRegInternalWString_Resize(
+VREG_INTERNAL_DECL BOOL VRegInternalWString_Resize(
     _Inout_ VRegInternalWString* pString,
     SIZE_T cch
 );
 
-VREG_DECL BOOL VRegInternalWString_Assign(
+VREG_INTERNAL_DECL BOOL VRegInternalWString_Assign(
     _Inout_ VRegInternalWString* pString,
     _In_reads_opt_(cch) LPCWCH pch,
     SIZE_T cch
 );
 
-VREG_DECL BOOL VRegInternalWString_Append(
+VREG_INTERNAL_DECL BOOL VRegInternalWString_Append(
     _Inout_ VRegInternalWString* pString,
     _In_reads_(cch) LPCWCH pch,
     SIZE_T cch
 );
 
-VREG_DECL void VRegInternalWString_Free(
+VREG_INTERNAL_DECL void VRegInternalWString_Free(
     _Inout_ VRegInternalWString* pString
 );
 
@@ -1652,19 +1653,19 @@ typedef struct
 /// The element at @p index of an array of @p T, as an lvalue.
 #define VREG_INTERNAL_AT(pArray, T, index) (((T*)(pArray)->p)[index])
 
-VREG_DECL BOOL VRegInternalArray_Reserve(
+VREG_INTERNAL_DECL BOOL VRegInternalArray_Reserve(
     _Inout_ VRegInternalArray* pArray,
     SIZE_T cbElement,
     SIZE_T capacity
 );
 
-VREG_DECL BOOL VRegInternalArray_Append(
+VREG_INTERNAL_DECL BOOL VRegInternalArray_Append(
     _Inout_ VRegInternalArray* pArray,
     SIZE_T cbElement,
     _In_reads_bytes_(cbElement) const void* pElement
 );
 
-VREG_DECL void VRegInternalArray_Free(
+VREG_INTERNAL_DECL void VRegInternalArray_Free(
     _Inout_ VRegInternalArray* pArray
 );
 
@@ -1678,7 +1679,7 @@ VREG_DECL void VRegInternalArray_Free(
 /// @p psz is, and any other argument, an empty one included, leaves an
 /// allocated, terminated string. Answers @ref ERROR_OUTOFMEMORY or
 /// @ref ERROR_NO_UNICODE_TRANSLATION as @ref VReg_InternalWideFromAnsi does.
-VREG_DECL LSTATUS VReg_InternalWideFromOptionalAnsi(
+VREG_INTERNAL_DECL LSTATUS VReg_InternalWideFromOptionalAnsi(
     _In_opt_ LPCSTR psz,
     _Out_ VRegInternalWString* pText
 );
@@ -1764,7 +1765,7 @@ struct VRegHiveInternalNode
 /// The entry point @p hModule exports as @p pszName, read from its export
 /// table; null when @p hModule is null, the name is not exported, or the
 /// export forwards to another module.
-VREG_DECL _Ret_maybenull_ void* VReg_InternalFindExport(
+VREG_INTERNAL_DECL _Ret_maybenull_ void* VReg_InternalFindExport(
     _In_opt_ HMODULE hModule,
     _In_ LPCSTR pszName
 );
@@ -1772,7 +1773,7 @@ VREG_DECL _Ret_maybenull_ void* VReg_InternalFindExport(
 /// A registry function, from `KernelBase.dll` or else `advapi32.dll`, which
 /// alone exports the pre-`Ex` forms; null when neither exports it. Never
 /// loads a module.
-VREG_DECL _Ret_maybenull_ void* VReg_InternalFindRegistryExport(
+VREG_INTERNAL_DECL _Ret_maybenull_ void* VReg_InternalFindRegistryExport(
     _In_ LPCSTR pszName
 );
 
@@ -1789,7 +1790,7 @@ VREG_DECL _Ret_maybenull_ void* VReg_InternalFindRegistryExport(
 
 /// The size to retry with: the one the call asked for, or more than before if
 /// it asked for no more than it was given.
-VREG_DECL DWORD VReg_InternalGrow(DWORD cbOld, DWORD cbRequired);
+VREG_INTERNAL_DECL DWORD VReg_InternalGrow(DWORD cbOld, DWORD cbRequired);
 
 // ==========================================================================
 // RRF_* filters
@@ -1831,7 +1832,7 @@ static_assert(VREG_INTERNAL_RRF_WOW6432_SUBKEY == RRF_SUBKEY_WOW6432KEY);
 /// @ref HKEY_CURRENT_USER_LOCAL_SETTINGS: `winreg.h` builds them from a
 /// negative @ref LONG, sign-extended on x64, where neither a kernel handle nor
 /// a virtual one ever lies.
-VREG_DECL BOOL VReg_InternalIsPredefinedHKey(
+VREG_INTERNAL_DECL BOOL VReg_InternalIsPredefinedHKey(
     _In_opt_ HKEY hKey
 );
 
@@ -1892,58 +1893,54 @@ typedef struct
 
 /// Opens or creates the section @p pszName. A failure leaves the instance
 /// unusable: @ref VRegInternalHandleSpace_Allocate then answers null.
-VREG_DECL void VRegInternalHandleSpace_Init(
+VREG_INTERNAL_DECL void VRegInternalHandleSpace_Init(
     _Out_ VRegInternalHandleSpace* pSpace,
     _In_ LPCWSTR pszName
 );
 
 /// This copy's instance over this process's section, created on first use
 /// and never destroyed.
-VREG_DECL _Ret_notnull_ VRegInternalHandleSpace* VReg_InternalGetProcessHandleSpace(
+VREG_INTERNAL_DECL _Ret_notnull_ VRegInternalHandleSpace* VReg_InternalGetProcessHandleSpace(
     void
-);
-
-VREG_DECL BOOL VRegInternalHandleSpace_IsUsable(
-    _In_ const VRegInternalHandleSpace* pSpace
 );
 
 /// A fresh handle owned by @p pSpace and bound to @p pTarget, or null when
 /// the section is unusable, the namespace is exhausted or memory ran out.
-VREG_DECL _Ret_maybenull_ HKEY VRegInternalHandleSpace_Allocate(
+VREG_INTERNAL_DECL _Ret_maybenull_ HKEY VRegInternalHandleSpace_Allocate(
     _Inout_ VRegInternalHandleSpace* pSpace,
     _In_opt_ void* pTarget
 );
 
 /// Whether @p hKey is a virtual handle from one of @p pSpace's blocks.
 /// Lock-free.
-VREG_DECL BOOL VRegInternalHandleSpace_Owns(
+VREG_INTERNAL_DECL BOOL VRegInternalHandleSpace_Owns(
     _In_ const VRegInternalHandleSpace* pSpace,
     _In_opt_ HKEY hKey
 );
 
 /// Unbinds @p hKey from its target. The value is never handed out again;
 /// later lookups answer null.
-VREG_DECL void VRegInternalHandleSpace_Release(
+VREG_INTERNAL_DECL void VRegInternalHandleSpace_Release(
     _Inout_ VRegInternalHandleSpace* pSpace,
     _In_opt_ HKEY hKey
 );
 
 /// The target @p hKey was allocated for; null when @p pSpace does not own
 /// it. Lock-free.
-VREG_DECL _Ret_maybenull_ void* VRegInternalHandleSpace_Find(
+VREG_INTERNAL_DECL _Ret_maybenull_ void* VRegInternalHandleSpace_Find(
     _In_ const VRegInternalHandleSpace* pSpace,
     _In_opt_ HKEY hKey
 );
 
 /// The handle for @p index, counting down from @ref VREG_INTERNAL_VIRTUAL_HKEY_BASE in
 /// odd steps; null when @p index is out of range.
-VREG_DECL _Ret_maybenull_ HKEY VReg_InternalVirtualHKeyFromIndex(
+VREG_INTERNAL_DECL _Ret_maybenull_ HKEY VReg_InternalVirtualHKeyFromIndex(
     UINT_PTR index
 );
 
 /// The inverse of @ref VReg_InternalVirtualHKeyFromIndex; only meaningful when
 /// @ref VReg_IsVirtualHKey holds.
-VREG_DECL UINT_PTR VReg_InternalIndexFromVirtualHKey(
+VREG_INTERNAL_DECL UINT_PTR VReg_InternalIndexFromVirtualHKey(
     _In_opt_ HKEY hKey
 );
 
@@ -1961,7 +1958,7 @@ VREG_DECL UINT_PTR VReg_InternalIndexFromVirtualHKey(
 // A string or buffer a function fills is the caller's to free.
 
 /// Whether @ref VRegHive_Freeze made the hive immutable.
-VREG_DECL BOOL VRegHive_InternalIsFrozen(
+VREG_INTERNAL_DECL BOOL VRegHive_InternalIsFrozen(
     _In_ VRegHive* pHive
 );
 
@@ -2055,22 +2052,22 @@ typedef LSTATUS VRegInternalUpperVisitFunction(
     _In_ const VRegHiveInternalUpperRecord* pRecord
 );
 
-VREG_DECL _Ret_notnull_ VRegHiveInternalNode* VRegHive_InternalGetRoot(
+VREG_INTERNAL_DECL _Ret_notnull_ VRegHiveInternalNode* VRegHive_InternalGetRoot(
     _In_ VRegHive* pHive
 );
 
 /// The virtual handle of @p pNode.
-VREG_DECL HKEY VRegHiveInternalNode_GetHandle(
+VREG_INTERNAL_DECL HKEY VRegHiveInternalNode_GetHandle(
     _In_ const VRegHiveInternalNode* pNode
 );
 
 /// The node a virtual handle of this copy of VReg belongs to; null for any
 /// other handle.
-VREG_DECL _Ret_maybenull_ VRegHiveInternalNode* VRegHive_InternalFindNode(
+VREG_INTERNAL_DECL _Ret_maybenull_ VRegHiveInternalNode* VRegHive_InternalFindNode(
     _In_opt_ HKEY hKey
 );
 
-VREG_DECL LSTATUS VRegHive_InternalSetValue(
+VREG_INTERNAL_DECL LSTATUS VRegHive_InternalSetValue(
     _In_ VRegHive* pHive,
     _Inout_ VRegHiveInternalNode* pNode,
     _In_ LPCWSTR pszName,
@@ -2338,14 +2335,6 @@ typedef struct
     );
 } VRegInternalNativeFunctions;
 
-/// The live table of a registry @ref VReg_CreateNative made: once the
-/// hooks are committed it holds the trampolines, and the registry is the one
-/// below them. An entry replaced before anything uses the registry is the
-/// one it calls.
-VREG_DECL _Ret_notnull_ VRegInternalNativeFunctions* VReg_InternalGetNativeFunctions(
-    _In_ VReg* pRegistry
-);
-
 /// A registry: its kind and what the kind needs.
 struct VReg
 {
@@ -2362,8 +2351,10 @@ struct VReg
             void* pvContext;
         } custom;
 
-        /// @ref VREG_INTERNAL_KIND_NATIVE: the live table, see
-        /// @ref VReg_InternalGetNativeFunctions.
+        /// @ref VREG_INTERNAL_KIND_NATIVE: the live table of a registry
+        /// @ref VReg_CreateNative made. Once the hooks are committed it holds
+        /// the trampolines, and the registry is the one below them. An entry
+        /// replaced before anything uses the registry is the one it calls.
         VRegInternalNativeFunctions native;
 
         /// @ref VREG_INTERNAL_KIND_VIRTUAL.
@@ -2419,14 +2410,14 @@ typedef struct
 /// The bytes of @p pText in @p format, with a BOM for Unicode. Answers
 /// @ref ERROR_NO_UNICODE_TRANSLATION when the format's code page cannot hold
 /// it.
-VREG_DECL LSTATUS VRegScript_InternalEncodeFile(
+VREG_INTERNAL_DECL LSTATUS VRegScript_InternalEncodeFile(
     _In_ const VRegInternalWString* pText,
     VRegFormat format,
     _Inout_ VRegInternalBuffer* pFile
 );
 
 /// Writes a whole file; Win32 errors answer as is.
-VREG_DECL LSTATUS VRegScript_InternalWriteWholeFile(
+VREG_INTERNAL_DECL LSTATUS VRegScript_InternalWriteWholeFile(
     _In_ LPCWSTR pszPath,
     _In_reads_bytes_(cbFile) const void* pFile,
     SIZE_T cbFile
@@ -2437,7 +2428,7 @@ VREG_DECL LSTATUS VRegScript_InternalWriteWholeFile(
 #endif
 
 #endif // VREG_INTERNAL_INCLUDED
-#endif // VREG_INTERNAL
+#endif
 
 #ifdef VREG_IMPLEMENTATION
 #ifndef VREG_IMPLEMENTATION_INCLUDED
@@ -2448,12 +2439,6 @@ VREG_DECL LSTATUS VRegScript_InternalWriteWholeFile(
 // ==========================================================================
 // Allocation
 // ==========================================================================
-
-VREG_DECL void VReg_InternalAssertFailed(void)
-{
-    if (IsDebuggerPresent())
-        __debugbreak();
-}
 
 /// Null for @p cb of zero or when memory ran out.
 static _Ret_maybenull_ void* VReg_InternalAlloc(
@@ -2617,7 +2602,7 @@ static LSTATUS VReg_InternalAnsiFromWide(
     return VReg_InternalMultiByteFromWide(CP_ACP, 0, NULL, pch, cch, pText);
 }
 
-VREG_DECL LSTATUS VReg_InternalWideFromOptionalAnsi(
+VREG_INTERNAL_DECL LSTATUS VReg_InternalWideFromOptionalAnsi(
     _In_opt_ const LPCSTR psz,
     _Out_ VRegInternalWString* const pText
 )
@@ -2676,7 +2661,7 @@ static SIZE_T VReg_InternalMinSize(const SIZE_T a, const SIZE_T b)
     return a < b ? a : b;
 }
 
-VREG_DECL VRegInternalWStringView VReg_InternalViewFromText(
+VREG_INTERNAL_DECL VRegInternalWStringView VReg_InternalViewFromText(
     _In_opt_ const LPCWSTR psz
 )
 {
@@ -2710,7 +2695,7 @@ static BOOL VRegInternalBuffer_Resize(
     return TRUE;
 }
 
-VREG_DECL BOOL VRegInternalBuffer_Assign(
+VREG_INTERNAL_DECL BOOL VRegInternalBuffer_Assign(
     _Inout_ VRegInternalBuffer* const pBuffer,
     _In_reads_bytes_opt_(cb) const void* const p,
     const SIZE_T cb
@@ -2729,7 +2714,7 @@ VREG_DECL BOOL VRegInternalBuffer_Assign(
     return TRUE;
 }
 
-VREG_DECL BOOL VRegInternalBuffer_Append(
+VREG_INTERNAL_DECL BOOL VRegInternalBuffer_Append(
     _Inout_ VRegInternalBuffer* const pBuffer,
     _In_reads_bytes_(cb) const void* const p,
     const SIZE_T cb
@@ -2748,7 +2733,7 @@ VREG_DECL BOOL VRegInternalBuffer_Append(
     return TRUE;
 }
 
-VREG_DECL void VRegInternalBuffer_Free(
+VREG_INTERNAL_DECL void VRegInternalBuffer_Free(
     _Inout_ VRegInternalBuffer* const pBuffer
 )
 {
@@ -2758,7 +2743,7 @@ VREG_DECL void VRegInternalBuffer_Free(
     pBuffer->cbCapacity = 0;
 }
 
-VREG_DECL _Ret_notnull_ LPCWSTR VRegInternalWString_GetText(
+VREG_INTERNAL_DECL _Ret_notnull_ LPCWSTR VRegInternalWString_GetText(
     _In_ const VRegInternalWString* const pString
 )
 {
@@ -2775,7 +2760,7 @@ static VRegInternalWStringView VRegInternalWString_GetView(
     return view;
 }
 
-VREG_DECL BOOL VRegInternalWString_Reserve(
+VREG_INTERNAL_DECL BOOL VRegInternalWString_Reserve(
     _Inout_ VRegInternalWString* const pString,
     const SIZE_T cch
 )
@@ -2799,7 +2784,7 @@ VREG_DECL BOOL VRegInternalWString_Reserve(
     return TRUE;
 }
 
-VREG_DECL BOOL VRegInternalWString_Resize(
+VREG_INTERNAL_DECL BOOL VRegInternalWString_Resize(
     _Inout_ VRegInternalWString* const pString,
     const SIZE_T cch
 )
@@ -2821,7 +2806,7 @@ VREG_DECL BOOL VRegInternalWString_Resize(
     return TRUE;
 }
 
-VREG_DECL BOOL VRegInternalWString_Assign(
+VREG_INTERNAL_DECL BOOL VRegInternalWString_Assign(
     _Inout_ VRegInternalWString* const pString,
     _In_reads_opt_(cch) const LPCWCH pch,
     const SIZE_T cch
@@ -2840,7 +2825,7 @@ VREG_DECL BOOL VRegInternalWString_Assign(
     return TRUE;
 }
 
-VREG_DECL BOOL VRegInternalWString_Append(
+VREG_INTERNAL_DECL BOOL VRegInternalWString_Append(
     _Inout_ VRegInternalWString* const pString,
     _In_reads_(cch) const LPCWCH pch,
     const SIZE_T cch
@@ -2892,7 +2877,7 @@ static void VRegInternalWString_Truncate(
         pString->psz[cch] = L'\0';
 }
 
-VREG_DECL void VRegInternalWString_Free(
+VREG_INTERNAL_DECL void VRegInternalWString_Free(
     _Inout_ VRegInternalWString* const pString
 )
 {
@@ -2902,7 +2887,7 @@ VREG_DECL void VRegInternalWString_Free(
     pString->cchCapacity = 0;
 }
 
-VREG_DECL BOOL VRegInternalArray_Reserve(
+VREG_INTERNAL_DECL BOOL VRegInternalArray_Reserve(
     _Inout_ VRegInternalArray* const pArray,
     const SIZE_T cbElement,
     const SIZE_T capacity
@@ -2948,7 +2933,7 @@ static BOOL VRegInternalArray_Insert(
     return TRUE;
 }
 
-VREG_DECL BOOL VRegInternalArray_Append(
+VREG_INTERNAL_DECL BOOL VRegInternalArray_Append(
     _Inout_ VRegInternalArray* const pArray,
     const SIZE_T cbElement,
     _In_reads_bytes_(cbElement) const void* const pElement
@@ -2970,7 +2955,7 @@ static void VRegInternalArray_RemoveAt(
     --pArray->count;
 }
 
-VREG_DECL void VRegInternalArray_Free(
+VREG_INTERNAL_DECL void VRegInternalArray_Free(
     _Inout_ VRegInternalArray* const pArray
 )
 {
@@ -3109,7 +3094,7 @@ static int VReg_InternalCompareExportNames(
     return (int)(unsigned char)*pszLeft - (int)(unsigned char)*pszRight;
 }
 
-VREG_DECL _Ret_maybenull_ void* VReg_InternalFindExport(
+VREG_INTERNAL_DECL _Ret_maybenull_ void* VReg_InternalFindExport(
     _In_opt_ const HMODULE hModule,
     _In_ const LPCSTR pszName
 )
@@ -3168,7 +3153,7 @@ VREG_DECL _Ret_maybenull_ void* VReg_InternalFindExport(
     return NULL;
 }
 
-VREG_DECL _Ret_maybenull_ void* VReg_InternalFindRegistryExport(
+VREG_INTERNAL_DECL _Ret_maybenull_ void* VReg_InternalFindRegistryExport(
     _In_ const LPCSTR pszName
 )
 {
@@ -5431,7 +5416,7 @@ VREG_DECL BOOL WINAPI VReg_IsVirtualHKey(_In_opt_ const HKEY hKey)
         && (value & 1) != 0;
 }
 
-VREG_DECL BOOL VReg_InternalIsPredefinedHKey(_In_opt_ const HKEY hKey)
+VREG_INTERNAL_DECL BOOL VReg_InternalIsPredefinedHKey(_In_opt_ const HKEY hKey)
 {
     const UINT_PTR value = (UINT_PTR)hKey;
     return value >= (UINT_PTR)HKEY_CLASSES_ROOT
@@ -5470,7 +5455,7 @@ struct VRegInternalHandleDirectory
 static VRegInternalHandleSpace g_VRegInternalHandleSpace_Process;
 static INIT_ONCE g_VRegInternalHandleSpace_ProcessOnce = INIT_ONCE_STATIC_INIT;
 
-VREG_DECL void VRegInternalHandleSpace_Init(
+VREG_INTERNAL_DECL void VRegInternalHandleSpace_Init(
     _Out_ VRegInternalHandleSpace* const pSpace,
     _In_ const LPCWSTR pszName
 )
@@ -5569,7 +5554,7 @@ static BOOL CALLBACK VReg_InternalInitProcessHandleSpace(
     return TRUE;
 }
 
-VREG_DECL _Ret_notnull_ VRegInternalHandleSpace* VReg_InternalGetProcessHandleSpace(
+VREG_INTERNAL_DECL _Ret_notnull_ VRegInternalHandleSpace* VReg_InternalGetProcessHandleSpace(
     void
 )
 {
@@ -5577,13 +5562,6 @@ VREG_DECL _Ret_notnull_ VRegInternalHandleSpace* VReg_InternalGetProcessHandleSp
     // destroyed.
     InitOnceExecuteOnce(&g_VRegInternalHandleSpace_ProcessOnce, VReg_InternalInitProcessHandleSpace, NULL, NULL);
     return &g_VRegInternalHandleSpace_Process;
-}
-
-VREG_DECL BOOL VRegInternalHandleSpace_IsUsable(
-    _In_ const VRegInternalHandleSpace* const pSpace
-)
-{
-    return pSpace->pShared != NULL;
 }
 
 // A slot holds null while unbound, which WritePointerRelease's annotations
@@ -5638,7 +5616,7 @@ static BOOL VRegInternalHandleSpace_AddBlock(
     return TRUE;
 }
 
-VREG_DECL _Ret_maybenull_ HKEY VRegInternalHandleSpace_Allocate(
+VREG_INTERNAL_DECL _Ret_maybenull_ HKEY VRegInternalHandleSpace_Allocate(
     _Inout_ VRegInternalHandleSpace* const pSpace,
     _In_opt_ void* const pTarget
 )
@@ -5676,7 +5654,7 @@ VREG_DECL _Ret_maybenull_ HKEY VRegInternalHandleSpace_Allocate(
     return hKey;
 }
 
-VREG_DECL BOOL VRegInternalHandleSpace_Owns(
+VREG_INTERNAL_DECL BOOL VRegInternalHandleSpace_Owns(
     _In_ const VRegInternalHandleSpace* const pSpace,
     _In_opt_ const HKEY hKey
 )
@@ -5686,7 +5664,7 @@ VREG_DECL BOOL VRegInternalHandleSpace_Owns(
         && VRegInternalHandleSpace_FindBlock(pSpace, VReg_InternalIndexFromVirtualHKey(hKey) / VREG_INTERNAL_HANDLE_BLOCK_SIZE) != NULL;
 }
 
-VREG_DECL void VRegInternalHandleSpace_Release(
+VREG_INTERNAL_DECL void VRegInternalHandleSpace_Release(
     _Inout_ VRegInternalHandleSpace* const pSpace,
     _In_opt_ const HKEY hKey
 )
@@ -5703,7 +5681,7 @@ VREG_DECL void VRegInternalHandleSpace_Release(
         VReg_InternalStoreTarget(&pBlock->targets[index % VREG_INTERNAL_HANDLE_BLOCK_SIZE], NULL);
 }
 
-VREG_DECL _Ret_maybenull_ void* VRegInternalHandleSpace_Find(
+VREG_INTERNAL_DECL _Ret_maybenull_ void* VRegInternalHandleSpace_Find(
     _In_ const VRegInternalHandleSpace* const pSpace,
     _In_opt_ const HKEY hKey
 )
@@ -5722,7 +5700,7 @@ VREG_DECL _Ret_maybenull_ void* VRegInternalHandleSpace_Find(
     return ReadPointerAcquire((PVOID volatile*)&pBlock->targets[index % VREG_INTERNAL_HANDLE_BLOCK_SIZE]);
 }
 
-VREG_DECL _Ret_maybenull_ HKEY VReg_InternalVirtualHKeyFromIndex(
+VREG_INTERNAL_DECL _Ret_maybenull_ HKEY VReg_InternalVirtualHKeyFromIndex(
     const UINT_PTR index
 )
 {
@@ -5732,7 +5710,7 @@ VREG_DECL _Ret_maybenull_ HKEY VReg_InternalVirtualHKeyFromIndex(
     return (HKEY)(VREG_INTERNAL_VIRTUAL_HKEY_BASE - (index << 1));
 }
 
-VREG_DECL UINT_PTR VReg_InternalIndexFromVirtualHKey(_In_opt_ const HKEY hKey)
+VREG_INTERNAL_DECL UINT_PTR VReg_InternalIndexFromVirtualHKey(_In_opt_ const HKEY hKey)
 {
     return (VREG_INTERNAL_VIRTUAL_HKEY_BASE - (UINT_PTR)hKey) >> 1;
 }
@@ -5886,7 +5864,7 @@ static BOOL VReg_InternalIsExistingStatus(const LSTATUS status)
 // lower-only key answers the lower handle itself, at no cost on keys the
 // mount does not touch.
 
-VREG_DECL BOOL VRegHive_InternalIsFrozen(_In_ VRegHive* const pHive)
+VREG_INTERNAL_DECL BOOL VRegHive_InternalIsFrozen(_In_ VRegHive* const pHive)
 {
     return ReadAcquire(&pHive->isFrozen) != 0;
 }
@@ -6662,21 +6640,21 @@ VREG_DECL void WINAPI VRegHive_Freeze(_In_ VRegHive* const pHive)
     ReleaseSRWLockExclusive(&pHive->lock);
 }
 
-VREG_DECL _Ret_notnull_ VRegHiveInternalNode* VRegHive_InternalGetRoot(
+VREG_INTERNAL_DECL _Ret_notnull_ VRegHiveInternalNode* VRegHive_InternalGetRoot(
     _In_ VRegHive* const pHive
 )
 {
     return pHive->pRoot;
 }
 
-VREG_DECL HKEY VRegHiveInternalNode_GetHandle(
+VREG_INTERNAL_DECL HKEY VRegHiveInternalNode_GetHandle(
     _In_ const VRegHiveInternalNode* const pNode
 )
 {
     return pNode->hKey;
 }
 
-VREG_DECL _Ret_maybenull_ VRegHiveInternalNode* VRegHive_InternalFindNode(
+VREG_INTERNAL_DECL _Ret_maybenull_ VRegHiveInternalNode* VRegHive_InternalFindNode(
     _In_opt_ const HKEY hKey
 )
 {
@@ -7767,7 +7745,7 @@ static LSTATUS VRegHive_InternalStoreValue(
     return status;
 }
 
-VREG_DECL LSTATUS VRegHive_InternalSetValue(
+VREG_INTERNAL_DECL LSTATUS VRegHive_InternalSetValue(
     _In_ VRegHive* const pHive,
     _Inout_ VRegHiveInternalNode* const pNode,
     _In_ const LPCWSTR pszName,
@@ -9006,13 +8984,6 @@ VREG_DECL LSTATUS WINAPI VReg_CreateNative(
     return ERROR_SUCCESS;
 }
 
-VREG_DECL _Ret_notnull_ VRegInternalNativeFunctions* VReg_InternalGetNativeFunctions(
-    _In_ VReg* const pRegistry
-)
-{
-    return &pRegistry->implementation.native;
-}
-
 // ==========================================================================
 // Owned reads
 // ==========================================================================
@@ -9021,7 +8992,7 @@ VREG_DECL _Ret_notnull_ VRegInternalNativeFunctions* VReg_InternalGetNativeFunct
 // themselves, retrying with a larger buffer while the value grows between
 // the sizing call and the read. The storage stays the caller's to free.
 
-VREG_DECL DWORD VReg_InternalGrow(const DWORD cbOld, const DWORD cbRequired)
+VREG_INTERNAL_DECL DWORD VReg_InternalGrow(const DWORD cbOld, const DWORD cbRequired)
 {
     return cbRequired > cbOld ? cbRequired : cbOld * 2 + 16;
 }
@@ -13718,7 +13689,7 @@ static LSTATUS VRegScript_InternalDecodeFile(
     );
 }
 
-VREG_DECL LSTATUS VRegScript_InternalEncodeFile(
+VREG_INTERNAL_DECL LSTATUS VRegScript_InternalEncodeFile(
     _In_ const VRegInternalWString* const pText,
     const VRegFormat format,
     _Inout_ VRegInternalBuffer* const pFile
@@ -13816,7 +13787,7 @@ static LSTATUS VRegScript_InternalReadWholeFile(
     return status;
 }
 
-VREG_DECL LSTATUS VRegScript_InternalWriteWholeFile(
+VREG_INTERNAL_DECL LSTATUS VRegScript_InternalWriteWholeFile(
     _In_ const LPCWSTR pszPath,
     _In_reads_bytes_(cbFile) const void* const pFile,
     const SIZE_T cbFile
@@ -15877,7 +15848,7 @@ VREG_DECL LONG WINAPI VRegHooks_Install(
     }
 
     WritePointerRelease((PVOID volatile*)&g_VRegHooks_pRegistry, pRegistry);
-    functions = VReg_InternalGetNativeFunctions(pNative);
+    functions = &pNative->implementation.native;
 
 #define VREG_HOOK_EMULATED(name) \
     VRegHooks_InternalAdd(&cHooks, (void**)&functions->name, (void*)&VRegHooks_Internal##name);

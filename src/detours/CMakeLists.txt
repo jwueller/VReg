@@ -11,6 +11,11 @@ target_compile_definitions(VReg_Detours PUBLIC
     VREG_WITH_DETOURS
 )
 
+# The hooks call private functions of VReg::VReg.
+target_compile_definitions(VReg_Detours PRIVATE
+    VREG_INTERNAL
+)
+
 target_link_libraries(VReg_Detours PUBLIC
     VReg::VReg
     Detours::Detours

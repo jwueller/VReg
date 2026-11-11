@@ -9,6 +9,11 @@
 
 namespace
 {
+bool IsUsable(const VRegInternalHandleSpace* const pSpace) noexcept
+{
+    return pSpace->pShared != nullptr;
+}
+
 std::uintptr_t ValueOf(const HKEY hKey) noexcept
 {
     return std::bit_cast<std::uintptr_t>(hKey);
@@ -111,8 +116,8 @@ TEST_CASE("Copies sharing a section hand out disjoint handles and own only their
     VRegInternalHandleSpace second;
     VRegInternalHandleSpace_Init(&first, wsName.c_str());
     VRegInternalHandleSpace_Init(&second, wsName.c_str());
-    REQUIRE(VRegInternalHandleSpace_IsUsable(&first));
-    REQUIRE(VRegInternalHandleSpace_IsUsable(&second));
+    REQUIRE(IsUsable(&first));
+    REQUIRE(IsUsable(&second));
 
     std::set<HKEY> seen;
     // Past one block, so each copy reserves a second one.
@@ -145,7 +150,7 @@ TEST_CASE("A released handle is never handed out again and finds nothing")
     const auto wsName = UniqueSectionName(L"released");
     VRegInternalHandleSpace space;
     VRegInternalHandleSpace_Init(&space, wsName.c_str());
-    REQUIRE(VRegInternalHandleSpace_IsUsable(&space));
+    REQUIRE(IsUsable(&space));
 
     int target = 0;
     const auto hKey = VRegInternalHandleSpace_Allocate(&space, &target);
@@ -168,7 +173,7 @@ TEST_CASE("A section claimed with a different layout makes the space unusable")
 
     VRegInternalHandleSpace space;
     VRegInternalHandleSpace_Init(&space, wsName.c_str());
-    CHECK_FALSE(VRegInternalHandleSpace_IsUsable(&space));
+    CHECK_FALSE(IsUsable(&space));
     CHECK(VRegInternalHandleSpace_Allocate(&space, &space) == nullptr);
 }
 
@@ -181,7 +186,7 @@ TEST_CASE("Allocation fails once the namespace is exhausted")
 
     VRegInternalHandleSpace space;
     VRegInternalHandleSpace_Init(&space, wsName.c_str());
-    REQUIRE(VRegInternalHandleSpace_IsUsable(&space));
+    REQUIRE(IsUsable(&space));
     for (std::uintptr_t i = 0; i < VREG_INTERNAL_HANDLE_BLOCK_SIZE; ++i)
         REQUIRE(VReg_IsVirtualHKey(VRegInternalHandleSpace_Allocate(&space, &space)));
 
@@ -191,7 +196,7 @@ TEST_CASE("Allocation fails once the namespace is exhausted")
 TEST_CASE("The process space is usable and issues virtual handles")
 {
     auto* const pSpace = VReg_InternalGetProcessHandleSpace();
-    REQUIRE(VRegInternalHandleSpace_IsUsable(pSpace));
+    REQUIRE(IsUsable(pSpace));
     const auto hKey = VRegInternalHandleSpace_Allocate(pSpace, pSpace);
     CHECK(VReg_IsVirtualHKey(hKey));
     CHECK(VRegInternalHandleSpace_Owns(pSpace, hKey));
@@ -203,7 +208,7 @@ TEST_CASE("The process space is the section every copy of VReg shares")
     const auto wsName = L"Local\\VReg-handles-" + std::to_wstring(GetCurrentProcessId());
     auto* const pShared = MapRaw(wsName);
     auto* const pSpace = VReg_InternalGetProcessHandleSpace();
-    REQUIRE(VRegInternalHandleSpace_IsUsable(pSpace));
+    REQUIRE(IsUsable(pSpace));
     CHECK(pShared->magic == VREG_INTERNAL_HANDLE_SPACE_MAGIC);
 
     // The first allocation reserves this copy's first block from the section.

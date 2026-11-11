@@ -6,6 +6,7 @@ if(TARGET VReg_Detours)
 endif()
 
 function(vreg_header_check name)
+    cmake_parse_arguments(PARSE_ARGV 1 check "NO_HOOKS" "" "")
     set(target VReg_HeaderCheck_${name})
 
     add_library(${target} OBJECT
@@ -31,12 +32,12 @@ function(vreg_header_check name)
     )
 
     target_compile_definitions(${target} PRIVATE
-        ${ARGN}
+        ${check_UNPARSED_ARGUMENTS}
     )
 
     # The hooks' declarations need nothing; their implementation needs
     # Detours.
-    if(TARGET VReg_Detours)
+    if(TARGET VReg_Detours AND NOT check_NO_HOOKS)
         target_link_libraries(${target} PRIVATE
             Detours::Detours
         )
@@ -71,3 +72,7 @@ foreach(winnt IN ITEMS 0x0600 0x0601)
         _WIN32_WINNT=${winnt}
     )
 endforeach()
+
+# The implementation without the hooks: the private functions only the hooks
+# call must not be left unused there.
+vreg_header_check(NoHooks NO_HOOKS)

@@ -67,17 +67,21 @@ the API it sits beside.
   (`VReg_Create`, `VReg_Mount`), and so is the library for what has no
   object (`VReg_CompareNames`); the `Reg*` family is `VReg_` plus the
   whole Win32 name (`VReg_RegOpenKeyExW`), so that name stays greppable.
-  All are `WINAPI`, declared with `VREG_DECL`. A private function, static
+  All are `WINAPI`, declared with `VREG_DECL`, and are all a single-header
+  consumer gets with external linkage. A private function, static
   ones included, carries `Internal` once, opening the private part of its
   name: the type when that is private (`VRegInternalWString_Free`), the
   verb when the object is public (`VRegHive_InternalCreate`,
   `VReg_InternalAlloc`). Its name is unique across `vreg.h`, since the
   implementation is one translation unit. A private function is `static`
   unless the hooks implementation or a test calls it; only those are
-  declared in the private declarations, with `VREG_DECL`, and every other
+  declared in the private declarations, with `VREG_INTERNAL_DECL` (`extern`
+  where the library's build or a test defines `VREG_INTERNAL`, `static`
+  otherwise; the header never defines it), and every other
   one is defined `static` in the implementation, with a `static` forward
   declaration in the titled section of its area where definition order needs
-  one. Types carry no underscore:
+  one. A function only a test calls belongs in the test: the library's
+  single-header build would leave it unused. Types carry no underscore:
   public ones are `VRegName`, private ones `VRegInternalName`. A private
   type that one public object's code alone uses carries that object's name
   before `Internal` (`VRegScriptInternalParser`, `VRegHiveInternalNode`),
@@ -177,10 +181,10 @@ the API it sits beside.
   `VReg_InternalMaxDword` or a comparison, so the `windows.h` macros never apply,
   even in a consumer that includes it without `NOMINMAX`. A C++ test calls
   them parenthesized, `(std::max)(a, b)`.
-- Macros are tested with `#ifdef` or `#ifndef`, never with `defined`: a
-  condition over several macros becomes nested or consecutive blocks, and an
-  `#elif` chain separate ones. An include guard (`vreg.h` has
-  them) keeps its usual shape and is never folded into another condition.
+- Macros are tested with `#ifdef` or `#ifndef` in simple cases, and with
+  `defined(...)` in an `#if` where a condition spans several macros. An
+  include guard (`vreg.h` has them) keeps its usual shape and is never folded
+  into another condition.
 - No init-statement in an `if`, and no state-changing call inside its
   condition: assign the result in a statement of its own first. A single
   declaration as the condition is fine (C++ tests only; C has none).
