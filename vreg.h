@@ -60,7 +60,7 @@ extern "C" {
 // Raised with every change to this file. Tweak is unused (always 0).
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 19
-#define VREG_VERSION_PATCH 1
+#define VREG_VERSION_PATCH 2
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -9689,8 +9689,9 @@ VREG_DECL LSTATUS WINAPI VReg_RegLoadMUIStringW(
     );
 }
 
-// The slot's _Post_z_ on pvData holds on every return; the analyzer does not
-// carry it through the function pointer.
+// Suppresses C6054 (pvData might not be terminated). The RegGetValueW slot
+// this forwards to terminates it wherever the _Post_z_ below promises so;
+// the analyzer does not take a promise through a function pointer.
 VREG_INTERNAL_SUPPRESS_WARNING(6054)
 VREG_DECL LSTATUS WINAPI VReg_RegGetValueW(
     _In_ VReg* const pRegistry,
@@ -14364,8 +14365,9 @@ static LSTATUS WINAPI VRegHooks_InternalRegLoadMUIStringW(
     );
 }
 
-// The SDK's _Post_z_ on pvData holds on every return; the analyzer does not
-// carry it through the flat function.
+// Suppresses C6054 (pvData might not be terminated). VReg_RegGetValueW, which
+// this forwards to, terminates it wherever the _Post_z_ below promises so;
+// the analyzer does not take that function's promise for this one's.
 VREG_INTERNAL_SUPPRESS_WARNING(6054)
 static LSTATUS WINAPI VRegHooks_InternalRegGetValueW(
     _In_ const HKEY hkey,
@@ -14658,8 +14660,9 @@ static LSTATUS WINAPI VRegHooks_InternalRegLoadMUIStringA(
     );
 }
 
-// The SDK's _Post_z_ on pvData holds on every return; the analyzer does not
-// carry it through the flat function.
+// Suppresses C6054 (pvData might not be terminated). VReg_RegGetValueA, which
+// this forwards to, terminates it wherever the _Post_z_ below promises so;
+// the analyzer does not take that function's promise for this one's.
 VREG_INTERNAL_SUPPRESS_WARNING(6054)
 static LSTATUS WINAPI VRegHooks_InternalRegGetValueA(
     _In_ const HKEY hkey,
