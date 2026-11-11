@@ -81,6 +81,20 @@ resharper_cpp_clang_tidy_clang_diagnostic_unused_macros_highlighting = none
 resharper_cpp_clang_tidy_clang_diagnostic_padded_highlighting = none
 # Every module links its own copy of VReg, by design.
 resharper_cpp_clang_tidy_clang_diagnostic_unique_object_duplication_highlighting = none
+# True of every vtbl slot, whose typedef fixes the signature, and of every function that only
+# reaches an object through its handle: const would misdescribe it.
+resharper_cpp_parameter_may_be_const_ptr_or_ref_highlighting = none
+# Parentheses around a mask test or a nested conditional are there to be read.
+resharper_cpp_redundant_parentheses_highlighting = none
+
+[vreg.h]
+# The implementation part is one translation unit: its definitions are `static` or `extern`
+# on purpose, never `inline`.
+resharper_cpp_non_inline_function_definition_in_header_file_highlighting = none
+# A cast from `void*` is redundant only in C; the header compiles as C++ too.
+resharper_cpp_redundant_cast_expression_highlighting = none
+# Zero-initializers stay positional (`{0, 0, NULL}`); anything else names its fields.
+resharper_cpp_use_designated_initializers_highlighting = none
 
 [*.md]
 max_line_length = off
