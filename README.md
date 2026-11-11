@@ -54,8 +54,9 @@ how the API behaves.
 
 ## Using it
 
-Needs a C99 compiler (MSVC 2013 or later, or clang-cl; the headers compile
-as C++ too) and `_WIN32_WINNT` at `0x0600` (Windows Vista) or later. Its
+Needs a C99 compiler (MSVC 2013 or later, clang-cl, or MinGW-w64 GCC
+[as a single header](#as-a-single-header); the headers compile as C++ too)
+and `_WIN32_WINNT` at `0x0600` (Windows Vista) or later. Its
 one dependency is `Windows.h`: no C runtime beyond the `memcpy`, `memmove`
 and `memset` the compiler calls, and `VREG_MALLOC`, `VREG_REALLOC` and
 `VREG_FREE` replace the allocator (the defaults use the process heap).
@@ -121,6 +122,11 @@ included, makes every function `static`, so a module can hold a private
 copy beside another's. For the hooks, define `VREG_WITH_DETOURS` wherever it
 is included, with `<detours/detours.h>` on the include path and the Detours
 library linked.
+
+MinGW-w64 GCC compiles the single header without the hooks; the CMake
+targets need MSVC or clang-cl. Link `advapi32` yourself there, and pass
+`-Wno-unknown-pragmas` under `-Wall`: the header's MSVC pragmas are unknown
+to GCC.
 
 ### Overlay over the real registry
 

@@ -49,6 +49,11 @@
 
 #include <Windows.h>
 
+// The one SDK annotation the declarations carry that mingw-w64's sal.h lacks.
+#ifndef __out_data_source
+#define __out_data_source(src_sym)
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -59,7 +64,7 @@ extern "C" {
 
 // Raised with every change to this file. Tweak is unused (always 0).
 #define VREG_VERSION_MAJOR 0
-#define VREG_VERSION_MINOR 18
+#define VREG_VERSION_MINOR 19
 #define VREG_VERSION_PATCH 0
 #define VREG_VERSION_TWEAK 0
 
@@ -89,16 +94,17 @@ extern "C" {
 
 // Under VREG_STATIC a consumer that calls only some public functions would
 // be warned about the rest: by MSVC in C++ at each definition (C4505) and by
-// clang at each declaration and definition. The bracket around VReg's own
-// declarations and definitions confines the suppression to them, so the
-// consumer's code after the include keeps the warning.
+// clang and GCC at each declaration and definition. The bracket around VReg's
+// own declarations and definitions confines the suppression to them, so the
+// consumer's code after the include keeps the warning. clang reads GCC's
+// spelling of the pragma, and clang-cl does not define __GNUC__.
 #ifdef VREG_STATIC
-#ifdef __clang__
+#if defined(__clang__) || defined(__GNUC__)
 #define VREG_INTERNAL_UNUSED_BEGIN \
-    _Pragma("clang diagnostic push") \
-    _Pragma("clang diagnostic ignored \"-Wunused-function\"")
+    _Pragma("GCC diagnostic push") \
+    _Pragma("GCC diagnostic ignored \"-Wunused-function\"")
 #define VREG_INTERNAL_UNUSED_END \
-    _Pragma("clang diagnostic pop")
+    _Pragma("GCC diagnostic pop")
 #else
 #define VREG_INTERNAL_UNUSED_BEGIN \
     __pragma(warning(push)) \
@@ -2434,6 +2440,16 @@ VREG_INTERNAL_DECL LSTATUS VRegScript_InternalWriteWholeFile(
 VREG_INTERNAL_UNUSED_BEGIN
 
 #pragma comment(lib, "advapi32")
+
+// mingw-w64's winnt.h lacks the acquire and release intrinsics. Agent's
+// choice: macros rather than functions of these names, which would become
+// redefinitions once mingw-w64 declares them.
+#ifdef __MINGW32__
+#define ReadAcquire(pValue) __atomic_load_n(pValue, __ATOMIC_ACQUIRE)
+#define WriteRelease(pValue, value) __atomic_store_n(pValue, value, __ATOMIC_RELEASE)
+#define ReadPointerAcquire(ppValue) __atomic_load_n(ppValue, __ATOMIC_ACQUIRE)
+#define WritePointerRelease(ppValue, pValue) __atomic_store_n(ppValue, pValue, __ATOMIC_RELEASE)
+#endif
 
 // ==========================================================================
 // Allocation

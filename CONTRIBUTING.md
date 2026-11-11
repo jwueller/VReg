@@ -53,7 +53,9 @@ Windows.
 
 CI builds {x86, x64, ARM64} x {MSVC, clang-cl} and runs every test on
 Windows, and the x86 and x64 binaries under Wine on Ubuntu, where the
-scenarios on a private app hive skip themselves. Where Wine deviates, that
+scenarios on a private app hive skip themselves. MinGW-w64 GCC builds and
+runs `test/nocrt` alone, for x64 and without CMake: the build settings and
+the other tests are MSVC's. Where Wine deviates, that
 is a Wine bug, worked around only when the workaround costs nothing on
 Windows: a per-platform expectation list would make VReg's behavior follow
 whichever Wine version CI installed. Proton and true remote

@@ -74,6 +74,29 @@ jobs:
             out/build/${{ matrix.compiler }}-${{ matrix.arch }}/test/hooks/Release/*.exe
             out/build/${{ matrix.compiler }}-${{ matrix.arch }}/test/hooks/Release/*.dll
 
+  # The core as a single header, the only form MinGW-w64 GCC builds: the CMake
+  # build settings and the hooks need MSVC or clang-cl. The flags are those of
+  # test/nocrt/CMakeLists.txt, which says why, in GCC's spelling.
+  # -Wno-unknown-pragmas: the header's MSVC pragmas are unknown to GCC.
+  mingw:
+    name: MinGW x64
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build and test
+        shell: bash
+        run: |
+          export PATH="/c/mingw64/bin:$PATH"
+          gcc --version
+          for optimization in -O0 -O2; do
+            gcc "$optimization" -std=c99 -fno-builtin \
+              -Wall -Wextra -Werror -Wno-unknown-pragmas \
+              -I. test/nocrt/main.c test/nocrt/support.c test/nocrt/vreg_impl.c \
+              -o nocrt.exe -nostdlib -Wl,-e,NoCrtMain -lkernel32 -ladvapi32
+            ./nocrt.exe
+          done
+
   # vreg.h owns the version; these are the copies that must agree with it
   # (CONTRIBUTING.md, "Releasing").
   versions:
@@ -197,7 +220,7 @@ jobs:
   release:
     name: Release
     if: github.ref_type == 'tag'
-    needs: [windows, versions, wine]
+    needs: [windows, mingw, versions, wine]
     runs-on: ubuntu-24.04
     # The environment admits only v* tags, which only an admin can push.
     environment: release

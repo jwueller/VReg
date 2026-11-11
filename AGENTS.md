@@ -58,7 +58,8 @@ the API it sits beside.
 
 - C99 as MSVC 2013 and later compile it (declarations anywhere, `//`
   comments, designated initializers; no variable-length arrays, no `_Bool`
-  in the API), MSVC and clang-cl, x86, x64 and ARM64. The headers compile
+  in the API), MSVC and clang-cl, x86, x64 and ARM64, and MinGW-w64 GCC for
+  the core on x64. The headers compile
   as C and as C++, and the tests are C++20. `WIN32_LEAN_AND_MEAN`,
   `NOMINMAX` and `UNICODE` everywhere in the library's own build.
 - Public functions are `VReg`, the object, an underscore and the verb,

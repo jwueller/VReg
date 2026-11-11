@@ -16,6 +16,8 @@
 
 #ifdef __clang__
 #define NOCRT_NO_OPTIMIZE __attribute__((optnone))
+#elif defined(__GNUC__)
+#define NOCRT_NO_OPTIMIZE __attribute__((optimize("O0")))
 #else
 #define NOCRT_NO_OPTIMIZE
 #pragma optimize("", off)
