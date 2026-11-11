@@ -1834,13 +1834,11 @@ VREG_INTERNAL_DECL DWORD VReg_InternalGrow(DWORD cbOld, DWORD cbRequired);
 /// Both view flags: what selects a view, and together an invalid request.
 #define VREG_INTERNAL_RRF_WOW_SUBKEYS (VREG_INTERNAL_RRF_WOW6464_SUBKEY | VREG_INTERNAL_RRF_WOW6432_SUBKEY)
 
-#ifdef __cplusplus
 #ifdef RRF_SUBKEY_WOW6464KEY
-static_assert(VREG_INTERNAL_RRF_WOW6464_SUBKEY == RRF_SUBKEY_WOW6464KEY);
+C_ASSERT(VREG_INTERNAL_RRF_WOW6464_SUBKEY == RRF_SUBKEY_WOW6464KEY);
 #endif
 #ifdef RRF_SUBKEY_WOW6432KEY
-static_assert(VREG_INTERNAL_RRF_WOW6432_SUBKEY == RRF_SUBKEY_WOW6432KEY);
-#endif
+C_ASSERT(VREG_INTERNAL_RRF_WOW6432_SUBKEY == RRF_SUBKEY_WOW6432KEY);
 #endif
 
 // ==========================================================================
@@ -1872,6 +1870,10 @@ VREG_INTERNAL_DECL BOOL VReg_InternalIsPredefinedHKey(
 #define VREG_INTERNAL_HANDLE_DIRECTORY_SIZE ((UINT_PTR)512)
 #define VREG_INTERNAL_HANDLE_DIRECTORY_COUNT (VREG_INTERNAL_HANDLE_BLOCK_COUNT / VREG_INTERNAL_HANDLE_DIRECTORY_SIZE)
 
+C_ASSERT((VREG_INTERNAL_VIRTUAL_HKEY_BASE & 1) == 1);
+C_ASSERT(VREG_INTERNAL_VIRTUAL_HKEY_COUNT % VREG_INTERNAL_HANDLE_BLOCK_SIZE == 0);
+C_ASSERT(VREG_INTERNAL_HANDLE_BLOCK_COUNT % VREG_INTERNAL_HANDLE_DIRECTORY_SIZE == 0);
+
 /// @ref VRegInternalHandleSpaceShared::magic once a copy has claimed the section:
 /// "VRg1".
 #define VREG_INTERNAL_HANDLE_SPACE_MAGIC 0x56526731L
@@ -1886,6 +1888,8 @@ typedef struct
     LONG magic;
     LONG nextBlock;
 } VRegInternalHandleSpaceShared;
+
+C_ASSERT(sizeof(VRegInternalHandleSpaceShared) == 2 * sizeof(LONG));
 
 typedef struct VRegInternalHandleDirectory VRegInternalHandleDirectory;
 
@@ -15784,6 +15788,18 @@ VREG_INTERNAL_REFUSED_HOOK(
 #define VREG_INTERNAL_THUNK_PAGE_SIZE ((SIZE_T)4096)
 #define VREG_INTERNAL_THUNK_CAPACITY (VREG_INTERNAL_THUNK_PAGE_SIZE / VREG_INTERNAL_THUNK_CODE_SIZE)
 
+C_ASSERT(VREG_INTERNAL_THUNK_PAGE_SIZE % VREG_INTERNAL_THUNK_CODE_SIZE == 0);
+
+// Every hook takes one thunk, whether or not this system exports its target.
+#define VREG_INTERNAL_COUNT_HOOK(name) + 1
+C_ASSERT(
+    (0
+    VREG_INTERNAL_REGISTRY_VIRTUALS(VREG_INTERNAL_COUNT_HOOK)
+    VREG_INTERNAL_REGISTRY_FORMS(VREG_INTERNAL_COUNT_HOOK)
+    VREG_INTERNAL_REFUSED_HOOKS(VREG_INTERNAL_COUNT_HOOK)) <= VREG_INTERNAL_THUNK_CAPACITY
+);
+#undef VREG_INTERNAL_COUNT_HOOK
+
 static BYTE* g_VRegHooks_pbThunks;
 
 static BYTE* VReg_InternalGetThunk(const SIZE_T index)
@@ -15852,8 +15868,6 @@ static void VRegHooks_InternalAdd(
     _In_ void* const pBody
 )
 {
-    VREG_ASSERT(*pcHooks < VREG_INTERNAL_THUNK_CAPACITY);
-    _Analysis_assume_(*pcHooks < VREG_INTERNAL_THUNK_CAPACITY);
     g_VRegHooks_ppTargets[*pcHooks] = ppTarget;
     VReg_InternalWriteThunk(*pcHooks, pBody);
     ++*pcHooks;

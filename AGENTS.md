@@ -121,7 +121,8 @@ the API it sits beside.
   `VREG_` when public (`VREG_VERSION_MAJOR`) and `VREG_INTERNAL_` when
   private (`VREG_INTERNAL_INITIAL_NAME_CHARS`). A name a Windows header already defines
   (`TEXT`, `NO_DATA`) is taken by it: pick another, or use the Win32
-  constant itself.
+  constant itself. A compile-time invariant between constants, or of a
+  layout, is `C_ASSERT`, which works in C and C++, never `static_assert`.
 - `VRegVtbl` holds one slot per form of the Win32 `Reg*` family,
   `Reg` prefix included, and only the ANSI and wide names exist: a neutral
   name (`RegOpenKeyEx`) is a `winreg.h` macro, and VReg defines the same
