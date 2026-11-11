@@ -5506,7 +5506,7 @@ static BOOL CALLBACK VReg_InternalInitProcessHandleSpace(
     // out handles that overlap theirs.
     static const wchar_t wszPrefix[] = L"Local\\VReg-handles-";
     wchar_t wszName[64];
-    const SIZE_T cchPrefix = sizeof(wszPrefix) / sizeof(wszPrefix[0]) - 1;
+    const SIZE_T cchPrefix = ARRAYSIZE(wszPrefix) - 1;
 
     (void)pInitOnce;
     (void)pParameter;
@@ -5871,7 +5871,7 @@ static void VRegHive_InternalUnlockWrite(_In_ VRegHive* const pHive)
 }
 
 /// Takes the lock exclusively to add or update records, which a custom hive
-/// does frozen or not; a frozen built-in hive takes none and answers FALSE.
+/// does, frozen or not; a frozen built-in hive takes none and answers FALSE.
 /// Released with @ref VRegHive_InternalUnlockWrite.
 static BOOL VRegHive_InternalLockRecords(_In_ VRegHive* const pHive)
 {
@@ -11735,7 +11735,7 @@ static LSTATUS WINAPI VReg_InternalVirtualRegGetValueW(
         }
     }
 
-    dwTypeFlag = dwType < sizeof(TYPE_FLAGS) / sizeof(TYPE_FLAGS[0]) ? TYPE_FLAGS[dwType] : 0;
+    dwTypeFlag = dwType < ARRAYSIZE(TYPE_FLAGS) ? TYPE_FLAGS[dwType] : 0;
     isAllowed = dwTypeFlag ? (dwFlags & dwTypeFlag) != 0 : (dwFlags & RRF_RT_ANY) == RRF_RT_ANY;
 
     pFinal = stages[2].cb != 0 ? &stages[2] : (stages[1].cb != 0 ? &stages[1] : &stages[0]);
@@ -12967,7 +12967,7 @@ static LSTATUS VRegScriptInternalParser_ParseKey(
     if (close == 0)
     {
         pParser->pos = text.cch;
-        return VRegScriptInternalParser_ParseFail(pParser, "missing ] after the key name");
+        return VRegScriptInternalParser_ParseFail(pParser, "missing ']' after the key name");
     }
 
     // `close` is one past the bracket: the position that ends the key.
@@ -13040,7 +13040,7 @@ static LSTATUS VRegScriptInternalParser_ParseQuoted(
             if (VRegScriptInternalParser_IsAtEnd(pParser) || (VRegScriptInternalParser_GetCurrent(pParser) != L'\\' && VRegScriptInternalParser_GetCurrent(pParser) != L'"'))
             {
                 --pParser->pos;
-                return VRegScriptInternalParser_ParseFail(pParser, "invalid escape, only \\\\ and \\\" are allowed");
+                return VRegScriptInternalParser_ParseFail(pParser, "invalid escape, only '\\\\' and '\\\"' are allowed");
             }
 
             ch = VRegScriptInternalParser_GetCurrent(pParser);
@@ -13105,7 +13105,7 @@ static LSTATUS VRegScriptInternalParser_ParseHexBytes(
         if (VRegScriptInternalParser_IsAtEnd(pParser))
             return ERROR_SUCCESS;
         if (VRegScriptInternalParser_GetCurrent(pParser) != L',')
-            return VRegScriptInternalParser_ParseFail(pParser, "expected , between hex bytes");
+            return VRegScriptInternalParser_ParseFail(pParser, "expected ',' between hex bytes");
 
         ++pParser->pos;
         VRegScriptInternalParser_SkipBlanks(pParser);
@@ -13151,7 +13151,7 @@ static LSTATUS VRegScriptInternalParser_ParseValue(
     VRegScriptInternalParser_SkipBlanks(pParser);
     if (VRegScriptInternalParser_IsAtEnd(pParser) || VRegScriptInternalParser_GetCurrent(pParser) != L'=')
     {
-        status = VRegScriptInternalParser_ParseFail(pParser, "expected =");
+        status = VRegScriptInternalParser_ParseFail(pParser, "expected '='");
         goto done;
     }
 
@@ -13196,16 +13196,16 @@ static LSTATUS VRegScriptInternalParser_ParseValue(
         {
             status = VRegScriptInternalParser_ParseHexNumber(pParser, 8, &dwType);
             if (status == ERROR_SUCCESS && !VRegScriptInternalParser_Consume(pParser, L")"))
-                status = VRegScriptInternalParser_ParseFail(pParser, "expected ) after the value type");
+                status = VRegScriptInternalParser_ParseFail(pParser, "expected ')' after the value type");
         }
         if (status == ERROR_SUCCESS && !VRegScriptInternalParser_Consume(pParser, L":"))
-            status = VRegScriptInternalParser_ParseFail(pParser, "expected : after hex");
+            status = VRegScriptInternalParser_ParseFail(pParser, "expected ':' after hex");
         if (status == ERROR_SUCCESS)
             status = VRegScriptInternalParser_ParseHexBytes(pParser, &data);
     }
     else
     {
-        status = VRegScriptInternalParser_ParseFail(pParser, "expected a string, dword:, hex: or -");
+        status = VRegScriptInternalParser_ParseFail(pParser, "expected a string, 'dword:', 'hex:' or '-'");
     }
     if (status != ERROR_SUCCESS)
         goto done;
@@ -13383,7 +13383,7 @@ static _Ret_maybenull_ LPCWSTR VRegScript_InternalGetRootName(
     _In_opt_ const HKEY hRoot
 )
 {
-    for (SIZE_T i = 0; i < sizeof(VREG_INTERNAL_ROOT_KEYS) / sizeof(VREG_INTERNAL_ROOT_KEYS[0]); ++i)
+    for (SIZE_T i = 0; i < ARRAYSIZE(VREG_INTERNAL_ROOT_KEYS); ++i)
     {
         if (VREG_INTERNAL_ROOT_KEYS[i].hKey == hRoot)
             return VREG_INTERNAL_ROOT_KEYS[i].pszLong;
@@ -13398,7 +13398,7 @@ static BOOL VRegInternalWStringView_FindRoot(
 )
 {
     *phRoot = NULL;
-    for (SIZE_T i = 0; i < sizeof(VREG_INTERNAL_ROOT_KEYS) / sizeof(VREG_INTERNAL_ROOT_KEYS[0]); ++i)
+    for (SIZE_T i = 0; i < ARRAYSIZE(VREG_INTERNAL_ROOT_KEYS); ++i)
     {
         const VRegScriptInternalRootKey* const pRoot = &VREG_INTERNAL_ROOT_KEYS[i];
         if (
