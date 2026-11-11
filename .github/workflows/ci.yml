@@ -77,7 +77,6 @@ jobs:
   # The core as a single header, the only form MinGW-w64 GCC builds: the CMake
   # build settings and the hooks need MSVC or clang-cl. The flags are those of
   # test/nocrt/CMakeLists.txt, which says why, in GCC's spelling.
-  # -Wno-unknown-pragmas: the header's MSVC pragmas are unknown to GCC.
   mingw:
     name: MinGW x64
     runs-on: windows-2025
@@ -91,7 +90,7 @@ jobs:
           gcc --version
           for optimization in -O0 -O2; do
             gcc "$optimization" -std=c99 -fno-builtin \
-              -Wall -Wextra -Werror -Wno-unknown-pragmas \
+              -Wall -Wextra -Werror \
               -I. test/nocrt/main.c test/nocrt/support.c test/nocrt/vreg_impl.c \
               -o nocrt.exe -nostdlib -Wl,-e,NoCrtMain -lkernel32 -ladvapi32
             ./nocrt.exe

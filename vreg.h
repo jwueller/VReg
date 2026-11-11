@@ -49,11 +49,6 @@
 
 #include <Windows.h>
 
-// The one SDK annotation the declarations carry that mingw-w64's sal.h lacks.
-#ifndef __out_data_source
-#define __out_data_source(src_sym)
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -65,7 +60,7 @@ extern "C" {
 // Raised with every change to this file. Tweak is unused (always 0).
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 19
-#define VREG_VERSION_PATCH 0
+#define VREG_VERSION_PATCH 1
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -75,6 +70,15 @@ extern "C" {
     ((ULONGLONG)VREG_VERSION_PATCH << 16) |                                    \
     ((ULONGLONG)VREG_VERSION_TWEAK <<  0)                                      \
 )
+
+// ==========================================================================
+// Annotations
+// ==========================================================================
+
+// The one SDK annotation the declarations carry that mingw-w64's sal.h lacks.
+#ifndef __out_data_source
+#define __out_data_source(src_sym)
+#endif
 
 // ==========================================================================
 // Linkage
@@ -1553,6 +1557,19 @@ extern "C" {
 #endif
 
 // ==========================================================================
+// Warnings
+// ==========================================================================
+
+// Suppresses one MSVC warning (a code analysis one too) for the line that
+// follows. A macro rather than the pragma it stands for, which GCC does not
+// know and warns about under -Wall.
+#ifdef _MSC_VER
+#define VREG_INTERNAL_SUPPRESS_WARNING(number) __pragma(warning(suppress: number))
+#else
+#define VREG_INTERNAL_SUPPRESS_WARNING(number)
+#endif
+
+// ==========================================================================
 // Allocation
 // ==========================================================================
 
@@ -2439,7 +2456,10 @@ VREG_INTERNAL_DECL LSTATUS VRegScript_InternalWriteWholeFile(
 
 VREG_INTERNAL_UNUSED_BEGIN
 
+// GCC has no such pragma: a consumer links advapi32 itself there.
+#ifdef _MSC_VER
 #pragma comment(lib, "advapi32")
+#endif
 
 // mingw-w64's winnt.h lacks the acquire and release intrinsics. Agent's
 // choice: macros rather than functions of these names, which would become
@@ -3400,7 +3420,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegOpenKeyExA(
         goto done;
 
     // Deliberately reads the _Out_ parameter, to restore it below.
-#pragma warning(suppress: 6001)
+    VREG_INTERNAL_SUPPRESS_WARNING(6001)
     hPrevious = phkResult ? *phkResult : NULL;
     status = VReg_RegOpenKeyExW(
         pRegistry,
@@ -3459,11 +3479,11 @@ VREG_DECL LSTATUS WINAPI VReg_RegCreateKeyExA(
         goto done;
 
     // Deliberately reads the _Out_ parameter, to restore it below.
-#pragma warning(suppress: 6001)
+    VREG_INTERNAL_SUPPRESS_WARNING(6001)
     hPrevious = phkResult ? *phkResult : NULL;
     // The annotation excludes a null subkey; one that is null anyway reaches
     // the wide form unchanged, which answers for it.
-#pragma warning(suppress: 6387)
+    VREG_INTERNAL_SUPPRESS_WARNING(6387)
     status = VReg_RegCreateKeyExW(
         pRegistry,
         hKey,
@@ -3536,7 +3556,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegQueryValueExA(
     }
 
     // Deliberately reads the _Out_ parameter: a failure below writes it back.
-#pragma warning(suppress: 6001)
+    VREG_INTERNAL_SUPPRESS_WARNING(6001)
     dwType = lpType ? *lpType : 0;
     cbSize = (!lpData && lpcbData) ? *lpcbData : 0;
     sized = VReg_RegQueryValueExW(
@@ -3749,7 +3769,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegDeleteKeyExA(
 
     // The annotation excludes a null subkey; one that is null anyway reaches
     // the wide form unchanged, which answers for it.
-#pragma warning(suppress: 6387)
+    VREG_INTERNAL_SUPPRESS_WARNING(6387)
     status = VReg_RegDeleteKeyExW(
         pRegistry,
         hKey,
@@ -3979,7 +3999,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegEnumValueA(
                 CopyMemory(lpData, text.pb, cbValue);
                 // The capacity is the caller's *lpcbData, which was overwritten
                 // above; cbBuffer holds it.
-#pragma warning(suppress: 6386)
+                VREG_INTERNAL_SUPPRESS_WARNING(6386)
                 if (cbValue < cbBuffer && lpData[cbValue - 1] != 0)
                     lpData[cbValue] = 0;
             }
@@ -4008,7 +4028,7 @@ done:
 
 // Native answers success without writing lpClass when only the class length is
 // asked for, which the annotation's terminator guarantee does not allow for.
-#pragma warning(suppress: 6054)
+VREG_INTERNAL_SUPPRESS_WARNING(6054)
 VREG_DECL LSTATUS WINAPI VReg_RegQueryInfoKeyA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
@@ -4149,7 +4169,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegLoadMUIStringA(
 
 // The SDK's _Post_z_ holds on every return, truncated reads and failures
 // included; the analyzer cannot see the terminators written at run time.
-#pragma warning(suppress: 6054)
+VREG_INTERNAL_SUPPRESS_WARNING(6054)
 VREG_DECL LSTATUS WINAPI VReg_RegGetValueA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hkey,
@@ -5134,7 +5154,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegDeleteKeyValueW(
 /// leaves the gaps alone and rounds the total up. When they do not all fit,
 /// native answers the wide form's total for the stored values.
 // The SDK types lpValueBuf as a string, but it holds binary values.
-#pragma warning(suppress: 6054)
+VREG_INTERNAL_SUPPRESS_WARNING(6054)
 VREG_DECL LSTATUS WINAPI VReg_RegQueryMultipleValuesA(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
@@ -5963,7 +5983,7 @@ static void VRegHive_InternalDropWatches(
     {
         // The array's count bounds its initialized elements, which the
         // analyzer cannot see past the reallocation.
-#pragma warning(suppress: 6001)
+        VREG_INTERNAL_SUPPRESS_WARNING(6001)
         CloseHandle(VREG_INTERNAL_AT(&pNode->watches, VRegHiveInternalChangeWatch, i).hEvent);
     }
 
@@ -5990,7 +6010,7 @@ static void VRegHive_InternalFire(
 
         // The array's count bounds its initialized elements, which the
         // analyzer cannot see past the reallocation.
-#pragma warning(suppress: 6001)
+        VREG_INTERNAL_SUPPRESS_WARNING(6001)
         const HANDLE hEvent = pWatch->hEvent;
         VRegInternalArray_RemoveAt(&pNode->watches, sizeof(*pWatch), i);
         SetEvent(hEvent);
@@ -9671,7 +9691,7 @@ VREG_DECL LSTATUS WINAPI VReg_RegLoadMUIStringW(
 
 // The slot's _Post_z_ on pvData holds on every return; the analyzer does not
 // carry it through the function pointer.
-#pragma warning(suppress: 6054)
+VREG_INTERNAL_SUPPRESS_WARNING(6054)
 VREG_DECL LSTATUS WINAPI VReg_RegGetValueW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hkey,
@@ -11130,7 +11150,7 @@ done:
 
 // Native answers success without writing lpClass when *lpcchClass is zero,
 // which the annotation's terminator guarantee does not allow for.
-#pragma warning(suppress: 6054)
+VREG_INTERNAL_SUPPRESS_WARNING(6054)
 static LSTATUS WINAPI VReg_InternalVirtualRegQueryInfoKeyW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
@@ -11420,7 +11440,7 @@ done:
 
 // Native leaves pszOutBuf untouched on failure, which the terminator its
 // LPWSTR type implies does not allow for.
-#pragma warning(suppress: 6054)
+VREG_INTERNAL_SUPPRESS_WARNING(6054)
 static LSTATUS WINAPI VReg_InternalVirtualRegLoadMUIStringW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hKey,
@@ -11554,7 +11574,7 @@ static BOOL VRegInternalBuffer_IsNulAt(
 
 // The SDK's _Post_z_ holds on every return, truncated reads and failures
 // included; the analyzer cannot see the terminators written at run time.
-#pragma warning(suppress: 6054)
+VREG_INTERNAL_SUPPRESS_WARNING(6054)
 static LSTATUS WINAPI VReg_InternalVirtualRegGetValueW(
     _In_ VReg* const pRegistry,
     _In_ const HKEY hkey,
@@ -14346,7 +14366,7 @@ static LSTATUS WINAPI VRegHooks_InternalRegLoadMUIStringW(
 
 // The SDK's _Post_z_ on pvData holds on every return; the analyzer does not
 // carry it through the flat function.
-#pragma warning(suppress: 6054)
+VREG_INTERNAL_SUPPRESS_WARNING(6054)
 static LSTATUS WINAPI VRegHooks_InternalRegGetValueW(
     _In_ const HKEY hkey,
     _In_opt_ const LPCWSTR lpSubKey,
@@ -14640,7 +14660,7 @@ static LSTATUS WINAPI VRegHooks_InternalRegLoadMUIStringA(
 
 // The SDK's _Post_z_ on pvData holds on every return; the analyzer does not
 // carry it through the flat function.
-#pragma warning(suppress: 6054)
+VREG_INTERNAL_SUPPRESS_WARNING(6054)
 static LSTATUS WINAPI VRegHooks_InternalRegGetValueA(
     _In_ const HKEY hkey,
     _In_opt_ const LPCSTR lpSubKey,

@@ -124,9 +124,7 @@ is included, with `<detours/detours.h>` on the include path and the Detours
 library linked.
 
 MinGW-w64 GCC compiles the single header without the hooks; the CMake
-targets need MSVC or clang-cl. Link `advapi32` yourself there, and pass
-`-Wno-unknown-pragmas` under `-Wall`: the header's MSVC pragmas are unknown
-to GCC.
+targets need MSVC or clang-cl. Link `advapi32` yourself there.
 
 ### Overlay over the real registry
 
