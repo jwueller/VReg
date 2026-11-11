@@ -5540,7 +5540,7 @@ static BOOL CALLBACK VReg_InternalInitProcessHandleSpace(
     // out handles that overlap theirs.
     static const wchar_t wszPrefix[] = L"Local\\VReg-handles-";
     wchar_t wszName[64];
-    SIZE_T cchPrefix = sizeof(wszPrefix) / sizeof(wszPrefix[0]) - 1;
+    const SIZE_T cchPrefix = sizeof(wszPrefix) / sizeof(wszPrefix[0]) - 1;
 
     (void)pInitOnce;
     (void)pParameter;
@@ -7591,7 +7591,6 @@ static LSTATUS VRegHive_InternalQueryUpperValue(
 {
     const BOOL isLocked = VRegHive_InternalLockRead(pHive);
     LSTATUS status = ERROR_SUCCESS;
-    const VRegHiveInternalValue* pValue;
 
     *pIsFound = TRUE;
     *pIsVisible = FALSE;
@@ -7603,7 +7602,7 @@ static LSTATUS VRegHive_InternalQueryUpperValue(
     }
     else
     {
-        pValue = VRegHive_InternalFindValue(pNode, name);
+        const VRegHiveInternalValue* const pValue = VRegHive_InternalFindValue(pNode, name);
         if (!pValue)
         {
             *pIsFound = FALSE;
@@ -8919,18 +8918,11 @@ static void WINAPI VRegHiveInternalRegistryLower_Destroy(
 // check a key, so those slots stay null; the hive opens its lower through
 // @ref VRegHiveInternalRegistryLower_OpenAs, so the open slot does too.
 static const VRegHiveVtbl g_VRegHiveVtbl_RegistryLower = {
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    &VRegHiveInternalRegistryLower_QueryValue,
-    NULL,
-    NULL,
-    &VRegHiveInternalRegistryLower_EnumKey,
-    &VRegHiveInternalRegistryLower_EnumValue,
-    &VRegHiveInternalRegistryLower_QueryInfo,
-    NULL,
-    &VRegHiveInternalRegistryLower_Destroy,
+    .QueryValue = &VRegHiveInternalRegistryLower_QueryValue,
+    .EnumKey = &VRegHiveInternalRegistryLower_EnumKey,
+    .EnumValue = &VRegHiveInternalRegistryLower_EnumValue,
+    .QueryInfo = &VRegHiveInternalRegistryLower_QueryInfo,
+    .Destroy = &VRegHiveInternalRegistryLower_Destroy,
 };
 
 VREG_DECL LSTATUS WINAPI VRegHive_CreateOverlay(
@@ -12505,7 +12497,6 @@ static LSTATUS VRegScript_InternalWalkKey(
         {
             VRegInternalWString_Free(&entry.name);
             VRegInternalBuffer_Free(&entry.data);
-            status = ERROR_SUCCESS;
             break;
         }
         if (status == ERROR_SUCCESS && !VRegScript_InternalInsertValueSorted(&values, &entry))
@@ -13059,7 +13050,7 @@ static LSTATUS VRegScriptInternalParser_ReadLogicalLine(
     // the next one; a complete quoted string ends in its closing quote.
     while (current + 1 < pLines->count)
     {
-        VRegInternalWStringView joined = VRegInternalWStringView_TrimEnd(VRegInternalWString_GetView(&pParser->text));
+        const VRegInternalWStringView joined = VRegInternalWStringView_TrimEnd(VRegInternalWString_GetView(&pParser->text));
         VRegInternalWStringView next;
         if (joined.cch == 0 || joined.pch[joined.cch - 1] != L'\\')
             break;
@@ -13506,11 +13497,13 @@ VREG_DECL LSTATUS WINAPI VRegScript_ParseFile(
 
 /// Every root a `.reg` file can name, the one list import and export share.
 static const VRegScriptInternalRootKey VREG_INTERNAL_ROOT_KEYS[] = {
-    {L"HKEY_CLASSES_ROOT", L"HKCR", HKEY_CLASSES_ROOT},
-    {L"HKEY_CURRENT_USER", L"HKCU", HKEY_CURRENT_USER},
-    {L"HKEY_LOCAL_MACHINE", L"HKLM", HKEY_LOCAL_MACHINE},
-    {L"HKEY_USERS", L"HKU", HKEY_USERS},
-    {L"HKEY_CURRENT_CONFIG", L"HKCC", HKEY_CURRENT_CONFIG},
+    // @formatter:off
+    {.pszLong = L"HKEY_CLASSES_ROOT",   .pszShort = L"HKCR", .hKey = HKEY_CLASSES_ROOT},
+    {.pszLong = L"HKEY_CURRENT_USER",   .pszShort = L"HKCU", .hKey = HKEY_CURRENT_USER},
+    {.pszLong = L"HKEY_LOCAL_MACHINE",  .pszShort = L"HKLM", .hKey = HKEY_LOCAL_MACHINE},
+    {.pszLong = L"HKEY_USERS",          .pszShort = L"HKU",  .hKey = HKEY_USERS},
+    {.pszLong = L"HKEY_CURRENT_CONFIG", .pszShort = L"HKCC", .hKey = HKEY_CURRENT_CONFIG},
+    // @formatter:on
 };
 
 static _Ret_maybenull_ LPCWSTR VRegScript_InternalGetRootName(
@@ -13630,7 +13623,7 @@ VREG_DECL _Ret_notnull_ const VRegOperation* WINAPI VRegScript_GetOperations(
     _Out_ SIZE_T* const pcOperations
 )
 {
-    static const VRegOperation NONE = {VREG_OPERATION_CREATE_KEY, NULL, L"", L"", 0, NULL, 0, 0};
+    static const VRegOperation NONE = {.kind = VREG_OPERATION_CREATE_KEY, .pszPath = L"", .pszName = L""};
     *pcOperations = pScript->operations.count;
     return pScript->operations.count == 0 ? &NONE : (const VRegOperation*)pScript->operations.p;
 }
