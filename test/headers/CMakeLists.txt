@@ -6,13 +6,27 @@ if(TARGET VReg_Detours)
 endif()
 
 function(vreg_header_check name)
-    cmake_parse_arguments(PARSE_ARGV 1 check "NO_HOOKS" "" "")
+    cmake_parse_arguments(PARSE_ARGV 1 check "NO_HOOKS;STATIC" "" "")
     set(target VReg_HeaderCheck_${name})
 
     add_library(${target} OBJECT
         header_check.c
         header_check.cpp
     )
+
+    if(check_STATIC)
+        # MSVC reports unused static functions of C++ only, and clang does not
+        # take the implementation as C++.
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+            target_sources(${target} PRIVATE
+                static_check.cpp
+            )
+        endif()
+
+        target_compile_definitions(${target} PRIVATE
+            VREG_STATIC
+        )
+    endif()
 
     # Deliberately not VReg::VReg: a consumer of the single header has
     # nothing but the file.
@@ -76,3 +90,7 @@ endforeach()
 # The implementation without the hooks: the private functions only the hooks
 # call must not be left unused there.
 vreg_header_check(NoHooks NO_HOOKS)
+
+# Under VREG_STATIC every public function is static, and the consumer calls
+# none: the library's own definitions must not be reported as unused.
+vreg_header_check(Static STATIC)

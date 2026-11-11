@@ -87,6 +87,32 @@ extern "C" {
 #define VREG_DECL extern
 #endif
 
+// Under VREG_STATIC a consumer that calls only some public functions would
+// be warned about the rest: by MSVC in C++ at each definition (C4505) and by
+// clang at each declaration and definition. The bracket around VReg's own
+// declarations and definitions confines the suppression to them, so the
+// consumer's code after the include keeps the warning.
+#ifdef VREG_STATIC
+#ifdef __clang__
+#define VREG_INTERNAL_UNUSED_BEGIN \
+    _Pragma("clang diagnostic push") \
+    _Pragma("clang diagnostic ignored \"-Wunused-function\"")
+#define VREG_INTERNAL_UNUSED_END \
+    _Pragma("clang diagnostic pop")
+#else
+#define VREG_INTERNAL_UNUSED_BEGIN \
+    __pragma(warning(push)) \
+    __pragma(warning(disable: 4505))
+#define VREG_INTERNAL_UNUSED_END \
+    __pragma(warning(pop))
+#endif
+#else
+#define VREG_INTERNAL_UNUSED_BEGIN
+#define VREG_INTERNAL_UNUSED_END
+#endif
+
+VREG_INTERNAL_UNUSED_BEGIN
+
 // ==========================================================================
 // Handles
 // ==========================================================================
@@ -1490,6 +1516,8 @@ VREG_DECL void WINAPI VRegHooks_Neutralize(void);
 } // extern "C"
 #endif
 
+VREG_INTERNAL_UNUSED_END
+
 #endif // VREG_H_INCLUDED
 
 #ifdef VREG_IMPLEMENTATION
@@ -2433,6 +2461,8 @@ VREG_INTERNAL_DECL LSTATUS VRegScript_InternalWriteWholeFile(
 #ifdef VREG_IMPLEMENTATION
 #ifndef VREG_IMPLEMENTATION_INCLUDED
 #define VREG_IMPLEMENTATION_INCLUDED
+
+VREG_INTERNAL_UNUSED_BEGIN
 
 #pragma comment(lib, "advapi32")
 
@@ -14172,6 +14202,8 @@ VREG_DECL LSTATUS WINAPI VRegScript_WriteFile(
     return status;
 }
 
+VREG_INTERNAL_UNUSED_END
+
 #endif // VREG_IMPLEMENTATION_INCLUDED
 #endif // VREG_IMPLEMENTATION
 
@@ -14179,6 +14211,8 @@ VREG_DECL LSTATUS WINAPI VRegScript_WriteFile(
 #ifdef VREG_INTERNAL_HOOKS_IMPLEMENTATION
 #ifndef VREG_INTERNAL_HOOKS_IMPLEMENTATION_INCLUDED
 #define VREG_INTERNAL_HOOKS_IMPLEMENTATION_INCLUDED
+
+VREG_INTERNAL_UNUSED_BEGIN
 
 // ==========================================================================
 // Hooks
@@ -15920,6 +15954,8 @@ VREG_DECL void WINAPI VRegHooks_Neutralize(void)
 }
 
 #undef VREG_INTERNAL_REFUSED_HOOKS
+
+VREG_INTERNAL_UNUSED_END
 
 #endif // VREG_INTERNAL_HOOKS_IMPLEMENTATION_INCLUDED
 #endif // VREG_INTERNAL_HOOKS_IMPLEMENTATION
