@@ -1,9 +1,9 @@
 // Everything the library links against besides Windows' import libraries.
 // The compiler turns CopyMemory, MoveMemory, ZeroMemory, structure copies
 // and initializers into calls to these three; nothing else is needed on x86,
-// x64 or ARM64, with the security cookie (/GS), run-time checks (/RTC) and
-// stack probes (__chkstk) off. A function the library starts to call from
-// the C runtime stays unresolved here, which fails the link.
+// x64 or ARM64, with what CMakeLists.txt switches off. A function the
+// library starts to call from the C runtime stays unresolved here, which
+// fails the link.
 //
 // ntdll.lib would supply all three too, but it exports most of the C string
 // functions as well, so a new dependency on one would link and hide.

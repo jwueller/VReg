@@ -33,6 +33,9 @@ set(CMAKE_C_STANDARD_LIBRARIES "")
 # - /RTC1 (Debug) calls _RTC_InitBase, _RTC_Shutdown and _RTC_CheckStackVars.
 # - clang's loop idiom recognition turns the library's string length loops
 #   into strlen and wcslen calls at -O2; -fno-builtin stops it.
+# - MSVC for ARM64 compiles the Interlocked* intrinsics into calls to C
+#   runtime functions that pick the instructions at run time
+#   (/forceInterlockedFunctions, known to cl 19.44 and later).
 # Not switched off: stack probes (__chkstk) and 64-bit arithmetic helpers
 # (_allmul), which the library's frames and arithmetic never call for.
 string(REPLACE "/RTC1" "" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
@@ -41,6 +44,14 @@ target_compile_options(VReg_NoCrt PRIVATE
     /GS-
     $<$<C_COMPILER_ID:Clang>:/clang:-fno-builtin>
 )
+
+if(CMAKE_C_COMPILER_ID STREQUAL "MSVC"
+        AND CMAKE_C_COMPILER_ARCHITECTURE_ID STREQUAL "ARM64"
+        AND CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 19.44)
+    target_compile_options(VReg_NoCrt PRIVATE
+        /forceInterlockedFunctions-
+    )
+endif()
 
 target_link_options(VReg_NoCrt PRIVATE
     /NODEFAULTLIB
