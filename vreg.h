@@ -60,7 +60,7 @@ extern "C" {
 // Raised with every change to this file. Tweak is unused (always 0).
 #define VREG_VERSION_MAJOR 0
 #define VREG_VERSION_MINOR 19
-#define VREG_VERSION_PATCH 2
+#define VREG_VERSION_PATCH 3
 #define VREG_VERSION_TWEAK 0
 
 // Packed as MAKEDLLVERULL packs them, spelled out so no Shlwapi.h is needed.
@@ -3104,7 +3104,7 @@ static BOOL VRegInternalArray_ContainsWStringSorted(
 /// before VReg runs and resolution finds it without loading anything. The
 /// address is taken in a function body: an initializer would need the import
 /// thunk's address, which C does not guarantee to be constant.
-static void* volatile g_VReg_pfnImportAdvapi32;
+static LSTATUS (WINAPI* volatile g_VReg_pfnImportAdvapi32)(HKEY hKey, LPCWSTR lpSubKey, PHKEY phkResult);
 
 /// Ordinal comparison of two export names: negative, zero or positive.
 static int VReg_InternalCompareExportNames(
@@ -3174,7 +3174,7 @@ VREG_INTERNAL_DECL _Ret_maybenull_ void* VReg_InternalFindRegistryExport(
 )
 {
     void* const pFunction = VReg_InternalFindExport(GetModuleHandleW(L"KernelBase.dll"), pszName);
-    g_VReg_pfnImportAdvapi32 = (void*)&RegOpenKeyW;
+    g_VReg_pfnImportAdvapi32 = &RegOpenKeyW;
     if (pFunction)
         return pFunction;
 
@@ -14096,8 +14096,24 @@ VREG_INTERNAL_UNUSED_BEGIN
 #include <detours/detours.h>
 
 // Detours takes hook bodies and trampolines as data pointers, and the thunks
-// are bytes; the conversions below are what its API is made of.
-#pragma warning(disable: 4054 4055 4152)
+// are bytes; the conversions below are what its API is made of. MSVC warns
+// about each by number and GCC under -Wpedantic. The bracket ends with the
+// hooks, so the consumer's code after the include keeps the warnings.
+#ifdef _MSC_VER
+#define VREG_INTERNAL_POINTER_CASTS_BEGIN \
+    __pragma(warning(push)) \
+    __pragma(warning(disable: 4054 4055 4152))
+#define VREG_INTERNAL_POINTER_CASTS_END \
+    __pragma(warning(pop))
+#else
+#define VREG_INTERNAL_POINTER_CASTS_BEGIN \
+    _Pragma("GCC diagnostic push") \
+    _Pragma("GCC diagnostic ignored \"-Wpedantic\"")
+#define VREG_INTERNAL_POINTER_CASTS_END \
+    _Pragma("GCC diagnostic pop")
+#endif
+
+VREG_INTERNAL_POINTER_CASTS_BEGIN
 
 // Every `Reg*` export that accepts a key handle is hooked; the README's
 // "Supported functions" lists each group. The functions refused on virtual
@@ -15837,6 +15853,8 @@ VREG_DECL void WINAPI VRegHooks_Neutralize(void)
 }
 
 #undef VREG_INTERNAL_REFUSED_HOOKS
+
+VREG_INTERNAL_POINTER_CASTS_END
 
 VREG_INTERNAL_UNUSED_END
 

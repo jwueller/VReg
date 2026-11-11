@@ -90,7 +90,7 @@ jobs:
           gcc --version
           for optimization in -O0 -O2; do
             gcc "$optimization" -std=c99 -fno-builtin \
-              -Wall -Wextra -Werror \
+              -Wall -Wextra -Werror -pedantic \
               -I. test/nocrt/main.c test/nocrt/support.c test/nocrt/vreg_impl.c \
               -o nocrt.exe -nostdlib -Wl,-e,NoCrtMain -lkernel32 -ladvapi32
             ./nocrt.exe
